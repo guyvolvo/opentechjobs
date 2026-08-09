@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-09T00:00:00Z",
+  "title": "Design System: OpenMarketIL",
+  "extensions": {
+    "colorMeta": {
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#ffffff", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#0a0a0a", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
+      "signal-green": { "role": "primary", "displayName": "Signal Green", "canonical": "#1c7c3f", "tonalRamp": ["#0e3e20", "#1a743b", "#26a655", "#37d270", "#69dd93", "#97e8b4", "#c1f1d2", "#eafaf0"] },
+      "muted-grey": { "role": "neutral", "displayName": "Muted Grey", "canonical": "#6b6b6b", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
+      "hairline-grey": { "role": "neutral", "displayName": "Hairline Grey", "canonical": "#d4d4d4", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
+      "alert-red": { "role": "error", "displayName": "Alert Red", "canonical": "#b8362c", "tonalRamp": ["#3e120f", "#73221c", "#a53027", "#d04439", "#dc736b", "#e69e98", "#f0c5c1", "#faecea"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Wordmark and the two section titles only -- never at data-dense sizes." },
+      "body": { "displayName": "Body", "purpose": "Filters, table cells, panel prose, buttons -- everything data-dense." },
+      "label": { "displayName": "Label", "purpose": "Uppercase micro-labels: column headers, panel titles, chips, result count, topnav." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "torch-flicker", "value": "steps(1) 1.6s infinite, hand-placed irregular opacity keyframes (6%, 11%, 19%, 27%, 33%, 41%, 52%, 58%, 69%, 74%, 83%, 89%)", "purpose": "Live-status dot -- jump-cut flicker meant to read as a torch/redstone lamp, not a smooth pulse." },
+      { "name": "ticker-scroll", "value": "translateX(0) to translateX(-50%), linear, duration scales with item count (items * 4s)", "purpose": "Seamless looping marquee of the board's own current top listings." }
+    ],
+    "breakpoints": [
+      { "name": "tablet-stack", "value": "960px" },
+      { "name": "phone-stack", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Default action button -- ink surface, inverts to signal green on hover.",
+      "html": "<button class=\"ds-btn-primary\">Reset</button>",
+      "css": ".ds-btn-primary { border: var(--rule) solid var(--black); background: var(--black); color: var(--white); height: 38px; padding: 0 16px; font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer; } .ds-btn-primary:hover, .ds-btn-primary:focus-visible { background: var(--green); border-color: var(--green); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action button -- paper surface, fully inverts to ink on hover (mirror of Primary's hover, not a separate treatment).",
+      "html": "<button class=\"ds-btn-ghost\">Reset</button>",
+      "css": ".ds-btn-ghost { border: var(--rule) solid var(--black); background: var(--white); color: var(--black); height: 38px; padding: 0 16px; font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer; } .ds-btn-ghost:hover, .ds-btn-ghost:focus-visible { background: var(--black); color: var(--white); border-color: var(--black); }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Active single-value filter pill (e.g. the company filter) -- green by default, inverts to ink on hover.",
+      "html": "<button class=\"ds-chip\">snyk.io <span aria-hidden=\"true\">✕</span></button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--green); color: var(--white); border: var(--rule) solid var(--green); font-family: var(--font); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 10px; cursor: pointer; } .ds-chip:hover, .ds-chip:focus-visible { background: var(--black); border-color: var(--black); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Search/keyword filter field -- 2px ink border, inset green focus ring.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"SEARCH TITLE, COMPANY, LOCATION…\" />",
+      "css": ".ds-input { border: var(--rule) solid var(--black); background: var(--white); color: var(--black); padding: 9px 10px; height: 38px; width: 100%; font-family: var(--font); font-size: 13px; } .ds-input:focus { outline: 2px solid var(--green); outline-offset: -2px; }"
+    },
+    {
+      "name": "Metric Card",
+      "kind": "card",
+      "refersTo": "metric-card",
+      "description": "One tile in the top metrics strip -- part of the black-hairline card grid, not individually bordered.",
+      "html": "<div class=\"ds-metric-card\"><div class=\"ds-metric-label\">Open Listings</div><div class=\"ds-metric-value\">3,897</div></div>",
+      "css": ".ds-metric-card { background: var(--white); color: var(--black); padding: 18px 16px; min-height: 116px; display: flex; flex-direction: column; justify-content: space-between; } .ds-metric-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--grey); } .ds-metric-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 10px; color: var(--black); }"
+    },
+    {
+      "name": "Status Dot",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature live-status indicator -- square block, jump-cut torch flicker while live, goes solid alert-red with animation killed outright when stale.",
+      "html": "<span class=\"ds-status-dot\"></span>",
+      "css": ".ds-status-dot { width: 8px; height: 8px; background: var(--green); display: inline-block; animation: ds-torch-flicker 1.6s steps(1) infinite; } .ds-status-dot.ds-stale { background: var(--red); animation: none; } @keyframes ds-torch-flicker { 0%, 100% { opacity: 1; } 6% { opacity: 0.8; } 11% { opacity: 1; } 19% { opacity: 0.55; } 27% { opacity: 1; } 33% { opacity: 0.85; } 41% { opacity: 1; } 52% { opacity: 0.7; } 58% { opacity: 1; } 69% { opacity: 0.9; } 74% { opacity: 1; } 83% { opacity: 0.6; } 89% { opacity: 1; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Exchange Ticker",
+    "overview": "A market terminal, not a careers site: white paper, black ink, a single green reserved for the one number or status that matters right now, and a scrolling headline strip up top like a ticker tape. Everything reads as a live instrument panel over a job market, not as a brand experience -- density and legibility win over warmth every time there's a conflict between them. The one indulgence is a single pixel-grid display face, kept to two places (the wordmark and the two section titles) so it reads as a signature, not a typeface choice bleeding into body text.",
+    "keyCharacteristics": [
+      "Flat, two-tone (white/black) surfaces with color used as signal, not decoration",
+      "Depth built entirely from 2px black hairline grids, never shadows",
+      "One pixel-grid display face for brand moments; Helvetica for everything data-dense",
+      "Light/dark is a total token inversion, not a second palette",
+      "A live-status vocabulary (the ticker, the status-dot torch flicker) borrowed from terminals/dashboards, not marketing sites"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "Green marks exactly one \"this matters\" element at a time. If everything is green, nothing is -- it never appears as decoration, only on live status, primary metrics, and the handful of buttons/links that actually do something.", "section": "colors" },
+      { "name": "The Straight Swap Rule", "body": "Light and dark mode are not two palettes -- --white/--black (and everything derived from them) simply invert their hex values under [data-theme=\"dark\"]. Every rule in the system reads the token, never a literal hex, so the swap is total; a hardcoded #fff/#000 anywhere breaks dark mode for that one element.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Helvetica (--font) carries everything dense; Monocraft (--font-display) is reserved for exactly two brand-level spots. No third typeface is part of the system.", "section": "typography" },
+      { "name": "The No-Shadow Rule", "body": "The black rules between cards are the only depth cue this design uses. A shadow anywhere is a bug, not a style choice.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep border-radius at 0 everywhere, no exceptions.",
+      "Do build all depth/separation from the 2px black rule grid or a 1px hairline -- never a shadow.",
+      "Do read every color from a var(--token), never a literal hex, so the light/dark straight-swap stays total.",
+      "Do keep green to exactly one \"this matters most\" element at a time.",
+      "Do keep Monocraft scoped to the wordmark and the two section titles only -- never at data-dense sizes.",
+      "Do let --gutter's clamp() drive side padding instead of a fixed max-width container, so the page keeps scaling at ultra-wide widths.",
+      "Do give any element holding an unbreakable-width child (a curl command, a long label) min-width: 0."
+    ],
+    "donts": [
+      "Don't add a second accent color. Signal Green is the only one; a second dilutes what green means everywhere else.",
+      "Don't use Alert Red outside the offline-status dot and the error-state banner -- it has exactly two meanings today.",
+      "Don't introduce a third typeface without folding it into the Two-Voice Rule as a named, scoped exception -- an unscoped one-off is exactly how \"two voices\" quietly becomes three.",
+      "Don't reach for box-shadow for elevation, ever, even subtly -- the one prior violation (a smoothly-pulsing circular status dot) was treated as a bug and corrected, not kept as a soft exception."
+    ]
+  }
+}

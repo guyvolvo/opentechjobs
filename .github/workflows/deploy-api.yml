@@ -1,0 +1,46 @@
+name: deploy-api
+
+# Ships api/ code changes to the already-existing Lambda function without
+# a full Terraform apply -- Terraform owns the function's existence/config
+# (infra/lambda.tf), this workflow owns what code is running in it. Keeps
+# "I changed a query" from requiring a full infra plan/apply cycle.
+
+on:
+  push:
+    branches: [main]
+    paths: ["api/**"]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip api/
+        run: |
+          cd api
+          zip -r ../api.zip . -x "__pycache__/*" -x "README.md"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.API_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ vars.LAMBDA_FUNCTION_NAME }} \
+            --zip-file fileb://api.zip
+
+      - name: Wait for update to finish
+        run: |
+          aws lambda wait function-updated \
+            --function-name ${{ vars.LAMBDA_FUNCTION_NAME }}

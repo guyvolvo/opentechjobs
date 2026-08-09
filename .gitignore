@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Terraform
+infra/.terraform/
+infra/**/.terraform/
+infra/build/
+*.tfstate
+*.tfstate.*
+crash.log
+# NOTE: .terraform.lock.hcl is deliberately NOT ignored -- it pins provider
+# versions and should be committed for reproducible applies.
+
+# generated/local artifacts -- these are build outputs, not source
+resolved.json
+batch_summary.txt
+loader/jobs.db
+api_test/
+*.db

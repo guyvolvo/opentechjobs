@@ -1,0 +1,47 @@
+name: deploy-frontend
+
+# Ships frontend/ to the frontend S3 bucket without a full Terraform apply
+# -- same split as deploy-api.yml: Terraform owns the bucket/distribution's
+# existence (infra/), this workflow owns what's actually in the bucket.
+#
+# --delete makes this a mirror, not an accumulate: a file removed from
+# frontend/ gets removed from the bucket too, not left there orphaned.
+# The CloudFront invalidation is what makes a push actually visible --
+# without it, viewers would keep getting the old index.html/app.js from
+# cache.default_ttl (see cloudfront.tf's default behavior -- the frontend
+# path uses the managed CachingOptimized policy, which caches far longer
+# than the /api/* behavior's 120s).
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**"]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.FRONTEND_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync frontend/ to S3
+        run: |
+          aws s3 sync frontend/ "s3://${{ vars.FRONTEND_BUCKET }}/" --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"

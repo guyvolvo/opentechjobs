@@ -1,0 +1,84 @@
+name: scrape-discover
+
+# The SLOW, expensive pipeline: full guess-and-verify token candidates
+# against every ATS, plus the Comeet careers-page scrape and the
+# embed/JobPosting-JSON-LD fallback, across every domain in domains.txt --
+# this is what finds a company's ATS in the first place. Minutes, not
+# seconds (comeet-scrape + embed-scrape alone are ~10-15 min over ~350
+# domains), which is exactly why it does NOT run on scrape-fast.yml's
+# cadence: a company's ATS platform doesn't change minute to minute, so
+# there's nothing to gain from re-discovering it constantly, only cost.
+#
+# Once a company resolves here, scrape-fast.yml re-polls it directly
+# (no guessing) on a tight schedule from then on -- see loader.py's
+# export_known(), which is what makes that split possible: every load
+# here re-derives known.json so the *next* fast-poll run picks up
+# anything newly discovered immediately, not on some separate delay.
+#
+# Automated discovery of NEW company domains (finding companies to ADD to
+# domains.txt, as opposed to finding the ATS for domains already in it)
+# is a different, still-manual process -- Common Crawl/crt.sh-based
+# automation is a real idea from the original brief but isn't built yet.
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # once/day, offset from midnight UTC
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install requests pyyaml boto3
+
+      - name: Full probe -- guess, Comeet scrape, embed/JSON-LD fallback
+        run: python probe.py --batch domains.txt --json > resolved.json
+
+      - name: Report hit rate
+        run: |
+          python -c "
+          import json
+          data = json.load(open('resolved.json', encoding='utf-8'))
+          hits = [r for r in data if r.get('ats')]
+          by_ats = {}
+          for r in hits:
+              by_ats[r['ats']] = by_ats.get(r['ats'], 0) + 1
+          print(f'{len(hits)}/{len(data)} resolved')
+          for a, n in sorted(by_ats.items(), key=lambda kv: -kv[1]):
+              print(f'  {a:<18} {n}')
+          print(f'  total jobs      {sum(r[\"job_count\"] for r in hits)}')
+          "
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Load into jobs.db, re-derive known.json, push both to S3
+        run: |
+          python loader/load_to_sqlite.py \
+            --resolved resolved.json \
+            --out jobs.db \
+            --bucket ${{ vars.DATA_BUCKET }} \
+            --key jobs.db
+
+      - name: Upload resolved.json as a build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: resolved-json
+          path: resolved.json
+          retention-days: 14

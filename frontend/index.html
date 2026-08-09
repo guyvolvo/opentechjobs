@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenMarketIL: Israeli Tech Job Board</title>
+  <meta name="description" content="OpenMarketIL: open-source Israeli tech job board scraped directly from ATS APIs. No accounts, no paywall. Poll the API yourself." />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    // Applied before first paint so there's no flash of the wrong theme
+    // on reload -- app.js still owns the toggle button/click handling.
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container">
+      <a class="wordmark" href="/">OpenMarket<span class="accent">IL</span></a>
+      <div class="ticker-rule"></div>
+      <div class="ticker" id="ticker" aria-label="Recently posted jobs">
+        <div class="ticker-track" id="ticker-track"></div>
+      </div>
+      <div class="ticker-rule"></div>
+      <nav class="topnav">
+        <span><span id="status-dot" class="status-dot"></span><span id="status-text">...</span></span>
+        <button id="theme-toggle" class="theme-toggle" type="button">Dark</button>
+        <a class="link" href="/api/jobs" target="_blank">API</a>
+        <a class="link" href="https://github.com" target="_blank" rel="noopener">SOURCE</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <section class="section" id="board">
+      <div class="container">
+        <h2 class="section-title">Job Board</h2>
+
+        <div class="filters">
+          <input type="text" id="f-q" placeholder="SEARCH TITLE, COMPANY, LOCATION…" />
+          <input type="text" id="f-keywords" placeholder="KEYWORDS" title="Semicolon-separated, e.g. azure;excel;iso -- a job must mention all of them" />
+          <div class="ms" id="ms-department"></div>
+          <div class="ms" id="ms-seniority"></div>
+          <div class="ms" id="ms-company"></div>
+          <div class="ms" id="ms-location"></div>
+          <div class="ms" id="ms-workplace"></div>
+          <label class="toggle"><input type="checkbox" id="f-israel" checked /> IL only</label>
+          <label class="toggle"><input type="checkbox" id="f-starred" /> ★ starred</label>
+          <button class="btn ghost" id="f-reset">Reset</button>
+        </div>
+
+        <button id="company-chip" class="chip" style="display:none" title="Clear company filter">
+          <span class="chip-label"></span> ✕
+        </button>
+        <div id="result-count" class="result-count"></div>
+
+        <div id="jobs-loading" class="loading-state" style="display:none">Loading listings…</div>
+        <div id="jobs-error" class="error-state" style="display:none"></div>
+        <div id="jobs-empty" class="empty-state" style="display:none">No listings match these filters.</div>
+
+        <table class="jobs">
+          <thead>
+            <tr>
+              <th></th>
+              <th data-sort="title">Title</th>
+              <th data-sort="location">Location</th>
+              <th>Role</th>
+              <th data-sort="age">Age</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-body"></tbody>
+        </table>
+
+        <div class="pagination" id="pagination">
+          <span id="pagination-info"></span>
+          <div class="pages" id="pagination-pages"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="stats-board" id="stats-board">
+      <h2 class="section-title">Market Stats</h2>
+
+      <div id="metrics-grid" class="metrics-grid">
+        <div class="loading-state" style="grid-column:1/-1">Loading metrics…</div>
+      </div>
+
+      <div id="panel-grid" class="panel-grid">
+        <div class="panel">
+          <div class="loading-state">Loading market panels…</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    <div class="container">
+      <p class="footer-note">No auth, no rate-limit tier beyond what CloudFront's edge cache absorbs. Scraping is done at 10 minute intervals.</p>
+
+      <div class="api-ref">
+        <h3>API Reference</h3>
+
+        <div class="api-endpoint">
+          <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/jobs</span></div>
+          <p>Search and filter job listings.</p>
+          <table class="api-params">
+            <tbody>
+              <tr><td><span class="param">q</span></td><td>Free-text match against title, company, location, department.</td></tr>
+              <tr><td><span class="param">keywords</span></td><td>Semicolon-separated terms, ALL must appear, e.g. <span class="param">azure;excel;iso</span>. Matched against title and description.</td></tr>
+              <tr><td><span class="param">ats</span></td><td>Comma-separated ATS names, e.g. <span class="param">greenhouse,lever</span>.</td></tr>
+              <tr><td><span class="param">company</span></td><td>Comma-separated company domains.</td></tr>
+              <tr><td><span class="param">department</span></td><td>Comma-separated departments.</td></tr>
+              <tr><td><span class="param">seniority</span></td><td>Comma-separated levels.</td></tr>
+              <tr><td><span class="param">location</span></td><td>Comma-separated locations.</td></tr>
+              <tr><td><span class="param">workplace</span></td><td>Comma-separated workplace types: <span class="param">remote</span>, <span class="param">hybrid</span>, <span class="param">onsite</span>.</td></tr>
+              <tr><td><span class="param">confidence</span></td><td><span class="param">verified</span> (default), <span class="param">best_effort</span>, or <span class="param">all</span>.</td></tr>
+              <tr><td><span class="param">israel_only</span></td><td><span class="param">1</span> to restrict to Israeli locations.</td></tr>
+              <tr><td><span class="param">include_closed</span></td><td><span class="param">1</span> to include closed listings. Default excludes them.</td></tr>
+              <tr><td><span class="param">include_stale</span></td><td><span class="param">1</span> to include listings past the freshness window. Default excludes them.</td></tr>
+              <tr><td><span class="param">min_age_days</span> / <span class="param">max_age_days</span></td><td>Filter by days since posting.</td></tr>
+              <tr><td><span class="param">sort</span></td><td><span class="param">age</span> (default), <span class="param">company</span>, <span class="param">title</span>, <span class="param">location</span>, <span class="param">ats</span>.</td></tr>
+              <tr><td><span class="param">dir</span></td><td><span class="param">asc</span> (default, newest first for age) or <span class="param">desc</span>.</td></tr>
+              <tr><td><span class="param">limit</span></td><td>1-500, default 100.</td></tr>
+              <tr><td><span class="param">offset</span></td><td>Default 0.</td></tr>
+            </tbody>
+          </table>
+          <code>curl /api/jobs?q=backend&israel_only=1</code>
+        </div>
+
+        <div class="api-endpoint">
+          <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/jobs/{id}</span></div>
+          <p>A single listing by its stable id, including full description. Resolves even after the job closes (<span class="param">closed_at</span> gets set instead of the record disappearing).</p>
+        </div>
+
+        <div class="api-endpoint">
+          <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/companies</span></div>
+          <p>The tracked company list and their scrape status.</p>
+          <table class="api-params">
+            <tbody>
+              <tr><td><span class="param">resolved_only</span></td><td><span class="param">1</span> to only include companies with a known ATS.</td></tr>
+              <tr><td><span class="param">ats</span></td><td>Comma-separated ATS names.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="api-endpoint">
+          <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/stats</span></div>
+          <p>Market aggregates powering the panels on this page.</p>
+          <table class="api-params">
+            <tbody>
+              <tr><td><span class="param">israel_only</span></td><td><span class="param">1</span> to scope <span class="param">top_locations</span> to Israeli locations.</td></tr>
+            </tbody>
+          </table>
+          <code>curl /api/stats</code>
+        </div>
+
+        <div class="api-endpoint">
+          <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/health</span></div>
+          <p>Liveness check for the scrape pipeline.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

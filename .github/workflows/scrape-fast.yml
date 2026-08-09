@@ -1,0 +1,87 @@
+name: scrape-fast
+
+# The FAST path: re-poll every already-known (domain, ats, token) directly
+# -- one API call each, no guessing, no careers-page scraping. Measured
+# locally: ~4s of actual work for 123 companies, against ~15 minutes for
+# the full discovery pipeline (scrape-discover.yml) covering the same
+# domain list. That gap is the entire reason this workflow exists as a
+# separate thing instead of just running scrape-discover.yml more often --
+# this is what "as up to date as possible" actually costs once discovery
+# and polling are split apart.
+#
+# Every 10 minutes. This is a public repo, so GitHub Actions minutes are
+# free -- the constraint here is politeness to the ATS APIs being polled,
+# not CI budget. 10 min already exceeds what a 6h-cadence static site
+# could ever offer; there isn't a real product reason to go tighter than
+# that, so this isn't tuned down further just because it's free to do so.
+#
+# known.json comes from S3, not domains.txt -- it's whatever
+# scrape-discover.yml (or a previous run of this workflow) last derived
+# from jobs.db's companies table. If known.json doesn't exist yet (very
+# first deploy, before scrape-discover.yml has ever run), this workflow
+# has nothing to do and exits early rather than erroring.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  fast-poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install requests pyyaml boto3
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download known.json
+        id: known
+        run: |
+          if aws s3 cp "s3://${{ vars.DATA_BUCKET }}/known.json" known.json; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Re-poll known companies
+        if: steps.known.outputs.exists == 'true'
+        run: python probe.py --known known.json --json > resolved.json
+
+      - name: Report
+        if: steps.known.outputs.exists == 'true'
+        run: |
+          python -c "
+          import json
+          data = json.load(open('resolved.json', encoding='utf-8'))
+          hits = [r for r in data if r.get('ats')]
+          errors = [r['domain'] for r in data if r.get('error')]
+          print(f'{len(hits)}/{len(data)} re-verified, {sum(r[\"job_count\"] for r in hits)} jobs')
+          if errors:
+              print(f'{len(errors)} known boards failed to re-poll: {errors}')
+          "
+
+      - name: Upsert into jobs.db, re-derive known.json, push both to S3
+        if: steps.known.outputs.exists == 'true'
+        run: |
+          python loader/load_to_sqlite.py \
+            --resolved resolved.json \
+            --out jobs.db \
+            --bucket ${{ vars.DATA_BUCKET }} \
+            --key jobs.db

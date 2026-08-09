@@ -1,0 +1,124 @@
+# Hand-pinned ATS entries that guess-and-verify cannot recover on its own.
+#
+# Comeet needs an opaque per-company `token` plus a `uid`, neither
+# derivable from the domain (see probe.py's f_comeet_scrape docstring).
+# probe.py's scraper recovers this automatically for companies that embed
+# Comeet via the WordPress plugin (token/uid land server-side in the
+# careers page HTML) -- aquasec.com and silverfort.com below were found
+# that way and are listed here only for the record.
+#
+# Everything else here was recovered by hand: search-engine-indexed
+# comeet.com/jobs/{slug}/{uid} URLs, fetched, with the real opaque token
+# scraped out of the embedded `"company_uid":"...","token":"..."` JSON on
+# that page. This is the "extract pairs by hand" path the project brief
+# called out as the alternative to a Common Crawl comeet.co harvest --
+# scoped to what a couple hours of search-engine spelunking turns up, not
+# an exhaustive sweep. `jobs_seen` is the count at extraction time
+# (2026-08-06), for sanity-checking later, not a live figure.
+#
+# uid/token are query-string credentials for a public, unauthenticated
+# read endpoint (equivalent to a Greenhouse board token) -- not a secret
+# in the API-key sense, but treat them as opaque IDs, not as proof a
+# company endorses this project.
+#
+# API shape: GET https://www.comeet.com/careers-api/1.0/company/{uid}/positions?token={token}
+
+comeet:
+  - domain: aquasec.com
+    uid: "91.001"
+    token: "191644966966644E194B3191644644"
+    jobs_seen: 6
+    source: wp-plugin-scrape
+
+  - domain: silverfort.com
+    uid: "54.007"
+    token: "45715B315B38AE22B8D051A0A457D051E61"
+    jobs_seen: 30
+    source: wp-plugin-scrape
+
+  - domain: algosec.com
+    uid: "71.006"
+    token: "1765D874E8C4BB05D82ECA3AA3A176"
+    jobs_seen: 21
+    source: hand-extracted
+
+  - domain: getport.io
+    uid: "59.004"
+    token: "954414C02550414C4AA01BFC12A81BFC2550"
+    jobs_seen: 40
+    source: hand-extracted
+
+  - domain: tokagroup.com
+    uid: "46.00D"
+    token: "64D25CE64D12E719343268C9A0C9A38B5"
+    jobs_seen: 4
+    source: hand-extracted
+
+  - domain: codevalue.com
+    uid: "81.009"
+    token: "1896249367AD189DD1C48ABFDD1189"
+    jobs_seen: 16
+    source: hand-extracted
+
+  - domain: bagirasys.com
+    uid: "47.006"
+    token: "7462BA415D2245E2BA432EA3A302BA44176245E"
+    jobs_seen: 50
+    source: hand-extracted
+
+  - domain: darrow.ai
+    uid: "D8.000"
+    token: "8D034E046808D01A7034E0468034E034E03DB0"
+    jobs_seen: 0
+    source: hand-extracted
+    note: valid board, zero open roles at extraction time
+
+  - domain: lema.ai
+    uid: "EA.001"
+    token: "AE14C274146570820A34C274C274C270AE1"
+    jobs_seen: 7
+    source: hand-extracted
+
+  - domain: plus500.com
+    uid: "A1.00F"
+    token: "1AF6BCA1AF27A1A35E86B6BC50D0"
+    jobs_seen: 15
+    source: hand-extracted
+
+  - domain: mentee.ai
+    uid: "6A.002"
+    token: "A6248AE298853101F2614C45D7214C433EA5310"
+    jobs_seen: 8
+    source: hand-extracted
+    note: Mentee Robotics; announced acquisition by Mobileye, board may go stale
+
+  - domain: team8.vc
+    uid: "61.003"
+    token: "16358C6EF2C61631639B558C0429"
+    jobs_seen: 0
+    source: hand-extracted
+    note: VC/venture group, not a portfolio company -- borderline include
+
+  - domain: comm-it.com
+    uid: "76.008"
+    token: "67826D067833C0CF002D48020581368"
+    jobs_seen: 153
+    source: hand-extracted
+    note: IT staffing/outsourcing firm, not a product company -- high job count is expected for the business model
+
+  - domain: arpeely.com
+    uid: "57.001"
+    token: "7512BE615F3249541D91D4415F31D4441D9EA2"
+    jobs_seen: 11
+    source: hand-extracted
+
+  - domain: cyera.com
+    uid: "17.008"
+    token: "7182A90154871823783FD838C031A802378"
+    jobs_seen: 148
+    source: hand-extracted
+    note: domain in domains.txt was cyera.io, which 301s to cyera.com -- fixed there too, not just here
+
+# Rejected during extraction, kept as a note so nobody re-does this work:
+#   "Guideline" (comeet.com/jobs/guideline) is a US 401(k) provider,
+#   unrelated to Israel -- a coincidental token match, not a company to add.

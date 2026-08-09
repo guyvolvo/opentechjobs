@@ -1,0 +1,966 @@
+/* OpenMarketIL -- brutalist Swiss grid.
+   Rules of the system, don't break them ad hoc elsewhere in this file:
+   1. White page background. Black is a component color, never applied to
+      <body>. Every black surface is a deliberate panel, not a theme.
+   2. Green exists for exactly one purpose: this number/action matters more
+      than the ones around it. If everything is green, nothing is -- so it
+      never appears as decoration, only on live status, primary metrics,
+      and the one or two buttons per view that actually do something.
+   3. Sharp corners everywhere. No border-radius, no box-shadow-as-depth --
+      the grid's black rules are the only depth cue this design uses.
+   4. Two voices, deliberately scoped. --font is Helvetica (Arial as the
+      metric-compatible fallback where Helvetica Neue isn't installed) --
+      everything dense (tables, filters, panel text, body copy) reads in
+      it. --font-display (Monocraft, self-hosted from fonts/, a
+      pixel-grid face) is reserved for brand-level text only: the topbar
+      and the two section titles ("Job Board" / "Market Stats"). It does
+      not appear anywhere data-dense -- a pixel font stops being legible
+      at table-row sizes.
+   5. Job Board and Market Stats are permanent, side by side (.workspace:
+      board left/main, stats right/fixed-width) -- not a drawer, not a
+      toggle. Both are always visible above the mobile breakpoint, where
+      they stack instead (see the responsive block at the end of this
+      file).
+   6. Light/dark is a straight token swap, not a separate palette: dark
+      mode (.theme-toggle in the topbar) redefines --white/--black (and
+      the handful of tones derived from them) under [data-theme="dark"].
+      Every rule in this file reads var(--white)/var(--black) for
+      surfaces, never a literal hex, specifically so this swap is total --
+      adding a hardcoded #fff or #000 anywhere below silently breaks dark
+      mode for that one element. */
+
+@font-face {
+  font-family: "Monocraft";
+  src: url("fonts/Monocraft-Black.ttf") format("truetype");
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root {
+  --white: #ffffff;
+  --black: #0a0a0a;
+  --green: #1c7c3f;
+  --green-bright: #2fae60;
+  --grey: #6b6b6b;
+  --grey-line: #d4d4d4;
+  --red: #b8362c;
+  --hover-bg: #f4f4f4;
+
+  --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Monocraft", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Scales with the window instead of sitting at a fixed 24px regardless
+     of viewport -- clamp(floor, preferred, ceiling): never thinner than
+     20px on a small screen, never wider than 64px on an ultra-wide one,
+     tracking 4% of viewport width in between. .workspace and .container
+     both use this for their side padding, and neither carries a
+     max-width anymore, so the two edges stay equal AND keep scaling
+     instead of plateauing once a fixed max-width box is reached. */
+  --gutter: clamp(20px, 4vw, 64px);
+  --rule: 2px;
+
+  /* This page is white-on-black by design, not by absence of a dark
+     theme -- without this, a browser/OS in dark mode still paints its
+     OWN native chrome (text-input caret, select dropdowns, scrollbars)
+     using dark-mode colors while our CSS paints the surfaces light,
+     producing exactly the invisible white-caret-on-white-input bug this
+     fixes. Native chrome follows OUR toggle, not the OS setting. */
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --white: #0a0a0a;
+  --black: #ffffff;
+  --green: #2fae60;
+  --green-bright: #4ee585;
+  --grey: #9a9a9a;
+  --grey-line: #333333;
+  --hover-bg: #1a1a1a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--white);
+  color: var(--black);
+}
+
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--black); color: var(--white); }
+
+/* Custom scrollbars, theme-tokened like everything else -- the native
+   grey OS scrollbar is the one UI element that otherwise never matches
+   either the light or dark palette. The thumb's border uses the track
+   color, which is the standard trick for making a WebKit scrollbar thumb
+   look inset/spaced from the track edges instead of edge-to-edge. */
+html { scrollbar-width: thin; scrollbar-color: var(--black) var(--white); }
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-track { background: var(--white); }
+*::-webkit-scrollbar-thumb {
+  background: var(--black);
+  border: 3px solid var(--white);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--green); }
+*::-webkit-scrollbar-corner { background: var(--white); }
+
+a { color: inherit; }
+a.link { color: var(--green); text-decoration: none; border-bottom: 1px solid var(--green); }
+a.link:hover { background: var(--green); color: var(--white); }
+
+button, input, select {
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--black);
+  caret-color: var(--black); /* belt-and-suspenders on top of color-scheme: light above */
+}
+
+.container {
+  padding: 0 var(--gutter);
+}
+
+.section {
+  border-bottom: var(--rule) solid var(--black);
+  padding: 40px 0;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 24px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Topbar */
+/* ---------------------------------------------------------------------- */
+
+.topbar {
+  font-family: var(--font-display);
+  border-bottom: var(--rule) solid var(--black);
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  z-index: 10;
+}
+
+.topbar .container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  /* nowrap, deliberately -- .ticker has min-width:0 + overflow:hidden so
+     it just shrinks to whatever room is left instead. flex-wrap:wrap
+     here (as a mobile-only safety net, see the media query below) with 5
+     children instead of the original 2 wrapped the WHOLE topbar onto 3
+     lines on any viewport narrower than "everything fits," not just
+     actual mobile widths -- that was the actual bug, not the ticker
+     itself. */
+  flex-wrap: nowrap;
+  min-height: 56px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.topbar .container > * { min-width: 0; } /* same min-width:auto issue as everywhere else in this file */
+.wordmark, .topnav { flex: 0 0 auto; } /* natural width -- the ticker is the one flexible element between them */
+
+/* ---------------------------------------------------------------------- */
+/* Topbar ticker -- 10 most recent listings, seamless CSS-loop marquee.
+   Two identical copies of the same item list back to back in the track,
+   animated exactly -50% of its own width: when the first copy has fully
+   scrolled past, the second is in the exact position the first started
+   in, so the loop has no visible seam or reset-jump. */
+/* ---------------------------------------------------------------------- */
+
+.ticker-rule { flex: 0 0 auto; width: var(--rule); height: 22px; background: var(--black); }
+
+.ticker {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  height: 20px;
+  display: flex;
+  align-items: center; /* .ticker-track's height comes from its own text content, not this 20px window -- without this it just sits at the top of the clipped box instead of centered in it */
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 40s linear infinite;
+}
+.ticker:hover .ticker-track { animation-play-state: paused; } /* let a visitor actually read/click one without it sliding away */
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--black);
+  text-decoration: none;
+  white-space: nowrap;
+  border-right: 1px solid var(--grey-line);
+}
+.ticker-item:hover { color: var(--green); }
+.ticker-item .bullet { color: var(--green); }
+.ticker-item .ticker-company { color: var(--grey); }
+.ticker-item:hover .ticker-company { color: var(--green); }
+
+.wordmark {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+.wordmark .accent { color: var(--green); }
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+.theme-toggle:hover { color: var(--green); border-color: var(--green); }
+
+/* A pixel block, not a circle -- border-radius:50% was the one place on
+   the whole page that broke this design system's own sharp-corners rule.
+   Flickers in irregular, jump-cut steps (steps(1), hand-placed uneven
+   keyframe stops) instead of a smooth sine fade -- closer to how a
+   Minecraft torch/redstone lamp actually flickers than a generic
+   "pulsing dot." OFFLINE just kills the animation outright: no flicker,
+   like the torch went out, rather than a still-pulsing red light. */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--green);
+  display: inline-block;
+  margin-right: 6px;
+  animation: torch-flicker 1.6s steps(1) infinite;
+}
+.status-dot.stale { background: var(--red); animation: none; }
+@keyframes torch-flicker {
+  0%, 100% { opacity: 1; }
+  6% { opacity: 0.8; }
+  11% { opacity: 1; }
+  19% { opacity: 0.55; }
+  27% { opacity: 1; }
+  33% { opacity: 0.85; }
+  41% { opacity: 1; }
+  52% { opacity: 0.7; }
+  58% { opacity: 1; }
+  69% { opacity: 0.9; }
+  74% { opacity: 1; }
+  83% { opacity: 0.6; }
+  89% { opacity: 1; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Workspace -- Job Board (main) + Market Stats (a permanent right-hand
+   board, not a drawer/overlay). Stacks vertically under the responsive
+   breakpoint at the end of this file. */
+/* ---------------------------------------------------------------------- */
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr clamp(360px, 28vw, 460px);
+  align-items: start;
+  padding: 0 var(--gutter);
+}
+
+/* min-width:0 on both grid items -- see .api-endpoint's comment on why
+   this matters: without it, a grid item can never shrink below its
+   content's natural width, so one long unbreakable value anywhere inside
+   either column (a table row, a bar-list name) forces the whole page
+   wider instead of wrapping/truncating/scrolling locally. */
+.workspace > #board,
+.workspace > .stats-board {
+  min-width: 0;
+}
+
+.workspace > #board {
+  border-right: var(--rule) solid var(--black);
+  padding-right: var(--gutter);
+}
+.workspace > #board .container { padding: 0; }
+
+.stats-board {
+  position: sticky;
+  top: 57px; /* topbar height + its 2px bottom rule */
+  max-height: calc(100vh - 57px);
+  overflow-y: auto;
+  /* Right padding is half the left gutter, not zero -- .workspace's own
+     outer padding already puts a full gutter between this box and the
+     viewport edge, but without SOME padding here the scrollbar (which
+     lives inside this box, at its own inner right edge) sits flush
+     against the panel content with no breathing room of its own. */
+  padding: 40px calc(var(--gutter) / 2) 40px var(--gutter);
+}
+
+.stats-board .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+.stats-board .panel-grid { grid-template-columns: 1fr; }
+
+/* ---------------------------------------------------------------------- */
+/* Metrics grid */
+/* ---------------------------------------------------------------------- */
+
+/* Same shape as .panel-grid/.panel below: a black grid is just the
+   1px/2px hairline that shows through the gaps -- the actual cells
+   (.metric-card, .panel) are the light surface. Metric cards used to be
+   solid black blocks, which read as a different, heavier component than
+   the (correctly white) panels sitting right next to them in the same
+   sidebar -- this makes the two grids match. */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--rule);
+  background: var(--black);
+  border: var(--rule) solid var(--black);
+}
+
+.metric-card {
+  background: var(--white);
+  color: var(--black);
+  padding: 18px 16px;
+  min-height: 116px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.metric-card .label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--grey);
+}
+
+.metric-card .value {
+  font-size: 30px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  margin-top: 10px;
+  color: var(--black);
+}
+
+.metric-card.highlight .value { color: var(--green); }
+.metric-card .sub {
+  font-size: 10.5px;
+  color: var(--grey);
+  margin-top: 4px;
+}
+
+/* Market-insight panels -- who's hiring, what for, where. Deliberately
+   NOT an ATS-vendor breakdown: which API a listing was polled from is
+   plumbing, not a market signal, so that stat doesn't get a panel here
+   even though the API still exposes it (open_jobs_by_ats) for anyone
+   polling directly who wants it. */
+
+.panel-grid {
+  margin-top: var(--rule);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--rule);
+  background: var(--black);
+  border: var(--rule) solid var(--black);
+}
+
+.panel {
+  background: var(--white);
+  padding: 18px 20px 20px;
+}
+
+.panel-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--grey);
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 1fr 100px 44px;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+  padding: 6px 0;
+}
+.bar-row .name {
+  min-width: 0; /* the ellipsis above can't engage at all without this -- see .api-endpoint's comment */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bar-row .bar-track { background: var(--grey-line); height: 9px; position: relative; }
+.bar-row .bar-fill { background: var(--black); height: 100%; }
+.bar-row:first-child .bar-fill { background: var(--green); }
+.bar-row .n { text-align: right; font-variant-numeric: tabular-nums; }
+.bar-row.clickable { cursor: pointer; }
+.bar-row.clickable .name:hover { color: var(--green); text-decoration: underline; }
+
+.trend-chart { width: 100%; height: 64px; display: block; overflow: visible; }
+.trend-bar { fill: var(--grey-line); }
+.trend-bar.latest { fill: var(--green); }
+
+/* The closed-jobs overlay line (own scale, see renderTrendChart's
+   comment) and the standalone open-jobs-over-time line share this same
+   look -- black line, black dots, green only on the single most-recent
+   point, matching the bar chart's "latest point is the important one"
+   convention elsewhere in this file. */
+.trend-line { fill: none; stroke: var(--black); stroke-width: 1.5; }
+.trend-dot { fill: var(--black); }
+.trend-dot.latest { fill: var(--green); }
+
+.trend-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 9.5px;
+  color: var(--grey);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 6px;
+}
+.trend-legend .dot { display: inline-block; width: 7px; height: 7px; margin-right: 4px; }
+.trend-legend .dot.new { background: var(--grey-line); }
+.trend-legend .dot.closed { background: var(--black); }
+
+.trend-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: var(--grey);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+
+/* One big headline number -- for a panel whose whole point is a single
+   stat (the stale-listing rate), not a list of several. */
+.ghost-pct {
+  font-size: 34px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ghost-sub { font-size: 11.5px; color: var(--grey); margin-top: 8px; }
+
+@media (max-width: 720px) {
+  .panel-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Job board */
+/* ---------------------------------------------------------------------- */
+
+/* Flex-wrap, not a fixed-column grid -- a grid's column count is either
+   right for the current width or it isn't, and between breakpoints (say,
+   the board column at ~1000px once .workspace's two-column split eats
+   into it) a fixed 10-column row had nowhere to shrink to but illegible.
+   flex-wrap just drops filters onto a second row once they stop fitting,
+   at any width, not only the two hand-picked breakpoints below. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.filters > * { min-width: 0; } /* form controls have a real default intrinsic width too -- same class of bug as .api-endpoint */
+#f-q, #f-keywords { flex: 1 1 200px; }
+.filters .ms { flex: 1 1 130px; }
+.filters label.toggle,
+.filters #f-reset { flex: 0 0 auto; }
+
+.filters input[type="text"],
+.filters select {
+  border: var(--rule) solid var(--black);
+  background: var(--white);
+  padding: 9px 10px;
+  height: 38px;
+  width: 100%;
+}
+.filters input[type="text"]:focus,
+.filters select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+
+/* Multi-select filter (Role/Level/Company) -- a native <select multiple>
+   needs ctrl/cmd-click to pick more than one, which is nowhere close to
+   discoverable, so this is a small custom checkbox-dropdown instead. */
+.ms { position: relative; }
+.ms-toggle {
+  width: 100%;
+  height: 38px;
+  padding: 9px 10px;
+  border: var(--rule) solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  /* A long label ("ALL COMPANIES", "ALL LOCATIONS") otherwise wraps to a
+     second line inside this fixed-height box and spills out past the
+     bottom border instead of growing to fit -- truncate with an ellipsis
+     instead, same as .bar-row .name does for the same reason. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ms-toggle.active { border-color: var(--green); color: var(--green); font-weight: 700; }
+.ms-toggle:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+
+.ms-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: max(100%, 220px);
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--white);
+  border: var(--rule) solid var(--black);
+  z-index: 40;
+  padding: 8px;
+}
+
+.ms-search {
+  width: 100%;
+  height: 32px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border: 1px solid var(--grey-line);
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font);
+  font-size: 12px;
+}
+
+.ms-options { display: flex; flex-direction: column; }
+.ms-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.ms-option:hover { background: var(--hover-bg); }
+.ms-option input { accent-color: var(--green); flex-shrink: 0; }
+.ms-empty { padding: 10px 4px; color: var(--grey); font-size: 12px; }
+
+.ms-clear {
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid var(--grey-line);
+  background: none;
+  color: var(--grey);
+  font-family: var(--font);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.ms-clear:hover { border-color: var(--black); color: var(--black); }
+
+.filters label.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: var(--rule) solid var(--black);
+  padding: 0 10px;
+  height: 38px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.filters label.toggle input { accent-color: var(--green); }
+
+.btn {
+  border: var(--rule) solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  height: 38px;
+  padding: 0 16px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn:hover { background: var(--green); border-color: var(--green); }
+.btn.ghost { background: var(--white); color: var(--black); }
+.btn.ghost:hover { background: var(--black); color: var(--white); border-color: var(--black); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green);
+  color: var(--white);
+  border: var(--rule) solid var(--green);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+.chip:hover { background: var(--black); border-color: var(--black); }
+
+.result-count {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+  margin-bottom: 12px;
+}
+.result-count b { color: var(--black); }
+
+/* #board pads its whole content away from the vertical divider (its
+   border-right, shared with .stats-board) by a full --gutter -- good for
+   the filters/pagination text, but it left the table's own right edge,
+   and every rule drawn from it (the header underline, each row's
+   border-bottom), stopping a full gutter short of that divider instead of
+   reaching it. Widening the table by --gutter and pulling it back with a
+   matching negative margin re-bleeds it out to the true box edge; the
+   last column gets that same width back as padding so its text still
+   sits at the original inset instead of running up against the divider. */
+table.jobs {
+  width: calc(100% + var(--gutter));
+  margin-right: calc(-1 * var(--gutter));
+  border-collapse: collapse;
+  font-size: 13px;
+}
+table.jobs thead th {
+  text-align: left;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+  border-bottom: var(--rule) solid var(--black);
+  padding: 0 10px 10px;
+  user-select: none;
+  white-space: nowrap;
+}
+table.jobs thead th:last-child,
+table.jobs tbody td:last-child {
+  padding-right: calc(10px + var(--gutter));
+}
+/* Only sortable columns get the pointer cursor -- applying it table-wide
+   (the earlier bug) told visitors the Role/star columns were clickable
+   when nothing was wired to handle a click on them. */
+table.jobs thead th[data-sort] { cursor: pointer; }
+table.jobs thead th[data-sort]:hover { color: var(--black); }
+table.jobs thead th.active { color: var(--black); }
+table.jobs thead th.active::after { content: attr(data-dir); margin-left: 4px; color: var(--green); }
+
+table.jobs tbody tr { border-bottom: 1px solid var(--grey-line); }
+table.jobs tbody tr:hover { background: var(--hover-bg); }
+table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
+
+/* overflow-wrap:anywhere on both -- a company domain has no spaces to
+   break at (a long one is one unbroken string end to end), and some job
+   titles arrive as one long hyphenated/slashed word too. Same overflow
+   risk as everything else in this file that needed min-width:0, just
+   via word-wrapping instead of a grid/flex track this time. */
+table.jobs .title-cell a {
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--black);
+  overflow-wrap: anywhere;
+}
+table.jobs .title-cell a:hover { color: var(--green); }
+table.jobs .company { color: var(--grey); font-size: 11.5px; text-transform: uppercase; margin-top: 2px; overflow-wrap: anywhere; }
+
+.job-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* The one action this whole row exists for -- green per this system's
+   own rule (style.css header, point 2): reserved for the thing that
+   matters most, and nothing on a job posting matters more than actually
+   getting to the application. */
+.job-links a.apply-link {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--green);
+  text-decoration: none;
+  border-bottom: 1px solid var(--green);
+}
+.job-links a.apply-link:hover { background: var(--green); color: var(--white); }
+
+.job-links a.api-link,
+.copy-link-btn {
+  font-size: 10.5px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--grey);
+  text-decoration: none;
+  border: none;
+  border-bottom: 1px solid var(--grey-line);
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.job-links a.api-link:hover,
+.copy-link-btn:hover { color: var(--black); border-color: var(--black); }
+.copy-link-btn.copied { color: var(--green); font-weight: 700; border-color: var(--green); }
+
+.badge {
+  display: inline-block;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--black);
+  padding: 2px 6px;
+  font-weight: 700;
+}
+.badge.best-effort { border-color: var(--grey); color: var(--grey); }
+.title-cell .badge { margin-left: 6px; vertical-align: middle; }
+
+.age-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.age-cell.fresh { color: var(--green); font-weight: 700; }
+
+.star-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 15px;
+  color: var(--grey-line);
+  padding: 0;
+  line-height: 1;
+}
+.star-btn.on { color: var(--green); }
+.star-btn:hover { color: var(--green); }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap; /* up to 9 page buttons + the result-count text won't both fit one row on a phone -- wrap, don't overflow */
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--grey-line);
+  font-size: 12px;
+}
+.pagination .pages { display: flex; gap: 6px; }
+.pagination .pages button {
+  border: 1px solid var(--black);
+  background: var(--white);
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+}
+.pagination .pages button.active { background: var(--black); color: var(--white); }
+.pagination .pages button:disabled { opacity: 0.3; cursor: default; }
+
+.empty-state, .error-state, .loading-state {
+  border: var(--rule) dashed var(--grey-line);
+  padding: 40px;
+  text-align: center;
+  color: var(--grey);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.error-state { border-color: var(--red); color: var(--red); }
+
+/* ---------------------------------------------------------------------- */
+/* Footer */
+/* ---------------------------------------------------------------------- */
+
+footer {
+  padding: 40px 0 60px;
+}
+footer .footer-note {
+  font-size: 12px;
+  color: var(--grey);
+  margin: 0 0 28px;
+  max-width: 640px;
+}
+footer h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+}
+/* Each endpoint block gets its own min-width:0 for the same reason as
+   every other overflow fix in this file (see .filters > * above): a curl
+   command or a long param table row is an unbreakable-width child, and
+   without min-width:0 it forces the whole footer -- and with it the page
+   -- wider than the viewport instead of scrolling locally. */
+.api-endpoint {
+  min-width: 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--grey-line);
+}
+.api-endpoint:first-of-type { border-top: none; padding-top: 0; }
+.api-endpoint-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.api-method {
+  flex: 0 0 auto;
+  background: var(--black);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+}
+.api-path {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  font-weight: bold;
+}
+.api-endpoint > p {
+  font-size: 12px;
+  color: var(--grey);
+  margin: 0 0 10px;
+  max-width: 720px;
+}
+.api-params {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.api-params td {
+  padding: 4px 12px 4px 0;
+  vertical-align: top;
+  color: var(--grey);
+}
+.api-params td:first-child { white-space: nowrap; width: 1%; }
+.api-params .param {
+  font-family: "Courier New", monospace;
+  font-size: 11.5px;
+  font-weight: bold;
+  color: var(--black);
+}
+/* Deliberately fixed, not var(--black)/var(--white) -- this is a
+   terminal/code block, which conventionally stays dark regardless of the
+   page's own light/dark state (that was the actual bug: the box used to
+   flip to a white background in dark mode, which read as broken, not
+   themed). The text-shadow is the one thing that still responds to the
+   toggle, giving the green text a light-mode-appropriate vs
+   dark-mode-appropriate halo without touching the box itself. */
+footer code {
+  display: block;
+  background: #0a0a0a;
+  color: #2fae60;
+  text-shadow: 0 0 1px var(--white);
+  padding: 10px 12px;
+  font-size: 11.5px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  white-space: pre;
+}
+footer p { color: var(--grey); margin: 0 0 8px; }
+
+/* ---------------------------------------------------------------------- */
+/* Responsive */
+/* ---------------------------------------------------------------------- */
+
+@media (max-width: 960px) {
+  .workspace { grid-template-columns: 1fr; }
+  .workspace > #board { border-right: none; padding-right: 0; }
+  .stats-board {
+    position: static;
+    max-height: none;
+    padding: 24px 0;
+    border-top: var(--rule) solid var(--black);
+    overflow-y: visible;
+  }
+  table.jobs thead { display: none; }
+  /* The desktop rule bleeds the table past its container's right edge
+     (width: 100% + gutter, margin-right: -gutter) to reach the divider --
+     meaningless once the table stops being a table at all here and every
+     cell stacks as its own full-width block instead. Reset both back to a
+     plain 100% so no card overflows its box. */
+  table.jobs, table.jobs tbody, table.jobs tr, table.jobs td { display: block; width: 100%; margin-right: 0; }
+  table.jobs tr { padding: 10px 0; }
+  /* Location/Role/Age otherwise stack with nothing to tell them apart --
+     a small uppercase label (from the data-label attribute app.js sets
+     on each td) stands in for the table header that display:none just
+     removed. Title/star cells are self-evident without one. */
+  table.jobs td[data-label] { padding: 4px 10px; }
+  /* The desktop last-column padding-right (extra --gutter, to clear the
+     divider) targets whichever cell is last in DOM order -- Age -- but
+     stacked full-width there's no divider to clear and no "last column"
+     anymore, just an oversized gap under one value. */
+  table.jobs tbody td:last-child { padding-right: 10px; }
+  table.jobs td[data-label]::before {
+    content: attr(data-label) ": ";
+    color: var(--grey);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+}
+
+@media (max-width: 640px) {
+  /* flex-wrap already reflows the filter row at any width, but on an
+     actual phone the natural flex-basis values above (200px text inputs,
+     130px dropdowns) still fit two or three per row with little room left
+     over -- forcing every filter to full width reads far better here, and
+     doubles as bigger touch targets for the toggles and Reset button that
+     land among them. */
+  .filters > * { flex-basis: 100%; }
+  /* Wordmark + 4 nav items at the desktop gap/size genuinely don't fit a
+     360-390px phone width in Monocraft (checked the character math, not
+     just eyeballing it) -- tighten rather than let flex's min-width:auto
+     force the topbar, and with it the whole sticky header, wider than
+     the viewport. */
+  .topnav { gap: 14px; font-size: 10.5px; }
+  .wordmark { font-size: 13px; }
+  .ticker-rule, .ticker { display: none; } /* topbar is already tight on mobile without also fitting a marquee in */
+  /* Safe here specifically because the ticker (the thing that broke
+     under wrap at desktop widths) is gone at this breakpoint -- this can
+     only ever wrap wordmark+nav, a 2-item case that's fine to drop to a
+     second line if it still doesn't fit after the tightening above. */
+  .topbar .container { flex-wrap: wrap; row-gap: 8px; }
+}

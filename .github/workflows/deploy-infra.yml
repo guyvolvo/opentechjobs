@@ -1,0 +1,94 @@
+name: deploy-infra
+
+# Terraform for infra/ (S3 buckets, Lambda function + Function URL,
+# CloudFront, GitHub OIDC roles). PRs get a plan for review; only pushes
+# to the deploy branch (see infra/variables.tf github_deploy_branch,
+# default "main") can apply -- the infra-deploy OIDC role's trust policy
+# enforces that at the AWS side too, not just here.
+#
+# Does NOT touch infra/bootstrap/ -- that's a one-time, apply-by-hand step
+# (see its own comment header) that creates the state bucket this
+# workflow's own `terraform init` depends on already existing.
+#
+# Bootstrapping order matters: this workflow authenticates via the
+# infra-deploy OIDC role, but that role is itself created BY this
+# Terraform config (iam_oidc.tf). The very first apply has no role to
+# assume yet and must be run locally with real AWS credentials:
+#   cd infra && terraform init && terraform apply
+# Only after that succeeds do INFRA_DEPLOY_ROLE_ARN / DATA_DEPLOY_ROLE_ARN
+# / API_DEPLOY_ROLE_ARN exist to paste into the repo's Settings -> Actions
+# -> Variables (see infra/outputs.tf) -- from then on, this workflow and
+# scrape.yml/deploy-api.yml can run unattended.
+
+on:
+  pull_request:
+    paths: ["infra/**"]
+  push:
+    branches: [main]
+    paths: ["infra/**"]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write # to comment the plan on the PR
+
+env:
+  AWS_REGION: il-central-1
+  TF_VERSION: "1.10.5"
+
+jobs:
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.INFRA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: terraform fmt -check -recursive
+      - run: terraform init
+      - run: terraform validate
+      - run: terraform plan -no-color -out=tfplan | tee plan.txt
+
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('infra/plan.txt', 'utf8').slice(0, 60000);
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "### terraform plan\n```\n" + plan + "\n```",
+            });
+
+  apply:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.INFRA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - run: terraform init
+      - run: terraform apply -auto-approve
