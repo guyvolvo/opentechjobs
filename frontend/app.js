@@ -1428,12 +1428,6 @@ function wireAuthPanel() {
     panel.hidden = !panel.hidden;
     trigger.classList.toggle("active", !panel.hidden);
   });
-  document.addEventListener("click", (e) => {
-    if (!panel.hidden && !e.target.closest("#auth-area")) {
-      panel.hidden = true;
-      trigger.classList.remove("active");
-    }
-  });
 
   document.getElementById("auth-google").addEventListener("click", () => { clearAuthError(); startGoogleSignIn(); });
   document.getElementById("auth-github").addEventListener("click", () => { clearAuthError(); startGithubSignIn(); });
@@ -1475,6 +1469,27 @@ function wireAuthPanel() {
 
 function wireAuth() {
   renderAuthState();
+
+  // Once, not inside wireAuthPanel (which reruns on every sign-in-state
+  // re-render and was stacking up a fresh document-level listener each
+  // time, each one closing over that render's now-detached panel/trigger
+  // elements -- harmless-looking but wasteful). Looks up the current
+  // panel live rather than closing over a specific render's elements.
+  //
+  // mousedown, not click: reported live -- drag-selecting the pasted OTP
+  // code inside the input closed the panel mid-selection. A selection
+  // drag's mouseup (and the click it generates) can land outside the
+  // input if the drag overshoots, so a click-based outside-check treats
+  // a normal text selection as a dismiss. mousedown fires on press,
+  // before any drag happens, so it isn't fooled by where the drag ends.
+  document.addEventListener("mousedown", (e) => {
+    const panel = document.getElementById("auth-panel");
+    const trigger = document.getElementById("auth-trigger");
+    if (panel && !panel.hidden && !e.target.closest("#auth-area")) {
+      panel.hidden = true;
+      trigger.classList.remove("active");
+    }
+  });
 }
 
 // scrape-fast.yml re-polls every 10 min; 2 min keeps an open tab
