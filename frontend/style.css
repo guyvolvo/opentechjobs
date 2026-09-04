@@ -14,13 +14,6 @@
       being a straight hex-invert of the other. */
 
 @font-face {
-  font-family: "Inter";
-  src: url("fonts/Inter-Headline.woff2") format("woff2");
-  font-weight: 700 800;
-  font-display: swap;
-}
-
-@font-face {
   font-family: "Overused Grotesk";
   src: url("fonts/OverusedGrotesk-VF.woff2") format("woff2-variations");
   font-weight: 300 900;
@@ -274,6 +267,17 @@ button, input, select {
 .workspace > .stats-board {
   min-width: 0;
 }
+
+/* Container, not just a grid item: #board's own width is what the
+   filter bar actually has to fit in, and that's decoupled from the
+   viewport once the two-column workspace grid is active (Market Stats'
+   clamp(360px, 28vw, 460px) column eats a variable, viewport-independent
+   chunk of the row). A viewport-width media query for the filter-wrap
+   breakpoint below got this wrong: it never fired above 640px viewport
+   width even though #board itself could be narrower than that, cutting
+   the filter row off instead of wrapping it. See the @container rule in
+   the responsive section for the actual fix. */
+#board { container-type: inline-size; }
 
 .workspace > #board {
   border-right: var(--rule) solid var(--black);
@@ -579,8 +583,9 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   }
 }
 
-/* Flex-wrap, not a fixed-column grid. Drops filters onto a second row
-   once they stop fitting, at any width, not just hand-picked breakpoints. */
+/* Flex, not a fixed-column grid, so #f-q/#f-keywords/.ms can each take a
+   different share of the row. Stays on one line (nowrap) down to 640px
+   of #board's own width, then wraps -- see the @container rule below. */
 .filters {
   display: flex;
   flex-wrap: nowrap;
@@ -1002,12 +1007,22 @@ footer p { color: var(--grey); margin: 0 0 8px; }
   }
 }
 
-@media (max-width: 640px) {
-  /* Desktop keeps the filter row to one line (nowrap); a phone doesn't
-     have the width for that, so wrap back and let each item take a full
-     row, full width reads better and gives bigger touch targets. */
+/* #board's own width, not the viewport's -- the two-column workspace
+   grid can leave #board narrower than a viewport-width breakpoint would
+   assume (Market Stats' column eats a variable, viewport-independent
+   share of the row), so this has to react to the container. See
+   #board's container-type rule above.
+   900px, not 640px: measured via headless-Chrome layout, not guessed --
+   the unwrapped row's real minimum content width (every filter field
+   shrunk as far as flex-basis/min-width:0 allow) comes out around
+   810-860px with the current field count, so 640px left a real overflow
+   gap between 640px and ~860px of #board width. */
+@container (max-width: 900px) {
   .filters { flex-wrap: wrap; }
   .filters > * { flex-basis: 100%; }
+}
+
+@media (max-width: 640px) {
   /* Wordmark + 4 nav items don't fit a 360-390px phone at full size.
      Tighten rather than let the topbar force wider than the viewport. */
   .topnav { gap: 14px; font-size: 10.5px; }

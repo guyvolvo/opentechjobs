@@ -67,9 +67,9 @@ ink, a single lighter green reserved for the one number or status that matters r
 now, and a scrolling headline strip up top like a ticker tape. Everything
 reads as a live instrument panel over a job market, not as a brand
 experience — density and legibility win over warmth every time there's a
-conflict between them. The one indulgence is a single bold display face
-(Overused Grotesk, weight 700–800), kept to two places (the wordmark and the two
-section titles) so it reads as a signature, not a typeface choice
+conflict between them. The one indulgence is a single display face
+(Overused Grotesk, weight 400), kept to two places (the wordmark and the
+two section titles) so it reads as a signature, not a typeface choice
 bleeding into body text.
 
 Confirmed visual rejections: no border-radius anywhere, no box-shadow
@@ -142,7 +142,7 @@ blocks. A hardcoded `#fff`/`#000` anywhere breaks that.
 
 ## Typography
 
-**Display Font:** Overused Grotesk, weight 700–800 (self-hosted), falling back to Helvetica Neue / Helvetica / Arial
+**Display Font:** Overused Grotesk, weight 400 (self-hosted, variable font spanning 300–900), falling back to Helvetica Neue / Helvetica / Arial
 **Body Font:** Helvetica Neue, falling back to Helvetica, Arial, sans-serif
 
 **Character:** A dense, no-serif system voice everywhere text-heavy
@@ -150,9 +150,11 @@ blocks. A hardcoded `#fff`/`#000` anywhere breaks that.
 grotesque-sans display face — never the reverse.
 
 ### Hierarchy
-- **Display** (700–800, 17px, 1.2 line-height, 0.04em tracking, Overused Grotesk): the
-  topbar wordmark and the two section titles ("Job Board" / "Market
-  Stats") only. Never used at table-row or data-dense sizes.
+- **Display / Wordmark** (400, 15px, 0.02em tracking, Overused Grotesk): the
+  topbar wordmark only ("OpenMarket.IL"). 13px below the 640px breakpoint.
+- **Display / Section Title** (400, 34px, uppercase, 1 line-height,
+  0.1em tracking, Overused Grotesk): the two section titles ("Job Board" /
+  "Market Stats") only. Never used at table-row or data-dense sizes.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
   metric tile — the one place body copy gets genuinely large.
 - **Body** (400, 13–14px): filters, table cells, panel prose, buttons.
