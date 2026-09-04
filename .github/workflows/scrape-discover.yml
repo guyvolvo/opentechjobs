@@ -2,7 +2,7 @@ name: scrape-discover
 
 # The SLOW pipeline: full guess-and-verify against every ATS, plus the
 # Comeet and embed/JSON-LD fallbacks, across every domain in domains.txt.
-# Minutes, not seconds (~10-15 min over ~350 domains) -- that's why it
+# Minutes, not seconds (~10-15 min over ~350 domains). That's why it
 # doesn't run on scrape-fast.yml's cadence, since a company's ATS
 # platform doesn't change minute to minute.
 #
@@ -11,7 +11,7 @@ name: scrape-discover
 # every load so the next fast-poll run picks up new discoveries immediately).
 #
 # Finding NEW company domains to ADD to domains.txt is a separate,
-# still-manual process -- not built yet.
+# still-manual process, not built yet.
 
 on:
   schedule:
@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests pyyaml boto3
 
-      - name: Full probe -- guess, Comeet scrape, embed/JSON-LD fallback
+      - name: Full probe, guess, Comeet scrape, embed/JSON-LD fallback
         run: python probe.py --batch domains.txt --json > resolved.json
 
       - name: Report hit rate

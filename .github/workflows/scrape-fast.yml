@@ -3,9 +3,9 @@ name: scrape-fast
 # The FAST path: re-poll every already-known (domain, ats, token)
 # directly, one API call each, no guessing. Measured locally: ~4s for
 # 123 companies vs. ~15 min for the full discovery pipeline over the same
-# list -- that gap is why this exists as a separate workflow.
+# list; that gap is why this exists as a separate workflow.
 #
-# Every 10 minutes -- GitHub Actions minutes are free on a public repo,
+# Every 10 minutes: GitHub Actions minutes are free on a public repo,
 # so the constraint is politeness to the ATS APIs, not CI budget.
 #
 # known.json comes from S3, whatever scrape-discover.yml (or a previous

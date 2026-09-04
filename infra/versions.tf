@@ -18,7 +18,7 @@ terraform {
     key          = "iljobs/terraform.tfstate"
     region       = "il-central-1"
     encrypt      = true
-    use_lockfile = true # native S3 locking (Terraform >=1.10) -- no DynamoDB table to pay for
+    use_lockfile = true # native S3 locking (Terraform >=1.10), no DynamoDB table to pay for
   }
 }
 
@@ -33,7 +33,7 @@ provider "aws" {
 }
 
 # ACM certs for CloudFront must be issued in us-east-1 regardless of the
-# distribution's own region -- a hard AWS constraint. Named generically,
+# distribution's own region, a hard AWS constraint. Named generically,
 # not cert-specific, since a future CloudFront WAF ACL needs the same thing.
 provider "aws" {
   alias  = "us_east_1"

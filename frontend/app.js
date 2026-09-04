@@ -1,15 +1,15 @@
-// OpenMarketIL frontend. No framework, no build step -- served straight
+// OpenMarketIL frontend. No framework, no build step, served straight
 // from S3/CloudFront, runs as-shipped. Talks to the API at /api/*,
 // same-origin (CloudFront routes /api/* to the Lambda).
 //
-// Starring a listing is localStorage-only -- the API has no write
+// Starring a listing is localStorage-only: the API has no write
 // endpoints or accounts, so there's no server side to hang that state off.
 
 const API_BASE = "/api";
 const STAR_KEY = "iljobs_starred";
 const PAGE_SIZE = 50;
 
-// Fixed vocabulary -- matches probe.py's _classify_seniority/Job.seniority
+// Fixed vocabulary. Matches probe.py's _classify_seniority/Job.seniority
 // exactly, not derived from the data, since it's a closed enum rather
 // than free text like department/company.
 const SENIORITY_LABELS = {
@@ -25,7 +25,7 @@ const SENIORITY_LABELS = {
   exec: "Executive",
 };
 
-// Matches probe.py's Job.workplace_type exactly -- see its docstring.
+// Matches probe.py's Job.workplace_type exactly; see its docstring.
 const WORKPLACE_LABELS = {
   remote: "Remote",
   hybrid: "Hybrid",
@@ -35,12 +35,12 @@ const WORKPLACE_LABELS = {
 const state = {
   q: "",
   keywords: "", // ';'-separated, ALL must appear (AND, not OR)
-  department: [], // labeled "Category" in the UI -- backend field stays "department"
+  department: [], // labeled "Category" in the UI; backend field stays "department"
   seniority: [],
   company: [], // multi-select; also set via clicking a company in the market panels
   location: [], // curated top raw location strings, not a geocoded facet
   workplace: [], // remote|hybrid|onsite
-  confidence: "all", // no confidence filter in the UI -- shown inline via badge instead
+  confidence: "all", // no confidence filter in the UI; shown inline via badge instead
   israel_only: true,
   starred_only: false,
   sort: "age",
@@ -52,7 +52,7 @@ const state = {
 // the market panels' "click a company" handler.
 let msDepartment, msSeniority, msCompany, msLocation, msWorkplace;
 
-// The job detail panel's current selection -- not part of `state` above
+// The job detail panel's current selection. Not part of `state` above
 // since it's ephemeral UI, never an API param. Survives filter changes
 // (doesn't get yanked closed), just loses its row highlight if that job
 // scrolls off the current page.
@@ -208,8 +208,8 @@ function renderMetrics(stats) {
   document.getElementById("status-text").textContent = fresh ? "LIVE" : "OFFLINE";
 }
 
-// Market-insight panels -- who's hiring, what for, where. No ATS-vendor
-// breakdown here -- that's plumbing, not a market signal (still available
+// Market-insight panels: who's hiring, what for, where. No ATS-vendor
+// breakdown here; that's plumbing, not a market signal (still available
 // as open_jobs_by_ats for anyone polling the raw API).
 function renderBarList(rows, nameKey, { clickable = false } = {}) {
   const max = Math.max(1, ...rows.map((r) => r.n));
@@ -227,7 +227,7 @@ function renderBarList(rows, nameKey, { clickable = false } = {}) {
 }
 
 // SVG bar chart, 14 days of new-listing counts, with a closed-jobs line
-// on its own scale -- closed counts run much smaller, so sharing one
+// on its own scale. Closed counts run much smaller, so sharing one
 // scale would flatline the line near zero. Not pixel-comparable to each
 // other; the legend says so. viewBox-scaled for responsiveness; native
 // <title> gives a free per-point tooltip.
@@ -271,7 +271,7 @@ function renderTrendChart(daily) {
     <div class="trend-axis"><span>${daily[0].date.slice(5)}</span><span>${daily[daily.length - 1].date.slice(5)}</span></div>`;
 }
 
-// Standalone line chart -- open_jobs_history, reconstructed from
+// Standalone line chart: open_jobs_history, reconstructed from
 // first_seen/closed_at rather than a real snapshot.
 function renderOpenJobsChart(history) {
   const max = Math.max(1, ...history.map((d) => d.n));
@@ -294,7 +294,7 @@ function renderOpenJobsChart(history) {
     <div class="trend-axis"><span>${history[0].date.slice(5)}</span><span>${history[history.length - 1].date.slice(5)}</span></div>`;
 }
 
-// One headline percentage -- how much of the open board looks like it's
+// One headline percentage: how much of the open board looks like it's
 // stopped moving. threshold_days comes from the API, not hardcoded here,
 // so a backend change to the cutoff doesn't need a matching frontend edit.
 function renderGhostStat(ghost, openJobs) {
@@ -375,7 +375,7 @@ function renderCompanyChip() {
     state.company.length === 1 ? state.company[0] : `${state.company.length} companies`;
 }
 
-// The filter (not sort/pagination) portion of state -- shared by loadJobs
+// The filter (not sort/pagination) portion of state. Shared by loadJobs
 // and the ticker, so "10 most recent" respects the active filters too.
 function currentFilterParams() {
   return {
@@ -496,7 +496,7 @@ function renderJobRows(jobs, starred) {
 
   document.querySelectorAll("[data-star]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      e.stopPropagation(); // inside a now-clickable <tr> (opens the detail panel) -- starring shouldn't also open it
+      e.stopPropagation(); // inside a now-clickable <tr> (opens the detail panel); starring shouldn't also open it
       const s = toggleStar(btn.dataset.star);
       btn.classList.toggle("on", s.has(btn.dataset.star));
       btn.textContent = s.has(btn.dataset.star) ? "★" : "☆";
@@ -516,7 +516,7 @@ async function copyToClipboard(btn, url) {
     await navigator.clipboard.writeText(url);
   } catch {
     // Clipboard API needs a secure context (https, or localhost) and
-    // isn't guaranteed everywhere -- fall back to a hidden textarea copy
+    // isn't guaranteed everywhere. Fall back to a hidden textarea copy
     // rather than silently failing on older/locked-down browsers.
     const ta = document.createElement("textarea");
     ta.value = url;
@@ -560,7 +560,7 @@ function renderPagination(data) {
 }
 
 // ---------------------------------------------------------------------------
-// job detail panel -- opens beside the list on selecting a row (never a
+// job detail panel: opens beside the list on selecting a row (never a
 // modal). Renders instantly from the row's already-known fields, then
 // fills in `description` once GET /api/jobs/{id} resolves, since the list
 // endpoint doesn't carry full descriptions.
@@ -581,8 +581,8 @@ function syncDetailStarButton(id, starredSet) {
   btn.textContent = on ? "★ Saved" : "☆ Save";
 }
 
-// probe.py's _clean_text marks section headings with a leading "## " --
-// render those bold rather than showing the marker literally. Every line
+// probe.py's _clean_text marks section headings with a leading "## ".
+// Render those bold rather than showing the marker literally. Every line
 // is still escaped individually, so nothing in the source text is ever
 // treated as markup.
 function renderDescriptionLines(description) {
@@ -679,7 +679,7 @@ async function openJobDetail(id) {
   wireJobDetailPanel(known);
 
   // On the stacked layout (<=1300px, see style.css) the panel renders
-  // below the *entire* list, not beside it -- invisible without this. On
+  // below the *entire* list, not beside it, invisible without this. On
   // the desktop side-by-side layout it's already sticky-positioned into
   // view, so skip the scroll there rather than yank the page around.
   // -60 clears the sticky topbar, same offset renderPanels()'s company
@@ -724,7 +724,7 @@ function wireJobDetail() {
 // multi-select filter dropdown (Category / Level / Company)
 // ---------------------------------------------------------------------------
 
-// One open dropdown at a time -- opening a second one closes whichever
+// One open dropdown at a time. Opening a second one closes whichever
 // was already open, same as a native <select> would behave.
 const OPEN_MULTISELECTS = new Set();
 
@@ -933,7 +933,7 @@ function wireFilters() {
   document.getElementById("f-starred").addEventListener("change", (e) => {
     state.starred_only = e.target.checked;
     loadJobs();
-    // Not loadTicker() -- "starred" is a client-local view, not an API filter.
+    // Not loadTicker(): "starred" is a client-local view, not an API filter.
   });
 
   document.getElementById("f-reset").addEventListener("click", () => {
@@ -1015,7 +1015,7 @@ async function loadFilterOptions(stats) {
     const sorted = [...companies.companies].sort((a, b) => a.domain.localeCompare(b.domain));
     msCompany.setOptions(sorted.map((c) => ({ value: c.domain, label: c.domain })));
   } catch {
-    // Non-fatal -- the board itself doesn't depend on this list, and
+    // Non-fatal: the board itself doesn't depend on this list, and
     // clicking a company in the market panels still works either way.
   }
 }
@@ -1028,7 +1028,7 @@ async function refreshLocationOptions() {
     const stats = await getJSON(`/stats${state.israel_only ? "?israel_only=1" : ""}`);
     msLocation.setOptions(stats.top_locations.map((r) => ({ value: r.location, label: `${r.location} (${r.n})` })));
   } catch {
-    // Non-fatal -- worst case the dropdown keeps its previous option set.
+    // Non-fatal: worst case the dropdown keeps its previous option set.
   }
 }
 
@@ -1057,7 +1057,7 @@ function wireThemeToggle() {
   });
 }
 
-// Topbar ticker -- 10 most recent listings matching the board's current
+// Topbar ticker: 10 most recent listings matching the board's current
 // filters, not a fixed sitewide list. Called from every filter-changing
 // handler, but not pagination/sort (those don't change what "recent"
 // means). Duplicated once in the DOM so the CSS marquee loops seamlessly.
@@ -1084,7 +1084,7 @@ async function loadTicker() {
     // rather than a fixed duration that'd crawl for 3 items and race for 10.
     track.style.animationDuration = `${data.jobs.length * 4}s`;
   } catch {
-    // Non-fatal -- purely decorative, the board itself doesn't depend on it.
+    // Non-fatal: purely decorative, the board itself doesn't depend on it.
   }
 }
 

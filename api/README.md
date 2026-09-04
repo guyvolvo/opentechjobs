@@ -4,12 +4,12 @@ The Lambda behind `/api/*`. Two files, no framework, no dependencies
 beyond `boto3` (already present in the Lambda Python runtime, so the
 deploy zip doesn't need to vendor it):
 
-- `db.py` -- gets jobs.db from S3 onto the execution environment and
+- `db.py`: gets jobs.db from S3 onto the execution environment and
   keeps it fresh across warm invocations. See its docstring.
-- `handler.py` -- routes `/jobs`, `/jobs/{id}`, `/companies`, `/stats`,
+- `handler.py`: routes `/jobs`, `/jobs/{id}`, `/companies`, `/stats`,
   `/health` and runs the actual SQL. See its module docstring for why
   there are no write endpoints. `/jobs/{id}` is a stable permalink for one
-  posting -- unlike `job.url` (the actual ATS listing, which the ATS
+  posting, unlike `job.url` (the actual ATS listing, which the ATS
   itself can 404 once a role closes), this always resolves and reports
   `closed_at` instead of disappearing, so a saved/shared link stays
   useful.
@@ -41,7 +41,7 @@ print(handler.lambda_handler(event, None))
 
 `db.py` still needs `DATA_BUCKET`/`DATA_KEY` env vars set and a boto3
 client to construct successfully at import time even though the fake
-never calls it -- dummy values are fine:
+never calls it. Dummy values are fine:
 
 ```
 DATA_BUCKET=test DATA_KEY=jobs.db AWS_ACCESS_KEY_ID=x AWS_SECRET_ACCESS_KEY=x AWS_DEFAULT_REGION=il-central-1
@@ -49,7 +49,7 @@ DATA_BUCKET=test DATA_KEY=jobs.db AWS_ACCESS_KEY_ID=x AWS_SECRET_ACCESS_KEY=x AW
 
 Build a local jobs.db to point at with `loader/load_to_sqlite.py --resolved resolved.json --out jobs.db` (no `--bucket` needed for local testing).
 
-This is how the handler was actually validated during development --
+This is how the handler was actually validated during development,
 including catching a real sort-direction bug (`age desc` was silently
 sorting newest-first instead of oldest-first) and two ATS-specific date
 format bugs upstream in `probe.py` (Lever epoch-ms, Recruitee's trailing

@@ -2,10 +2,10 @@ name: deploy-infra
 
 # Terraform for infra/ (S3 buckets, Lambda, CloudFront, GitHub OIDC
 # roles). PRs get a plan for review; only pushes to the deploy branch can
-# apply -- enforced both here and by the infra-deploy OIDC role's trust
+# apply, enforced both here and by the infra-deploy OIDC role's trust
 # policy on the AWS side.
 #
-# Does NOT touch infra/bootstrap/ -- a one-time, apply-by-hand step (see
+# Does NOT touch infra/bootstrap/, a one-time, apply-by-hand step (see
 # its own header) that creates the state bucket this workflow depends on.
 #
 # Bootstrapping order: this workflow authenticates via the infra-deploy
@@ -13,7 +13,7 @@ name: deploy-infra
 # very first apply has no role to assume yet and must run locally:
 #   cd infra && terraform init && terraform apply
 # Only then do the *_DEPLOY_ROLE_ARN outputs exist to paste into the
-# repo's Settings -> Actions -> Variables -- after that, this workflow
+# repo's Settings -> Actions -> Variables. After that, this workflow
 # and the others can run unattended.
 
 on:

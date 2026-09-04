@@ -2,13 +2,13 @@
 # workflow assumes a role scoped to exactly what it needs:
 #   - infra-deploy: broad (Terraform owns S3/Lambda/CloudFront/IAM), but
 #     only assumable from pushes to the deploy branch.
-#   - data-deploy: narrow -- jobs.db + known.json only, for the scrape
+#   - data-deploy: narrow, jobs.db + known.json only, for the scrape
 #     workflows. Can't touch infra.
-#   - api-deploy: narrow -- update the Lambda's code, nothing else.
-#   - frontend-deploy: narrow -- sync frontend/, invalidate this one
+#   - api-deploy: narrow, update the Lambda's code, nothing else.
+#   - frontend-deploy: narrow, sync frontend/, invalidate this one
 #     distribution. Can't touch jobs.db, the Lambda, or infra.
 
-# GitHub's OIDC provider is an account-wide singleton -- AWS allows only
+# GitHub's OIDC provider is an account-wide singleton. AWS allows only
 # one per URL per account, and this account's already has one (created by
 # the guyvoloshin.com portfolio's own Terraform). Read it rather than
 # trying to own/create it here, so the two projects' state never fight
@@ -42,7 +42,7 @@ resource "aws_iam_role" "infra_deploy" {
 }
 
 # Scoped to the resource types/prefixes this project's Terraform actually
-# manages -- not AdministratorAccess -- hence branch-restricted above and
+# manages, not AdministratorAccess, hence branch-restricted above and
 # separate from the much narrower data/api-deploy roles below.
 resource "aws_iam_role_policy" "infra_deploy" {
   name = "${var.project_name}-infra-deploy-policy"
@@ -106,7 +106,7 @@ resource "aws_iam_role_policy" "infra_deploy" {
 }
 
 # ---------------------------------------------------------------------------
-# data-deploy: used by both scrape workflows -- jobs.db/known.json only, nothing else.
+# data-deploy: used by both scrape workflows. jobs.db/known.json only, nothing else.
 # ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "data_deploy" {
@@ -146,7 +146,7 @@ resource "aws_iam_role_policy" "data_deploy" {
 }
 
 # ---------------------------------------------------------------------------
-# api-deploy: used by deploy-api.yml -- update Lambda code, nothing else.
+# api-deploy: used by deploy-api.yml. Update Lambda code, nothing else.
 # ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "api_deploy" {
@@ -180,7 +180,7 @@ resource "aws_iam_role_policy" "api_deploy" {
 }
 
 # ---------------------------------------------------------------------------
-# frontend-deploy: used by deploy-frontend.yml -- sync frontend/ to the
+# frontend-deploy: used by deploy-frontend.yml. Sync frontend/ to the
 # frontend bucket, invalidate this one distribution. Nothing else.
 # ---------------------------------------------------------------------------
 

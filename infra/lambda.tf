@@ -3,7 +3,7 @@
 # apigateway.tf for why it's temporarily fronted by API Gateway instead).
 #
 # The zip built here is a placeholder containing just api/handler.py at
-# infra-apply time -- deploy-api.yml (GitHub Actions) ships real code
+# infra-apply time. deploy-api.yml (GitHub Actions) ships real code
 # changes via `aws lambda update-function-code`, so infra applies don't
 # need to run on every API code change.
 # ---------------------------------------------------------------------------
@@ -67,10 +67,10 @@ resource "aws_lambda_function" "api" {
   }
 }
 
-# Public, unauthenticated invocation -- the brief's own design point: "the
+# Public, unauthenticated invocation: the brief's own design point, "the
 # public API is the alerting primitive, anyone can poll it." No paywall,
 # no accounts. Originally a Lambda Function URL (no per-request cost);
-# temporarily fronted by an API Gateway HTTP API instead -- see
+# temporarily fronted by an API Gateway HTTP API instead. See
 # apigateway.tf for why and the plan to revert.
 
 resource "aws_cloudwatch_log_group" "api_lambda" {

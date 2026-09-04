@@ -4,20 +4,20 @@
 # derivable from the domain (see probe.py's f_comeet_scrape docstring).
 # probe.py's scraper recovers this automatically for companies that embed
 # Comeet via the WordPress plugin (token/uid land server-side in the
-# careers page HTML) -- aquasec.com and silverfort.com below were found
+# careers page HTML). aquasec.com and silverfort.com below were found
 # that way and are listed here only for the record.
 #
 # Everything else here was recovered by hand: search-engine-indexed
 # comeet.com/jobs/{slug}/{uid} URLs, fetched, with the real opaque token
 # scraped out of the embedded `"company_uid":"...","token":"..."` JSON on
 # that page. This is the "extract pairs by hand" path the project brief
-# called out as the alternative to a Common Crawl comeet.co harvest --
+# called out as the alternative to a Common Crawl comeet.co harvest,
 # scoped to what a couple hours of search-engine spelunking turns up, not
 # an exhaustive sweep. `jobs_seen` is the count at extraction time
 # (2026-08-06), for sanity-checking later, not a live figure.
 #
 # uid/token are query-string credentials for a public, unauthenticated
-# read endpoint (equivalent to a Greenhouse board token) -- not a secret
+# read endpoint (equivalent to a Greenhouse board token), not a secret
 # in the API-key sense, but treat them as opaque IDs, not as proof a
 # company endorses this project.
 #
@@ -97,14 +97,14 @@ comeet:
     token: "16358C6EF2C61631639B558C0429"
     jobs_seen: 0
     source: hand-extracted
-    note: VC/venture group, not a portfolio company -- borderline include
+    note: VC/venture group, not a portfolio company; borderline include
 
   - domain: comm-it.com
     uid: "76.008"
     token: "67826D067833C0CF002D48020581368"
     jobs_seen: 153
     source: hand-extracted
-    note: IT staffing/outsourcing firm, not a product company -- high job count is expected for the business model
+    note: IT staffing/outsourcing firm, not a product company; high job count is expected for the business model
 
   - domain: arpeely.com
     uid: "57.001"
@@ -117,8 +117,8 @@ comeet:
     token: "7182A90154871823783FD838C031A802378"
     jobs_seen: 148
     source: hand-extracted
-    note: domain in domains.txt was cyera.io, which 301s to cyera.com -- fixed there too, not just here
+    note: domain in domains.txt was cyera.io, which 301s to cyera.com; fixed there too, not just here
 
 # Rejected during extraction, kept as a note so nobody re-does this work:
 #   "Guideline" (comeet.com/jobs/guideline) is a US 401(k) provider,
-#   unrelated to Israel -- a coincidental token match, not a company to add.
+#   unrelated to Israel: a coincidental token match, not a company to add.

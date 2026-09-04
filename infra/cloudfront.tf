@@ -2,7 +2,7 @@
 # the static frontend from S3 (via Origin Access Control, bucket stays
 # private), /api/* routes to the API Gateway origin (see apigateway.tf).
 # One domain for both means the frontend never needs CORS for its own
-# calls -- the API's own CORS config only matters for direct API access.
+# calls; the API's own CORS config only matters for direct API access.
 
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${var.project_name}-frontend-oac"
@@ -41,7 +41,7 @@ resource "aws_cloudfront_cache_policy" "api" {
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
-  price_class         = "PriceClass_100" # NA+EU edge locations only -- cheapest tier; fine for an IL-focused audience mostly browsing from IL/EU/US
+  price_class         = "PriceClass_100" # NA+EU edge locations only, cheapest tier; fine for an IL-focused audience mostly browsing from IL/EU/US
   aliases             = [var.domain_name]
 
   origin {

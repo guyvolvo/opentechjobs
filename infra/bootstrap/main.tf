@@ -6,7 +6,7 @@
 #   terraform init
 #   terraform apply
 #
-# Not part of the GitHub Actions deploy flow -- state-backend bootstrapping
+# Not part of the GitHub Actions deploy flow: state-backend bootstrapping
 # is a rare, deliberate action, not something a CI trigger should do.
 
 terraform {
@@ -21,12 +21,12 @@ terraform {
 
 variable "aws_region" {
   type    = string
-  default = "il-central-1" # AWS Tel Aviv region -- correct home for an Israeli-jobs project's data
+  default = "il-central-1" # AWS Tel Aviv region, correct home for an Israeli-jobs project's data
 }
 
 variable "state_bucket_name" {
   type        = string
-  description = "Globally-unique S3 bucket name for Terraform state. S3 bucket names are a shared global namespace, so the default here WILL collide -- set your own."
+  description = "Globally-unique S3 bucket name for Terraform state. S3 bucket names are a shared global namespace, so the default here WILL collide; set your own."
   default     = "iljobs-tfstate-876913698688"
 }
 

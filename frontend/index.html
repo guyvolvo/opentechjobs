@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css" />
   <script>
     // Applied before first paint so there's no flash of the wrong theme
-    // on reload -- app.js still owns the toggle button/click handling.
+    // on reload. app.js still owns the toggle button/click handling.
     if (localStorage.getItem("iljobs_theme") === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
     }
@@ -42,7 +42,7 @@
           <div class="board-list">
             <div class="filters">
               <input type="text" id="f-q" placeholder="SEARCH TITLE, COMPANY, LOCATION…" />
-              <input type="text" id="f-keywords" placeholder="KEYWORDS" title="Semicolon-separated, e.g. azure;excel;iso -- a job must mention all of them" />
+              <input type="text" id="f-keywords" placeholder="KEYWORDS" title="Semicolon-separated, e.g. azure;excel;iso. A job must mention all of them" />
               <div class="ms" id="ms-department"></div>
               <div class="ms" id="ms-seniority"></div>
               <div class="ms" id="ms-company"></div>

@@ -55,7 +55,7 @@ class Job:
     description_chars: int = 0
     # Cleaned plain text via _clean_text(). None when the ATS's list
     # endpoint doesn't include a description (SmartRecruiters, Comeet,
-    # Workday) -- a per-job detail request would be too slow at batch scale.
+    # Workday). A per-job detail request would be too slow at batch scale.
     description: str | None = None
     # intern/junior/mid/senior/staff/principal/lead/manager/director/exec,
     # or None if the posting doesn't state a level. Some ATSes provide a
@@ -99,14 +99,14 @@ def get_json(sess: requests.Session, url: str) -> Any:
 
     Logs the reason for every None (when VERBOSE) so a MISS can be told
     apart from a 404, a UA block, or a timeout. Retries once on connection
-    errors only (timeout/DNS/reset) -- a real 404 is a signal, not a fluke,
+    errors only (timeout/DNS/reset). A real 404 is a signal, not a fluke,
     and isn't retried.
     """
     return _request_json(lambda: sess.get(url, timeout=TIMEOUT), url, "get_json")
 
 
 def get_json_post(sess: requests.Session, url: str, body: dict) -> Any:
-    """POST variant of get_json -- Workday's CXS API takes search params
+    """POST variant of get_json. Workday's CXS API takes search params
     as a JSON body, not a query string. Same retry/logging behavior.
     """
     return _request_json(lambda: sess.post(url, json=body, timeout=TIMEOUT), url, "get_json_post")
@@ -154,7 +154,7 @@ def token_candidates(domain: str) -> list[str]:
     out = [stem, stem.replace("-", "")]
     if rest and rest[0] not in COMMON_TLDS:
         out += [stem + rest[0], stem + "-" + rest[0]]
-    # wiz.io's real Greenhouse token is "wizinc" -- Israeli companies often
+    # wiz.io's real Greenhouse token is "wizinc". Israeli companies often
     # register under their US legal entity name. Cheap to try, low priority.
     out.append(stem + "inc")
     seen, uniq = set(), []
@@ -208,12 +208,12 @@ def _clean_text(raw: Any, max_chars: int = DESCRIPTION_MAX_CHARS) -> str | None:
 
     Handles both HTML (Greenhouse's `content`) and plain-text fields
     (Lever/Ashby's `descriptionPlain`) through the same path. Headings
-    become "## " and list items "- " -- markers the frontend renders as a
+    become "## " and list items "- ", markers the frontend renders as a
     bold label / bullet. Only horizontal whitespace collapses; real line
     breaks are preserved rather than flattened to a single space.
 
     Truncated to max_chars (8000): measured against a real ~3000-job
-    batch -- this keeps 94% of descriptions whole for ~27% more DB size,
+    batch, this keeps 94% of descriptions whole for ~27% more DB size,
     a better trade than a shorter cutoff silently dropping a keyword a
     search might rely on.
     """
@@ -236,7 +236,7 @@ def _clean_text(raw: Any, max_chars: int = DESCRIPTION_MAX_CHARS) -> str | None:
     return text[:max_chars] or None
 
 
-# Checked top-to-bottom, first match wins -- highest seniority first so
+# Checked top-to-bottom, first match wins. Highest seniority first so
 # "VP of Engineering" hits exec, "Senior Staff Engineer" hits staff.
 # Word-boundary (\b) matching, not substring, so "International Account
 # Executive" doesn't misclassify as an internship.
@@ -256,7 +256,7 @@ _SENIORITY_RULES: list[tuple[str, "re.Pattern[str]"]] = [
     ]
 ]
 
-# Structured level fields from ATSes that provide one -- preferred over
+# Structured level fields from ATSes that provide one, preferred over
 # the title-keyword guess below. Unrecognized values map to None rather
 # than a guessed signal.
 _SMARTRECRUITERS_LEVEL_MAP = {
@@ -274,7 +274,7 @@ _COMEET_LEVEL_MAP = {
     "senior": "senior",
     "management": "manager",
     # Comeet's experience_level is company-customizable and can hold an
-    # unrelated value (e.g. "Full-time") -- unrecognized values map to None.
+    # unrelated value (e.g. "Full-time"); unrecognized values map to None.
 }
 
 # Structured workplace fields, lowercased before lookup since ATSes case
@@ -290,7 +290,7 @@ _ATS_WORKPLACE_MAP = {
 
 
 def _classify_seniority(title: str | None) -> str | None:
-    """Best-effort seniority from title text -- fallback for ATSes with no
+    """Best-effort seniority from title text. Fallback for ATSes with no
     structured level field. Most titles state no level, so None is normal.
     """
     if not title:
@@ -314,7 +314,7 @@ _WORKPLACE_RULES: list[tuple[str, "re.Pattern[str]"]] = [
 
 
 def _classify_workplace(location: str | None) -> str | None:
-    """Best-effort remote/hybrid/onsite from location text -- fallback for
+    """Best-effort remote/hybrid/onsite from location text. Fallback for
     ATSes with no structured field. Mainly covers Greenhouse, where
     locations like "United States - Remote" are common.
     """
@@ -332,13 +332,13 @@ def _normalize_date(v: Any) -> str | None:
 
     Handles two known quirks: Lever's createdAt is epoch milliseconds, and
     Recruitee's published_at ends in a literal "UTC" word instead of an
-    offset -- both would silently break SQLite's julianday() age math
+    offset. Both would silently break SQLite's julianday() age math
     downstream if left as-is.
     """
     if v is None or v == "":
         return None
 
-    # epoch milliseconds (Lever) -- comes through as int or numeric string
+    # epoch milliseconds (Lever), comes through as int or numeric string
     if isinstance(v, (int, float)) or (isinstance(v, str) and v.isdigit()):
         try:
             return datetime.fromtimestamp(int(v) / 1000, tz=timezone.utc).isoformat()
@@ -347,7 +347,7 @@ def _normalize_date(v: Any) -> str | None:
 
     s = str(v).strip()
 
-    # "YYYY-MM-DD HH:MM:SS UTC" (Recruitee) -- literal suffix, not an offset
+    # "YYYY-MM-DD HH:MM:SS UTC" (Recruitee): literal suffix, not an offset
     if s.endswith(" UTC"):
         s = s[: -len(" UTC")]
         try:
@@ -443,7 +443,7 @@ def f_smartrecruiters(sess, token):
     if not isinstance(d, dict) or "content" not in d:
         return None
     # This endpoint returns HTTP 200 with an empty `content` list for ANY
-    # token, even ones that don't exist -- so an empty result can't be
+    # token, even ones that don't exist, so an empty result can't be
     # trusted as a real hit. Treating it as a match would resolve every
     # unmatched domain in a batch to smartrecruiters, overwriting real
     # MISSes. Costs a rare false negative (a real customer with 0 open
@@ -480,12 +480,12 @@ def f_smartrecruiters(sess, token):
 
 
 def get_xml(sess: requests.Session, url: str) -> "ET.Element | None":
-    """Personio's public feed is XML, not JSON -- get_json() only accepts
-    a json content-type, so this is the same shape (retry once on
-    connection errors, log why on None) for the one XML-based fetcher.
-    A nonexistent tenant subdomain 307-redirects to personio.com's own
-    marketing site (text/html), so the content-type check alone is
-    already a sound existence signal -- confirmed live, no separate
+    """Personio's public feed is XML, not JSON, so get_json() (which only
+    accepts a json content-type) doesn't cover it. This is the same shape
+    (retry once on connection errors, log why on None) for the one
+    XML-based fetcher. A nonexistent tenant subdomain 307-redirects to
+    personio.com's own marketing site (text/html), so the content-type
+    check alone is already a sound existence signal, confirmed live. No
     "empty content" false-positive risk like f_smartrecruiters had.
     """
     for attempt in (1, 2):
@@ -536,22 +536,22 @@ def f_personio(sess, token):
 # ats-probe UA; swap for a browser UA if that changes.
 #
 # KNOWN_FALSE_POSITIVES below are guessed tokens that ARE a real, valid
-# board on that ATS -- just for the wrong company (a common word/name
+# board on that ATS, just for the wrong company (a common word/name
 # collides with an unrelated small business's slug). Nothing about the
 # API response can tell "right company" from "wrong company," so these
 # were caught by spot-checking suspicious results and verified by hand.
 # Add to this set as more turn up.
 KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
-    ("ashby", "matrix"),          # matrix.co.il -- real board is a Boston VC firm, not Matrix IT
-    ("smartrecruiters", "trigo"), # trigo.tech -- real board is an unrelated French/Moroccan company
-    ("greenhouse", "iai"),        # iai.co.il -- real board is a UK company, not Israel Aerospace Industries
-    ("recruitee", "max"),         # max.co.il -- real board is a German agency's demo/template listing
-    ("personio", "amazon"),       # amazon.com -- same small tenant as personio:salesforce and personio:max below
-    ("personio", "salesforce"),   # salesforce.com -- see above
+    ("ashby", "matrix"),          # matrix.co.il: real board is a Boston VC firm, not Matrix IT
+    ("smartrecruiters", "trigo"), # trigo.tech: real board is an unrelated French/Moroccan company
+    ("greenhouse", "iai"),        # iai.co.il: real board is a UK company, not Israel Aerospace Industries
+    ("recruitee", "max"),         # max.co.il: real board is a German agency's demo/template listing
+    ("personio", "amazon"),       # amazon.com: same small tenant as personio:salesforce and personio:max below
+    ("personio", "salesforce"),   # salesforce.com, see above
     ("personio", "max"),          # max.co.il, second collision on top of the recruitee one above
-    ("personio", "hpe"),          # hpe.com -- unrelated German tenant (job titles in German)
+    ("personio", "hpe"),          # hpe.com: unrelated German tenant (job titles in German)
     ("personio", "matrix"),       # matrix.co.il, second collision on top of the ashby one above
-    ("personio", "monday"),       # monday.com -- real board is "Monday" coworking spaces (Spain/Portugal)
+    ("personio", "monday"),       # monday.com: real board is "Monday" coworking spaces (Spain/Portugal)
 }
 
 FETCHERS: dict[str, Callable] = {
@@ -565,16 +565,16 @@ FETCHERS: dict[str, Callable] = {
 }
 
 # --------------------------------------------------------------------------
-# Comeet: not guessable like the ATSes above -- the API needs an opaque
+# Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered
 # server-side from two embeds on the company's own careers page, no JS
 # execution needed:
 #   1. WordPress plugin: var comeetvar = {"comeet_token":"...","comeet_uid":"91.001",...}
 #      (ground-truthed: aquasec.com, silverfort.com)
 #   2. Comeet's generic embed widget: COMEET.init({"token":"...","company-uid":"B1.001",...})
-#      (ground-truthed: overwolf.com -- can arrive double-escaped on
+#      (ground-truthed: overwolf.com; can arrive double-escaped on
 #      streamed React payloads, so unescape before matching)
-# Sites with neither embed (e.g. Coralogix) aren't caught here -- this is
+# Sites with neither embed (e.g. Coralogix) aren't caught here. This is
 # a real subset of Comeet, not all of it.
 # --------------------------------------------------------------------------
 
@@ -582,14 +582,14 @@ COMEET_RE = re.compile(
     r'"(?:comeet_token|token)"\s*:\s*"([^"]+)"\s*,\s*"(?:comeet_uid|company-uid)"\s*:\s*"([^"]+)"'
 )
 COMEET_PATHS = ["/careers", "/careers/", "/jobs", "/about-us/careers", "/company/careers"]
-# Shorter than TIMEOUT -- this tries up to 2*len(COMEET_PATHS) URLs per
+# Shorter than TIMEOUT: this tries up to 2*len(COMEET_PATHS) URLs per
 # MISS domain, so a slow/dead host is expensive; batch runs care more
 # about not stalling than squeezing the last slow-but-alive host.
 COMEET_TIMEOUT = 6
 
 
 def _comeet_job(j: dict, uid: str, token: str) -> Job:
-    """Shared by f_comeet_scrape and _fetch_comeet_pin -- both hit the same
+    """Shared by f_comeet_scrape and _fetch_comeet_pin. Both hit the same
     positions endpoint via different token-discovery paths.
     """
     return Job("comeet", f"{uid}:{token}", _txt(j.get("position_uid")),
@@ -603,7 +603,7 @@ def _comeet_job(j: dict, uid: str, token: str) -> Job:
 def f_comeet_scrape(sess: requests.Session, domain: str) -> tuple[list[Job], str] | None:
     """Try to recover a Comeet uid+token pair from `domain`'s own careers
     page and, if found, fetch real postings. Returns (jobs, "uid:token")
-    or None -- shaped differently from the other fetchers because it needs
+    or None. Shaped differently from the other fetchers because it needs
     the raw domain, not a guessed token, so it isn't a drop-in FETCHERS
     entry; resolve() calls it directly.
     """
@@ -619,7 +619,7 @@ def f_comeet_scrape(sess: requests.Session, domain: str) -> tuple[list[Job], str
             # arrives as a JSON string embedded inside another JSON string
             # (React streamed payload), so what's on the wire is literally
             # the two characters \ and n between fields, not a real
-            # newline byte -- \s* in the regex can't see across that.
+            # newline byte, and \s* in the regex can't see across that.
             # Unescape both before matching rather than widen the regex.
             cleaned = r.text.replace('\\"', '"').replace('\\n', '\n')
             m = COMEET_RE.search(cleaned)
@@ -652,7 +652,7 @@ def _fetch_comeet_pin(sess: requests.Session, uid: str, token: str) -> list[Job]
 #   1. Embed-link detection: find a link/script pointing at an ATS this
 #      file already knows how to query (including Workday, which needs an
 #      unguessable tenant+site pair like Comeet). Still verified against
-#      the real API before counting as a hit -- just as trustworthy as a
+#      the real API before counting as a hit, just as trustworthy as a
 #      guessed token, only found a different way.
 #
 #   2. schema.org JobPosting JSON-LD: many custom career sites emit this
@@ -682,7 +682,7 @@ CAREER_SCRAPE_TIMEOUT = 6  # same reasoning as COMEET_TIMEOUT: one bad host shou
 def _parse_workday_posted_on(s: str | None) -> str | None:
     """Workday's postedOn is a relative string ("Posted Today", "Posted 3
     Days Ago", "Posted 30+ Days Ago"), not an absolute date. Approximated:
-    exact for small N, a floor for the open-ended "30+" bucket -- still
+    exact for small N, a floor for the open-ended "30+" bucket, still
     useful ghost-job signal, better than dropping to None.
     """
     if not s:
@@ -712,7 +712,7 @@ def _workday_location(sess: requests.Session, api_base: str, external_path: str,
     fails.
 
     api_base must be the /wday/cxs/{tenant}/{site} API prefix, not the
-    human-browsable URL f_workday builds job.url from -- the browsable
+    human-browsable URL f_workday builds job.url from. The browsable
     one returns an HTML SPA shell with no embedded data, not JSON.
     """
     if not _WORKDAY_MULTI_LOCATION_RE.match(locations_text) or not external_path:
@@ -729,7 +729,7 @@ def f_workday(sess: requests.Session, tenant: str, wd: str, site: str) -> list[J
     if not isinstance(d, dict) or "jobPostings" not in d:
         return None
     # externalPath ("/job/<location>/<title>_<reqid>") omits the site slug,
-    # even though the browsable URL requires it -- without /{site}, the
+    # even though the browsable URL requires it. Without /{site}, the
     # link silently bounces to a generic error page instead of 404ing.
     base = f"https://{tenant}.{wd}.myworkdayjobs.com/{site}"
     out = []
@@ -761,7 +761,7 @@ def _extract_jobposting_jsonld(html: str, page_url: str) -> list[Job]:
         except ValueError:
             continue
         candidates = data if isinstance(data, list) else [data]
-        # unwrap @graph and itemListElement -- both are common containers
+        # unwrap @graph and itemListElement, both are common containers
         # for a list of postings on one page
         flat = []
         for c in candidates:
@@ -848,7 +848,7 @@ def f_embed_scrape(sess: requests.Session, domain: str) -> tuple[str, list[Job],
 
 def load_pins(path: Path = PINS_FILE) -> dict[str, dict[str, dict[str, str]]]:
     """Load companies.yml: {ats: {domain: {uid, token}}}. A missing file or
-    missing pyyaml just means "no pins" -- this is an optional accelerant,
+    missing pyyaml just means "no pins": this is an optional accelerant,
     never a hard dependency.
     """
     if yaml is None or not path.exists():
@@ -866,7 +866,7 @@ PINS = load_pins()
 
 def refetch_known(sess: requests.Session, domain: str, ats: str, token: str) -> Resolution:
     """Re-poll an already-known ats+token directly, no guessing or
-    scraping -- the fast, frequent-running path (see --known), vs.
+    scraping. The fast, frequent-running path (see --known), versus
     resolve()'s expensive discovery.
 
     token format per-ats: comeet is "uid:token", workday is
@@ -893,7 +893,7 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str) -> 
 
     res.tried = 1
     if jobs is None:
-        # Surfaced as an error, not downgraded to a silent MISS -- could
+        # Surfaced as an error, not downgraded to a silent MISS. Could
         # mean the board closed, the token rotated, or a transient
         # failure; --verbose shows which.
         res.error = f"known {ats}:{token} did not return a valid board on re-poll"
@@ -940,7 +940,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
         for ats, fn in FETCHERS.items():
             if (ats, token) in KNOWN_FALSE_POSITIVES:
                 if VERBOSE:
-                    print(f"    skip {ats}:{token} -- known false positive", file=sys.stderr)
+                    print(f"    skip {ats}:{token}, known false positive", file=sys.stderr)
                 continue
             tried += 1
             if VERBOSE:
@@ -960,7 +960,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
                 res.job_count = len(res.jobs)
                 res.tried = tried
                 return res
-    # Comeet doesn't fit the token-guessing loop above -- try it once per
+    # Comeet doesn't fit the token-guessing loop above. Try it once per
     # domain, only winning if nothing else found real postings. Expensive
     # (measured ~5x slower over 269 domains with it on); --no-comeet skips
     # it, companies.yml pins still apply either way.
@@ -989,7 +989,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
             embed_result = None
         if embed_result is not None:
             ats, jobs, token = embed_result
-            # jsonld is unverified -- only fills a total void, never
+            # jsonld is unverified: only fills a total void, never
             # overrides an empty-but-confirmed board from a verified ATS.
             if ats == "jsonld":
                 if best is None:
@@ -1030,7 +1030,7 @@ def selftest() -> int:
 def raw_dump(sess: requests.Session, url: str) -> int:
     """Print status + content-type + first 400 chars for a single URL.
     Bypasses get_json's JSON filter, so it also shows HTML error pages and
-    redirects -- useful for eyeballing what an endpoint actually returns.
+    redirects. Useful for eyeballing what an endpoint actually returns.
     """
     try:
         r = sess.get(url, timeout=TIMEOUT)
@@ -1080,8 +1080,8 @@ def run_and_report(items: list, resolve_one, json_mode: bool) -> list[Resolution
 def main() -> int:
     # Job titles/locations/descriptions routinely contain non-ASCII text
     # (accents, Hebrew company names, etc.). Windows consoles default stdout
-    # to the cp1252 codepage, which crashes on the first such character --
-    # hit live during batch testing on --json output. UTF-8 output is safe
+    # to the cp1252 codepage, which crashes on the first such character.
+    # Hit live during batch testing on --json output. UTF-8 output is safe
     # everywhere stdout ends up (terminal, file redirect, pipe).
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
@@ -1089,7 +1089,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--domain")
     ap.add_argument("--batch")
-    ap.add_argument("--known", help="JSON array of {domain,ats,token} (a prior --json output works as-is) -- "
+    ap.add_argument("--known", help="JSON array of {domain,ats,token} (a prior --json output works as-is), "
                                      "re-poll known boards directly, no guessing. Fast path, meant to run often.")
     ap.add_argument("--fetch", help="ats:token, skip discovery")
     ap.add_argument("--raw", help="dump status/content-type/first 400 chars for a URL, no parsing")
@@ -1097,9 +1097,9 @@ def main() -> int:
     ap.add_argument("--show", type=int, default=0, help="print N sample jobs per hit")
     ap.add_argument("--verbose", action="store_true", help="print every probe to stderr")
     ap.add_argument("--no-comeet", action="store_true",
-                     help="skip the Comeet careers-page scrape (companies.yml pins still apply) -- much faster batch runs")
+                     help="skip the Comeet careers-page scrape (companies.yml pins still apply), much faster batch runs")
     ap.add_argument("--no-embed-scrape", action="store_true",
-                     help="skip the careers-page embed/JobPosting-JSON-LD fallback -- much faster batch runs")
+                     help="skip the careers-page embed/JobPosting-JSON-LD fallback, much faster batch runs")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
 
@@ -1148,7 +1148,7 @@ def main() -> int:
         if args.batch:
             with open(args.batch, encoding="utf-8-sig") as fh:
                 lines = fh.readlines()
-            # Filter whole comment lines before tokenizing -- tokenizing
+            # Filter whole comment lines before tokenizing. Tokenizing
             # the raw file let words inside a "# comment" (e.g. a domain
             # mentioned in passing) leak into the domain list.
             lines = [l for l in lines if not l.lstrip().startswith("#")]

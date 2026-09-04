@@ -13,13 +13,13 @@ infra/build/
 tfplan
 **/tfplan
 crash.log
-# .terraform.lock.hcl is committed on purpose -- it pins provider versions
+# .terraform.lock.hcl is committed on purpose: it pins provider versions
 # for reproducible applies.
 
 # Node
 node_modules/
 
-# Generated data -- build outputs, not source
+# Generated data: build outputs, not source
 resolved.json
 known.json
 batch_summary.txt
@@ -32,6 +32,7 @@ api_test/
 .claude/scheduled_tasks.lock
 .impeccable/hook.cache.json
 *.log
+CLAUDE.md
 
 # OS cruft
 .DS_Store

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Local dev server for frontend/ -- serves the static files and proxies
+Local dev server for frontend/. Serves the static files and proxies
 /api/* to the real Lambda handler in-process (api/handler.py), against a
 local jobs.db instead of S3. No AWS credentials or deploy needed.
 
@@ -91,13 +91,13 @@ def main() -> int:
     ap.add_argument("--db", type=Path, default=REPO_ROOT / "loader" / "jobs.db")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--host", default="127.0.0.1",
-                     help="bind address -- default is loopback-only; use 0.0.0.0 or a specific "
+                     help="bind address. Default is loopback-only; use 0.0.0.0 or a specific "
                           "interface IP to reach this from other devices. No auth on this server, "
                           "so only bind beyond loopback on a network you trust.")
     args = ap.parse_args()
 
     if not args.db.exists():
-        print(f"error: {args.db} does not exist -- build one first:", file=sys.stderr)
+        print(f"error: {args.db} does not exist, build one first:", file=sys.stderr)
         print("  python loader/load_to_sqlite.py --resolved resolved.json --out jobs.db", file=sys.stderr)
         return 1
 

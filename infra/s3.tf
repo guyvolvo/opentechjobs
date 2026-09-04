@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # Data bucket: jobs.db (read only by the Lambda's IAM role), raw
-# resolved.json, and Parquet snapshots. Private -- nothing here is served
+# resolved.json, and Parquet snapshots. Private, nothing here is served
 # directly to the public.
 # ---------------------------------------------------------------------------
 
@@ -28,7 +28,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
   rule {
     id     = "expire-old-jobsdb-versions"
     status = "Enabled"
-    filter {} # applies to every object in the bucket -- there's only jobs.db in here
+    filter {} # applies to every object in the bucket; there's only jobs.db in here
     noncurrent_version_expiration {
       noncurrent_days = 30 # keep a month of rollback history, not forever
     }
@@ -37,7 +37,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
 
 # ---------------------------------------------------------------------------
 # Frontend bucket: static site. Private, served only via CloudFront's
-# Origin Access Control -- nobody hits S3 directly.
+# Origin Access Control; nobody hits S3 directly.
 # ---------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "frontend" {

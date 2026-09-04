@@ -3,8 +3,8 @@
 Build/refresh jobs.db from probe.py's resolved.json (and, optionally, the
 best-effort deep-scraper's results), then optionally push it to S3.
 
-This is an UPSERT against the existing jobs.db, not a wipe-and-reload --
-that's what lets first_seen/last_seen/closed_at survive across runs.
+This is an UPSERT against the existing jobs.db, not a wipe-and-reload.
+That's what lets first_seen/last_seen/closed_at survive across runs.
 
 Usage:
     # local only, for testing
@@ -55,7 +55,7 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
     """Upsert probe.py's --json output. Every company in this file was
     re-checked THIS run, so companies/jobs not mentioned for a given
     domain but present in the DB from a prior run are fair game to close
-    (see close_missing_jobs below) -- but only for domains that actually
+    (see close_missing_jobs below), but only for domains that actually
     appear here with ats set. A domain that flips to MISS this run is left
     alone entirely: we have no fresh evidence either way, so touching its
     existing jobs would manufacture a false "closed" signal from what
@@ -70,7 +70,7 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
         ats = r.get("ats")
         # jsonld is probe.py's own best-effort tier (schema.org JobPosting
         # scraped off the company's careers page, no live API to verify
-        # against -- see f_embed_scrape's docstring), so it carries the
+        # against, see f_embed_scrape's docstring), so it carries the
         # same lower confidence here as the separate --deep scraper output
         # does in load_deep() below. Every other ats value, including the
         # newer workday and personio ones, is a live API response and is
@@ -79,11 +79,11 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
 
         # ats=None with an error attached is an inconclusive result (a
         # --known re-poll of an already-resolved board failing, e.g. a
-        # timeout) -- not the same as a confirmed MISS (--batch discovery
+        # timeout), not the same as a confirmed MISS (--batch discovery
         # genuinely finding no valid ATS, ats=None with no error). The
         # class-level docstring above already promises a MISS leaves this
         # domain "alone entirely," but only the jobs-closing skip below
-        # actually did that -- this upsert ran unconditionally and wiped a
+        # actually did that. This upsert ran unconditionally and wiped a
         # previously-confirmed ats/confidence back to NULL on nothing more
         # than a transient failure. Only tried/error/last_checked update
         # here; ats/token/confidence/job_count keep whatever they already
@@ -120,7 +120,7 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
             )
 
         if not ats:
-            continue  # MISS (or inconclusive) this run -- don't touch this domain's existing jobs
+            continue  # MISS (or inconclusive) this run: don't touch this domain's existing jobs
 
         ids = set()
         for j in r.get("jobs") or []:
@@ -249,7 +249,7 @@ def export_known(conn: sqlite3.Connection, path: Path) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--resolved", required=True, type=Path,
-                     help="probe.py --json output (either --batch's full discovery run or --known's fast-poll run -- same shape, loaded the same way)")
+                     help="probe.py --json output (either --batch's full discovery run or --known's fast-poll run, same shape, loaded the same way)")
     ap.add_argument("--deep", type=Path, help="best-effort scraper output (optional)")
     ap.add_argument("--out", required=True, type=Path, help="local jobs.db path")
     ap.add_argument("--known-out", type=Path, default=None,

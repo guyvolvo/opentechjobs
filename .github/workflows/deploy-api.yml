@@ -1,6 +1,6 @@
 name: deploy-api
 
-# Ships api/ code to the existing Lambda without a full Terraform apply --
+# Ships api/ code to the existing Lambda without a full Terraform apply.
 # Terraform owns the function's existence/config, this workflow owns its code.
 
 on:

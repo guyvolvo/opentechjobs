@@ -1,6 +1,6 @@
 name: deploy-frontend
 
-# Ships frontend/ to S3 without a full Terraform apply -- same split as
+# Ships frontend/ to S3 without a full Terraform apply, same split as
 # deploy-api.yml. --delete mirrors frontend/ exactly, removing files
 # dropped from it too. The CloudFront invalidation is what makes a push
 # actually visible, since the frontend path caches far longer than /api/*.

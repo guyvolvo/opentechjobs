@@ -1,14 +1,14 @@
-/* OpenMarketIL -- Swiss grid, modernized. System rules, don't break them
+/* OpenMarketIL. Swiss grid, modernized. System rules, don't break them
    ad hoc elsewhere in this file:
    1. Off-white page background (--white); black/near-black ink is a
       component color (buttons, rules), never on <body> directly.
-   2. Green marks exactly one "this matters" element -- never decoration.
+   2. Green marks exactly one "this matters" element, never decoration.
    3. Sharp corners everywhere. No border-radius, no box-shadow depth.
    4. Two voices: --font (Helvetica) for everything dense; --font-display
       (Inter, bold/extrabold) only for the topbar and the two section
       titles.
    5. Job Board and Market Stats are permanent, side by side above the
-      mobile breakpoint (where they stack) -- never a drawer or toggle.
+      mobile breakpoint (where they stack), never a drawer or toggle.
    6. Light/dark both read var(--white)/var(--black), never a literal
       hex, but the two palettes are tuned independently rather than one
       being a straight hex-invert of the other. */
@@ -33,7 +33,7 @@
   --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
-  /* Side padding for .workspace/.container -- scales with viewport
+  /* Side padding for .workspace/.container. Scales with viewport
      (20px floor, 64px ceiling) instead of a fixed max-width box. */
   --gutter: clamp(20px, 4vw, 64px);
   --rule: 2px;
@@ -74,7 +74,7 @@ body {
 ::selection { background: var(--black); color: var(--white); }
 
 /* Custom scrollbars, theme-tokened like the rest of the page. The thumb's
-   border uses the track color -- the standard trick for an inset look. */
+   border uses the track color, the standard trick for an inset look. */
 html { scrollbar-width: thin; scrollbar-color: var(--black) var(--white); }
 *::-webkit-scrollbar { width: 12px; height: 12px; }
 *::-webkit-scrollbar-track { background: var(--white); }
@@ -132,7 +132,7 @@ button, input, select {
   display: flex;
   align-items: center;
   gap: 16px;
-  /* nowrap, deliberately -- .ticker has min-width:0 + overflow:hidden so
+  /* nowrap, deliberately: .ticker has min-width:0 + overflow:hidden so
      it shrinks to fit instead. flex-wrap here wrapped the whole topbar
      onto 3 lines at any width short of "everything fits." */
   flex-wrap: nowrap;
@@ -141,10 +141,10 @@ button, input, select {
   padding-bottom: 10px;
 }
 .topbar .container > * { min-width: 0; } /* same min-width:auto issue as everywhere else in this file */
-.wordmark, .topnav { flex: 0 0 auto; } /* natural width -- the ticker is the one flexible element between them */
+.wordmark, .topnav { flex: 0 0 auto; } /* natural width; the ticker is the one flexible element between them */
 
 /* ---------------------------------------------------------------------- */
-/* Topbar ticker -- seamless CSS-loop marquee. The item list is duplicated
+/* Topbar ticker: seamless CSS-loop marquee. The item list is duplicated
    once in the track, animated exactly -50% so the loop has no visible seam. */
 /* ---------------------------------------------------------------------- */
 
@@ -156,7 +156,7 @@ button, input, select {
   overflow: hidden;
   height: 20px;
   display: flex;
-  align-items: center; /* .ticker-track's height comes from its own text content, not this 20px window -- without this it just sits at the top of the clipped box instead of centered in it */
+  align-items: center; /* .ticker-track's height comes from its own text content, not this 20px window; without this it just sits at the top of the clipped box instead of centered in it */
 }
 
 .ticker-track {
@@ -223,7 +223,7 @@ button, input, select {
 
 /* A square block, not a circle, per the sharp-corners rule. Flickers in
    irregular jump-cut steps like a torch, not a smooth pulse. OFFLINE
-   kills the animation outright -- the torch went out, not still pulsing. */
+   kills the animation outright: the torch went out, not still pulsing. */
 .status-dot {
   width: 8px;
   height: 8px;
@@ -250,7 +250,7 @@ button, input, select {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Workspace -- Job Board (main) + Market Stats (a permanent right-hand
+/* Workspace: Job Board (main) + Market Stats (a permanent right-hand
    board, not a drawer/overlay). Stacks vertically under the responsive
    breakpoint at the end of this file. */
 /* ---------------------------------------------------------------------- */
@@ -262,7 +262,7 @@ button, input, select {
   padding: 0 var(--gutter);
 }
 
-/* min-width:0 -- without it a grid item can't shrink below its content's
+/* min-width:0. Without it a grid item can't shrink below its content's
    natural width, so one long unbreakable value (a table row, a bar-list
    name) forces the whole page wider instead of wrapping locally. */
 .workspace > #board,
@@ -281,7 +281,7 @@ button, input, select {
   top: 57px; /* topbar height + its 2px bottom rule */
   max-height: calc(100vh - 57px);
   overflow-y: auto;
-  /* Right padding is half the left gutter, not zero -- without it the
+  /* Right padding is half the left gutter, not zero. Without it the
      scrollbar (inside this box's own right edge) sits flush against the
      panel content with no breathing room. */
   padding: 40px calc(var(--gutter) / 2) 40px var(--gutter);
@@ -295,7 +295,7 @@ button, input, select {
 /* ---------------------------------------------------------------------- */
 
 /* Same shape as .panel-grid/.panel below: the black background is just
-   the hairline showing through the gaps -- the cells are the light
+   the hairline showing through the gaps. The cells are the light
    surface, matching the (correctly white) panels beside them. */
 .metrics-grid {
   display: grid;
@@ -337,8 +337,8 @@ button, input, select {
   margin-top: 4px;
 }
 
-/* Market-insight panels -- who's hiring, what for, where. No ATS-vendor
-   breakdown here -- that's plumbing, not a market signal. */
+/* Market-insight panels: who's hiring, what for, where. No ATS-vendor
+   breakdown here; that's plumbing, not a market signal. */
 
 .panel-grid {
   margin-top: var(--rule);
@@ -417,7 +417,7 @@ button, input, select {
   margin-top: 4px;
 }
 
-/* One big headline number -- for a panel whose whole point is a single
+/* One big headline number, for a panel whose whole point is a single
    stat (the stale-listing rate), not a list of several. */
 .ghost-pct {
   font-size: 34px;
@@ -435,10 +435,10 @@ button, input, select {
 /* Job board */
 /* ---------------------------------------------------------------------- */
 
-/* The list and its detail panel, side by side -- same fixed-width-sidebar
+/* The list and its detail panel, side by side. Same fixed-width-sidebar
    idiom as .workspace (board/stats). .job-detail starts [hidden] in
    index.html; app.js clears that on first selection. Never a drawer or
-   modal -- laid out in-flow like everything else in this system. */
+   modal, laid out in-flow like everything else in this system. */
 .board-split {
   display: flex;
   align-items: flex-start;
@@ -580,7 +580,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   }
 }
 
-/* Flex-wrap, not a fixed-column grid -- drops filters onto a second row
+/* Flex-wrap, not a fixed-column grid. Drops filters onto a second row
    once they stop fitting, at any width, not just hand-picked breakpoints. */
 .filters {
   display: flex;
@@ -605,7 +605,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .filters input[type="text"]:focus,
 .filters select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
 
-/* Multi-select filter -- a native <select multiple> needs ctrl/cmd-click
+/* Multi-select filter. A native <select multiple> needs ctrl/cmd-click
    to pick more than one, not discoverable, so this is a checkbox-dropdown. */
 .ms { position: relative; }
 .ms-toggle {
@@ -619,8 +619,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   font-size: 13px;
   text-align: left;
   cursor: pointer;
-  /* A long label otherwise wraps and spills past this fixed-height box --
-     truncate with an ellipsis instead, same reasoning as .bar-row .name. */
+  /* A long label otherwise wraps and spills past this fixed-height box.
+     Truncate with an ellipsis instead, same reasoning as .bar-row .name. */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -773,7 +773,7 @@ table.jobs tbody tr { border-bottom: 1px solid var(--black); }
 table.jobs tbody tr:hover { background: var(--hover-bg); }
 table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
 
-/* overflow-wrap:anywhere -- a company domain has no spaces to break at,
+/* overflow-wrap:anywhere. A company domain has no spaces to break at,
    and some job titles arrive as one long hyphenated/slashed word too. */
 table.jobs .title-cell a {
   font-weight: 600;
@@ -787,12 +787,12 @@ table.jobs .company { color: var(--grey); font-size: 11.5px; text-transform: upp
 .job-links {
   display: flex;
   align-items: center;
-  flex-wrap: wrap; /* individual links can drop to a new row if truly out of width -- their own text never should (see white-space: nowrap below) */
+  flex-wrap: wrap; /* individual links can drop to a new row if truly out of width; their own text never should (see white-space: nowrap below) */
   gap: 12px;
   margin-top: 8px;
 }
 
-/* The one action this row exists for -- green per rule 2 above. Filled,
+/* The one action this row exists for, green per rule 2 above. Filled,
    not just colored text, so it reads as the row's one button, not a
    same-weight sibling to Save link. Hover inverts to ink, like .chip/.btn. */
 .job-links a.apply-link {
@@ -907,7 +907,7 @@ footer h3 {
   letter-spacing: 0.08em;
   margin: 0 0 16px;
 }
-/* min-width:0 -- a curl command or long param row is an unbreakable-width
+/* min-width:0. A curl command or long param row is an unbreakable-width
    child that would otherwise force the whole footer wider than the
    viewport instead of scrolling locally. */
 .api-endpoint {
@@ -960,7 +960,7 @@ footer h3 {
   font-weight: bold;
   color: var(--black);
 }
-/* Deliberately fixed, not var(--black)/var(--white) -- a terminal/code
+/* Deliberately fixed, not var(--black)/var(--white). A terminal/code
    block stays dark regardless of the page's own light/dark state. */
 footer code {
   display: block;
@@ -991,14 +991,14 @@ footer p { color: var(--grey); margin: 0 0 8px; }
   }
   table.jobs thead { display: none; }
   /* Reset the desktop bleed (width:100%+gutter, negative margin) back to
-     plain 100% -- meaningless once every cell stacks as its own block. */
+     plain 100%, meaningless once every cell stacks as its own block. */
   table.jobs, table.jobs tbody, table.jobs tr, table.jobs td { display: block; width: 100%; margin-right: 0; }
   table.jobs tr { padding: 10px 0; }
-  /* Stacked cells need a label to tell them apart -- app.js's data-label
+  /* Stacked cells need a label to tell them apart. app.js's data-label
      attribute stands in for the table header that display:none removed. */
   table.jobs td[data-label] { padding: 4px 10px; }
   /* The desktop last-column padding (clears the divider) is meaningless
-     stacked full-width -- just an oversized gap under one value. */
+     stacked full-width, just an oversized gap under one value. */
   table.jobs tbody td:last-child { padding-right: 10px; }
   table.jobs td[data-label]::before {
     content: attr(data-label) ": ";
@@ -1011,11 +1011,11 @@ footer p { color: var(--grey); margin: 0 0 8px; }
 
 @media (max-width: 640px) {
   /* On an actual phone the filter flex-basis values above still fit two
-     or three per row -- full width reads better and gives bigger touch
+     or three per row; full width reads better and gives bigger touch
      targets. */
   .filters > * { flex-basis: 100%; }
-  /* Wordmark + 4 nav items don't fit a 360-390px phone at full size --
-     tighten rather than let the topbar force wider than the viewport. */
+  /* Wordmark + 4 nav items don't fit a 360-390px phone at full size.
+     Tighten rather than let the topbar force wider than the viewport. */
   .topnav { gap: 14px; font-size: 10.5px; }
   .wordmark { font-size: 13px; }
   .ticker-rule, .ticker { display: none; } /* topbar is already tight without a marquee too */

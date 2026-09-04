@@ -4,7 +4,7 @@
 -- load (see loader/load_to_sqlite.py) against whatever probe.py + the
 -- deep scraper found, so first_seen/last_seen/closed_at survive across
 -- runs. It answers "what does the board look like right now," not "how
--- did it trend" -- that's Parquet's job, not this DB's.
+-- did it trend." That's Parquet's job, not this DB's.
 
 PRAGMA foreign_keys = ON;
 
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS companies (
     ats             TEXT,               -- greenhouse|personio|lever|ashby|workable|recruitee|
                                          -- smartrecruiters|comeet|workday|jsonld|NULL (miss)
     token           TEXT,               -- ats-specific token, or "uid:token" for comeet
-    confidence      TEXT,               -- 'verified' | NULL (miss) -- see jobs.confidence note;
+    confidence      TEXT,               -- 'verified' | NULL (miss). See jobs.confidence note;
                                          -- pinned and guessed tokens are equally fresh, both
                                          -- hit the live API every run
     job_count       INTEGER NOT NULL DEFAULT 0,
@@ -41,11 +41,11 @@ CREATE TABLE IF NOT EXISTS jobs (
                                             -- all (SmartRecruiters, Comeet, Workday). Powers keyword search.
     seniority           TEXT,              -- intern|junior|mid|senior|staff|principal|lead|manager|
                                             -- director|exec|NULL. Structured ATS field when one
-                                            -- exists, else a title-keyword guess. NULL is common --
+                                            -- exists, else a title-keyword guess. NULL is common:
                                             -- most titles state no level.
     workplace_type      TEXT,              -- remote|hybrid|onsite|NULL. Structured ATS field when
                                             -- one exists, else a location-text guess. NULL is
-                                            -- common -- plenty of postings just don't say.
+                                            -- common; plenty of postings just don't say.
 
     confidence          TEXT NOT NULL,     -- 'verified' (direct ATS API response) | 'best_effort'
                                             -- (deep scraper, JSON-LD or heuristic DOM scrape).
@@ -70,7 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_jobs_workplace_type ON jobs(workplace_type);
 -- which can't use a btree index anyway. A few thousand rows is a cheap
 -- sequential scan; FTS5 would be the answer at an order of magnitude more.
 
--- One row, updated every load -- lets the API report "as of" without a
+-- One row, updated every load, lets the API report "as of" without a
 -- separate metadata channel.
 CREATE TABLE IF NOT EXISTS meta (
     key     TEXT PRIMARY KEY,

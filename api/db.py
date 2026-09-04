@@ -43,20 +43,20 @@ def get_connection() -> sqlite3.Connection:
     now = time.monotonic()
 
     if _conn is None:
-        # cold start -- no local copy yet, must download
+        # cold start: no local copy yet, must download
         _etag = _download()
         _conn = _open_readonly()
         _last_checked = now
         return _conn
 
     if now - _last_checked < STALE_CHECK_SECONDS:
-        return _conn  # warm and recently checked -- reuse as-is
+        return _conn  # warm and recently checked, reuse as-is
 
     _last_checked = now
     try:
         current_etag = _s3.head_object(Bucket=DATA_BUCKET, Key=DATA_KEY)["ETag"]
     except Exception:
-        return _conn  # S3 hiccup -- keep serving what we have rather than fail the request
+        return _conn  # S3 hiccup: keep serving what we have rather than fail the request
 
     if current_etag != _etag:
         _conn.close()

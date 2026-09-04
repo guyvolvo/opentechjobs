@@ -5,7 +5,7 @@ see infra/cloudfront.tf).
 No framework: a handful of GET routes over a small SQLite file, and an
 if/elif router is as clear as a micro-framework without the extra weight.
 
-No write endpoints -- no accounts means no user identity to own a write.
+No write endpoints. No accounts means no user identity to own a write.
 Job data comes only from the batch loader (loader/load_to_sqlite.py);
 per-visitor state (starring a listing) stays client-local in localStorage.
 """
@@ -39,15 +39,15 @@ IL_KEYWORDS = [
     "caesarea", "yavne", "hod hasharon", "bnei brak", "rosh haayin", "tlv",
     # Added after finding these unmatched in real location strings.
     # "kiryat" ("town of") deliberately catches every Kiryat-prefixed city
-    # in one entry. "Azur" was deliberately left out -- too easily a false
+    # in one entry. "Azur" was deliberately left out: too easily a false
     # match against "Azure" the technology.
     "givatayim", "karmiel", "kiryat", "rishon", "yehud",
 ]
 
 # A posting older than this is treated as an archived ghost listing, not
-# a real open req -- ATSes don't reliably mark stale postings closed.
+# a real open req. ATSes don't reliably mark stale postings closed.
 # Hidden from the board and stats by default (see include_stale/
-# include_closed params). NULL posted_at is kept, not hidden -- unknown
+# include_closed params). NULL posted_at is kept, not hidden: unknown
 # isn't evidence of staleness.
 BOARD_MAX_AGE_DAYS = 365
 FRESH_CLAUSE = f"(posted_at IS NULL OR julianday('now') - julianday(posted_at) <= {BOARD_MAX_AGE_DAYS})"
@@ -86,7 +86,7 @@ def lambda_handler(event, context):
 
 def _query_params(event) -> dict:
     # Parse rawQueryString directly rather than trust the event's own
-    # flattened queryStringParameters -- more predictable for repeated keys.
+    # flattened queryStringParameters: more predictable for repeated keys.
     raw = event.get("rawQueryString") or ""
     parsed = parse_qs(raw, keep_blank_values=True)
     return {k: v[-1] for k, v in parsed.items()}
@@ -204,7 +204,7 @@ def route_jobs(params: dict) -> dict:
     # posted_at DESC. Flip only for this column.
     if sort_key == "age":
         sort_dir = "ASC" if sort_dir == "DESC" else "DESC"
-    # NULLS LAST regardless of direction -- SQLite treats NULL as smaller
+    # NULLS LAST regardless of direction: SQLite treats NULL as smaller
     # than everything else, which would put it first on an ASC sort.
     null_order = "posted_at IS NULL" if sort_key == "age" else "0"
 
@@ -235,7 +235,7 @@ def route_jobs(params: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# /jobs/{id} -- a stable permalink, separate from job.url (which the ATS
+# /jobs/{id}: a stable permalink, separate from job.url (which the ATS
 # can 404 once a role closes). Always resolves, answering with closed_at
 # set if the job has closed, so a saved link never just dead-ends.
 # ---------------------------------------------------------------------------
@@ -309,11 +309,11 @@ def route_stats(params: dict | None = None) -> dict:
         """
     ).fetchall()
 
-    # companies_total/resolved describe scraper coverage -- kept in the
+    # companies_total/resolved describe scraper coverage, kept in the
     # response for API polling, not surfaced as a homepage metric.
     companies_total = int(meta.get("companies_total", 0))
     companies_resolved = int(meta.get("companies_resolved", 0))
-    # The loader's raw all-time count (ghost listings included) -- kept as
+    # The loader's raw all-time count (ghost listings included), kept as
     # open_jobs_all_time for transparency, but the headline number below
     # must respect the same archive cutoff as the board itself.
     open_jobs_all_time = int(meta.get("open_jobs_verified", 0))
@@ -347,7 +347,7 @@ def route_stats(params: dict | None = None) -> dict:
         """
     ).fetchone()
 
-    # Verified only -- best_effort postings don't carry a trustworthy posted_at.
+    # Verified only: best_effort postings don't carry a trustworthy posted_at.
     ages = sorted(
         r["d"] for r in conn.execute(
             f"""
@@ -377,7 +377,7 @@ def route_stats(params: dict | None = None) -> dict:
     ).fetchall()
 
     # `department` is the raw ATS field, not a normalized taxonomy (one
-    # company's "R&D" is another's "Engineering") -- shown to users as
+    # company's "R&D" is another's "Engineering"). Shown to users as
     # "Category". LIMIT 20 doubles as the frontend's Category filter
     # options, not just this panel's display, hence the higher count.
     top_departments = conn.execute(
@@ -392,10 +392,10 @@ def route_stats(params: dict | None = None) -> dict:
         """
     ).fetchall()
 
-    # `location` is raw ATS text, not a normalized place -- "Austin" and
+    # `location` is raw ATS text, not a normalized place. "Austin" and
     # "Austin, TX" are different rows here, not merged. A top-N of literal
     # strings, not a geocoded facet. Same IL_KEYWORDS match as route_jobs'
-    # israel_only -- keep in sync, don't invent a second heuristic.
+    # israel_only: keep in sync, don't invent a second heuristic.
     il_clause = " OR ".join("LOWER(location) LIKE ?" for _ in IL_KEYWORDS)
     il_args = [f"%{kw}%" for kw in IL_KEYWORDS]
 
@@ -427,8 +427,8 @@ def route_stats(params: dict | None = None) -> dict:
     location_total = location_row["total"] or 0
 
     # Hiring velocity: who's added the most open reqs in the last week.
-    # Different question from top_companies (total open headcount) --
-    # this surfaces a company ramping up right now even if its absolute
+    # Different question from top_companies (total open headcount).
+    # This surfaces a company ramping up right now even if its absolute
     # req count is still small.
     top_movers = conn.execute(
         f"""
@@ -441,7 +441,7 @@ def route_stats(params: dict | None = None) -> dict:
         """
     ).fetchall()
 
-    # Excludes NULL -- most postings state no level, and an "unspecified"
+    # Excludes NULL. Most postings state no level, and an "unspecified"
     # bar would bury the real signal. The frontend derives that percentage
     # itself from totals.open_jobs minus this list's sum.
     seniority_breakdown = conn.execute(
@@ -454,7 +454,7 @@ def route_stats(params: dict | None = None) -> dict:
         """
     ).fetchall()
 
-    # "Ghost job" signal -- reuses `ages`, already computed above.
+    # "Ghost job" signal: reuses `ages`, already computed above.
     # threshold_days is a response field, not a frontend assumption, so
     # changing it here needs no matching frontend edit.
     GHOST_THRESHOLD_DAYS = 60
@@ -462,7 +462,7 @@ def route_stats(params: dict | None = None) -> dict:
 
     # error_count: domains currently failing to resolve at all.
     # oldest_resolved_check: is the slowest part of the pipeline still
-    # healthy -- distinct from freshness.last_checked below, which only
+    # healthy. Distinct from freshness.last_checked below, which only
     # reflects the single most-recent company and would miss a straggler.
     pipeline_row = conn.execute(
         """
@@ -481,9 +481,9 @@ def route_stats(params: dict | None = None) -> dict:
         if mins is not None:
             oldest_check_minutes = round(mins, 1)
 
-    # New verified listings per day, last 14 days -- zero-filled so the
+    # New verified listings per day, last 14 days, zero-filled so the
     # frontend's chart gets a consistent 14-point series. Closed uses the
-    # same shape/window from closed_at -- the chart's other half.
+    # same shape/window from closed_at: the chart's other half.
     today = datetime.now(timezone.utc).date()
     window = [(today - timedelta(days=i)).isoformat() for i in range(13, -1, -1)]
 
@@ -510,7 +510,7 @@ def route_stats(params: dict | None = None) -> dict:
         {"date": day, "n": new_counts.get(day, 0), "closed": closed_counts.get(day, 0)} for day in window
     ]
 
-    # Open-jobs-over-time, reconstructed rather than snapshotted -- this DB
+    # Open-jobs-over-time, reconstructed rather than snapshotted. This DB
     # has no periodic-snapshot mechanism, but nothing is ever deleted (jobs
     # get closed_at set, not removed), so "was this job open on day X" is
     # answerable from first_seen/closed_at alone. Done in Python, not SQL,

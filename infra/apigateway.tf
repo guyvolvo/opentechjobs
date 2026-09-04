@@ -1,5 +1,5 @@
 # Stand-in for the Lambda Function URL (lambda.tf's original, cheaper
-# choice) -- this AWS account currently can't create Function URLs in
+# choice). This AWS account currently can't create Function URLs in
 # il-central-1 (AccessDeniedException on create AND list, even with full
 # admin access; looks like an account-provisioning gap on AWS's side, not
 # a config issue). An HTTP API is the standard fallback: still effectively
@@ -22,7 +22,7 @@ resource "aws_apigatewayv2_integration" "api" {
   api_id                 = aws_apigatewayv2_api.api.id
   integration_type       = "AWS_PROXY"
   integration_uri        = aws_lambda_function.api.invoke_arn
-  payload_format_version = "2.0" # same event shape as a Function URL -- handler.py needs no changes
+  payload_format_version = "2.0" # same event shape as a Function URL; handler.py needs no changes
 }
 
 # Catch-all: CloudFront forwards the full "/api/*" request URI unchanged

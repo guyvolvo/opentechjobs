@@ -270,7 +270,7 @@ batm.com
 own.com
 trigo.tech
 
-# Comeet-confirmed (pinned in companies.yml -- found via search-indexed
+# Comeet-confirmed (pinned in companies.yml, found via search-indexed
 # comeet.com/jobs URLs, not guessable from the domain alone)
 algosec.com
 getport.io
@@ -303,11 +303,11 @@ eci.com
 variantyx.com
 
 # Multinationals with real R&D centers in Israel (not Israeli-founded, but
-# real employers in the same job market -- see
+# real employers in the same job market, see
 # https://en.wikipedia.org/wiki/List_of_multinational_companies_with_research_and_development_centres_in_Israel).
 # Expect mostly MISS: giants like these overwhelmingly run Workday/SAP
 # SuccessFactors/custom systems, not the startup-oriented ATSes this
-# project checks -- same gap as the Israeli banks/telecom/defense
+# project checks. Same gap as the Israeli banks/telecom/defense
 # companies already in this file. A MISS here is real signal too.
 microsoft.com
 google.com
@@ -359,11 +359,11 @@ overwolf.com
 superplay.co
 playsight.com
 
-# Big corporates / defense / finance / retail / utilities / telecom --
+# Big corporates / defense / finance / retail / utilities / telecom:
 # "Israeli lowtech": traditional large employers, not startups, but real
 # hiring pipelines. Most of these will MISS on every fetcher here (large
 # Israeli corporates mostly run SAP SuccessFactors, Oracle, iCIMS, or
-# in-house ATSes, none of which are wired up) -- kept in the batch anyway
+# in-house ATSes, none of which are wired up). Kept in the batch anyway
 # because a MISS is still signal (rules out the ATSes we do check) and
 # because this is exactly the segment the original 35-domain seed list
 # skipped entirely.
@@ -409,7 +409,7 @@ cal-online.co.il
 # same Airtable table techaviv.com/unicorns embeds, mirrored at
 # github.com/TheBSD/scraping-israeli-data). Several of these are US/
 # global-HQ'd with Israeli founders and may have zero current Israel-
-# based listings -- that's fine, same as any other company with no IL
+# based listings. That's fine, same as any other company with no IL
 # openings right now: they just contribute 0 rows to the default
 # israel_only-scoped board until/unless one opens. 47 companies from
 # this same list were already covered by earlier batches above; these
@@ -462,7 +462,7 @@ visbymedical.com
 
 # US-Israel.co's Unicorn Tracker (usisrael.co/unicorn-tracker), companies
 # not already covered by earlier batches. Checked live via HTTP before
-# adding; excluded Vesttoo (vesttoo.com has no DNS records at all --
+# adding; excluded Vesttoo (vesttoo.com has no DNS records at all,
 # dead domain, consistent with the company's 2023 fraud-scandal collapse).
 liquiditygroup.com
 minutemedia.com
