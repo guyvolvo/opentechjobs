@@ -33,6 +33,19 @@ try:
 except ImportError:
     yaml = None
 
+# Shared with api/handler.py and alerts.py -- see job_filters.py's own
+# docstring on why (avoiding a second, independently-drifting Israel-
+# location keyword list). Flat top-level import works as-is once
+# deployed (deploy-scrape-lambda.yml already copies api/job_filters.py
+# alongside probe.py in the Lambda build); the except branch is only for
+# running probe.py straight from the repo root, where job_filters.py
+# still lives under api/.
+try:
+    from job_filters import IL_KEYWORDS
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).with_name("api")))
+    from job_filters import IL_KEYWORDS
+
 UA = "ats-probe/0.2 (+https://github.com/guyvolvo/REPLACE-ME)"
 TIMEOUT = 12
 WORKERS = 8
@@ -73,6 +86,16 @@ class Job:
     # otherwise resolve() falls back to a location-text guess via
     # _classify_workplace() (Greenhouse has no structured field at all).
     workplace_type: str | None = None
+    # Up to 5 tech/skill terms matched against title+description via
+    # _extract_skills() -- see _fill_classifications(). Empty when
+    # neither field mentions anything in _SKILL_KEYWORDS, common for
+    # non-technical roles or ATSes with no description on this pass.
+    skills: list[str] = field(default_factory=list)
+    # Real disclosed comp (Ashby's structured field today) or a market
+    # estimate (_estimate_salary, Israeli role x seniority snapshot) --
+    # never both; see salary_is_estimate. None when neither is available.
+    salary_text: str | None = None
+    salary_is_estimate: bool = False
 
 
 @dataclass
@@ -331,6 +354,203 @@ def _classify_workplace(location: str | None) -> str | None:
     return None
 
 
+# Hand-curated, same reasoning as _SENIORITY_RULES/_WORKPLACE_RULES above
+# rather than sourced from an external taxonomy (there's no free "job
+# skill keyword" API/dataset worth round-tripping through for this).
+# Canonical display label -> alternate spellings/casings to match.
+# Order matters where a shorter term is a substring of a longer one's
+# *words* (word-boundary regex alone doesn't save you there, e.g. "C"
+# would match inside "C++" text as its own word) -- longer/specific
+# terms are listed first and _extract_skills dedupes by canonical label
+# so a title matching both "Node.js" and "JavaScript" shows both, not
+# a double-count of one.
+_SKILL_KEYWORDS: list[tuple[str, "re.Pattern[str]"]] = [
+    (label, re.compile(r"\b(?:" + "|".join(re.escape(n) for n in needles) + r")\b", re.IGNORECASE))
+    for label, needles in [
+        # Languages
+        ("Python", ["python"]),
+        ("TypeScript", ["typescript", "ts"]),
+        ("JavaScript", ["javascript", "js"]),
+        ("Java", ["java"]),
+        ("Go", ["golang"]),  # bare "go" is too common a word to match safely
+        ("Rust", ["rust"]),
+        ("C++", ["c++", "cpp"]),
+        # ".NET" itself isn't matched: it starts with punctuation, and the
+        # shared \b...\b wrapper (see the comprehension above) can't
+        # anchor a boundary directly before a leading ".". "dotnet"/"c#"
+        # cover it in practice.
+        ("C#", ["c#", "csharp", "dotnet"]),
+        ("Ruby", ["ruby"]),
+        ("PHP", ["php"]),
+        ("Swift", ["swift"]),
+        ("Kotlin", ["kotlin"]),
+        ("Scala", ["scala"]),
+        ("SQL", ["sql"]),
+        # Cloud / infra
+        ("AWS", ["aws", "amazon web services"]),
+        ("GCP", ["gcp", "google cloud"]),
+        ("Azure", ["azure"]),
+        ("Docker", ["docker"]),
+        ("Kubernetes", ["kubernetes", "k8s"]),
+        ("Terraform", ["terraform"]),
+        ("Ansible", ["ansible"]),
+        ("Linux", ["linux"]),
+        ("CI/CD", ["ci/cd", "continuous integration", "continuous deployment"]),
+        # Frameworks / frontend
+        ("React", ["react", "react.js", "reactjs"]),
+        ("Angular", ["angular"]),
+        ("Vue", ["vue.js", "vuejs"]),  # bare "vue" is too common a fragment (e.g. "point of view")
+        ("Node.js", ["node.js", "nodejs"]),  # bare "node" is ambiguous with a cluster/graph node
+        ("Django", ["django"]),
+        ("Flask", ["flask"]),
+        ("Spring Boot", ["spring boot", "springboot"]),  # bare "spring" is an ordinary English word
+        ("GraphQL", ["graphql"]),
+        # Databases
+        ("PostgreSQL", ["postgresql", "postgres"]),
+        ("MySQL", ["mysql"]),
+        ("MongoDB", ["mongodb", "mongo"]),
+        ("Redis", ["redis"]),
+        ("Elasticsearch", ["elasticsearch"]),
+        ("Kafka", ["kafka"]),
+        ("Spark", ["spark"]),
+        # Data / ML
+        ("TensorFlow", ["tensorflow"]),
+        ("PyTorch", ["pytorch"]),
+        ("LLM", ["llm", "large language model"]),
+        # Bare "rag" isn't matched: too easily confused with the ordinary
+        # word, or with "RAG status" (red-amber-green) in PM postings.
+        ("RAG", ["retrieval-augmented generation"]),
+        ("NLP", ["nlp", "natural language processing"]),
+        # Security
+        ("Active Directory", ["active directory"]),
+        ("SIEM", ["siem"]),
+        ("Penetration Testing", ["penetration testing", "pentest"]),
+        # General practice
+        ("Agile", ["agile"]),
+        ("Scrum", ["scrum"]),
+        ("Git", ["git"]),
+        ("REST API", ["rest api", "restful"]),
+        ("Microservices", ["microservices"]),
+    ]
+]
+
+# First 5 matches, in the order they appear in title+description -- not
+# a fixed priority ranking -- so the tags reflect what the posting
+# itself leads with, not this list's own ordering.
+_SKILL_MAX_TAGS = 5
+
+
+def _extract_skills(title: str | None, description: str | None) -> list[str]:
+    text = f"{title or ''}\n{description or ''}"
+    if not text.strip():
+        return []
+    found: list[str] = []
+    for label, pattern in _SKILL_KEYWORDS:
+        m = pattern.search(text)
+        if m:
+            found.append((m.start(), label))
+    found.sort(key=lambda t: t[0])
+    seen: set[str] = set()
+    out: list[str] = []
+    for _, label in found:
+        if label not in seen:
+            seen.add(label)
+            out.append(label)
+        if len(out) == _SKILL_MAX_TAGS:
+            break
+    return out
+
+
+# ₪/month gross, Israeli tech market, 2026 snapshot. NOT this project's
+# own data -- a hand-transcribed reference table, same spirit as
+# companies.yml's hand-pinned Comeet tokens. Source: mysachar.co.il's
+# "Hi-Tech Salaries in Israel 2026" (role x seniority table), itself
+# cross-referencing Israel's Central Bureau of Statistics ICT-sector
+# means, GotFriends' 2026 recruiter survey (~15,000 candidates, ~1,500
+# placements), and Ravio's 2026 Israel benchmarks.
+# https://mysachar.co.il/articles/en/hi-tech-salaries-israel.html
+# (checked live 2026-09-04; that page states updates roughly semiannually)
+#
+# Deliberately role x seniority only -- no location or company
+# breakdown exists in any free source found for the Israeli market
+# (checked Ravio directly: bot-protected, no public API; Glassdoor and
+# levels.fyi: no public API for either, and scraping either would cross
+# their Terms of Service, which this project won't do). Always rendered
+# as an estimate, never with the same visual confidence as a real
+# disclosed number -- see Job.salary_is_estimate.
+_IL_SALARY_TABLE_KNIS: dict[tuple[str, str], tuple[int, int]] = {
+    ("backend", "junior"): (22, 27), ("backend", "mid"): (30, 37),
+    ("backend", "senior"): (38, 48), ("backend", "staff"): (42, 55),
+    ("frontend", "junior"): (22, 27), ("frontend", "mid"): (29, 36),
+    ("frontend", "senior"): (36, 46), ("frontend", "staff"): (42, 55),
+    ("fullstack", "junior"): (20, 26), ("fullstack", "mid"): (28, 35),
+    ("fullstack", "senior"): (35, 45), ("fullstack", "staff"): (40, 50),
+    ("devops", "junior"): (25, 30), ("devops", "mid"): (32, 40),
+    ("devops", "senior"): (38, 48), ("devops", "staff"): (40, 55),
+    ("data_ml", "junior"): (22, 35), ("data_ml", "mid"): (32, 45),
+    ("data_ml", "senior"): (40, 55), ("data_ml", "staff"): (45, 60),
+    ("mobile", "junior"): (22, 28), ("mobile", "mid"): (30, 38),
+    ("mobile", "senior"): (36, 46), ("mobile", "staff"): (40, 52),
+    ("qa", "junior"): (18, 24), ("qa", "mid"): (24, 32),
+    ("qa", "senior"): (30, 40), ("qa", "staff"): (35, 45),
+    ("security", "junior"): (25, 35), ("security", "mid"): (35, 48),
+    ("security", "senior"): (45, 60), ("security", "staff"): (60, 120),
+    ("product", "junior"): (22, 28), ("product", "mid"): (30, 40),
+    ("product", "senior"): (40, 52), ("product", "staff"): (48, 65),
+}
+
+# Checked top-to-bottom like _SENIORITY_RULES -- most specific first
+# ("data_ml" before a bare "engineer" catch-all would ever be added).
+_ROLE_CATEGORY_RULES: list[tuple[str, "re.Pattern[str]"]] = [
+    (category, re.compile(r"\b(?:" + "|".join(re.escape(n) for n in needles) + r")\b", re.IGNORECASE))
+    for category, needles in [
+        ("security", ["security", "appsec", "cyber", "penetration test", "soc analyst", "vulnerability"]),
+        ("data_ml", ["data engineer", "data scientist", "machine learning", "ml engineer",
+                     "ai engineer", "llm", "nlp"]),
+        ("devops", ["devops", "sre", "site reliability", "platform engineer", "infrastructure engineer"]),
+        ("qa", ["qa", "quality assurance", "sdet", "test engineer"]),
+        ("mobile", ["ios", "android", "mobile engineer", "mobile developer"]),
+        ("frontend", ["frontend", "front-end", "front end", "ui engineer"]),
+        ("fullstack", ["full stack", "full-stack", "fullstack"]),
+        ("product", ["product manager"]),
+        # Backend last: the widest net (bare "backend"/"engineer"/
+        # "developer"), so anything more specific above gets first pick.
+        ("backend", ["backend", "back-end", "back end", "software engineer",
+                     "software developer", "engineer", "developer"]),
+    ]
+]
+
+# staff/principal/lead collapse to the table's "Staff / Tech Lead 8y+"
+# bucket; manager/director/exec have no real row in this recruiter-pool
+# table (their comp is driven by scope/reports, not a role x seniority
+# grid the same way) so they fall through to no estimate.
+_SENIORITY_TO_TABLE_BUCKET = {
+    "intern": "junior", "junior": "junior",
+    "mid": "mid",
+    "senior": "senior",
+    "staff": "staff", "principal": "staff", "lead": "staff",
+}
+
+
+def _estimate_salary(title: str | None, seniority: str | None) -> tuple[int, int] | None:
+    """(low, high) in ₪K/month from _IL_SALARY_TABLE_KNIS, or None if the
+    title doesn't confidently match a role category or the seniority has
+    no real row in that table (manager/director/exec -- see
+    _SENIORITY_TO_TABLE_BUCKET). Never guessed for a job whose location
+    isn't Israel -- callers are expected to check that themselves, since
+    this function only has the title/seniority to work with.
+    """
+    if not title:
+        return None
+    bucket = _SENIORITY_TO_TABLE_BUCKET.get(seniority or "")
+    if not bucket:
+        return None
+    for category, pattern in _ROLE_CATEGORY_RULES:
+        if pattern.search(title):
+            return _IL_SALARY_TABLE_KNIS.get((category, bucket))
+    return None
+
+
 def _normalize_date(v: Any) -> str | None:
     """Normalize any ATS's posting date to ISO 8601. Every fetcher should
     push its date through this before putting it on a Job.
@@ -397,15 +617,26 @@ def f_lever(sess, token):
 
 
 def f_ashby(sess, token):
-    d = get_json(sess, f"https://api.ashbyhq.com/posting-api/job-board/{token}")
+    # includeCompensation=true: verified live (2026-09-04) this is a real,
+    # documented Ashby parameter -- confirmed against Ramp's public board,
+    # which returns genuine disclosed ranges ("$211.4K - $290.6K") this
+    # way. Most companies (esp. Israeli ones, no pay-transparency mandate)
+    # still come back with every compensation field null; that's a real
+    # "not disclosed," not this call failing.
+    d = get_json(sess, f"https://api.ashbyhq.com/posting-api/job-board/{token}?includeCompensation=true")
     if not isinstance(d, dict) or "jobs" not in d:
         return None
-    return [Job("ashby", token, _txt(j.get("id")), _txt(j.get("title")),
-                _txt(j.get("location")), _txt(j.get("jobUrl")),
-                _normalize_date(j.get("publishedAt")), _txt(j.get("department")) or None,
-                len(_txt(j.get("descriptionPlain"))), _clean_text(j.get("descriptionPlain")),
-                workplace_type=_ATS_WORKPLACE_MAP.get(_txt(j.get("workplaceType")).lower()) or None)
-            for j in d["jobs"]]
+    out = []
+    for j in d["jobs"]:
+        comp = j.get("compensation") or {}
+        salary_text = comp.get("scrapeableCompensationSalarySummary") or comp.get("compensationTierSummary")
+        out.append(Job("ashby", token, _txt(j.get("id")), _txt(j.get("title")),
+                        _txt(j.get("location")), _txt(j.get("jobUrl")),
+                        _normalize_date(j.get("publishedAt")), _txt(j.get("department")) or None,
+                        len(_txt(j.get("descriptionPlain"))), _clean_text(j.get("descriptionPlain")),
+                        workplace_type=_ATS_WORKPLACE_MAP.get(_txt(j.get("workplaceType")).lower()) or None,
+                        salary_text=_txt(salary_text) or None, salary_is_estimate=False))
+    return out
 
 
 def f_workable(sess, token):
@@ -942,14 +1173,24 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str) -> 
 
 def _fill_classifications(jobs: list[Job]) -> list[Job]:
     """Fills in a text-keyword guess for any job whose fetcher didn't
-    already set a structured seniority/workplace_type. Mutates in place
-    and returns the same list.
+    already set a structured seniority/workplace_type, plus skills and a
+    salary estimate (only where no fetcher already set a real disclosed
+    salary_text -- see f_ashby -- and only for an Israel-located job, per
+    _estimate_salary's own docstring). Mutates in place, returns the
+    same list.
     """
     for j in jobs:
         if j.seniority is None:
             j.seniority = _classify_seniority(j.title)
         if j.workplace_type is None:
             j.workplace_type = _classify_workplace(j.location)
+        j.skills = _extract_skills(j.title, j.description)
+        if j.salary_text is None and j.location and any(kw in j.location.lower() for kw in IL_KEYWORDS):
+            estimate = _estimate_salary(j.title, j.seniority)
+            if estimate:
+                lo, hi = estimate
+                j.salary_text = f"₪{lo}K–{hi}K"
+                j.salary_is_estimate = True
     return jobs
 
 

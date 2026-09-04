@@ -1034,6 +1034,34 @@ table.jobs .title-cell a:hover { color: var(--green); }
    read oddly shouted in all-caps) than to a table-header-style tag. */
 .job-meta { color: var(--grey); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
 
+/* Salary (real disclosed or an estimate, see app.js's jobSalaryHtml)
+   plus skill chips -- confirmed live: plain text, no border/background
+   at all, same weight as .job-meta above it, not a boxed/badge
+   treatment. Fills the row's own width with real structured data
+   instead of the empty space a bare title+meta line left behind. */
+.job-tags {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+.job-salary { color: var(--black); font-weight: 700; }
+.job-salary.estimate { color: var(--grey); font-weight: 400; } /* an estimate never reads with the same confidence as a real disclosed figure */
+.job-salary.undisclosed { color: var(--grey); font-weight: 400; }
+.skill-chip {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--grey);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+}
+.skill-chip:hover { color: var(--green); text-decoration: underline; }
+.skill-chip:not(:last-child)::after { content: "·"; margin-left: 10px; color: var(--grey-line); }
+
 /* Google's favicon endpoint (see app.js's companyLogoUrl) -- no border
    radius, matching DESIGN.md's rounded:none everywhere else in this
    Swiss-grid layout, not a soft app-icon treatment. object-fit:contain

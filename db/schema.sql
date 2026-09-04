@@ -46,6 +46,15 @@ CREATE TABLE IF NOT EXISTS jobs (
     workplace_type      TEXT,              -- remote|hybrid|onsite|NULL. Structured ATS field when
                                             -- one exists, else a location-text guess. NULL is
                                             -- common; plenty of postings just don't say.
+    skills              TEXT,              -- comma-joined, up to 5 tech/skill terms matched against
+                                            -- title+description (see probe.py's _extract_skills).
+                                            -- Empty/NULL for non-technical roles or no description.
+    salary_text         TEXT,              -- real disclosed comp (currently Ashby only) or an
+                                            -- Israel role x seniority market estimate, never both --
+                                            -- see salary_is_estimate. NULL where neither applies.
+    salary_is_estimate  INTEGER NOT NULL DEFAULT 0,  -- 0/1. 1 means salary_text is probe.py's
+                                            -- _estimate_salary(), not the listing's own disclosed
+                                            -- figure -- the frontend must render these differently.
 
     confidence          TEXT NOT NULL,     -- 'verified' (direct ATS API response) | 'best_effort'
                                             -- (deep scraper, JSON-LD or heuristic DOM scrape).

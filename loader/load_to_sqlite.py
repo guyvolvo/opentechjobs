@@ -48,7 +48,33 @@ def open_db(path: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    _migrate(conn)
     return conn
+
+
+# One-off column additions for a jobs.db predating these columns --
+# schema.sql's CREATE TABLE IF NOT EXISTS is a no-op against an
+# already-existing table. Checked via table_info rather than try/except
+# on ALTER TABLE, since SQLite has no ADD COLUMN IF NOT EXISTS.
+#
+# Reported live last time (description_snippet): api/handler.py reads
+# jobs.db directly and doesn't go through this function at all, so
+# deploying an API change that SELECTs a column only this migration adds
+# broke every /api/jobs call until jobs.db in S3 was migrated by hand.
+# Apply this migration to the live S3 file BEFORE deploying the API
+# change next time, not after.
+_NEW_COLUMNS = {
+    "skills": "TEXT",
+    "salary_text": "TEXT",
+    "salary_is_estimate": "INTEGER NOT NULL DEFAULT 0",
+}
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)")}
+    for name, coltype in _NEW_COLUMNS.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE jobs ADD COLUMN {name} {coltype}")
 
 
 def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
@@ -138,8 +164,9 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
         """
         INSERT INTO jobs (id, company_domain, ats, external_id, title, location, department,
                            url, posted_at, description_chars, description, seniority, workplace_type,
+                           skills, salary_text, salary_is_estimate,
                            confidence, first_seen, last_seen, closed_at, raw_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             location = excluded.location,
@@ -173,6 +200,14 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- always sends a real value here, so this is a no-op for them.
             description_chars = CASE WHEN excluded.description_chars > 0 THEN excluded.description_chars ELSE description_chars END,
             description = CASE WHEN excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.description ELSE description END,
+            -- Same "don't null out what a fuller pass already captured"
+            -- reasoning as description above -- both are derived from it
+            -- (skills via keyword match, salary_text's estimate branch via
+            -- seniority), so they go empty on the exact same re-verify
+            -- passes description does.
+            skills = CASE WHEN excluded.skills IS NOT NULL AND excluded.skills != '' THEN excluded.skills ELSE skills END,
+            salary_text = CASE WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_text ELSE salary_text END,
+            salary_is_estimate = CASE WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_is_estimate ELSE salary_is_estimate END,
             seniority = excluded.seniority,
             workplace_type = excluded.workplace_type,
             last_seen = excluded.last_seen,
@@ -182,6 +217,7 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
         (jid, domain, j.get("ats"), j.get("external_id"), j.get("title") or "",
          j.get("location"), j.get("department"), j.get("url"), j.get("posted_at"),
          j.get("description_chars", 0), j.get("description"), j.get("seniority"), j.get("workplace_type"),
+         ",".join(j.get("skills") or []), j.get("salary_text"), int(bool(j.get("salary_is_estimate"))),
          confidence, ts, ts,
          json.dumps(j, ensure_ascii=False)),
     )

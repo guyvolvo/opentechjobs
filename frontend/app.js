@@ -620,6 +620,32 @@ function jobMetaLine(j) {
   return line;
 }
 
+// Real disclosed comp (currently Ashby only) shown plainly; an estimate
+// (probe.py's _estimate_salary, Israeli role x seniority market data,
+// not this listing's own figure) prefixed "Est." and never styled with
+// the same weight as a real number -- see .job-salary.estimate. Neither
+// present just reads "Undisclosed," matching this board's own principle
+// of showing an absence as an absence, not hiding it.
+function jobSalaryHtml(j) {
+  if (!j.salary_text) return `<span class="job-salary undisclosed">Undisclosed</span>`;
+  const cls = j.salary_is_estimate ? "job-salary estimate" : "job-salary";
+  const prefix = j.salary_is_estimate ? "Est. " : "";
+  return `<span class="${cls}">${prefix}${escapeHtml(j.salary_text)}</span>`;
+}
+
+// Plain text, no chip/badge container (confirmed live) -- each one
+// still a real button, clicking sets the board's existing `keywords`
+// filter (the same AND-match param /api/jobs already supports) to that
+// one term and reloads, rather than adding a second, parallel filter
+// mechanism just for this.
+function jobSkillsHtml(j) {
+  const skills = (j.skills || "").split(",").filter(Boolean);
+  if (!skills.length) return "";
+  return skills
+    .map((s) => `<button class="skill-chip" data-skill="${escapeHtml(s)}" type="button">${escapeHtml(s)}</button>`)
+    .join("");
+}
+
 function renderJobRows(jobs, starred) {
   document.getElementById("jobs-body").innerHTML = jobs
     .map((j) => {
@@ -644,6 +670,7 @@ function renderJobRows(jobs, starred) {
               ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
             </div>
             <div class="job-meta">${jobMetaLine(j)}</div>
+            <div class="job-tags">${jobSalaryHtml(j)}${jobSkillsHtml(j)}</div>
             <div class="job-links">
               <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
               <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
@@ -668,6 +695,18 @@ function renderJobRows(jobs, starred) {
 
   document.querySelectorAll("[data-copy-url]").forEach((btn) => {
     btn.addEventListener("click", () => copyToClipboard(btn, btn.dataset.copyUrl));
+  });
+
+  document.querySelectorAll("[data-skill]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation(); // same reasoning as the star button above
+      state.keywords = btn.dataset.skill;
+      state.offset = 0;
+      document.getElementById("f-keywords").value = state.keywords;
+      loadJobs();
+      loadTicker();
+      window.scrollTo({ top: document.getElementById("board").offsetTop - 60, behavior: "smooth" });
+    });
   });
 }
 
