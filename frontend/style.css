@@ -825,9 +825,14 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .filters label.toggle,
 .filters #f-reset { flex: 0 0 auto; }
 
+/* Scoped to just the filter bar, per request -- a small radius and a
+   1px (not --rule's 2px) border here only, not a system-wide change to
+   DESIGN.md's rounded:none. Everything outside .filters (buttons,
+   badges, chips, cards, panels) stays sharp-cornered. */
 .filters input[type="text"],
 .filters select {
-  border: var(--rule) solid var(--black);
+  border: 1px solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   padding: 9px 10px;
   height: 38px;
@@ -843,7 +848,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   width: 100%;
   height: 38px;
   padding: 9px 10px;
-  border: var(--rule) solid var(--black);
+  border: 1px solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   color: var(--black);
   font-family: var(--font);
@@ -919,7 +925,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 8px;
-  border: var(--rule) solid var(--black);
+  border: 1px solid var(--black);
+  border-radius: 4px;
   padding: 0 10px;
   height: 38px;
   font-size: 12px;
@@ -928,6 +935,9 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   cursor: pointer;
 }
 .filters label.toggle input { accent-color: var(--green); }
+/* #f-reset (Reset), not .btn generally -- .btn is used well outside the
+   filter bar (Create Alert, Sign Out, etc.), which stays sharp-cornered. */
+#f-reset { border-width: 1px; border-radius: 4px; }
 
 .btn {
   border: var(--rule) solid var(--black);
