@@ -1044,11 +1044,21 @@ table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
    a column sized exactly to the logo left it sitting flush against the
    star with all the breathing room dumped on the far side, in front of
    the title text instead. */
+/* height:100% -- reported live, the logo's align-self:center (see
+   .company-logo.listing below) wasn't reliably centering against the
+   row's actual rendered height. A <td> with display:grid is unusual:
+   it still participates in normal table row-height layout (sized to
+   match its siblings/row), but that outer box and the grid's own
+   content-driven height are two different things unless the grid is
+   told explicitly to fill the box it's given -- without this, align-
+   self only had the grid's auto height to center within, which isn't
+   necessarily the same as the row's full height. */
 table.jobs .title-cell {
   display: grid;
   grid-template-columns: 70px 1fr 20%;
   column-gap: 12px;
   align-items: start;
+  height: 100%;
 }
 .job-card-body { min-width: 0; }
 
