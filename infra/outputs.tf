@@ -50,6 +50,16 @@ output "cognito_app_client_id" {
 output "ses_dns_records" {
   description = "Add these in Cloudflare (DNS-only / grey-cloud) to verify guyvoloshin.com for SES. Leave in place permanently."
   value = {
+    # Ownership verification -- distinct from the DKIM CNAMEs below, which
+    # only prove DKIM-signing capability, not domain control. Missed this
+    # one in the first pass at this output; SES's own VerificationStatus
+    # stayed stuck on TYPE_NOT_FOUND without it, caught live via
+    # `aws sesv2 get-email-identity` rather than assumed fixed.
+    domain_verification = {
+      name  = "_amazonses.guyvoloshin.com"
+      type  = "TXT"
+      value = aws_ses_domain_identity.main.verification_token
+    }
     dkim = [for token in aws_ses_domain_dkim.main.dkim_tokens : {
       name  = "${token}._domainkey.guyvoloshin.com"
       type  = "CNAME"
