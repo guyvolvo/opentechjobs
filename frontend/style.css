@@ -1072,7 +1072,21 @@ table.jobs .title-cell a:hover { color: var(--green); }
   gap: 4px 10px;
 }
 .job-salary { color: var(--black); font-weight: 700; }
-.job-salary.estimate { color: var(--grey); font-weight: 400; } /* an estimate never reads with the same confidence as a real disclosed figure */
+/* Filled green box per a live reference (a rounded pill on another
+   board) -- reusing .chip's existing solid-green/paper-text/square-
+   corner treatment rather than introducing a new rounded shape;
+   DESIGN.md's rounded:none is a hard invariant everywhere else in this
+   system. Still visually distinct from a real disclosed figure (plain
+   bold black, no box) -- deliberately bold/eye-catching regardless, so
+   the rows that DO have a number are easy to spot scanning down a
+   column mostly full of "Undisclosed." */
+.job-salary.estimate {
+  display: inline-block;
+  background: var(--green);
+  color: var(--white);
+  font-weight: 700;
+  padding: 2px 8px;
+}
 .job-salary.undisclosed { color: var(--grey); font-weight: 400; }
 .skill-chip {
   background: none;
