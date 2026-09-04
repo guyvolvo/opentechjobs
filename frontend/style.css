@@ -5,7 +5,7 @@
    2. Green marks exactly one "this matters" element, never decoration.
    3. Sharp corners everywhere. No border-radius, no box-shadow depth.
    4. Two voices: --font (Helvetica) for everything dense; --font-display
-      (Inter, bold/extrabold) only for the topbar and the two section
+      (Overused Grotesk, bold/extrabold) only for the topbar and the two section
       titles.
    5. Job Board and Market Stats are permanent, side by side above the
       mobile breakpoint (where they stack), never a drawer or toggle.
@@ -20,6 +20,13 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Overused Grotesk";
+  src: url("fonts/OverusedGrotesk-VF.woff2") format("woff2-variations");
+  font-weight: 300 900;
+  font-display: swap;
+}
+
 :root {
   --white: #f3f6e4;
   --black: #40513b;
@@ -31,7 +38,7 @@
   --hover-bg: #e9efdb;
 
   --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-display: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: "Overused Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
   /* Side padding for .workspace/.container. Scales with viewport
      (20px floor, 64px ceiling) instead of a fixed max-width box. */
@@ -89,6 +96,9 @@ html { scrollbar-width: thin; scrollbar-color: var(--black) var(--white); }
 a { color: inherit; }
 a.link { color: var(--green); text-decoration: none; border-bottom: 1px solid var(--green); }
 a.link:hover { background: var(--green); color: var(--white); }
+
+.icon-link { display: inline-flex; align-items: center; color: var(--black); }
+.icon-link:hover { color: var(--green); }
 
 button, input, select {
   font-family: var(--font);
@@ -574,13 +584,14 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
    once they stop fitting, at any width, not just hand-picked breakpoints. */
 .filters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  flex-wrap: nowrap;
+  gap: 10px;
   margin-bottom: 20px;
 }
 .filters > * { min-width: 0; } /* form controls have a real intrinsic width too */
-#f-q, #f-keywords { flex: 1 1 200px; }
-.filters .ms { flex: 1 1 130px; }
+#f-q { flex: 2 1 120px; }
+#f-keywords { flex: 1 1 90px; }
+.filters .ms { flex: 1 1 80px; }
 .filters label.toggle,
 .filters #f-reset { flex: 0 0 auto; }
 
@@ -642,6 +653,9 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   font-family: var(--font);
   font-size: 12px;
 }
+
+.ms-pinned { font-weight: 700; }
+.ms-pinned-divider { border-top: 1px solid var(--grey-line); margin: 4px 0; }
 
 .ms-options { display: flex; flex-direction: column; }
 .ms-option {
@@ -996,9 +1010,10 @@ footer p { color: var(--grey); margin: 0 0 8px; }
 }
 
 @media (max-width: 640px) {
-  /* On an actual phone the filter flex-basis values above still fit two
-     or three per row; full width reads better and gives bigger touch
-     targets. */
+  /* Desktop keeps the filter row to one line (nowrap); a phone doesn't
+     have the width for that, so wrap back and let each item take a full
+     row, full width reads better and gives bigger touch targets. */
+  .filters { flex-wrap: wrap; }
   .filters > * { flex-basis: 100%; }
   /* Wordmark + 4 nav items don't fit a 360-390px phone at full size.
      Tighten rather than let the topbar force wider than the viewport. */

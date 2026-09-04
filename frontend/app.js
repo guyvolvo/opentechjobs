@@ -223,6 +223,28 @@ function renderBarList(rows, nameKey, { clickable = false } = {}) {
 // scale would flatline the line near zero. Not pixel-comparable to each
 // other; the legend says so. viewBox-scaled for responsiveness; native
 // <title> gives a free per-point tooltip.
+// Smooth SVG path through a list of [x,y] points via Catmull-Rom-to-Bezier
+// conversion -- no charting library, just the standard spline formula.
+// Clamps the neighbor lookup at both ends so the curve doesn't overshoot
+// past the first/last point.
+function smoothPath(points) {
+  if (points.length < 2) return "";
+  const p = points;
+  let d = `M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const p0 = p[i - 1] || p[i];
+    const p1 = p[i];
+    const p2 = p[i + 1];
+    const p3 = p[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
 function renderTrendChart(daily) {
   const maxNew = Math.max(1, ...daily.map((d) => d.n));
   const maxClosed = Math.max(1, ...daily.map((d) => d.closed || 0));
@@ -242,7 +264,7 @@ function renderTrendChart(daily) {
     .join("");
 
   const closedXY = daily.map((d, i) => [i * (barW + gap) + barW / 2, h - ((d.closed || 0) / maxClosed) * h]);
-  const closedLine = closedXY.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const closedLine = smoothPath(closedXY);
   const closedDots = daily
     .map(
       (d, i) =>
@@ -253,12 +275,12 @@ function renderTrendChart(daily) {
   return `
     <svg class="trend-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
       ${bars}
-      <polyline class="trend-line" points="${closedLine}" />
+      <path class="trend-line" d="${closedLine}" />
       ${closedDots}
     </svg>
     <div class="trend-legend">
       <span><span class="dot new"></span>New</span>
-      <span><span class="dot closed"></span>Closed (own scale)</span>
+      <span><span class="dot closed"></span>Closed</span>
     </div>
     <div class="trend-axis"><span>${daily[0].date.slice(5)}</span><span>${daily[daily.length - 1].date.slice(5)}</span></div>`;
 }
@@ -271,7 +293,7 @@ function renderOpenJobsChart(history) {
   const h = 64;
   const stepX = history.length > 1 ? w / (history.length - 1) : 0;
   const xy = history.map((d, i) => [i * stepX, h - (d.n / max) * h]);
-  const line = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const line = smoothPath(xy);
   const dots = history
     .map((d, i) => {
       const isLast = i === history.length - 1;
@@ -280,7 +302,7 @@ function renderOpenJobsChart(history) {
     .join("");
   return `
     <svg class="trend-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-      <polyline class="trend-line open" points="${line}" />
+      <path class="trend-line open" d="${line}" />
       ${dots}
     </svg>
     <div class="trend-axis"><span>${history[0].date.slice(5)}</span><span>${history[history.length - 1].date.slice(5)}</span></div>`;
@@ -714,7 +736,7 @@ function wireJobDetail() {
 // was already open, same as a native <select> would behave.
 const OPEN_MULTISELECTS = new Set();
 
-function createMultiSelect(containerId, { placeholder, options = [], searchable = false, onChange }) {
+function createMultiSelect(containerId, { placeholder, options = [], searchable = false, onChange, pinnedOption = null }) {
   const container = document.getElementById(containerId);
   const selected = new Set();
   let currentOptions = options;
@@ -722,6 +744,15 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
   container.innerHTML = `
     <button type="button" class="ms-toggle" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(placeholder)}</button>
     <div class="ms-menu" hidden>
+      ${
+        pinnedOption
+          ? `<label class="ms-option ms-pinned">
+               <input type="checkbox" id="${pinnedOption.id}" ${pinnedOption.checked ? "checked" : ""} />
+               ${escapeHtml(pinnedOption.label)}
+             </label>
+             <div class="ms-pinned-divider"></div>`
+          : ""
+      }
       ${searchable ? '<input type="text" class="ms-search" placeholder="Filter…" />' : ""}
       <div class="ms-options" role="listbox"></div>
       <button type="button" class="ms-clear">Clear</button>
@@ -731,6 +762,12 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
   const menu = container.querySelector(".ms-menu");
   const optionsEl = container.querySelector(".ms-options");
   const searchEl = container.querySelector(".ms-search");
+
+  if (pinnedOption) {
+    container.querySelector(`#${pinnedOption.id}`).addEventListener("change", (e) => {
+      pinnedOption.onChange(e.target.checked);
+    });
+  }
 
   function renderOptions(filterText = "") {
     const q = filterText.trim().toLowerCase();
@@ -887,6 +924,18 @@ function wireFilters() {
   msLocation = createMultiSelect("ms-location", {
     placeholder: "LOCATIONS",
     searchable: true,
+    pinnedOption: {
+      id: "f-israel",
+      label: "IL Only",
+      checked: state.israel_only,
+      onChange: (checked) => {
+        state.israel_only = checked;
+        state.offset = 0;
+        refreshLocationOptions();
+        loadJobs();
+        loadTicker();
+      },
+    },
     onChange: (values) => {
       state.location = values;
       state.offset = 0;
@@ -904,14 +953,6 @@ function wireFilters() {
       loadJobs();
       loadTicker();
     },
-  });
-
-  document.getElementById("f-israel").addEventListener("change", (e) => {
-    state.israel_only = e.target.checked;
-    state.offset = 0;
-    refreshLocationOptions();
-    loadJobs();
-    loadTicker();
   });
 
   document.getElementById("f-starred").addEventListener("change", (e) => {

@@ -11,7 +11,7 @@ colors:
   hover-tint: "#e9efdb"
 typography:
   display:
-    fontFamily: "Inter, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "17px"
     fontWeight: 800
     lineHeight: 1.2
@@ -68,7 +68,7 @@ now, and a scrolling headline strip up top like a ticker tape. Everything
 reads as a live instrument panel over a job market, not as a brand
 experience — density and legibility win over warmth every time there's a
 conflict between them. The one indulgence is a single bold display face
-(Inter, weight 700–800), kept to two places (the wordmark and the two
+(Overused Grotesk, weight 700–800), kept to two places (the wordmark and the two
 section titles) so it reads as a signature, not a typeface choice
 bleeding into body text.
 
@@ -141,7 +141,7 @@ blocks. A hardcoded `#fff`/`#000` anywhere breaks that.
 
 ## Typography
 
-**Display Font:** Inter, weight 700–800 (self-hosted), falling back to Helvetica Neue / Helvetica / Arial
+**Display Font:** Overused Grotesk, weight 700–800 (self-hosted), falling back to Helvetica Neue / Helvetica / Arial
 **Body Font:** Helvetica Neue, falling back to Helvetica, Arial, sans-serif
 
 **Character:** A dense, no-serif system voice everywhere text-heavy
@@ -149,7 +149,7 @@ blocks. A hardcoded `#fff`/`#000` anywhere breaks that.
 grotesque-sans display face — never the reverse.
 
 ### Hierarchy
-- **Display** (700–800, 17px, 1.2 line-height, 0.04em tracking, Inter): the
+- **Display** (700–800, 17px, 1.2 line-height, 0.04em tracking, Overused Grotesk): the
   topbar wordmark and the two section titles ("Job Board" / "Market
   Stats") only. Never used at table-row or data-dense sizes.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
@@ -160,7 +160,7 @@ grotesque-sans display face — never the reverse.
 
 ### Named Rules
 **The Two-Voice Rule.** Helvetica (via `--font`) carries everything
-dense; Inter (via `--font-display`) is reserved for exactly two
+dense; Overused Grotesk (via `--font-display`) is reserved for exactly two
 brand-level spots. No third typeface is part of the system.
 
 ### Open inconsistency (flagged, not fixed here)
@@ -184,10 +184,12 @@ container use `--gutter` (`clamp(20px, 4vw, 64px)`) for side padding, so
 the page keeps scaling with viewport width all the way to ultra-wide
 instead of plateauing inside a fixed box.
 
-The filter row is flex-wrap, not a fixed column grid — text inputs and
-multi-select dropdowns each carry their own minimum width and drop to a
-new row once they stop fitting, rather than a rigid column count
-squeezing every field illegibly narrow between breakpoints.
+The filter row stays a single line above the mobile breakpoint (flex
+`nowrap`, matching the table's own width), shrinking each field rather
+than wrapping to a second row; below 640px it wraps and every field
+takes a full-width row instead. IL-only lives as a pinned first option
+inside the Locations dropdown rather than as its own filter slot,
+keeping the row to one line without dropping a filter.
 
 Two dedicated card grids (metrics, market panels) share one motif: white
 cards laid edge-to-edge on a black background with a `2px` (`--rule`)
@@ -252,7 +254,7 @@ clipping or masking.
   wrapping or spilling past the box
 
 ### Navigation
-- **Topbar:** Inter wordmark, uppercase Helvetica nav links, sticky
+- **Topbar:** Overused Grotesk wordmark, uppercase Helvetica nav links, sticky
   to viewport top, 2px ink bottom rule. `flex-wrap: nowrap` by design —
   the scrolling ticker between wordmark and status absorbs all the
   squeeze via `min-width: 0`, so the whole bar never wraps to multiple
@@ -284,7 +286,7 @@ pulsing) to read as "the light went out," not "warning, still breathing."
 - **Do** read every color from a `var(--token)`, never a literal hex, so
   retuning a palette only ever means editing the two `:root` blocks.
 - **Do** keep green to exactly one "this matters most" element at a time.
-- **Do** keep Inter (display) scoped to the wordmark and the two section
+- **Do** keep Overused Grotesk (display) scoped to the wordmark and the two section
   titles only — never at data-dense sizes.
 - **Do** let `--gutter`'s `clamp()` drive side padding instead of a fixed
   `max-width` container, so the page keeps scaling at ultra-wide widths.
