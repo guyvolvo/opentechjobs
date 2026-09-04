@@ -392,10 +392,8 @@ button, input, select {
 .trend-bar.latest { fill: var(--green); }
 
 /* Shared by the closed-jobs overlay line and the open-jobs-over-time
-   line: black line/dots, green only on the most-recent point. */
+   line: a single smooth stroke, no per-point markers. */
 .trend-line { fill: none; stroke: var(--black); stroke-width: 1.5; }
-.trend-dot { fill: var(--black); }
-.trend-dot.latest { fill: var(--green); }
 
 .trend-legend {
   display: flex;

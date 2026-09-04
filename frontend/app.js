@@ -225,21 +225,40 @@ function renderBarList(rows, nameKey, { clickable = false } = {}) {
 // <title> gives a free per-point tooltip.
 // Smooth SVG path through a list of [x,y] points via Catmull-Rom-to-Bezier
 // conversion -- no charting library, just the standard spline formula.
+// Centripetal parameterization (alpha=0.5): the variant that stays
+// well-behaved (no loops/cusps) even when points aren't evenly spaced,
+// unlike the uniform (alpha=0) version. Barry & Goldman's formula, via
+// https://qroph.github.io/2018/07/30/smooth-paths-using-catmull-rom-splines.html
 // Clamps the neighbor lookup at both ends so the curve doesn't overshoot
 // past the first/last point.
-function smoothPath(points) {
+function smoothPath(points, alpha = 0.5) {
   if (points.length < 2) return "";
   const p = points;
+  const n = p.length;
+  const dist = (a, b) => Math.hypot(b[0] - a[0], b[1] - a[1]);
   let d = `M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;
-  for (let i = 0; i < p.length - 1; i++) {
-    const p0 = p[i - 1] || p[i];
+
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = p[Math.max(i - 1, 0)];
     const p1 = p[i];
     const p2 = p[i + 1];
-    const p3 = p[i + 2] || p2;
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    const p3 = p[Math.min(i + 2, n - 1)];
+
+    const t01 = Math.pow(dist(p0, p1), alpha) || 1e-6;
+    const t12 = Math.pow(dist(p1, p2), alpha) || 1e-6;
+    const t23 = Math.pow(dist(p2, p3), alpha) || 1e-6;
+
+    const m1x = p2[0] - p1[0] + t12 * ((p1[0] - p0[0]) / t01 - (p2[0] - p0[0]) / (t01 + t12));
+    const m1y = p2[1] - p1[1] + t12 * ((p1[1] - p0[1]) / t01 - (p2[1] - p0[1]) / (t01 + t12));
+    const m2x = p2[0] - p1[0] + t12 * ((p3[0] - p2[0]) / t23 - (p3[0] - p1[0]) / (t12 + t23));
+    const m2y = p2[1] - p1[1] + t12 * ((p3[1] - p2[1]) / t23 - (p3[1] - p1[1]) / (t12 + t23));
+
+    // Hermite tangents -> cubic Bezier control points.
+    const c1x = p1[0] + m1x / 3;
+    const c1y = p1[1] + m1y / 3;
+    const c2x = p2[0] - m2x / 3;
+    const c2y = p2[1] - m2y / 3;
+
     d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
   }
   return d;
@@ -265,18 +284,11 @@ function renderTrendChart(daily) {
 
   const closedXY = daily.map((d, i) => [i * (barW + gap) + barW / 2, h - ((d.closed || 0) / maxClosed) * h]);
   const closedLine = smoothPath(closedXY);
-  const closedDots = daily
-    .map(
-      (d, i) =>
-        `<circle class="trend-dot" cx="${closedXY[i][0].toFixed(1)}" cy="${closedXY[i][1].toFixed(1)}" r="2"><title>${d.date}: ${d.closed || 0} closed</title></circle>`
-    )
-    .join("");
 
   return `
     <svg class="trend-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
       ${bars}
-      <path class="trend-line" d="${closedLine}" />
-      ${closedDots}
+      <path class="trend-line" d="${closedLine}"><title>Closed listings</title></path>
     </svg>
     <div class="trend-legend">
       <span><span class="dot new"></span>New</span>
@@ -294,16 +306,9 @@ function renderOpenJobsChart(history) {
   const stepX = history.length > 1 ? w / (history.length - 1) : 0;
   const xy = history.map((d, i) => [i * stepX, h - (d.n / max) * h]);
   const line = smoothPath(xy);
-  const dots = history
-    .map((d, i) => {
-      const isLast = i === history.length - 1;
-      return `<circle class="trend-dot open ${isLast ? "latest" : ""}" cx="${xy[i][0].toFixed(1)}" cy="${xy[i][1].toFixed(1)}" r="2.5"><title>${d.date}: ${fmtInt(d.n)} open</title></circle>`;
-    })
-    .join("");
   return `
     <svg class="trend-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-      <path class="trend-line open" d="${line}" />
-      ${dots}
+      <path class="trend-line open" d="${line}"><title>Open jobs over time</title></path>
     </svg>
     <div class="trend-axis"><span>${history[0].date.slice(5)}</span><span>${history[history.length - 1].date.slice(5)}</span></div>`;
 }

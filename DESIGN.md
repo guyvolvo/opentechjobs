@@ -96,7 +96,7 @@ plain near-black/white inversion.
   color that means "this matters more than what's around it." Live status
   (online indicator), the accent letters in the wordmark, active
   filter/sort state, hover state on buttons and links, the single
-  highlighted metric tile, the most-recent point on every trend line.
+  highlighted metric tile, the most-recent bar in the new-listings chart.
   Never used decoratively — if a green appears, it is pointing at
   something.
 
