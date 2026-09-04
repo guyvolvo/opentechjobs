@@ -1,39 +1,14 @@
 # OpenMarketIL
 
-Open-source Israeli tech job board. Scrapes job postings directly from
-ATS APIs (no careers-page fingerprinting; see `probe.py`'s module
-docstring), tracks them over time, and serves them through a small public
-API. No accounts, no paywall, no alerting tier: the API itself is the
-alerting primitive; poll it yourself or see `examples/` (TODO) for a
-Telegram alerter.
+Open-source Israeli tech job board. Scrapes job postings directly from ATS APIs, tracks them over time, and serves them through a small public API.
+For alerting options see `examples/` (TODO) for a Telegram alerter example.
 
 ## Architecture
 
-```
-GitHub Actions (compute + CI/CD)
-  scrape-discover.yml, once/day    (slow: guessing + Comeet/embed scraping)
-    probe.py --batch domains.txt --json > resolved.json
-    loader/load_to_sqlite.py  -->  upserts jobs.db + re-derives known.json
-                                    -->  both pushed to S3
-                                    (companies.yml pins Comeet uid/token
-                                     pairs that can't be guessed)
-
-  scrape-fast.yml, every 10 min    (fast: re-poll already-known boards only)
-    probe.py --known known.json --json > resolved.json   (no guessing at all)
-    loader/load_to_sqlite.py  -->  same upsert, same S3 push
-
-  deploy-frontend.yml, on push to frontend/**
-    aws s3 sync frontend/ -> frontend bucket, --delete
-    aws cloudfront create-invalidation                    (else viewers keep
-                                                             the cached build)
-
-AWS (serving only; see infra/)
-  S3 (data bucket)        jobs.db, read by Lambda on cold start
-  Lambda + Function URL   api/handler.py: GET /jobs, /companies, /stats
-  S3 (frontend bucket)    static site: frontend/index.html, style.css, app.js
-  CloudFront              one domain: /api/* -> Lambda, else -> frontend S3
-  GitHub OIDC             4 scoped roles, no long-lived AWS keys in GH secrets
-```
+- **scrape-discover.yml**, once/day: discovery scraper that tries to find new job boards.
+  `probe.py --batch domains.txt --json > resolved.json`, then
+  `loader/load_to_sqlite.py` upserts jobs.db, re-derives known.json, and pushes both to S3.
+- **scrape-fast.yml**, every 10 min: a quicker scrape that finds new job postings in already-known job boards.
 
 Why two scrape workflows instead of one: discovering a company's ATS
 (guessing tokens, scraping its careers page for Comeet/Workday/embedded-
@@ -48,45 +23,27 @@ tighter). `loader.py` re-derives `known.json` on every load, discovery or
 fast-poll alike, so anything newly discovered is available to the very
 next fast-poll run, not stuck behind the next daily discovery cycle.
 
-Why SQLite-in-S3 instead of RDS: the write pattern is a full batch
-upsert from a single GitHub Actions run at a time, not concurrent
-transactional writes, and reads are a low-volume public API. That's a
-near-$0/mo setup (Lambda + S3 free tiers cover it) against RDS's
-unavoidable ~$12-15/mo floor once its free tier ends. Concurrent
-multi-writer access would need a real migration, not a config change;
-this project hasn't needed it.
-
-Why this DB is current-state-only, not history: jobs.db exists purely to
-serve "what does the board look like right now" cheaply. `first_seen` /
-`last_seen` / `closed_at` on each job row give a job's own lifetime (age,
-and whether the current posting is a repost) without needing a separate
-historical store; see `db/schema.sql`. A time-series view (daily/monthly
-snapshots, queried client-side) is future scope, not built here.
+Since budget was the primary constraint for this project, it runs on a
+SQLite DB in S3 instead of RDS, which costs basically nothing.
 
 Self-hosting instructions are in `DEPLOY.md`.
 
 ## Repo layout
 
-| Path | What |
+| File | Purpose |
 |---|---|
-| `probe.py` | ATS discovery + scraping, ground-truthed against live Greenhouse/Lever/Ashby/Workable/Recruitee/SmartRecruiters/Comeet APIs. `--selftest`, `--verbose`, `--raw URL` for debugging. |
-| `companies.yml` | Hand/scrape-verified Comeet uid+token pins. Comeet can't be guessed from a domain the way the others can. |
-| `domains.txt` | The company domains probed each run. |
+| `probe.py` | ATS discovery + scraping, against known ATS APIs. `--selftest`, `--verbose`, `--raw URL` for debugging. |
+| `companies.yml` | Scrape-verified Comeet uid+token pins. |
+| `domains.txt` | The known resolved company domains. |
 | `db/schema.sql` | jobs.db schema. |
-| `loader/load_to_sqlite.py` | resolved.json -> jobs.db, upserted (not wiped), optional S3 push. |
-| `api/` | The serving Lambda. See `api/README.md` for local testing without AWS credentials. |
-| `frontend/` | Static site: `index.html` + `style.css` + `app.js`, no build step, no framework. Talks to `/api/*` same-origin (behind CloudFront). Starring a job is localStorage-only, no accounts. |
-| `scripts/dev_server.py` | Local preview: serves `frontend/` and proxies `/api/*` to `api/handler.py` in-process against a local `jobs.db`, no AWS needed. `python scripts/dev_server.py --db jobs.db`. |
-| `infra/` | Terraform. `infra/bootstrap/` is the one-time state-bucket setup, applied separately. |
-| `.github/workflows/` | `scrape-discover.yml` (daily, slow), `scrape-fast.yml` (every 10 min, fast), `deploy-infra.yml`, `deploy-api.yml`, `deploy-frontend.yml`. |
+| `loader/load_to_sqlite.py` | resolved.json -> jobs.db, optional S3 push. |
+| `api/` | The serving Lambda. See `api/README.md`. |
+| `frontend/` | Static site: `index.html` + `style.css` + `app.js`, backend is `/api/*`. |
+| `scripts/dev_server.py` | Spins up a local dev server. |
+| `infra/` | Terraform backend. `infra/bootstrap/` is the one-time state-bucket setup. |
+| `.github/workflows/` | Has both the slow and fast scrapers, plus `deploy-infra.yml`, `deploy-api.yml`, `deploy-frontend.yml`. |
 
-## Not built yet
+## Future agenda
 
-- Automated discovery: finding new company domains via Common Crawl or
-  crt.sh. Still a manual research process. This is different from the
-  best-effort *scraper* tier (JobPosting JSON-LD, `confidence:
-  best_effort`), which exists and runs today for domains that miss every
-  known ATS API; see `probe.py`'s `f_embed_scrape`.
-- A historical trend view (client-side "how has this looked over time"),
-  e.g. via periodic snapshots queried from the frontend. jobs.db covers
-  current-state only; see the architecture note above.
+- Automated discovery: finding new company domains via Common Crawl or crt.sh.
+- A historical trend view, e.g. via periodic snapshots queried from the frontend.
