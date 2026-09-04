@@ -1007,30 +1007,31 @@ table.jobs tbody tr { border-bottom: 1px solid var(--black); }
 table.jobs tbody tr:hover { background: var(--hover-bg); }
 table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
 
-/* Card layout: logo left, title/meta/actions absorbing whatever width
-   varies row to row, salary+skills as a fixed-width column at a
-   consistent x-position on every row -- the LinkedIn-style grouping the
-   user asked for, replacing what used to be three separate table
-   columns (Title, Location, Category).
-   .job-card-body grows (flex:1) specifically so it's the one thing that
-   absorbs the variable slack between a short title/company and a long
-   one; .job-tags-group (below) has a genuinely fixed flex-basis with no
-   grow/shrink, so it lands at the exact same offset from the row's
-   right edge regardless of that row's own content length. Centering
-   .job-tags-group in each row's own leftover space (an earlier version
-   of this) was tried and reported live: it put the column at a
-   different x-position on every row since leftover space varies with
-   title/company/location length -- true column alignment needs a fixed
-   position, not a per-row center. min-width:0 on the body is
-   load-bearing (DESIGN.md's own rule): without it a long unbroken
-   domain/title stops the flex item from ever shrinking below its
-   content width. */
+/* Card layout: logo, title/meta/actions, salary, skills -- four real
+   grid columns, not flex items. Flexbox was tried through several
+   rounds here (a fixed flex-basis, a centered auto-margin, a shared
+   wrapping box) and kept drifting: flexbox is fundamentally a
+   content-driven, one-axis model, so a flex item's own position still
+   depends on its siblings' content length even with a fixed basis on
+   itself. Grid's column tracks are genuinely independent of content --
+   this is what actually guarantees the same x-position on every row
+   regardless of title/company/location length or how many skills a
+   given job has. 40px matches the logo; 1fr lets the card body absorb
+   all the variable slack; salary and skills get fixed percentages of
+   the cell's own width (15%/30%) rather than pixel widths, so they
+   still scale sanely across viewport widths. Auto-placement fills the
+   columns in DOM order (logo, body, salary, skills) below -- no
+   explicit grid-column needed as long as that order holds.
+   min-width:0 on the body is load-bearing (DESIGN.md's own rule):
+   without it a long unbroken domain/title stops the grid item from
+   ever shrinking below its content width. */
 table.jobs .title-cell {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 40px 1fr 15% 30%;
+  column-gap: 12px;
+  align-items: start;
 }
-.job-card-body { min-width: 0; flex: 1 1 auto; }
+.job-card-body { min-width: 0; }
 
 /* overflow-wrap:anywhere. A company domain has no spaces to break at,
    and some job titles arrive as one long hyphenated/slashed word too. */
@@ -1049,26 +1050,21 @@ table.jobs .title-cell a:hover { color: var(--green); }
 /* Salary (real disclosed or an estimate, see app.js's jobSalaryHtml)
    plus skill chips -- confirmed live: plain text, no border/background
    at all, same weight as .job-meta, not a boxed/badge treatment. Two
-   genuinely separate columns (reported live: one shared wrapping box let
-   a skill chip land right next to the salary text with nothing marking
-   where one stopped and the other started), with real breathing room
-   between them (also reported live, the first cut had them too close).
-   flex:0 0 <fixed width>, no grow/shrink -- see .job-card-body's comment
-   above for why a fixed width here (not centering in leftover space) is
-   what keeps this column at the same x-position on every row. */
-.job-tags-group {
-  flex: 0 0 300px;
-  display: flex;
-  gap: 32px;
+   genuinely separate grid columns now (see .title-cell above), each
+   with its own top padding so both start level with .job-meta,
+   regardless of how many lines a wide skills column ends up wrapping to
+   -- a row with more skills is legitimately taller than one without any,
+   same as a row with a longer title already was; that's content-driven
+   height, not a bug. */
+.job-salary-col,
+.job-skills-col {
   padding-top: 20px; /* clears .job-card-title's line so this starts level with .job-meta */
   font-size: 12px;
 }
-.job-salary-col { flex: 0 0 90px; }
 .job-skills-col {
-  flex: 0 1 170px;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-content: flex-start;
   gap: 4px 10px;
 }
 .job-salary { color: var(--black); font-weight: 700; }
@@ -1319,13 +1315,15 @@ footer p { color: var(--grey); margin: 0 0 8px; }
   /* One class more specific than the blanket "table.jobs td" reset
      above, so this wins without !important -- logo-left/title-right
      stays a real card at phone width too, instead of the logo stacking
-     above the text like every other cell here. flex-wrap (desktop stays
-     nowrap, the default): the tags group drops to its own row below the
-     card body instead of squeezing a 3-column layout into a phone's
-     width. Desktop's fixed 300px basis is meaningless -- often wider
-     than the whole phone viewport -- so this switches it to flexible. */
+     above the text like every other cell here. Desktop's grid columns
+     (see .title-cell above) are meaningless at phone width -- a 15%/30%
+     split of ~350px leaves almost nothing to work with -- so this drops
+     to a plain wrapping flex row instead: logo+body first, then
+     salary/skills wrap to their own line below, sized by their own
+     content rather than a fixed track. */
   table.jobs td.title-cell { display: flex; flex-wrap: wrap; }
-  table.jobs .job-tags-group { flex: 0 1 auto; padding-top: 4px; }
+  table.jobs .job-salary-col,
+  table.jobs .job-skills-col { flex: 0 1 auto; padding-top: 4px; }
   table.jobs tr { padding: 10px 0; }
   /* Stacked cells need a label to tell them apart. app.js's data-label
      attribute stands in for the table header that display:none removed. */

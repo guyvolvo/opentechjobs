@@ -676,10 +676,8 @@ function renderJobRows(jobs, starred) {
               <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
             </div>
           </div>
-          <div class="job-tags-group">
-            <div class="job-salary-col">${jobSalaryHtml(j)}</div>
-            <div class="job-skills-col">${jobSkillsHtml(j)}</div>
-          </div>
+          <div class="job-salary-col">${jobSalaryHtml(j)}</div>
+          <div class="job-skills-col">${jobSkillsHtml(j)}</div>
         </td>
         <td data-label="Age" class="age-cell ${fresh ? "fresh" : ""}">${fmtAge(age)}</td>
       </tr>`;
