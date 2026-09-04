@@ -82,16 +82,24 @@ resource "aws_cloudfront_distribution" "main" {
   # doesn't. Worse than a functional bug: a shared cache key that
   # ignores Authorization on a per-user route risks serving one user's
   # cached response to a different, differently-authenticated request
-  # for the same URL. CachingDisabled never caches and forwards
-  # everything, which is exactly what an authenticated route needs.
+  # for the same URL.
+  #
+  # Two policies, not one: a cache policy's header/cookie allowlist only
+  # ever describes the cache key, and CloudFront's API flatly rejects a
+  # non-"none" header_behavior on a caching-disabled (TTL all zero)
+  # policy as meaningless -- confirmed live. What forwards to origin is
+  # the separate Origin Request Policy concept; CachingDisabled +
+  # AllViewer is AWS's own recommended pairing for exactly this shape
+  # (a dynamic, authenticated path that must never be cached).
   ordered_cache_behavior {
-    path_pattern           = "/api/me/*"
-    target_origin_id       = "api-lambda"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = data.aws_cloudfront_cache_policy.caching_disabled.id
-    compress               = true
+    path_pattern             = "/api/me/*"
+    target_origin_id         = "api-lambda"
+    viewer_protocol_policy   = "redirect-to-https"
+    allowed_methods          = ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"]
+    cached_methods           = ["GET", "HEAD"]
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    compress                 = true
   }
 
   ordered_cache_behavior {
@@ -127,6 +135,22 @@ data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
 }
 
+# A cache policy's own header/cookie allowlist only ever describes the
+# cache key -- confirmed live, CloudFront's API flatly rejects a
+# non-"none" header_behavior on a policy with caching disabled
+# (TTL all zero) as a meaningless combination, which it is: nothing
+# gets cached, so there's no cache key for a header to vary. What
+# forwards to origin is a genuinely separate concept, Origin Request
+# Policy, needed alongside this one -- see origin_request_policy below.
 data "aws_cloudfront_cache_policy" "caching_disabled" {
   name = "Managed-CachingDisabled"
+}
+
+# All-viewer forwards every header (Authorization included), cookie, and
+# query string to origin, independent of caching. The pairing with
+# CachingDisabled above is exactly AWS's own recommended shape for a
+# dynamic, authenticated-request path -- see the aws_cloudfront_
+# distribution's origin_request_policy_id on the /api/me/* behavior.
+data "aws_cloudfront_origin_request_policy" "all_viewer" {
+  name = "Managed-AllViewer"
 }
