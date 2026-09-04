@@ -12,10 +12,16 @@ name: scrape-fast
 # run of this workflow) last derived. If it doesn't exist yet (before the
 # first scrape-discover.yml run), this workflow exits early instead of
 # erroring.
+#
+# Offset 3 minutes past each 10-min mark, not "*/10 * * * *": GitHub's
+# own docs warn schedule triggers get delayed or dropped during high-load
+# windows, and the top of every 10-min boundary (:00, :10, :20...) is
+# exactly that window. This repo's schedule never fired once in over an
+# hour on the on-the-mark pattern.
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "3-59/10 * * * *"
   workflow_dispatch: {}
 
 permissions:
