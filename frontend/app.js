@@ -1131,7 +1131,7 @@ async function loadTicker() {
         (j) => `
         <a class="ticker-item" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">
           <span class="bullet">●</span>${escapeHtml(j.title)}
-          <span class="ticker-company">${escapeHtml(j.company_domain)}</span>
+          <span class="ticker-company">@${escapeHtml(j.company_domain)}</span>
         </a>`
       )
       .join("");
