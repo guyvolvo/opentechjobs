@@ -10,7 +10,7 @@ Telegram alerter.
 ## Architecture
 
 ```
-GitHub Actions (compute + CI/CD; unchanged by the AWS move)
+GitHub Actions (compute + CI/CD)
   scrape-discover.yml, once/day    (slow: guessing + Comeet/embed scraping)
     probe.py --batch domains.txt --json > resolved.json
     loader/load_to_sqlite.py  -->  upserts jobs.db + re-derives known.json
@@ -52,19 +52,16 @@ Why SQLite-in-S3 instead of RDS: the write pattern is a full batch
 upsert from a single GitHub Actions run at a time, not concurrent
 transactional writes, and reads are a low-volume public API. That's a
 near-$0/mo setup (Lambda + S3 free tiers cover it) against RDS's
-unavoidable ~$12-15/mo floor once its free tier ends. See the
-conversation that led here for the fuller tradeoff discussion. If this
-project ever needs concurrent multi-writer access, that's a real
-migration, not a config change; it hasn't needed it yet.
+unavoidable ~$12-15/mo floor once its free tier ends. Concurrent
+multi-writer access would need a real migration, not a config change;
+this project hasn't needed it.
 
-Why this DB is current-state-only, not history: the original brief's
-git-snapshot + Parquet + DuckDB-WASM design still covers "how did this
-trend over time" (daily/monthly snapshots as GitHub Release assets,
-queried client-side, unaffected by any of this). jobs.db exists purely to
+Why this DB is current-state-only, not history: jobs.db exists purely to
 serve "what does the board look like right now" cheaply. `first_seen` /
-`last_seen` / `closed_at` on each job row give you a job's own lifetime
-(age, and whether the current posting is a repost) without needing the
-historical store for that; see `db/schema.sql`.
+`last_seen` / `closed_at` on each job row give a job's own lifetime (age,
+and whether the current posting is a repost) without needing a separate
+historical store; see `db/schema.sql`. A time-series view (daily/monthly
+snapshots, queried client-side) is future scope, not built here.
 
 ## First-time deploy
 
@@ -137,12 +134,11 @@ respectively.
 
 ## Not built yet
 
-- Automated discovery (finding new company domains via Common Crawl /
-  crt.sh, per the original brief). Still a manual research process.
-  This is different from the best-effort *scraper* tier (JobPosting
-  JSON-LD, `confidence: best_effort`), which exists and runs today for
-  domains that miss every known ATS API; see `probe.py`'s
-  `f_embed_scrape`.
-- The original brief's git-snapshot + Parquet + DuckDB-WASM historical
-  trend view (client-side "how has this looked over time"). jobs.db
-  covers current-state only; see the architecture note above.
+- Automated discovery: finding new company domains via Common Crawl or
+  crt.sh. Still a manual research process. This is different from the
+  best-effort *scraper* tier (JobPosting JSON-LD, `confidence:
+  best_effort`), which exists and runs today for domains that miss every
+  known ATS API; see `probe.py`'s `f_embed_scrape`.
+- A historical trend view (client-side "how has this looked over time"),
+  e.g. via periodic snapshots queried from the frontend. jobs.db covers
+  current-state only; see the architecture note above.
