@@ -23,7 +23,7 @@ variable "frontend_bucket_name" {
 variable "github_repo" {
   type        = string
   description = "GitHub repo in \"org/name\" form. Scopes the OIDC trust policy so only this repo's Actions runs can assume the deploy roles."
-  default     = "CHANGE-ME/il-jobs"
+  default     = "guyvolvo/openmarketil"
 }
 
 variable "github_deploy_branch" {
