@@ -1403,7 +1403,7 @@ function renderAuthState() {
           <button class="btn" type="submit">Send code</button>
         </form>
         <form class="auth-email-form" id="auth-otp-form" hidden>
-          <input type="text" id="auth-otp-input" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" required autocomplete="one-time-code" />
+          <input type="text" id="auth-otp-input" placeholder="Verification code" inputmode="numeric" pattern="[0-9]{4,10}" required autocomplete="one-time-code" />
           <button class="btn" type="submit">Verify</button>
         </form>
         <p class="auth-error" id="auth-error" hidden></p>
