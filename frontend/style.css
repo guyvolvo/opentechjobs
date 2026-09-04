@@ -113,7 +113,7 @@ button, input, select {
 
 .section {
   border-bottom: var(--rule) solid var(--black);
-  padding: 40px 0;
+  padding: 12px 0 40px;
 }
 
 .section-title {
@@ -289,7 +289,7 @@ button, input, select {
   /* Right padding is half the left gutter, not zero. Without it the
      scrollbar (inside this box's own right edge) sits flush against the
      panel content with no breathing room. */
-  padding: 40px calc(var(--gutter) / 2) 40px var(--gutter);
+  padding: 12px calc(var(--gutter) / 2) 40px var(--gutter);
 }
 
 .stats-board .metrics-grid { grid-template-columns: repeat(2, 1fr); }
