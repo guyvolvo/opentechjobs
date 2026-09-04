@@ -80,3 +80,46 @@ variable "domain_name" {
   description = "Custom domain for the CloudFront distribution (site at /, API at /api/*). DNS lives in Cloudflare, not Terraform; see infra/acm.tf for the manual validation-record step."
   default     = "openmarket.guyvoloshin.com"
 }
+
+# Auth (Cognito). Google/GitHub credentials come from each provider's own
+# console, not Terraform -- no default, set via a gitignored terraform.tfvars
+# (see infra/README or ask Claude; *.tfvars is already gitignored). Empty
+# string is a valid, working default: the Google identity provider resource
+# in cognito.tf is conditional on this being set, so the pool applies fine
+# without it and Google sign-in can be wired in later without disrupting
+# anything already live.
+variable "google_client_id" {
+  type        = string
+  description = "OAuth client ID from Google Cloud Console (APIs & Services > Credentials), once the Cognito domain below exists to give it a redirect URI."
+  default     = ""
+}
+
+variable "google_client_secret" {
+  type        = string
+  description = "OAuth client secret paired with google_client_id."
+  default     = ""
+  sensitive   = true
+}
+
+# GitHub doesn't federate with Cognito directly (no OIDC discovery
+# document, no id_token from its OAuth token endpoint) -- these drive a
+# custom Lambda-based auth flow instead, not a Cognito identity provider
+# resource. See github_auth_lambda.tf.
+variable "github_oauth_client_id" {
+  type        = string
+  description = "Client ID from a GitHub OAuth App (github.com/settings/developers). Callback URL: https://<domain_name>/api/auth/github/callback."
+  default     = ""
+}
+
+variable "github_oauth_client_secret" {
+  type        = string
+  description = "Client secret paired with github_oauth_client_id."
+  default     = ""
+  sensitive   = true
+}
+
+variable "alerts_from_email" {
+  type        = string
+  description = "SES sender address for alert digests. Must be on a domain verified in alerts_ses.tf (DNS records added manually in Cloudflare, same pattern as acm.tf)."
+  default     = "alerts@guyvoloshin.com"
+}

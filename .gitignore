@@ -10,8 +10,8 @@ infra/build/
 *.tfstate
 *.tfstate.*
 *.tfvars
-tfplan
-**/tfplan
+tfplan*
+**/tfplan*
 crash.log
 # .terraform.lock.hcl is committed on purpose: it pins provider versions
 # for reproducible applies.

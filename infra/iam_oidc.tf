@@ -131,6 +131,22 @@ resource "aws_iam_role_policy" "infra_deploy" {
         Effect   = "Allow"
         Action   = ["events:*"]
         Resource = "arn:aws:events:${var.aws_region}:*:rule/${var.project_name}-*"
+      },
+      {
+        Sid      = "ManageAlertsTable"
+        Effect   = "Allow"
+        Action   = ["dynamodb:*"]
+        Resource = ["arn:aws:dynamodb:${var.aws_region}:*:table/${var.project_name}-*", "arn:aws:dynamodb:${var.aws_region}:*:table/${var.project_name}-*/index/*"]
+      },
+      {
+        # User pool ID is auto-generated at create time, so the ARN can't
+        # be scoped down to one specific pool the way the Lambda/DynamoDB
+        # statements above are -- region + account is the narrowest this
+        # can get before the pool exists.
+        Sid      = "ManageCognito"
+        Effect   = "Allow"
+        Action   = ["cognito-idp:*"]
+        Resource = "arn:aws:cognito-idp:${var.aws_region}:*:userpool/*"
       }
     ]
   })
@@ -237,6 +253,39 @@ resource "aws_iam_role_policy" "scrape_lambda_deploy" {
       Effect   = "Allow"
       Action   = ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:PublishVersion"]
       Resource = aws_lambda_function.scrape_fast.arn
+    }]
+  })
+}
+
+# github-auth-lambda-deploy: used by deploy-github-auth-lambda.yml.
+# Update the github-auth Lambda's code, nothing else.
+
+resource "aws_iam_role" "github_auth_lambda_deploy" {
+  name = "${var.project_name}-github-auth-lambda-deploy"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
+        StringLike   = { "token.actions.githubusercontent.com:sub" = local.github_oidc_sub }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "github_auth_lambda_deploy" {
+  name = "${var.project_name}-github-auth-lambda-deploy-policy"
+  role = aws_iam_role.github_auth_lambda_deploy.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "UpdateGithubAuthLambdaCode"
+      Effect   = "Allow"
+      Action   = ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:PublishVersion"]
+      Resource = aws_lambda_function.github_auth.arn
     }]
   })
 }

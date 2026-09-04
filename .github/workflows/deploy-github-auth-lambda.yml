@@ -1,0 +1,45 @@
+name: deploy-github-auth-lambda
+
+# Ships github_auth_handler.py to its Lambda without a full Terraform
+# apply, mirroring deploy-api.yml/deploy-scrape-lambda.yml. Terraform owns
+# the function's existence/config, this workflow owns its code. No pip
+# install step: the handler only needs urllib (stdlib) and boto3 (already
+# in the Lambda runtime), unlike scrape-fast's requests dependency.
+
+on:
+  push:
+    branches: [main]
+    paths: ["github_auth_handler.py"]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip the handler
+        run: zip github-auth.zip github_auth_handler.py
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.GH_AUTH_LAMBDA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ vars.GH_AUTH_LAMBDA_FUNCTION_NAME }} \
+            --zip-file fileb://github-auth.zip
+
+      - name: Wait for update to finish
+        run: |
+          aws lambda wait function-updated \
+            --function-name ${{ vars.GH_AUTH_LAMBDA_FUNCTION_NAME }}

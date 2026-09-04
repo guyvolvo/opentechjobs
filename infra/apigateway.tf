@@ -12,7 +12,7 @@ resource "aws_apigatewayv2_api" "api" {
 
   cors_configuration {
     allow_origins = ["*"]
-    allow_methods = ["GET"]
+    allow_methods = ["GET", "POST"] # POST is /api/auth/email/start (github_auth_lambda.tf); every other route is still read-only GET
     allow_headers = ["content-type"]
     max_age       = 3600
   }
