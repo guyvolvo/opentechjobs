@@ -319,7 +319,7 @@ button, input, select {
 }
 
 .metric-card .label {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--grey);
@@ -335,7 +335,7 @@ button, input, select {
 
 .metric-card.highlight .value { color: var(--green); }
 .metric-card .sub {
-  font-size: 10.5px;
+  font-size: 11.5px;
   color: var(--grey);
   margin-top: 4px;
 }
@@ -358,7 +358,7 @@ button, input, select {
 }
 
 .panel-title {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--grey);
@@ -388,30 +388,30 @@ button, input, select {
 .bar-row.clickable .name:hover { color: var(--green); text-decoration: underline; }
 
 .trend-chart { width: 100%; height: 64px; display: block; overflow: visible; }
-.trend-bar { fill: var(--grey-line); }
-.trend-bar.latest { fill: var(--green); }
 
-/* Shared by the closed-jobs overlay line and the open-jobs-over-time
-   line: a single smooth stroke, no per-point markers. */
+/* Shared by every trend line: a single smooth stroke, no fill, no
+   per-point markers. .closed overrides the color for the second line
+   sharing a chart (new-listings dark, closed the signal green). */
 .trend-line { fill: none; stroke: var(--black); stroke-width: 1.5; }
+.trend-line.closed { stroke: var(--green); }
 
 .trend-legend {
   display: flex;
   gap: 14px;
-  font-size: 9.5px;
+  font-size: 10.5px;
   color: var(--grey);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-top: 6px;
 }
 .trend-legend .dot { display: inline-block; width: 7px; height: 7px; margin-right: 4px; }
-.trend-legend .dot.new { background: var(--grey-line); }
-.trend-legend .dot.closed { background: var(--black); }
+.trend-legend .dot.new { background: var(--black); }
+.trend-legend .dot.closed { background: var(--green); }
 
 .trend-axis {
   display: flex;
   justify-content: space-between;
-  font-size: 9.5px;
+  font-size: 10.5px;
   color: var(--grey);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -895,12 +895,6 @@ table.jobs .company { color: var(--grey); font-size: 11.5px; text-transform: upp
 
 footer {
   padding: 40px 0 60px;
-}
-footer .footer-note {
-  font-size: 12px;
-  color: var(--grey);
-  margin: 0 0 28px;
-  max-width: 640px;
 }
 footer h3 {
   font-size: 11px;

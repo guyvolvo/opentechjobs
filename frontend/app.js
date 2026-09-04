@@ -160,7 +160,7 @@ function renderMetrics(stats) {
       sub: "with a fresh open role",
     },
     {
-      label: "New Listings",
+      label: "New Listings in 7d",
       value: `+${fmtInt(stats.throughput.new_jobs_24h)}`,
       sub: `${fmtInt(stats.throughput.new_jobs_7d)} in 7d`,
       hl: stats.throughput.new_jobs_24h > 0,
@@ -176,7 +176,7 @@ function renderMetrics(stats) {
       sub: `oldest ${fmtAge(stats.age.oldest_open_days)}`,
     },
     {
-      label: "Data Freshness",
+      label: "API Status",
       value: fresh ? "LIVE" : fmtMinutesAgo(stats.freshness.minutes_since_update),
       sub: fresh ? fmtMinutesAgo(stats.freshness.minutes_since_update) : "no recent updates",
       hl: fresh,
@@ -265,30 +265,24 @@ function smoothPath(points, alpha = 0.5) {
 }
 
 function renderTrendChart(daily) {
+  // Each line is normalized to its own max, not a shared one: closed
+  // counts run much smaller than new counts, so sharing a scale would
+  // flatline it near zero.
   const maxNew = Math.max(1, ...daily.map((d) => d.n));
   const maxClosed = Math.max(1, ...daily.map((d) => d.closed || 0));
   const w = 320;
   const h = 64;
-  const gap = 3;
-  const barW = (w - gap * (daily.length - 1)) / daily.length;
+  const stepX = daily.length > 1 ? w / (daily.length - 1) : 0;
 
-  const bars = daily
-    .map((d, i) => {
-      const barH = d.n ? Math.max(2, (d.n / maxNew) * h) : 0;
-      const x = i * (barW + gap);
-      const y = h - barH;
-      const isLast = i === daily.length - 1;
-      return `<rect class="trend-bar ${isLast ? "latest" : ""}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}"><title>${d.date}: ${d.n} new</title></rect>`;
-    })
-    .join("");
-
-  const closedXY = daily.map((d, i) => [i * (barW + gap) + barW / 2, h - ((d.closed || 0) / maxClosed) * h]);
+  const newXY = daily.map((d, i) => [i * stepX, h - (d.n / maxNew) * h]);
+  const closedXY = daily.map((d, i) => [i * stepX, h - ((d.closed || 0) / maxClosed) * h]);
+  const newLine = smoothPath(newXY);
   const closedLine = smoothPath(closedXY);
 
   return `
     <svg class="trend-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-      ${bars}
-      <path class="trend-line" d="${closedLine}"><title>Closed listings</title></path>
+      <path class="trend-line" d="${newLine}"><title>New listings</title></path>
+      <path class="trend-line closed" d="${closedLine}"><title>Closed listings</title></path>
     </svg>
     <div class="trend-legend">
       <span><span class="dot new"></span>New</span>
