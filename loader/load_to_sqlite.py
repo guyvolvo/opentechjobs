@@ -201,13 +201,37 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             description_chars = CASE WHEN excluded.description_chars > 0 THEN excluded.description_chars ELSE description_chars END,
             description = CASE WHEN excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.description ELSE description END,
             -- Same "don't null out what a fuller pass already captured"
-            -- reasoning as description above -- both are derived from it
-            -- (skills via keyword match, salary_text's estimate branch via
-            -- seniority), so they go empty on the exact same re-verify
-            -- passes description does.
+            -- reasoning as description above -- skills is derived from
+            -- it (keyword match), so it goes empty on the exact same
+            -- re-verify passes description does.
             skills = CASE WHEN excluded.skills IS NOT NULL AND excluded.skills != '' THEN excluded.skills ELSE skills END,
-            salary_text = CASE WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_text ELSE salary_text END,
-            salary_is_estimate = CASE WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_is_estimate ELSE salary_is_estimate END,
+            -- salary_text needed a stricter guard than "not empty":
+            -- reported live -- a Comeet job's discover-pass estimate
+            -- (title+description, e.g. a specific "Go Developer" figure)
+            -- was getting silently downgraded by the very next fast-poll,
+            -- because Comeet's fast-poll has no description at all, so
+            -- probe.py's estimate falls back to matching the bare title
+            -- alone -- still a real, non-empty value (the generic
+            -- "backend" catch-all), so the old "not empty" guard let it
+            -- overwrite the better one every 10 minutes. A new estimate
+            -- now only wins when it's a real disclosed salary (never an
+            -- estimate, always the most trustworthy), or this pass had
+            -- real description text to estimate from (as good or better
+            -- signal than whatever's already stored), or nothing was
+            -- stored yet at all (something beats nothing on a first
+            -- pass). Otherwise the existing, better-informed value stands.
+            salary_text = CASE
+                WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.salary_is_estimate = 0 THEN excluded.salary_text
+                WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.salary_text
+                WHEN salary_text IS NULL AND excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_text
+                ELSE salary_text
+            END,
+            salary_is_estimate = CASE
+                WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.salary_is_estimate = 0 THEN excluded.salary_is_estimate
+                WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.salary_is_estimate
+                WHEN salary_text IS NULL AND excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_is_estimate
+                ELSE salary_is_estimate
+            END,
             seniority = excluded.seniority,
             workplace_type = excluded.workplace_type,
             last_seen = excluded.last_seen,
