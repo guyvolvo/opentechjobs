@@ -1172,6 +1172,13 @@ const COGNITO_CLIENT_ID = "5021pv23cp3udp1uaq34tp38mb";
 // Filled in once the GitHub OAuth App exists (github.com/settings/developers) --
 // OAuth client IDs aren't secret, safe to ship in frontend JS same as Google's.
 const GITHUB_OAUTH_CLIENT_ID = "";
+// Flips to true once infra/cognito.tf's aws_cognito_identity_provider.google
+// actually exists (real Google Cloud Console credentials set). Until then,
+// redirecting to Cognito's /oauth2/authorize?identity_provider=Google lands
+// on Cognito's own generic "Login option is not available" hosted-UI error
+// page instead -- confusing, and a full navigation away from this app's own
+// error display. Guarded the same way GitHub is instead.
+const GOOGLE_CONFIGURED = false;
 const AUTH_TOKENS_KEY = "iljobs_auth_tokens";
 const PKCE_VERIFIER_KEY = "iljobs_pkce_verifier"; // sessionStorage: only needs to survive the redirect round-trip
 
@@ -1222,6 +1229,10 @@ function randomUrlSafe(len) {
 }
 
 async function startGoogleSignIn() {
+  if (!GOOGLE_CONFIGURED) {
+    showAuthError("Google sign-in isn't wired up yet.");
+    return;
+  }
   const verifier = randomUrlSafe(64);
   sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
   const challenge = await base64UrlDigest(verifier);
@@ -1363,6 +1374,14 @@ function showAuthError(msg) {
   el.hidden = false;
 }
 
+// Reported live as "OTP isn't sending" -- it was sending fine, but a
+// stale error from an earlier attempt (e.g. clicking GitHub first) never
+// got cleared, so it sat on screen looking like the *current* action had
+// just failed. Called at the start of every provider/form action below.
+function clearAuthError() {
+  document.getElementById("auth-error").hidden = true;
+}
+
 function renderAuthState() {
   const area = document.getElementById("auth-area");
   const tokens = getAuthTokens();
@@ -1416,11 +1435,12 @@ function wireAuthPanel() {
     }
   });
 
-  document.getElementById("auth-google").addEventListener("click", startGoogleSignIn);
-  document.getElementById("auth-github").addEventListener("click", startGithubSignIn);
+  document.getElementById("auth-google").addEventListener("click", () => { clearAuthError(); startGoogleSignIn(); });
+  document.getElementById("auth-github").addEventListener("click", () => { clearAuthError(); startGithubSignIn(); });
 
   document.getElementById("auth-email-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    clearAuthError();
     const email = document.getElementById("auth-email-input").value.trim();
     const btn = e.target.querySelector("button");
     btn.disabled = true;
@@ -1438,6 +1458,7 @@ function wireAuthPanel() {
 
   document.getElementById("auth-otp-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    clearAuthError();
     const code = document.getElementById("auth-otp-input").value.trim();
     const btn = e.target.querySelector("button");
     btn.disabled = true;
