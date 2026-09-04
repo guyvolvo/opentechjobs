@@ -1007,23 +1007,22 @@ table.jobs tbody tr { border-bottom: 1px solid var(--black); }
 table.jobs tbody tr:hover { background: var(--hover-bg); }
 table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
 
-/* Card layout: logo left, title/meta/actions in the middle, salary and
-   skills as two further columns at the right -- the LinkedIn-style
-   grouping the user asked for, replacing what used to be three separate
-   table columns (Title, Location, Category). .job-card-body's flex:1 is
-   what pushes those two right: the body's own text is left-aligned and
-   usually much narrower than the space flex:1 gives its box, so the
-   columns after it land right where that box ends, near the Age column
-   -- not immediately after the text. min-width:0 on the body is
-   load-bearing (DESIGN.md's own rule): without it a long unbroken
-   domain/title stops the flex item from ever shrinking below its
-   content width. */
+/* Card layout: logo left, title/meta/actions taking their own natural
+   width, salary+skills centered in whatever room is left before the Age
+   column -- the LinkedIn-style grouping the user asked for, replacing
+   what used to be three separate table columns (Title, Location,
+   Category). .job-card-body does NOT grow (flex:0, just its content
+   width, min-width:0 so a long unbroken domain/title can still shrink --
+   DESIGN.md's own rule) specifically so .job-tags-group's auto margins
+   (below) have real free space on both sides to center into, instead of
+   .job-card-body's own flex:1 eating it all and shoving the tags flush
+   against Age. */
 table.jobs .title-cell {
   display: flex;
   gap: 12px;
   align-items: flex-start;
 }
-.job-card-body { min-width: 0; flex: 1 1 auto; }
+.job-card-body { min-width: 0; flex: 0 1 auto; }
 
 /* overflow-wrap:anywhere. A company domain has no spaces to break at,
    and some job titles arrive as one long hyphenated/slashed word too. */
@@ -1042,15 +1041,18 @@ table.jobs .title-cell a:hover { color: var(--green); }
 /* Salary (real disclosed or an estimate, see app.js's jobSalaryHtml)
    plus skill chips -- confirmed live: plain text, no border/background
    at all, same weight as .job-meta, not a boxed/badge treatment. Two
-   genuinely separate flex columns of .title-cell (reported live: one
-   shared wrapping box let a skill chip land next to the salary text on
-   the same line with nothing marking where one stops and the other
-   starts), each roughly aligned with .job-meta's height via the shared
-   top padding. Salary gets a narrow fixed column since it's always one
-   short line; skills get a wider one so up to 5 tags have room to wrap
-   within their own column, never into salary's. */
-.job-salary-col,
-.job-skills-col {
+   genuinely separate columns (reported live: one shared wrapping box let
+   a skill chip land right next to the salary text with nothing marking
+   where one stopped and the other started), with real breathing room
+   between them (also reported live, the first cut had them too close).
+   margin:0 auto centers this whole group in the free space
+   .job-card-body's flex:0 (above) leaves behind -- reported live, salary
+   and skills sat flush against the Age column otherwise, not actually
+   "between" the posting and Age the way this was asked for. */
+.job-tags-group {
+  display: flex;
+  gap: 32px;
+  margin: 0 auto;
   padding-top: 20px; /* clears .job-card-title's line so this starts level with .job-meta */
   font-size: 12px;
 }
@@ -1299,12 +1301,13 @@ footer p { color: var(--grey); margin: 0 0 8px; }
      above, so this wins without !important -- logo-left/title-right
      stays a real card at phone width too, instead of the logo stacking
      above the text like every other cell here. flex-wrap (desktop stays
-     nowrap, the default): salary/skills drop to their own row below the
-     card body instead of squeezing a 4-column layout into a phone's
-     width, and sit side by side there rather than each on its own row. */
+     nowrap, the default): the tags group drops to its own row below the
+     card body instead of squeezing a 3-column layout into a phone's
+     width. margin:0 (not auto) -- centering only makes sense against the
+     free space a wide desktop row has; on a single-column phone width
+     it would just look like a stray, off-center indent. */
   table.jobs td.title-cell { display: flex; flex-wrap: wrap; }
-  table.jobs .job-salary-col,
-  table.jobs .job-skills-col { padding-top: 4px; flex: 0 1 auto; }
+  table.jobs .job-tags-group { margin: 0; padding-top: 4px; }
   table.jobs tr { padding: 10px 0; }
   /* Stacked cells need a label to tell them apart. app.js's data-label
      attribute stands in for the table header that display:none removed. */
