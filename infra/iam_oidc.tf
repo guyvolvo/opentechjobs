@@ -147,6 +147,15 @@ resource "aws_iam_role_policy" "infra_deploy" {
         Effect   = "Allow"
         Action   = ["cognito-idp:*"]
         Resource = "arn:aws:cognito-idp:${var.aws_region}:*:userpool/*"
+      },
+      {
+        # Domain operations (Describe/Create/UpdateUserPoolDomain) aren't
+        # ARN-scopable at all -- confirmed live, AccessDeniedException
+        # names the resource as literally "*", not a rejected ARN guess.
+        Sid      = "ManageCognitoDomain"
+        Effect   = "Allow"
+        Action   = ["cognito-idp:DescribeUserPoolDomain", "cognito-idp:CreateUserPoolDomain", "cognito-idp:UpdateUserPoolDomain", "cognito-idp:DeleteUserPoolDomain"]
+        Resource = "*"
       }
     ]
   })
