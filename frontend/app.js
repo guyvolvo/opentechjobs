@@ -1457,27 +1457,35 @@ function renderAuthState() {
         </form>
         <p class="auth-error" id="auth-error" hidden></p>
       </div>`;
+    wireAuthTrigger();
     wireAuthPanel();
+    updateCreateAlertVisibility();
     return;
   }
   const email = decodeJwtEmail(tokens.id_token) || "signed in";
   area.innerHTML = `
-    <div class="auth-signed-in">
-      <span class="auth-email" title="${escapeHtml(email)}">${escapeHtml(email)}</span>
+    <button class="auth-trigger" id="auth-trigger" type="button">${escapeHtml(email)}</button>
+    <div class="auth-panel alerts-panel" id="auth-panel" hidden>
+      <div class="alerts-header">My Alerts</div>
+      <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
       <button class="auth-signout" id="auth-signout" type="button">Sign Out</button>
     </div>`;
+  wireAuthTrigger();
   document.getElementById("auth-signout").addEventListener("click", signOut);
+  updateCreateAlertVisibility();
+  loadMyAlerts().then(renderAlertsList);
 }
 
-function wireAuthPanel() {
+function wireAuthTrigger() {
   const trigger = document.getElementById("auth-trigger");
   const panel = document.getElementById("auth-panel");
-
   trigger.addEventListener("click", () => {
     panel.hidden = !panel.hidden;
     trigger.classList.toggle("active", !panel.hidden);
   });
+}
 
+function wireAuthPanel() {
   document.getElementById("auth-google").addEventListener("click", () => { clearAuthError(); startGoogleSignIn(); });
   document.getElementById("auth-github").addEventListener("click", () => { clearAuthError(); startGithubSignIn(); });
 
@@ -1541,6 +1549,144 @@ function wireAuth() {
   });
 }
 
+// /me/alerts: the one authenticated area of the app. authedFetch()
+// refreshes the id_token first if it's about to expire (Cognito's
+// public, unsigned REFRESH_TOKEN_AUTH -- same pattern as the other
+// direct cognitoRequest() calls), so a signed-in tab doesn't silently
+// start failing an hour in.
+
+async function ensureFreshTokens() {
+  const tokens = getAuthTokens();
+  if (!tokens) return null;
+  const payload = JSON.parse(atob(tokens.id_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+  if (payload.exp * 1000 - Date.now() > 60_000) return tokens; // still good for at least another minute
+  try {
+    const result = await cognitoRequest("InitiateAuth", {
+      ClientId: COGNITO_CLIENT_ID,
+      AuthFlow: "REFRESH_TOKEN_AUTH",
+      AuthParameters: { REFRESH_TOKEN: tokens.refresh_token },
+    });
+    const t = result.AuthenticationResult;
+    const refreshed = { id_token: t.IdToken, access_token: t.AccessToken, refresh_token: tokens.refresh_token };
+    setAuthTokens(refreshed);
+    return refreshed;
+  } catch {
+    signOut();
+    return null;
+  }
+}
+
+async function authedFetch(path, options = {}) {
+  const tokens = await ensureFreshTokens();
+  if (!tokens) throw new Error("Signed out");
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...(options.headers || {}), Authorization: `Bearer ${tokens.id_token}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+async function loadMyAlerts() {
+  try {
+    const data = await authedFetch("/me/alerts");
+    return data.alerts || [];
+  } catch {
+    return [];
+  }
+}
+
+// Short, readable summary of a saved filter -- not every possible key,
+// just the ones a user is likely to have actually set.
+function describeAlertFilter(filter) {
+  const parts = [];
+  if (filter.q) parts.push(`"${filter.q}"`);
+  if (filter.department) parts.push(filter.department.split(",").join(", "));
+  if (filter.seniority) parts.push(filter.seniority.split(",").join(", "));
+  if (filter.company) parts.push(filter.company.split(",").join(", "));
+  if (filter.location) parts.push(filter.location.split(",").join(", "));
+  if (filter.workplace) parts.push(filter.workplace.split(",").join(", "));
+  if (filter.israel_only === "1") parts.push("Israel only");
+  return parts.length ? parts.join(" · ") : "All jobs";
+}
+
+function renderAlertsList(alerts) {
+  const container = document.getElementById("alerts-list");
+  if (!container) return; // signed out (or panel re-rendered) before this resolved
+  if (!alerts.length) {
+    container.innerHTML = `<p class="alerts-empty">No alerts yet. Apply some filters on the board, then click "+ Alert."</p>`;
+    return;
+  }
+  container.innerHTML = alerts
+    .map(
+      (a) => `
+      <div class="alert-row ${a.active ? "" : "paused"}">
+        <span class="alert-summary" title="${escapeHtml(describeAlertFilter(a.filter))}">${escapeHtml(describeAlertFilter(a.filter))}</span>
+        <span class="alert-actions">
+          <button class="alert-toggle" data-id="${a.alert_id}" data-active="${a.active}">${a.active ? "Pause" : "Resume"}</button>
+          <button class="alert-delete" data-id="${a.alert_id}" aria-label="Delete alert" title="Delete alert">✕</button>
+        </span>
+      </div>`
+    )
+    .join("");
+
+  container.querySelectorAll(".alert-toggle").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await authedFetch(`/me/alerts/${btn.dataset.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ active: btn.dataset.active !== "true" }),
+        });
+        renderAlertsList(await loadMyAlerts());
+      } catch {
+        btn.disabled = false;
+      }
+    });
+  });
+  container.querySelectorAll(".alert-delete").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await authedFetch(`/me/alerts/${btn.dataset.id}`, { method: "DELETE" });
+        renderAlertsList(await loadMyAlerts());
+      } catch {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+function updateCreateAlertVisibility() {
+  document.getElementById("create-alert-btn").hidden = !getAuthTokens();
+}
+
+function showCreateAlertFeedback(msg, isError) {
+  const el = document.getElementById("create-alert-feedback");
+  el.textContent = msg;
+  el.classList.toggle("error", !!isError);
+  el.hidden = false;
+  setTimeout(() => { el.hidden = true; }, 3000);
+}
+
+function wireCreateAlert() {
+  document.getElementById("create-alert-btn").addEventListener("click", async () => {
+    const raw = currentFilterParams();
+    const filter = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== "" && v != null && v !== false));
+    try {
+      await authedFetch("/me/alerts", { method: "POST", body: JSON.stringify({ filter }) });
+      showCreateAlertFeedback("Alert created.");
+      const panel = document.getElementById("auth-panel");
+      if (panel && !panel.hidden) renderAlertsList(await loadMyAlerts());
+    } catch (err) {
+      showCreateAlertFeedback(err.message || "Could not create alert.", true);
+    }
+  });
+}
+
 // scrape-fast.yml re-polls every 10 min; 2 min keeps an open tab
 // reasonably current without hammering the API, and lines up with
 // CloudFront's own 120s cache on /api/* so most polls never even reach
@@ -1550,6 +1696,7 @@ const STATS_POLL_MS = 120_000;
 async function boot() {
   await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render
   wireAuth();
+  wireCreateAlert();
   wireFilters();
   wireJobDetail();
   wireThemeToggle();

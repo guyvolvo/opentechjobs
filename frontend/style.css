@@ -270,6 +270,74 @@ button, input, select {
 }
 .auth-signout:hover { color: var(--red); }
 
+.alerts-header {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.alerts-empty {
+  font-size: 12px;
+  color: var(--grey);
+  margin: 0 0 12px;
+}
+
+.alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--grey-line);
+}
+.alert-row:last-child { border-bottom: none; }
+
+.alert-summary {
+  font-size: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.alert-row.paused .alert-summary { color: var(--grey); }
+
+.alert-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+
+.alert-toggle {
+  background: none;
+  border: 1px solid var(--black);
+  padding: 3px 8px;
+  font-family: var(--font);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--black);
+  cursor: pointer;
+}
+.alert-toggle:hover { background: var(--black); color: var(--white); }
+
+.alert-delete {
+  background: none;
+  border: none;
+  color: var(--grey);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+}
+.alert-delete:hover { color: var(--red); }
+
+.create-alert-feedback {
+  margin: -12px 0 12px;
+  font-size: 11px;
+  color: var(--green);
+}
+.create-alert-feedback.error { color: var(--red); }
+
 .auth-panel {
   position: absolute;
   top: calc(100% + 4px);
@@ -283,6 +351,7 @@ button, input, select {
   letter-spacing: normal;
   font-family: var(--font);
 }
+.auth-panel.alerts-panel { width: 320px; } /* alert summaries + action buttons need more room than the sign-in form */
 
 .auth-provider-btn {
   display: flex;
