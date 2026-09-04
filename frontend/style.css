@@ -819,7 +819,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 #f-keywords { flex: 1 1 90px; }
 .filters .ms { flex: 1 1 80px; }
 .filters label.toggle,
-.filters #f-reset { flex: 0 0 auto; }
+.filters #f-reset,
+.filters #board-alert-btn { flex: 0 0 auto; }
 
 .filters input[type="text"],
 .filters select {

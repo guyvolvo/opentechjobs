@@ -1472,6 +1472,7 @@ function renderAuthState() {
       </div>`;
     wireAuthTrigger();
     wireAuthPanel();
+    updateBoardAlertButtonVisibility();
     return;
   }
   const email = decodeJwtEmail(tokens.id_token) || "signed in";
@@ -1501,6 +1502,7 @@ function renderAuthState() {
   wireAuthTrigger();
   document.getElementById("auth-signout").addEventListener("click", signOut);
   wireAlertCreateForm();
+  updateBoardAlertButtonVisibility();
   loadMyAlerts().then(renderAlertsList);
 }
 
@@ -1511,6 +1513,26 @@ function wireAuthTrigger() {
     panel.hidden = !panel.hidden;
     trigger.classList.toggle("active", !panel.hidden);
   });
+}
+
+// A "+ Alert" shortcut next to the board's own filters (visible only
+// when signed in) -- opens the same My Alerts panel the topbar trigger
+// does, scrolled into view, rather than creating anything itself. Wired
+// once at boot since, unlike the panel's internals, this button is a
+// static element in index.html that survives sign-in/out re-renders.
+function wireBoardAlertButton() {
+  document.getElementById("board-alert-btn").addEventListener("click", () => {
+    const trigger = document.getElementById("auth-trigger");
+    const panel = document.getElementById("auth-panel");
+    if (!trigger || !panel) return; // signed out -- button is hidden in that state anyway
+    panel.hidden = false;
+    trigger.classList.add("active");
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function updateBoardAlertButtonVisibility() {
+  document.getElementById("board-alert-btn").hidden = !getAuthTokens();
 }
 
 function wireAuthPanel() {
@@ -1820,6 +1842,7 @@ const STATS_POLL_MS = 120_000;
 async function boot() {
   await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render
   wireAuth();
+  wireBoardAlertButton();
   wireFilters();
   wireJobDetail();
   wireThemeToggle();
