@@ -1013,7 +1013,12 @@ table.jobs thead th[data-sort]:hover { color: var(--black); }
 table.jobs thead th.active { color: var(--black); }
 table.jobs thead th.active::after { content: attr(data-dir); margin-left: 4px; color: var(--green); }
 
-table.jobs tbody tr { border-bottom: 1px solid var(--black); }
+/* --grey-line, not --black -- DESIGN.md's own color spec names "table
+   row separators" as this token's job ("the quiet dividers"). The
+   --black version read as a bold, high-contrast white line in dark
+   mode against the near-black background, much louder than a 1px rule
+   should be. */
+table.jobs tbody tr { border-bottom: 1px solid var(--grey-line); }
 table.jobs tbody tr:hover { background: var(--hover-bg); }
 table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
 
