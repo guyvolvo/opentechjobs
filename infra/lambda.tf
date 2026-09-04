@@ -38,6 +38,15 @@ resource "aws_iam_role_policy" "api_lambda" {
         Resource = "${aws_s3_bucket.data.arn}/jobs.db"
       },
       {
+        # /me/alerts only -- reached at all only via a route API Gateway's
+        # own JWT authorizer already gated (apigateway.tf), not a broader
+        # grant into every route this Lambda serves.
+        Sid      = "ManageOwnAlerts"
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query"]
+        Resource = aws_dynamodb_table.alerts.arn
+      },
+      {
         Sid      = "Logs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
@@ -66,8 +75,9 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      DATA_BUCKET = aws_s3_bucket.data.bucket
-      DATA_KEY    = "jobs.db"
+      DATA_BUCKET  = aws_s3_bucket.data.bucket
+      DATA_KEY     = "jobs.db"
+      ALERTS_TABLE = aws_dynamodb_table.alerts.name
     }
   }
 
@@ -83,11 +93,13 @@ resource "aws_lambda_function" "api" {
   }
 }
 
-# Public, unauthenticated invocation: the brief's own design point, "the
-# public API is the alerting primitive, anyone can poll it." No paywall,
-# no accounts. Originally a Lambda Function URL (no per-request cost);
-# temporarily fronted by an API Gateway HTTP API instead. See
-# apigateway.tf for why and the plan to revert.
+# Public, unauthenticated invocation for every route except /me/alerts
+# (Cognito-JWT-gated at the API Gateway layer, see apigateway.tf) -- the
+# job data itself stays the brief's original design point, "the public
+# API is the alerting primitive, anyone can poll it," no paywall, no
+# accounts required for that half. Originally a Lambda Function URL (no
+# per-request cost); temporarily fronted by an API Gateway HTTP API
+# instead. See apigateway.tf for why and the plan to revert.
 
 resource "aws_cloudwatch_log_group" "api_lambda" {
   name              = "/aws/lambda/${aws_lambda_function.api.function_name}"

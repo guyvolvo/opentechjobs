@@ -1,22 +1,46 @@
 """
-OpenMarketIL read API. One Lambda behind CloudFront (/api/* routes here,
-see infra/cloudfront.tf).
+OpenMarketIL API. One Lambda behind CloudFront (/api/* routes here, see
+infra/cloudfront.tf).
 
-No framework: a handful of GET routes over a small SQLite file, and an
-if/elif router is as clear as a micro-framework without the extra weight.
+No framework: a handful of routes over a small SQLite file plus a
+DynamoDB table, and an if/elif router is as clear as a micro-framework
+without the extra weight.
 
-No write endpoints. No accounts means no user identity to own a write.
-Job data comes only from the batch loader (loader/load_to_sqlite.py);
-per-visitor state (starring a listing) stays client-local in localStorage.
+Job data itself stays read-only, from the batch loader
+(loader/load_to_sqlite.py) alone -- starring a listing is still
+client-local in localStorage, not accounts-backed. The one real write
+surface is /me/alerts: Cognito-authenticated (see infra/apigateway.tf's
+JWT authorizer, attached only to those routes), DynamoDB-backed, scoped
+to the caller's own sub claim. Every other route stays fully public, no
+auth required, matching this project's original "no accounts" framing
+minus the one feature that genuinely needed one -- see PRODUCT.md.
 """
 
 import json
 import math
+import os
 import re
+import uuid
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs
 
+import boto3
+from boto3.dynamodb.conditions import Key
+
 from db import get_connection
+from job_filters import FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where
+
+_alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
+
+# What build_jobs_where() actually reads -- rejecting anything else at
+# creation time catches a typo'd filter key immediately instead of it
+# silently matching nothing forever, since the evaluator (alerts.py)
+# just feeds this same dict straight into that same function.
+_ALLOWED_FILTER_KEYS = {
+    "q", "keywords", "ats", "company", "department", "seniority", "location",
+    "workplace", "confidence", "israel_only", "include_closed", "include_outdated",
+    "min_age_days", "max_age_days",
+}
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -32,25 +56,9 @@ SORT_COLUMNS = {
     "ats": "ats",
 }
 
-IL_KEYWORDS = [
-    "israel", "tel aviv", "tel-aviv", "telaviv", "herzliya", "raanana", "ra'anana",
-    "rehovot", "netanya", "haifa", "jerusalem", "beer sheva", "beersheva",
-    "petah tikva", "yokneam", "kfar saba", "ramat gan", "modiin", "modi'in",
-    "caesarea", "yavne", "hod hasharon", "bnei brak", "rosh haayin", "tlv",
-    # Added after finding these unmatched in real location strings.
-    # "kiryat" ("town of") deliberately catches every Kiryat-prefixed city
-    # in one entry. "Azur" was deliberately left out: too easily a false
-    # match against "Azure" the technology.
-    "givatayim", "karmiel", "kiryat", "rishon", "yehud",
-]
-
-# A posting older than this is treated as an archived ghost listing, not
-# a real open req. ATSes don't reliably mark outdated postings closed.
-# Hidden from the board and stats by default (see include_outdated/
-# include_closed params). NULL posted_at is kept, not hidden: unknown
-# isn't evidence the posting has aged out.
-BOARD_MAX_AGE_DAYS = 365
-FRESH_CLAUSE = f"(posted_at IS NULL OR julianday('now') - julianday(posted_at) <= {BOARD_MAX_AGE_DAYS})"
+# IL_KEYWORDS/FRESH_CLAUSE/BOARD_MAX_AGE_DAYS now live in job_filters.py --
+# shared with the alert evaluator, which needs the exact same matching
+# logic, not a second copy that quietly drifts from this one.
 
 
 def lambda_handler(event, context):
@@ -77,11 +85,48 @@ def lambda_handler(event, context):
             return _response(200, json.dumps(route_stats(params), default=str))
         if path == "/health":
             return _response(200, json.dumps(route_health(), default=str))
+        if path == "/me/alerts":
+            claims = _authenticated_claims(event)
+            if method == "GET":
+                return _response(200, json.dumps(route_list_alerts(claims["sub"]), default=str))
+            if method == "POST":
+                body = json.loads(event.get("body") or "{}")
+                return _response(201, json.dumps(route_create_alert(claims, body), default=str))
+            return _response(405, json.dumps({"error": "method not allowed"}))
+        if path.startswith("/me/alerts/") and len(path) > len("/me/alerts/"):
+            user_id = _authenticated_claims(event)["sub"]
+            alert_id = path[len("/me/alerts/"):]
+            if method == "PATCH":
+                body = json.loads(event.get("body") or "{}")
+                updated = route_update_alert(user_id, alert_id, body)
+                if updated is None:
+                    return _response(404, json.dumps({"error": "no alert with that id"}))
+                return _response(200, json.dumps(updated, default=str))
+            if method == "DELETE":
+                route_delete_alert(user_id, alert_id)
+                return _response(204, "")
+            return _response(405, json.dumps({"error": "method not allowed"}))
         return _response(404, json.dumps({"error": f"no route for {path}"}))
     except ValueError as e:
         return _response(400, json.dumps({"error": str(e)}))
     except Exception as e:  # last resort: never leak a raw traceback to callers
         return _response(500, json.dumps({"error": "internal error", "detail": str(e)}))
+
+
+def _authenticated_claims(event) -> dict:
+    """API Gateway's JWT authorizer (infra/apigateway.tf) already
+    validated the token's signature and expiry before this Lambda ever
+    ran -- these routes are only reachable at all with a genuine Cognito
+    JWT. This just reads the claims it already checked. sub (not
+    username) is the stable per-user id used everywhere below: identical
+    whether the caller signed in with Google, GitHub, or email, unlike
+    username (which for GitHub is "github_<id>", for email is the
+    address itself).
+    """
+    claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
+    if not claims.get("sub"):
+        raise ValueError("missing authenticated user")
+    return claims
 
 
 def _query_params(event) -> dict:
@@ -111,86 +156,12 @@ def _int_param(params: dict, name: str, default: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, v))
 
 
-def _bool_param(params: dict, name: str) -> bool:
-    return params.get(name, "").lower() in ("1", "true", "yes")
-
-
-def _add_in_filter(where: list, args: list, params: dict, param_name: str, column: str) -> None:
-    """?param=a,b,c -> `column IN (?,?,?)`. Shared by every multi-select
-    filter (ats, company, department, seniority, etc.).
-    """
-    raw = params.get(param_name)
-    if not raw:
-        return
-    values = [v.strip() for v in raw.split(",") if v.strip()]
-    if not values:
-        return
-    where.append(f"{column} IN (%s)" % ",".join("?" * len(values)))
-    args.extend(values)
-
-
 # /jobs
 
 def route_jobs(params: dict) -> dict:
     conn = get_connection()
 
-    where = ["1=1"]
-    args: list = []
-
-    include_closed = _bool_param(params, "include_closed")
-    if not include_closed:
-        where.append("closed_at IS NULL")
-
-    confidence = params.get("confidence", "verified")
-    if confidence == "verified":
-        where.append("confidence = 'verified'")
-    elif confidence == "best_effort":
-        where.append("confidence = 'best_effort'")
-    elif confidence != "all":
-        raise ValueError("confidence must be one of: verified, best_effort, all")
-
-    _add_in_filter(where, args, params, "ats", "ats")
-    _add_in_filter(where, args, params, "company", "company_domain")
-    _add_in_filter(where, args, params, "department", "department")
-    _add_in_filter(where, args, params, "seniority", "seniority")
-    _add_in_filter(where, args, params, "location", "location")
-    _add_in_filter(where, args, params, "workplace", "workplace_type")
-
-    if not _bool_param(params, "include_outdated"):
-        where.append(FRESH_CLAUSE)
-
-    if params.get("q"):
-        q = f"%{params['q'].lower()}%"
-        where.append(
-            "(LOWER(title) LIKE ? OR LOWER(company_domain) LIKE ? OR LOWER(location) LIKE ? OR LOWER(department) LIKE ?)"
-        )
-        args.extend([q, q, q, q])
-
-    if params.get("keywords"):
-        # ';'-separated, ALL must appear (AND, not OR): "azure;excel;iso"
-        # means the job mentions all three. Matched against title OR
-        # description so it still works for ATSes with no description.
-        for term in (t.strip() for t in params["keywords"].split(";")):
-            if not term:
-                continue
-            like = f"%{term.lower()}%"
-            where.append("(LOWER(title) LIKE ? OR LOWER(COALESCE(description, '')) LIKE ?)")
-            args.extend([like, like])
-
-    if _bool_param(params, "israel_only"):
-        clauses = " OR ".join("LOWER(location) LIKE ?" for _ in IL_KEYWORDS)
-        where.append(f"({clauses})")
-        args.extend(f"%{kw}%" for kw in IL_KEYWORDS)
-
-    min_age = params.get("min_age_days")
-    if min_age:
-        where.append("posted_at IS NOT NULL AND julianday('now') - julianday(posted_at) >= ?")
-        args.append(int(min_age))
-
-    max_age = params.get("max_age_days")
-    if max_age:
-        where.append("posted_at IS NOT NULL AND julianday('now') - julianday(posted_at) <= ?")
-        args.append(int(max_age))
+    where_sql, args = build_jobs_where(params)
 
     sort_key = params.get("sort", "age")
     if sort_key not in SORT_COLUMNS:
@@ -212,7 +183,6 @@ def route_jobs(params: dict) -> dict:
     limit = _int_param(params, "limit", default=100, lo=1, hi=500)
     offset = _int_param(params, "offset", default=0, lo=0, hi=10_000_000)
 
-    where_sql = " AND ".join(where)
     total = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {where_sql}", args).fetchone()[0]
 
     rows = conn.execute(
@@ -295,7 +265,7 @@ def route_companies(params: dict) -> dict:
     where = ["1=1"]
     args: list = []
 
-    if _bool_param(params, "resolved_only"):
+    if bool_param(params, "resolved_only"):
         where.append("ats IS NOT NULL")
 
     if params.get("ats"):
@@ -436,12 +406,12 @@ def route_stats(params: dict | None = None) -> dict:
         FROM jobs
         WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}
           AND location IS NOT NULL AND TRIM(location) != ''
-          {f"AND ({il_clause})" if _bool_param(params, "israel_only") else ""}
+          {f"AND ({il_clause})" if bool_param(params, "israel_only") else ""}
         GROUP BY location
         ORDER BY n DESC
         LIMIT 40
         """,
-        il_args if _bool_param(params, "israel_only") else [],
+        il_args if bool_param(params, "israel_only") else [],
     ).fetchall()
 
     location_row = conn.execute(
@@ -606,3 +576,81 @@ def route_stats(params: dict | None = None) -> dict:
             "oldest_open_days": round(ages[-1], 1) if n else None,
         },
     }
+
+
+# /me/alerts: the one write surface on this whole API. Cognito-JWT-gated
+# at the API Gateway layer (infra/apigateway.tf), not just in application
+# code -- an unauthenticated request never reaches this Lambda for these
+# routes at all. Backed by DynamoDB, not jobs.db: a per-user, low-volume,
+# write-heavy table has nothing in common with the read-only, batch-
+# loaded job data, and putting it in the same SQLite file would mean
+# every fast-poll re-upload of jobs.db could race a user's own write.
+#
+# alert item shape: {user_id (Cognito sub), alert_id (uuid4), filter (the
+# same query-param dict /api/jobs accepts), created_at, active,
+# last_notified_at}. alerts.py (the evaluator, running in the scrape-fast
+# Lambda after each fast-poll) reads this same table and feeds `filter`
+# straight into job_filters.build_jobs_where -- an alert matches exactly
+# what its owner would see applying those same filters on the live board,
+# not a second approximation of it.
+
+def route_list_alerts(user_id: str) -> dict:
+    resp = _alerts_table.query(KeyConditionExpression=Key("user_id").eq(user_id))
+    return {"alerts": resp.get("Items", [])}
+
+
+def route_create_alert(claims: dict, body: dict) -> dict:
+    filter_params = body.get("filter")
+    if not isinstance(filter_params, dict):
+        raise ValueError("filter must be an object of the same query params /api/jobs accepts")
+    unknown = set(filter_params) - _ALLOWED_FILTER_KEYS
+    if unknown:
+        raise ValueError(f"unknown filter key(s): {', '.join(sorted(unknown))}")
+    email = claims.get("email")
+    if not email:
+        raise ValueError("account has no email on file")
+
+    now = datetime.now(timezone.utc).isoformat()
+    item = {
+        "user_id": claims["sub"],
+        "alert_id": str(uuid.uuid4()),
+        "email": email,
+        "filter": filter_params,
+        "created_at": now,
+        "active": True,
+        # Not None: alerts.py (the evaluator) only ever looks forward of
+        # this watermark, so seeding it at creation time rather than
+        # leaving it empty means a brand-new alert's first check only
+        # catches genuinely new postings from here on -- not every
+        # already-open job that happened to match on day one.
+        "last_notified_at": now,
+    }
+    _alerts_table.put_item(Item=item)
+    return item
+
+
+def route_update_alert(user_id: str, alert_id: str, body: dict) -> dict | None:
+    """Pause/resume only -- not a general PATCH. Changing the filter
+    itself is a delete-and-recreate from the caller's side, simpler than
+    reconciling a partial update against an in-flight evaluator scan.
+    """
+    if "active" not in body:
+        raise ValueError("body must include 'active': true or false")
+    try:
+        resp = _alerts_table.update_item(
+            Key={"user_id": user_id, "alert_id": alert_id},
+            UpdateExpression="SET active = :a",
+            ConditionExpression="attribute_exists(alert_id)",
+            ExpressionAttributeValues={":a": bool(body["active"])},
+            ReturnValues="ALL_NEW",
+        )
+    except _alerts_table.meta.client.exceptions.ConditionalCheckFailedException:
+        return None
+    return resp["Attributes"]
+
+
+def route_delete_alert(user_id: str, alert_id: str) -> None:
+    # No existence check: DELETE is idempotent by convention here, same
+    # as a second delete of an already-deleted resource being a no-op
+    # rather than an error.
+    _alerts_table.delete_item(Key={"user_id": user_id, "alert_id": alert_id})

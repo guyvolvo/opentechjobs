@@ -23,6 +23,8 @@ from pathlib import Path
 import boto3
 from botocore.exceptions import ClientError
 
+from alerts import evaluate_alerts
+
 ROOT = Path(__file__).parent
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
@@ -74,4 +76,13 @@ def lambda_handler(event, context):
     if load.returncode != 0:
         raise RuntimeError(f"load_to_sqlite.py exited {load.returncode}")
 
-    return {"hits": len(hits), "errors": len(errors), "jobs": n_jobs}
+    # jobs.db is already fresh on /tmp from the loader step just above --
+    # evaluate_alerts() reads it directly, no separate download. Alert
+    # failures are caught and reported inside evaluate_alerts() itself
+    # (one bad alert shouldn't stop the others), so nothing here needs to
+    # guard the fast-poll's own success on this step succeeding.
+    alerts_result = evaluate_alerts(TMP / "jobs.db")
+    if alerts_result.get("errors"):
+        print(f"alert evaluation errors: {alerts_result['errors']}")
+
+    return {"hits": len(hits), "errors": len(errors), "jobs": n_jobs, "alerts": alerts_result}

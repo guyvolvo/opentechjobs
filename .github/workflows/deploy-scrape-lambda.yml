@@ -1,13 +1,14 @@
 name: deploy-scrape-lambda
 
-# Ships probe.py + loader/ + scrape_handler.py to the scrape-fast Lambda
-# without a full Terraform apply, mirroring deploy-api.yml. Terraform owns
-# the function's existence/config, this workflow owns its code.
+# Ships probe.py + loader/ + scrape_handler.py + alerts.py to the
+# scrape-fast Lambda without a full Terraform apply, mirroring
+# deploy-api.yml. Terraform owns the function's existence/config, this
+# workflow owns its code.
 
 on:
   push:
     branches: [main]
-    paths: ["probe.py", "loader/**", "db/schema.sql", "scrape_handler.py"]
+    paths: ["probe.py", "loader/**", "db/schema.sql", "scrape_handler.py", "alerts.py", "api/job_filters.py"]
   workflow_dispatch: {}
 
 permissions:
@@ -30,7 +31,8 @@ jobs:
       - name: Build deployment package
         run: |
           mkdir -p build/loader build/db
-          cp probe.py scrape_handler.py build/
+          cp probe.py scrape_handler.py alerts.py build/
+          cp api/job_filters.py build/
           cp loader/load_to_sqlite.py build/loader/
           cp db/schema.sql build/db/
           pip install --target build requests

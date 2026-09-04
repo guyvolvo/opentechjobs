@@ -41,6 +41,20 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
         ]
       },
       {
+        # alerts.py: full scan + per-alert watermark update, run once
+        # per fast-poll cycle after the loader step above.
+        Sid      = "EvaluateAlerts"
+        Effect   = "Allow"
+        Action   = ["dynamodb:Scan", "dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.alerts.arn
+      },
+      {
+        Sid      = "SendAlertDigests"
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail"]
+        Resource = aws_ses_domain_identity.main.arn
+      },
+      {
         Sid      = "Logs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
@@ -62,7 +76,10 @@ resource "aws_lambda_function" "scrape_fast" {
 
   environment {
     variables = {
-      DATA_BUCKET = aws_s3_bucket.data.bucket
+      DATA_BUCKET       = aws_s3_bucket.data.bucket
+      ALERTS_TABLE      = aws_dynamodb_table.alerts.name
+      ALERTS_FROM_EMAIL = var.alerts_from_email
+      SITE_ORIGIN       = "https://${var.domain_name}"
     }
   }
 
