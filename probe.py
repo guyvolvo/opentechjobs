@@ -461,58 +461,159 @@ def _extract_skills(title: str | None, description: str | None) -> list[str]:
     return out
 
 
-# ₪/month gross, Israeli tech market, 2026 snapshot. NOT this project's
-# own data -- a hand-transcribed reference table, same spirit as
-# companies.yml's hand-pinned Comeet tokens. Source: mysachar.co.il's
-# "Hi-Tech Salaries in Israel 2026" (role x seniority table), itself
-# cross-referencing Israel's Central Bureau of Statistics ICT-sector
-# means, GotFriends' 2026 recruiter survey (~15,000 candidates, ~1,500
-# placements), and Ravio's 2026 Israel benchmarks.
-# https://mysachar.co.il/articles/en/hi-tech-salaries-israel.html
-# (checked live 2026-09-04; that page states updates roughly semiannually)
+# ₪/month gross, Israeli tech market. NOT this project's own data --
+# hand-transcribed from GotFriends' own published salary tables (a
+# specialist Israeli tech-recruitment firm; primary source, not a
+# third-party derivative), https://www.gotfriends.co.il/בלוגים/high-tech-salary-tables/
+# (checked live 2026-09-04). Four experience bands per role: 0-2y, 3-5y,
+# 6-10y, and a "management" track column -- not every role's row has all
+# four (e.g. QA/automation rows stop at 6-10y; a handful of leadership-
+# only rows -- VP R&D, CTO, Director of Development, CISO -- were left
+# out entirely rather than guessed at, since it wasn't clear which of
+# their 3 listed figures maps to which band).
 #
-# Deliberately role x seniority only -- no location or company
-# breakdown exists in any free source found for the Israeli market
-# (checked Ravio directly: bot-protected, no public API; Glassdoor and
-# levels.fyi: no public API for either, and scraping either would cross
-# their Terms of Service, which this project won't do). Always rendered
-# as an estimate, never with the same visual confidence as a real
-# disclosed number -- see Job.salary_is_estimate.
+# Deliberately covers technical/engineering/product roles only, because
+# that's genuinely all this source (or any other free source checked --
+# see _estimate_salary's docstring) has real data for. Checked GotFriends'
+# own site directly: no Sales, Marketing, Finance, HR, or G&A tables
+# exist there at all -- it's a tech-recruitment-only firm. A listing in
+# one of those departments gets no estimate, not a guessed one borrowed
+# from an unrelated category.
+_IL_SALARY_BANDS = ("0-2", "3-5", "6-10", "mgmt")
+_IL_SALARY_RAW: dict[str, tuple[tuple[int, int], ...]] = {
+    # Software development
+    "dotnet": ((22, 27), (27, 37), (35, 42), (40, 50)),
+    "cpp": ((22, 27), (30, 37), (38, 45), (43, 50)),
+    "java": ((22, 27), (30, 37), (38, 45), (40, 50)),
+    "kotlin": ((22, 27), (30, 37), (38, 45), (40, 50)),
+    "frontend": ((22, 27), (27, 37), (35, 45), (42, 55)),
+    "python": ((20, 26), (28, 40), (34, 45), (42, 50)),
+    "fullstack": ((20, 26), (27, 37), (34, 45), (40, 50)),
+    "nodejs": ((20, 25), (27, 37), (33, 44), (40, 50)),
+    "php": ((18, 20), (20, 25), (25, 28), (32, 37)),
+    "mobile_generic": ((20, 25), (26, 33), (32, 40), (38, 45)),
+    "bigdata_dev": ((25, 30), (32, 40), (40, 50), (42, 52)),
+    "backend": ((22, 27), (30, 37), (35, 45), (42, 55)),
+    "scala": ((22, 28), (30, 37), (37, 45), (42, 55)),
+    "go": ((20, 26), (27, 38), (33, 45), (42, 52)),
+    "embedded": ((24, 28), (28, 35), (35, 42), (40, 50)),
+    "angular": ((22, 27), (26, 36), (35, 45), (42, 55)),
+    "ios": ((22, 27), (26, 33), (32, 40), (38, 45)),
+    "react": ((24, 29), (28, 38), (36, 47), (44, 57)),
+    "android": ((20, 25), (26, 33), (32, 40), (38, 45)),
+    "c_lang": ((22, 27), (27, 37), (36, 45), (43, 52)),
+    "data_engineer": ((20, 25), (27, 37), (33, 43), (40, 50)),
+    "software_architect": ((35, 40), (40, 43), (43, 45), (45, 52)),
+    "ai_engineer": ((22, 35), (28, 45), (40, 55), (40, 55)),
+    # AI
+    "llm_engineer": ((22, 35), (28, 45), (40, 55), (40, 60)),
+    "solution_architect": ((20, 25), (25, 35), (32, 38), (38, 48)),
+    # Hardware
+    "vlsi": ((23, 28), (30, 37), (40, 50), (42, 48)),
+    "board_design": ((23, 27), (29, 35), (33, 45), (38, 48)),
+    "verification": ((22, 28), (28, 38), (38, 48), (43, 50)),
+    "rf": ((18, 20), (20, 29), (26, 36), (37, 43)),
+    "electrical_power": ((22, 26), (28, 34), (35, 42), (40, 47)),
+    "hardware_architect": ((30, 35), (38, 45), (45, 55), (50, 65)),
+    "system_engineer": ((22, 27), (28, 36), (35, 45), (42, 52)),
+    "hardware_engineer": ((22, 27), (28, 35), (35, 45), (40, 50)),
+    "hardware_research": ((25, 30), (33, 40), (40, 52), (48, 60)),
+    # Cyber/security
+    "malware_analyst": ((20, 28), (28, 35), (30, 40), (40, 50)),
+    "reverse_engineer": ((30, 35), (40, 45), (45, 55), (50, 70)),
+    "security_expert": ((20, 25), (25, 30), (35, 48), (60, 100)),
+    "security_analyst": ((18, 20), (20, 30), (30, 40), (35, 50)),
+    "vulnerability_researcher": ((20, 35), (40, 80), (45, 120), (60, 120)),
+    "incident_response": ((25, 30), (30, 35), (35, 40), (40, 60)),
+    "soc_analyst": ((15, 20), (20, 25), (25, 30), (30, 40)),
+    "security_researcher": ((20, 25), (25, 30), (35, 48), (60, 100)),
+    # Algorithms / ML
+    "algo_engineer": ((22, 35), (28, 40), (35, 50), (40, 55)),
+    "data_scientist": ((22, 35), (28, 45), (40, 55), (40, 60)),
+    "ml_engineer": ((22, 35), (28, 45), (40, 55), (40, 55)),
+    "computer_vision": ((22, 35), (28, 45), (45, 60), (45, 65)),
+    "signal_processing": ((22, 33), (28, 40), (35, 50), (45, 55)),
+    "deep_learning": ((22, 35), (28, 45), (40, 55), (40, 55)),
+    # QA/automation -- no management column in the source for these
+    "automation_dev": ((18, 25), (25, 33), (33, 38)),
+    "qa_generic": ((12, 15), (15, 25), (23, 30)),
+    # Support/DevOps/System
+    "devops_engineer": ((25, 30), (32, 38), (35, 45), (40, 55)),
+    "network_manager": ((18, 23), (23, 27), (27, 35), (30, 35)),
+    # Product management
+    "product_manager": ((23, 39), (28, 35), (33, 45), (40, 60)),
+    # BI/Big Data
+    "bi_developer": ((20, 25), (25, 27), (28, 32), (32, 42)),
+    "data_analyst": ((20, 25), (25, 30), (28, 32), (30, 40)),
+    "dba_bigdata": ((25, 30), (30, 35), (35, 45), (40, 50)),
+    "product_analyst": ((20, 25), (25, 30), (28, 32), (30, 40)),
+}
 _IL_SALARY_TABLE_KNIS: dict[tuple[str, str], tuple[int, int]] = {
-    ("backend", "junior"): (22, 27), ("backend", "mid"): (30, 37),
-    ("backend", "senior"): (38, 48), ("backend", "staff"): (42, 55),
-    ("frontend", "junior"): (22, 27), ("frontend", "mid"): (29, 36),
-    ("frontend", "senior"): (36, 46), ("frontend", "staff"): (42, 55),
-    ("fullstack", "junior"): (20, 26), ("fullstack", "mid"): (28, 35),
-    ("fullstack", "senior"): (35, 45), ("fullstack", "staff"): (40, 50),
-    ("devops", "junior"): (25, 30), ("devops", "mid"): (32, 40),
-    ("devops", "senior"): (38, 48), ("devops", "staff"): (40, 55),
-    ("data_ml", "junior"): (22, 35), ("data_ml", "mid"): (32, 45),
-    ("data_ml", "senior"): (40, 55), ("data_ml", "staff"): (45, 60),
-    ("mobile", "junior"): (22, 28), ("mobile", "mid"): (30, 38),
-    ("mobile", "senior"): (36, 46), ("mobile", "staff"): (40, 52),
-    ("qa", "junior"): (18, 24), ("qa", "mid"): (24, 32),
-    ("qa", "senior"): (30, 40), ("qa", "staff"): (35, 45),
-    ("security", "junior"): (25, 35), ("security", "mid"): (35, 48),
-    ("security", "senior"): (45, 60), ("security", "staff"): (60, 120),
-    ("product", "junior"): (22, 28), ("product", "mid"): (30, 40),
-    ("product", "senior"): (40, 52), ("product", "staff"): (48, 65),
+    (role, band): rng
+    for role, ranges in _IL_SALARY_RAW.items()
+    for band, rng in zip(_IL_SALARY_BANDS, ranges)
 }
 
-# Checked top-to-bottom like _SENIORITY_RULES -- most specific first
-# ("data_ml" before a bare "engineer" catch-all would ever be added).
+# Checked top-to-bottom, most specific first -- a title mentioning a
+# specific language/specialization should hit that row, not the generic
+# "backend"/"engineer" catch-all at the very end.
 _ROLE_CATEGORY_RULES: list[tuple[str, "re.Pattern[str]"]] = [
     (category, re.compile(r"\b(?:" + "|".join(re.escape(n) for n in needles) + r")\b", re.IGNORECASE))
     for category, needles in [
-        ("security", ["security", "appsec", "cyber", "penetration test", "soc analyst", "vulnerability"]),
-        ("data_ml", ["data engineer", "data scientist", "machine learning", "ml engineer",
-                     "ai engineer", "llm", "nlp"]),
-        ("devops", ["devops", "sre", "site reliability", "platform engineer", "infrastructure engineer"]),
-        ("qa", ["qa", "quality assurance", "sdet", "test engineer"]),
-        ("mobile", ["ios", "android", "mobile engineer", "mobile developer"]),
-        ("frontend", ["frontend", "front-end", "front end", "ui engineer"]),
+        ("computer_vision", ["computer vision"]),
+        ("deep_learning", ["deep learning"]),
+        ("ml_engineer", ["machine learning", "ml engineer"]),
+        ("data_scientist", ["data scientist"]),
+        ("signal_processing", ["signal processing"]),
+        ("llm_engineer", ["llm", "large language model", "genai", "generative ai"]),
+        ("algo_engineer", ["algorithm"]),
+        ("vlsi", ["vlsi"]),
+        ("rf", ["rf engineer", "rf design"]),
+        ("board_design", ["board design"]),
+        ("verification", ["verification engineer"]),
+        ("electrical_power", ["electrical engineer", "power engineer"]),
+        ("hardware_architect", ["hardware architect"]),
+        ("hardware_research", ["hardware research"]),
+        ("hardware_engineer", ["hardware engineer"]),
+        ("malware_analyst", ["malware"]),
+        ("reverse_engineer", ["reverse engineer"]),
+        ("vulnerability_researcher", ["vulnerability research"]),
+        ("incident_response", ["incident response"]),
+        ("soc_analyst", ["soc analyst"]),
+        ("security_researcher", ["security research"]),
+        ("security_expert", ["security", "appsec", "cyber", "penetration test", "pentest"]),
+        ("data_engineer", ["data engineer"]),
+        ("data_analyst", ["data analyst"]),
+        ("bi_developer", ["bi developer", "business intelligence"]),
+        ("dba_bigdata", ["dba", "database administrator"]),
+        ("product_analyst", ["product analyst"]),
+        ("product_manager", ["product manager"]),
+        ("solution_architect", ["solution architect"]),
+        ("software_architect", ["software architect"]),
+        ("system_engineer", ["system engineer"]),
+        ("devops_engineer", ["devops", "sre", "site reliability", "platform engineer", "infrastructure engineer"]),
+        ("network_manager", ["network manager", "it manager"]),
+        ("automation_dev", ["automation", "sdet"]),
+        ("qa_generic", ["qa", "quality assurance", "test engineer"]),
+        ("ios", ["ios developer", "ios engineer"]),
+        ("android", ["android developer", "android engineer"]),
+        ("mobile_generic", ["mobile engineer", "mobile developer"]),
+        ("react", ["react"]),
+        ("angular", ["angular"]),
+        ("nodejs", ["node.js", "nodejs", "node js"]),
+        ("dotnet", [".net", "dotnet", "c#", "csharp"]),
+        ("kotlin", ["kotlin"]),
+        ("scala", ["scala"]),
+        ("go", ["golang"]),
+        ("php", ["php"]),
+        ("embedded", ["embedded"]),
+        ("python", ["python"]),
+        ("cpp", ["c++", "cpp"]),
+        ("java", ["java"]),
+        ("bigdata_dev", ["big data"]),
+        ("ai_engineer", ["ai engineer", "artificial intelligence"]),
         ("fullstack", ["full stack", "full-stack", "fullstack"]),
-        ("product", ["product manager"]),
+        ("frontend", ["frontend", "front-end", "front end", "ui engineer"]),
         # Backend last: the widest net (bare "backend"/"engineer"/
         # "developer"), so anything more specific above gets first pick.
         ("backend", ["backend", "back-end", "back end", "software engineer",
@@ -520,35 +621,68 @@ _ROLE_CATEGORY_RULES: list[tuple[str, "re.Pattern[str]"]] = [
     ]
 ]
 
-# staff/principal/lead collapse to the table's "Staff / Tech Lead 8y+"
-# bucket; manager/director/exec have no real row in this recruiter-pool
-# table (their comp is driven by scope/reports, not a role x seniority
-# grid the same way) so they fall through to no estimate.
-_SENIORITY_TO_TABLE_BUCKET = {
-    "intern": "junior", "junior": "junior",
-    "mid": "mid",
-    "senior": "senior",
-    "staff": "staff", "principal": "staff", "lead": "staff",
+# lead/manager collapse to the role's own "management" column; staff and
+# principal are the highest individual-contributor tier this source
+# breaks out, so they use the same "6-10y" column senior does. director
+# and exec have no mapping at all -- GotFriends' leadership-only rows
+# (VP R&D, CTO, Director of Development, CISO) were left out of the raw
+# table above because it wasn't clear which of their 3 listed figures
+# maps to which experience band; better no estimate than a guessed one.
+_SENIORITY_TO_BAND = {
+    "intern": "0-2", "junior": "0-2",
+    "mid": "3-5",
+    "senior": "6-10", "staff": "6-10", "principal": "6-10",
+    "lead": "mgmt", "manager": "mgmt",
 }
 
 
-def _estimate_salary(title: str | None, seniority: str | None) -> tuple[int, int] | None:
-    """(low, high) in ₪K/month from _IL_SALARY_TABLE_KNIS, or None if the
-    title doesn't confidently match a role category or the seniority has
-    no real row in that table (manager/director/exec -- see
-    _SENIORITY_TO_TABLE_BUCKET). Never guessed for a job whose location
-    isn't Israel -- callers are expected to check that themselves, since
-    this function only has the title/seniority to work with.
+def _estimate_salary(title: str | None, description: str | None, seniority: str | None) -> tuple[int, int] | None:
+    """(low, high) in ₪K/month from _IL_SALARY_TABLE_KNIS, or None if
+    neither title nor description confidently match a role category, or
+    the seniority is director/exec (no mapping -- see
+    _SENIORITY_TO_BAND). Never guessed for a job whose location isn't
+    Israel -- callers are expected to check that themselves, since this
+    function only has the title/description/seniority to work with.
+
+    Matches against title+description together, same as
+    _extract_skills -- a generic title ("Senior Software Engineer")
+    often states the actual language/specialization only in the body
+    (reported live: a real "Go" role with no "Go" in its title, only in
+    a "preferably in Go (Golang)" line, fell back to the generic
+    backend row instead of the more specific -- and more accurate --
+    Go one). Role-category rules are still checked in their own
+    priority order regardless of where in the combined text a term
+    appears, same as before.
+
+    A posting that doesn't state a level, or whose stated level has no
+    row for this specific role (e.g. QA/automation rows have no
+    "management" column), gets a wider range spanning every band this
+    role DOES have data for, rather than no estimate at all -- still a
+    real figure pulled from the sourced table, just less precise.
     """
     if not title:
         return None
-    bucket = _SENIORITY_TO_TABLE_BUCKET.get(seniority or "")
-    if not bucket:
+    text = f"{title}\n{description or ''}"
+    category = None
+    for cat, pattern in _ROLE_CATEGORY_RULES:
+        if pattern.search(text):
+            category = cat
+            break
+    if not category:
         return None
-    for category, pattern in _ROLE_CATEGORY_RULES:
-        if pattern.search(title):
-            return _IL_SALARY_TABLE_KNIS.get((category, bucket))
-    return None
+    if seniority in ("director", "exec"):
+        return None
+
+    band = _SENIORITY_TO_BAND.get(seniority or "")
+    if band:
+        direct = _IL_SALARY_TABLE_KNIS.get((category, band))
+        if direct:
+            return direct
+
+    available = [rng for b in _IL_SALARY_BANDS if (rng := _IL_SALARY_TABLE_KNIS.get((category, b)))]
+    if not available:
+        return None
+    return (min(r[0] for r in available), max(r[1] for r in available))
 
 
 def _normalize_date(v: Any) -> str | None:
@@ -1186,7 +1320,7 @@ def _fill_classifications(jobs: list[Job]) -> list[Job]:
             j.workplace_type = _classify_workplace(j.location)
         j.skills = _extract_skills(j.title, j.description)
         if j.salary_text is None and j.location and any(kw in j.location.lower() for kw in IL_KEYWORDS):
-            estimate = _estimate_salary(j.title, j.seniority)
+            estimate = _estimate_salary(j.title, j.description, j.seniority)
             if estimate:
                 lo, hi = estimate
                 j.salary_text = f"₪{lo}K–{hi}K"
