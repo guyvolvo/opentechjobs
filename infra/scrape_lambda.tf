@@ -65,6 +65,21 @@ resource "aws_lambda_function" "scrape_fast" {
       DATA_BUCKET = aws_s3_bucket.data.bucket
     }
   }
+
+  # Unlike the API Lambda's placeholder (which zips the whole real api/
+  # dir, so it's functionally equivalent to what deploy-api.yml ships),
+  # this one is genuinely incomplete -- just scrape_handler.py, no
+  # probe.py/loader/requests, since Terraform's archive_file can't run
+  # pip. A later `terraform apply` picking up on that hash difference
+  # would silently overwrite deploy-scrape-lambda.yml's real deployed
+  # code with a build missing probe.py entirely, breaking every
+  # scheduled run until the next code push -- happened once already
+  # (2026-09-04). ignore_changes makes code exclusively the deploy
+  # workflow's, matching the intent above, not just the placeholder
+  # zip's initial-create purpose.
+  lifecycle {
+    ignore_changes = [filename, source_code_hash]
+  }
 }
 
 resource "aws_cloudwatch_log_group" "scrape_fast_lambda" {

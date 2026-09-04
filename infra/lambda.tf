@@ -70,6 +70,17 @@ resource "aws_lambda_function" "api" {
       DATA_KEY    = "jobs.db"
     }
   }
+
+  # Code is deploy-api.yml's, not Terraform's, past initial create -- see
+  # the same lifecycle block on aws_lambda_function.scrape_fast for why
+  # this matters even when (as here) the placeholder zip is content-
+  # equivalent to what the workflow ships: a local checkout's line
+  # endings hashing differently from CI's own checkout already caused
+  # `terraform apply` to want to re-push this function's code mid-session,
+  # a no-op today only because api/'s placeholder happens to be complete.
+  lifecycle {
+    ignore_changes = [filename, source_code_hash]
+  }
 }
 
 # Public, unauthenticated invocation: the brief's own design point, "the
