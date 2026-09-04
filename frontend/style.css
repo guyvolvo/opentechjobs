@@ -1025,9 +1025,13 @@ table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
    min-width:0 on the body is load-bearing (DESIGN.md's own rule):
    without it a long unbroken domain/title stops the grid item from
    ever shrinking below its content width. */
+/* Third column (was 15%/30% split for salary+skills) is just salary now
+   -- skills pulled from the UI per request, kept in the codebase but
+   unused (see app.js). 20% gives it a bit more room now it's not
+   sharing the row with a second column. */
 table.jobs .title-cell {
   display: grid;
-  grid-template-columns: 40px 1fr 15% 30%;
+  grid-template-columns: 40px 1fr 20%;
   column-gap: 12px;
   align-items: start;
 }

@@ -677,7 +677,10 @@ function renderJobRows(jobs, starred) {
             </div>
           </div>
           <div class="job-salary-col">${jobSalaryHtml(j)}</div>
-          <div class="job-skills-col">${jobSkillsHtml(j)}</div>
+          <!-- Skills chips pulled from the UI for now, per request, while
+               salary gets more attention -- jobSkillsHtml/.skill-chip and
+               its click-to-filter wiring are still intact below, just
+               unused, so this is a one-line change to bring back. -->
         </td>
         <td data-label="Age" class="age-cell ${fresh ? "fresh" : ""}">${fmtAge(age)}</td>
       </tr>`;
