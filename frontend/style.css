@@ -143,7 +143,8 @@ button, input, select {
   padding-bottom: 10px;
 }
 .topbar .container > * { min-width: 0; } /* same min-width:auto issue as everywhere else in this file */
-.wordmark, .topnav { flex: 0 0 auto; } /* natural width; the ticker is the one flexible element between them */
+.status-indicator, .wordmark, .topnav { flex: 0 0 auto; } /* natural width; the ticker is the one flexible element between them */
+.status-indicator { display: flex; align-items: center; }
 
 /* Topbar ticker: seamless CSS-loop marquee. The item list is duplicated
    once in the track, animated exactly -50% so the loop has no visible seam. */
@@ -220,6 +221,116 @@ button, input, select {
   border-bottom: 1px solid transparent;
 }
 .theme-toggle:hover { color: var(--green); border-color: var(--green); }
+
+/* Auth. Same dropdown shape as .ms-menu (position:relative parent,
+   absolute panel, 2px ink border, paper background) -- one hand-built
+   pattern, not a second one invented for this. */
+.auth-area { position: relative; }
+.auth-trigger {
+  background: none;
+  border: none;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+.auth-trigger:hover, .auth-trigger.active { color: var(--green); border-color: var(--green); }
+
+.auth-signed-in {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.auth-signed-in .auth-email {
+  color: var(--grey);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.auth-signout {
+  background: none;
+  border: none;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  color: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0;
+  cursor: pointer;
+}
+.auth-signout:hover { color: var(--red); }
+
+.auth-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 260px;
+  background: var(--white);
+  border: var(--rule) solid var(--black);
+  z-index: 40;
+  padding: 14px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: var(--font);
+}
+
+.auth-provider-btn {
+  display: block;
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  margin-bottom: 8px;
+  border: var(--rule) solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.auth-provider-btn:hover { background: var(--black); color: var(--white); }
+
+.auth-divider {
+  text-align: center;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+  margin: 10px 0;
+}
+
+.auth-email-form { display: flex; gap: 6px; }
+.auth-email-form[hidden] { display: none; } /* same fix as .job-detail[hidden]: a class rule's display beats the UA [hidden] stylesheet without this */
+.auth-email-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 38px;
+  padding: 9px 10px;
+  border: var(--rule) solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font);
+  font-size: 13px;
+}
+.auth-email-form input:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+.auth-email-form .btn { flex: 0 0 auto; padding: 0 12px; font-size: 11px; }
+
+.auth-error {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--red);
+}
 
 /* A square block, not a circle, per the sharp-corners rule. Flickers in
    irregular jump-cut steps like a torch, not a smooth pulse. OFFLINE

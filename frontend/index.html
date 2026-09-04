@@ -18,6 +18,7 @@
 
   <div class="topbar">
     <div class="container">
+      <span class="status-indicator"><span id="status-dot" class="status-dot"></span><span id="status-text">...</span></span>
       <a class="wordmark" href="/">OpenMarket<span class="accent">IL</span></a>
       <div class="ticker-rule"></div>
       <div class="ticker" id="ticker" aria-label="Recently posted jobs">
@@ -25,7 +26,8 @@
       </div>
       <div class="ticker-rule"></div>
       <nav class="topnav">
-        <span><span id="status-dot" class="status-dot"></span><span id="status-text">...</span></span>
+        <!-- Populated entirely by app.js's renderAuthState(), same convention as the .ms filter dropdowns below -->
+        <div class="auth-area" id="auth-area"></div>
         <button id="theme-toggle" class="theme-toggle" type="button">Dark</button>
         <a class="link" href="/api/jobs" target="_blank">API</a>
         <a class="icon-link" href="https://github.com/guyvolvo/openmarketil" target="_blank" rel="noopener" aria-label="View source on GitHub" title="View source on GitHub">

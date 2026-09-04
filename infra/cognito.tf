@@ -121,7 +121,11 @@ resource "aws_cognito_user_pool_client" "web" {
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
 
-  callback_urls = ["https://${var.domain_name}/auth/callback"]
+  # The root, not a dedicated /auth/callback path: this is a static site
+  # with no server-side routing, so any path other than "/" 404s at
+  # CloudFront/S3 -- app.js checks location.search for ?code= on every
+  # load instead of needing a second real page.
+  callback_urls = ["https://${var.domain_name}/"]
   logout_urls   = ["https://${var.domain_name}/"]
 
   access_token_validity  = 1

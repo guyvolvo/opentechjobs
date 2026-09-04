@@ -1161,6 +1161,295 @@ async function refreshStats() {
   }
 }
 
+// Auth. Three passwordless sign-in paths, no accounts endpoint on
+// this API beyond what a Cognito JWT authorizer will eventually protect
+// (/me/alerts). See infra/cognito.tf and github_auth_handler.py for the
+// backend half of each of these.
+
+const COGNITO_DOMAIN = "iljobs-auth-876913698688.auth.il-central-1.amazoncognito.com";
+const COGNITO_REGION = "il-central-1";
+const COGNITO_CLIENT_ID = "5021pv23cp3udp1uaq34tp38mb";
+// Filled in once the GitHub OAuth App exists (github.com/settings/developers) --
+// OAuth client IDs aren't secret, safe to ship in frontend JS same as Google's.
+const GITHUB_OAUTH_CLIENT_ID = "";
+const AUTH_TOKENS_KEY = "iljobs_auth_tokens";
+const PKCE_VERIFIER_KEY = "iljobs_pkce_verifier"; // sessionStorage: only needs to survive the redirect round-trip
+
+function getAuthTokens() {
+  try {
+    return JSON.parse(localStorage.getItem(AUTH_TOKENS_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function setAuthTokens(tokens) {
+  localStorage.setItem(AUTH_TOKENS_KEY, JSON.stringify(tokens));
+}
+
+function signOut() {
+  localStorage.removeItem(AUTH_TOKENS_KEY);
+  renderAuthState();
+}
+
+// No verification -- this is display-only (the signed-in email in the
+// topbar). The one place a token's signature actually has to hold up is
+// server-side, when a JWT authorizer validates it on /me/alerts.
+function decodeJwtEmail(idToken) {
+  try {
+    const payload = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.email || null;
+  } catch {
+    return null;
+  }
+}
+
+async function base64UrlDigest(input) {
+  const bytes = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function randomUrlSafe(len) {
+  const bytes = crypto.getRandomValues(new Uint8Array(len));
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+async function startGoogleSignIn() {
+  const verifier = randomUrlSafe(64);
+  sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
+  const challenge = await base64UrlDigest(verifier);
+  const redirectUri = `${location.origin}/`;
+  const url = `https://${COGNITO_DOMAIN}/oauth2/authorize?${qs({
+    client_id: COGNITO_CLIENT_ID,
+    response_type: "code",
+    scope: "openid email profile",
+    redirect_uri: redirectUri,
+    identity_provider: "Google",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+  })}`;
+  location.href = url;
+}
+
+function startGithubSignIn() {
+  if (!GITHUB_OAUTH_CLIENT_ID) {
+    showAuthError("GitHub sign-in isn't wired up yet.");
+    return;
+  }
+  const url = `https://github.com/login/oauth/authorize?${qs({
+    client_id: GITHUB_OAUTH_CLIENT_ID,
+    redirect_uri: `${location.origin}/api/auth/github/callback`,
+    scope: "read:user user:email",
+  })}`;
+  location.href = url;
+}
+
+// Cognito's InitiateAuth/RespondToAuthChallenge are deliberately public,
+// unsigned operations for a user-pool app client -- callable directly
+// from the browser, no backend proxy or AWS SDK needed for this part.
+async function cognitoRequest(target, body) {
+  const res = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-amz-json-1.1",
+      "X-Amz-Target": `AWSCognitoIdentityProviderService.${target}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || data.__type || `HTTP ${res.status}`);
+  return data;
+}
+
+let _pendingOtpEmail = null;
+let _pendingOtpSession = null;
+
+async function startEmailSignIn(email) {
+  // Ensures the Cognito account row exists first -- required because
+  // allow_admin_create_user_only=true also blocks Cognito's own public
+  // SignUp API, see github_auth_handler.py's module docstring.
+  const res = await fetch(`${API_BASE}/auth/email/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const init = await cognitoRequest("InitiateAuth", {
+    ClientId: COGNITO_CLIENT_ID,
+    AuthFlow: "USER_AUTH",
+    AuthParameters: { USERNAME: email, PREFERRED_CHALLENGE: "EMAIL_OTP" },
+  });
+  _pendingOtpEmail = email;
+  _pendingOtpSession = init.Session;
+}
+
+async function verifyEmailOtp(code) {
+  const result = await cognitoRequest("RespondToAuthChallenge", {
+    ClientId: COGNITO_CLIENT_ID,
+    ChallengeName: "EMAIL_OTP",
+    Session: _pendingOtpSession,
+    ChallengeResponses: { USERNAME: _pendingOtpEmail, EMAIL_OTP_CODE: code },
+  });
+  const t = result.AuthenticationResult;
+  setAuthTokens({ id_token: t.IdToken, access_token: t.AccessToken, refresh_token: t.RefreshToken });
+  _pendingOtpEmail = null;
+  _pendingOtpSession = null;
+}
+
+async function exchangeGoogleCode(code) {
+  const verifier = sessionStorage.getItem(PKCE_VERIFIER_KEY);
+  sessionStorage.removeItem(PKCE_VERIFIER_KEY);
+  const res = await fetch(`https://${COGNITO_DOMAIN}/oauth2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: qs({
+      grant_type: "authorization_code",
+      client_id: COGNITO_CLIENT_ID,
+      code,
+      redirect_uri: `${location.origin}/`,
+      code_verifier: verifier,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || data.error || `HTTP ${res.status}`);
+  setAuthTokens({ id_token: data.id_token, access_token: data.access_token, refresh_token: data.refresh_token });
+}
+
+// Two unrelated redirect shapes land here, both back at "/": Google's
+// via Cognito's own authorization-code flow (?code=... query param,
+// exchanged client-side above) and GitHub's via github_auth_handler.py's
+// own 302 (#id_token=...&access_token=...&refresh_token=... hash
+// fragment -- that Lambda already did the full exchange server-side).
+async function handleAuthRedirect() {
+  const hash = new URLSearchParams(location.hash.slice(1));
+  if (hash.get("id_token")) {
+    setAuthTokens({
+      id_token: hash.get("id_token"),
+      access_token: hash.get("access_token"),
+      refresh_token: hash.get("refresh_token"),
+    });
+    history.replaceState(null, "", location.pathname + location.search);
+    return;
+  }
+  if (hash.get("auth_error")) {
+    console.error("Sign-in failed:", hash.get("auth_error"));
+    history.replaceState(null, "", location.pathname + location.search);
+    return;
+  }
+
+  const params = new URLSearchParams(location.search);
+  const code = params.get("code");
+  if (code) {
+    history.replaceState(null, "", location.pathname); // strip ?code= before the async exchange, not after -- a reload mid-flight must not resubmit a single-use code
+    try {
+      await exchangeGoogleCode(code);
+    } catch (err) {
+      console.error("Google sign-in failed:", err);
+    }
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById("auth-error");
+  el.textContent = msg;
+  el.hidden = false;
+}
+
+function renderAuthState() {
+  const area = document.getElementById("auth-area");
+  const tokens = getAuthTokens();
+  if (!tokens) {
+    area.innerHTML = `
+      <button class="auth-trigger" id="auth-trigger" type="button">Sign In</button>
+      <div class="auth-panel" id="auth-panel" hidden>
+        <button class="auth-provider-btn" id="auth-google" type="button">Continue with Google</button>
+        <button class="auth-provider-btn" id="auth-github" type="button">Continue with GitHub</button>
+        <div class="auth-divider">or</div>
+        <form class="auth-email-form" id="auth-email-form">
+          <input type="email" id="auth-email-input" placeholder="you@example.com" required autocomplete="email" />
+          <button class="btn" type="submit">Send code</button>
+        </form>
+        <form class="auth-email-form" id="auth-otp-form" hidden>
+          <input type="text" id="auth-otp-input" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" required autocomplete="one-time-code" />
+          <button class="btn" type="submit">Verify</button>
+        </form>
+        <p class="auth-error" id="auth-error" hidden></p>
+      </div>`;
+    wireAuthPanel();
+    return;
+  }
+  const email = decodeJwtEmail(tokens.id_token) || "signed in";
+  area.innerHTML = `
+    <div class="auth-signed-in">
+      <span class="auth-email" title="${escapeHtml(email)}">${escapeHtml(email)}</span>
+      <button class="auth-signout" id="auth-signout" type="button">Sign Out</button>
+    </div>`;
+  document.getElementById("auth-signout").addEventListener("click", signOut);
+}
+
+function wireAuthPanel() {
+  const trigger = document.getElementById("auth-trigger");
+  const panel = document.getElementById("auth-panel");
+
+  trigger.addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+    trigger.classList.toggle("active", !panel.hidden);
+  });
+  document.addEventListener("click", (e) => {
+    if (!panel.hidden && !e.target.closest("#auth-area")) {
+      panel.hidden = true;
+      trigger.classList.remove("active");
+    }
+  });
+
+  document.getElementById("auth-google").addEventListener("click", startGoogleSignIn);
+  document.getElementById("auth-github").addEventListener("click", startGithubSignIn);
+
+  document.getElementById("auth-email-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("auth-email-input").value.trim();
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    try {
+      await startEmailSignIn(email);
+      document.getElementById("auth-email-form").hidden = true;
+      document.getElementById("auth-otp-form").hidden = false;
+      document.getElementById("auth-otp-input").focus();
+    } catch (err) {
+      showAuthError(err.message || "Could not send a code. Try again.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("auth-otp-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const code = document.getElementById("auth-otp-input").value.trim();
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    try {
+      await verifyEmailOtp(code);
+      renderAuthState();
+    } catch (err) {
+      showAuthError(err.message === "CodeMismatchException" ? "Wrong code, try again." : err.message || "Could not verify that code.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+function wireAuth() {
+  renderAuthState();
+}
+
 // scrape-fast.yml re-polls every 10 min; 2 min keeps an open tab
 // reasonably current without hammering the API, and lines up with
 // CloudFront's own 120s cache on /api/* so most polls never even reach
@@ -1168,6 +1457,8 @@ async function refreshStats() {
 const STATS_POLL_MS = 120_000;
 
 async function boot() {
+  await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render
+  wireAuth();
   wireFilters();
   wireJobDetail();
   wireThemeToggle();
