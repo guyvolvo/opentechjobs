@@ -55,7 +55,9 @@ resource "aws_iam_role_policy" "infra_deploy" {
       {
         Sid    = "TerraformState"
         Effect = "Allow"
-        Action = ["s3:GetObject", "s3:PutObject", "s3:ListBucket"]
+        # DeleteObject is for releasing the native S3 lock file
+        # (use_lockfile in versions.tf), not for the state object itself.
+        Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
         Resource = [
           "arn:aws:s3:::${var.project_name}-tfstate-*",
           "arn:aws:s3:::${var.project_name}-tfstate-*/*",
@@ -169,9 +171,11 @@ resource "aws_iam_role_policy" "api_deploy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid      = "UpdateApiLambdaCode"
-      Effect   = "Allow"
-      Action   = ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:PublishVersion"]
+      Sid    = "UpdateApiLambdaCode"
+      Effect = "Allow"
+      # GetFunctionConfiguration is what `aws lambda wait function-updated`
+      # actually polls, distinct from GetFunction.
+      Action   = ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:PublishVersion"]
       Resource = aws_lambda_function.api.arn
     }]
   })
