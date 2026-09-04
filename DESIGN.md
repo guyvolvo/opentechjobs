@@ -6,7 +6,7 @@ colors:
   ink: "#40513b"
   signal-green: "#609966"
   muted-grey: "#40513b"
-  hairline-grey: "#dce8ce"
+  hairline-grey: "#c7d9b3"
   alert-red: "#b8362c"
   hover-tint: "#e9efdb"
 typography:
@@ -127,9 +127,11 @@ plain near-black/white inversion.
   text — labels, metadata, placeholders, the offline-state wordmark.
   Light mode reads this at full ink darkness (the earlier softer tint
   wasn't legible enough); dark mode keeps its own true muted grey.
-- **Hairline Grey** (`#dce8ce`, `--grey-line`; dark mode `#2b2c31`): the
+- **Hairline Grey** (`#c7d9b3`, `--grey-line`; dark mode `#2b2c31`): the
   quiet dividers — table row separators, bar-chart tracks, input borders
-  one step down from a full 2px rule.
+  one step down from a full 2px rule. Darkened from an earlier `#dce8ce`
+  in light mode, same reasoning as Muted Grey above: too close to
+  `--white`'s `#f3f6e4` to read as a visible line at all.
 - **Hover Tint** (`#e9efdb`, `--hover-bg`; dark mode `#1e1f24`): the one
   soft, non-binary surface in the system, reserved for row/option hover
   states where a hard color flip would be too loud.

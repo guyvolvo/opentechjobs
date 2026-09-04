@@ -26,7 +26,7 @@
   --green: #609966;
   --green-bright: #80ad85;
   --grey: #40513b;
-  --grey-line: #dce8ce;
+  --grey-line: #c7d9b3; /* reported live: the original #dce8ce sat too close to --white's #f3f6e4 to read as a visible line at all */
   --red: #b8362c;
   --hover-bg: #e9efdb;
 
