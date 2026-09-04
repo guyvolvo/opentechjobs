@@ -644,6 +644,7 @@ function renderJobRows(jobs, starred) {
               ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
             </div>
             <div class="job-meta">${jobMetaLine(j)}</div>
+            ${j.description_snippet ? `<div class="job-snippet">${escapeHtml(j.description_snippet)}</div>` : ""}
             <div class="job-links">
               <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
               <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>

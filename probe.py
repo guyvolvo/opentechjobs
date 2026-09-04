@@ -63,6 +63,11 @@ class Job:
     # content that rarely changes. SmartRecruiters has the same
     # list-endpoint gap, not yet given the same treatment.
     description: str | None = None
+    # A 1-2 line preview of the role itself, not "About us" boilerplate --
+    # derived from `description` by _fill_classifications() via
+    # _extract_snippet(), same None-when-no-description rule as above.
+    # Not set by any individual ATS fetcher directly.
+    description_snippet: str | None = None
     # intern/junior/mid/senior/staff/principal/lead/manager/director/exec,
     # or None if the posting doesn't state a level. Some ATSes provide a
     # structured field (SmartRecruiters, Comeet); otherwise resolve() falls
@@ -239,6 +244,71 @@ def _clean_text(raw: Any, max_chars: int = DESCRIPTION_MAX_CHARS) -> str | None:
     text = "\n".join(line.strip() for line in text.split("\n"))
     text = _BLANK_LINES_RE.sub("\n\n", text).strip()
     return text[:max_chars] or None
+
+
+# Substring match against a section's "## " heading, case-insensitive.
+# Signals real role content -- as opposed to the boilerplate "About Us"
+# intro every ATS's first section almost always is, identical across
+# every posting from that company and not worth showing per-job.
+_SNIPPET_HEADING_KEYWORDS = (
+    "responsibilit", "what you'll do", "what you will do", "what you'll be doing",
+    "about the role", "about this role", "the role", "your mission", "day-to-day",
+    "day to day", "we're looking for", "you will", "the opportunity", "overview",
+)
+_SNIPPET_MAX_CHARS = 220
+
+
+def _extract_snippet(description: str | None) -> str | None:
+    """A 1-2 line preview of what the job actually involves, cut from
+    _clean_text()'s already-cleaned output (its "## " heading markers),
+    not from raw HTML or a blind character offset.
+
+    Every section before the first one is treated as the company's
+    boilerplate intro and skipped outright, then a section whose heading
+    matches _SNIPPET_HEADING_KEYWORDS is preferred; failing that, whatever
+    comes right after the intro. A description with no heading structure
+    at all falls back to the same "skip the first paragraph" idea, split
+    on blank lines instead of headings; a description that's just one
+    paragraph, period, has nothing to skip and is used as-is.
+    """
+    if not description:
+        return None
+
+    sections: list[tuple[str | None, str]] = []
+    heading: str | None = None
+    body_lines: list[str] = []
+    for line in description.split("\n"):
+        if line.startswith("## "):
+            if body_lines or heading is not None:
+                sections.append((heading, "\n".join(body_lines).strip()))
+            heading, body_lines = line[3:].strip(), []
+        else:
+            body_lines.append(line)
+    sections.append((heading, "\n".join(body_lines).strip()))
+    sections = [(h, b) for h, b in sections if b]
+    if not sections:
+        return None
+
+    if len(sections) == 1:
+        paras = [p.strip() for p in re.split(r"\n\s*\n", sections[0][1]) if p.strip()]
+        body = paras[1] if len(paras) > 1 else paras[0]
+    else:
+        rest = sections[1:]  # sections[0] is the intro to skip, headed or not
+        matched = next(
+            (b for h, b in rest if h and any(k in h.lower() for k in _SNIPPET_HEADING_KEYWORDS)),
+            None,
+        )
+        body = matched or rest[0][1]
+
+    body = _WHITESPACE_RE.sub(" ", body).strip()
+    if not body:
+        return None
+    if len(body) <= _SNIPPET_MAX_CHARS:
+        return body
+    cut = body.rfind(" ", 0, _SNIPPET_MAX_CHARS)
+    if cut < _SNIPPET_MAX_CHARS * 0.6:  # no good word boundary nearby -- just hard-cut
+        cut = _SNIPPET_MAX_CHARS
+    return body[:cut].rstrip() + "…"
 
 
 # Checked top-to-bottom, first match wins. Highest seniority first so
@@ -950,6 +1020,7 @@ def _fill_classifications(jobs: list[Job]) -> list[Job]:
             j.seniority = _classify_seniority(j.title)
         if j.workplace_type is None:
             j.workplace_type = _classify_workplace(j.location)
+        j.description_snippet = _extract_snippet(j.description)
     return jobs
 
 

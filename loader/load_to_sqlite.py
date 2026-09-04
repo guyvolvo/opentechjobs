@@ -48,7 +48,20 @@ def open_db(path: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    _migrate(conn)
     return conn
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """One-off column additions for a jobs.db predating this column --
+    schema.sql's CREATE TABLE IF NOT EXISTS is a no-op against an
+    already-existing table, so a genuinely new column needs adding here
+    explicitly. Checked via table_info rather than try/except on ALTER
+    TABLE, since SQLite has no ADD COLUMN IF NOT EXISTS.
+    """
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)")}
+    if "description_snippet" not in existing:
+        conn.execute("ALTER TABLE jobs ADD COLUMN description_snippet TEXT")
 
 
 def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
@@ -137,9 +150,10 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
     conn.execute(
         """
         INSERT INTO jobs (id, company_domain, ats, external_id, title, location, department,
-                           url, posted_at, description_chars, description, seniority, workplace_type,
+                           url, posted_at, description_chars, description, description_snippet,
+                           seniority, workplace_type,
                            confidence, first_seen, last_seen, closed_at, raw_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             location = excluded.location,
@@ -173,6 +187,10 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- always sends a real value here, so this is a no-op for them.
             description_chars = CASE WHEN excluded.description_chars > 0 THEN excluded.description_chars ELSE description_chars END,
             description = CASE WHEN excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.description ELSE description END,
+            -- Same reasoning, same guard, as description above -- derived
+            -- from it by probe.py's _extract_snippet, so it goes empty on
+            -- exactly the same re-verify passes.
+            description_snippet = CASE WHEN excluded.description_snippet IS NOT NULL AND excluded.description_snippet != '' THEN excluded.description_snippet ELSE description_snippet END,
             seniority = excluded.seniority,
             workplace_type = excluded.workplace_type,
             last_seen = excluded.last_seen,
@@ -181,7 +199,8 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
         """,
         (jid, domain, j.get("ats"), j.get("external_id"), j.get("title") or "",
          j.get("location"), j.get("department"), j.get("url"), j.get("posted_at"),
-         j.get("description_chars", 0), j.get("description"), j.get("seniority"), j.get("workplace_type"),
+         j.get("description_chars", 0), j.get("description"), j.get("description_snippet"),
+         j.get("seniority"), j.get("workplace_type"),
          confidence, ts, ts,
          json.dumps(j, ensure_ascii=False)),
     )
