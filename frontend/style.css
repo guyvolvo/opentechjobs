@@ -1137,7 +1137,11 @@ table.jobs .title-cell a:hover { color: var(--green); }
 /* The row's own logo is a flex sibling of .job-card-body (gap above
    handles spacing), not inline text -- sized up to actually read as a
    company mark, the way it does on LinkedIn's job cards. */
-.company-logo.listing { width: 40px; height: 40px; margin-right: 0; }
+/* align-self overrides .title-cell's own align-items:start (grid,
+   see above) just for the logo -- everything else in the row still
+   top-aligns, but the logo centers against the row's full height,
+   which varies with how much the card body wraps to. */
+.company-logo.listing { width: 40px; height: 40px; margin-right: 0; align-self: center; }
 .job-detail-company .company-logo.detail { width: 32px; height: 32px; vertical-align: -8px; margin-right: 8px; }
 .bar-row .company-logo { width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; }
 
