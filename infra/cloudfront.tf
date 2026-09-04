@@ -70,6 +70,30 @@ resource "aws_cloudfront_distribution" "main" {
     compress               = true
   }
 
+  # More specific than /api/* below, so this one wins for exactly this
+  # path -- ordered_cache_behavior blocks are evaluated in the order
+  # Terraform lists them, same as CloudFront's own path-pattern
+  # precedence. /api/*'s own cache policy (header_behavior = "none")
+  # turned out to strip the Authorization header before it ever reached
+  # origin, not just from the cache key -- confirmed live: GET
+  # /me/alerts came back "Unauthorized" with a token that had just
+  # authenticated a POST to the same path seconds earlier, because POST
+  # (never cached) passes every header through while GET (cacheable)
+  # doesn't. Worse than a functional bug: a shared cache key that
+  # ignores Authorization on a per-user route risks serving one user's
+  # cached response to a different, differently-authenticated request
+  # for the same URL. CachingDisabled never caches and forwards
+  # everything, which is exactly what an authenticated route needs.
+  ordered_cache_behavior {
+    path_pattern           = "/api/me/*"
+    target_origin_id       = "api-lambda"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"]
+    cached_methods         = ["GET", "HEAD"]
+    cache_policy_id        = data.aws_cloudfront_cache_policy.caching_disabled.id
+    compress               = true
+  }
+
   ordered_cache_behavior {
     path_pattern           = "/api/*"
     target_origin_id       = "api-lambda"
@@ -101,4 +125,8 @@ resource "aws_cloudfront_distribution" "main" {
 
 data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
+}
+
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
 }
