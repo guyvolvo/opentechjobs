@@ -1156,7 +1156,14 @@ table.jobs .title-cell a:hover { color: var(--green); }
    see above) just for the logo -- everything else in the row still
    top-aligns, but the logo centers against the row's full height,
    which varies with how much the card body wraps to. */
-.company-logo.listing { width: 40px; height: 40px; margin: 0 15px; align-self: center; }
+/* Asymmetric on purpose: confirmed via DevTools' own box-model panel
+   that 15px/15px (the geometric center of the 70px column) was
+   landing correctly, but the star-side path has an extra ~8px the
+   text-side doesn't (the star cell's own padding stacks with the
+   title cell's), so equal margins here still read visually off-center
+   against the row as a whole. 11px/19px compensates for that -- both
+   real gaps (star-to-logo, logo-to-text) come out to ~31px. */
+.company-logo.listing { width: 40px; height: 40px; margin: 0 19px 0 11px; align-self: center; }
 .job-detail-company .company-logo.detail { width: 32px; height: 32px; vertical-align: -8px; margin-right: 8px; }
 .bar-row .company-logo { width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; }
 
