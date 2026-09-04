@@ -11,11 +11,10 @@ terraform {
     }
   }
 
-  # Points at the bucket infra/bootstrap/ created. Fill in `bucket` after
-  # running the bootstrap once -- Terraform backend blocks can't use
-  # variables, so this really does need the literal name.
+  # Points at the bucket infra/bootstrap/ created. Backend blocks can't
+  # use variables, so this needs the literal name.
   backend "s3" {
-    bucket       = "iljobs-tfstate-CHANGE-ME"
+    bucket       = "iljobs-tfstate-876913698688"
     key          = "iljobs/terraform.tfstate"
     region       = "il-central-1"
     encrypt      = true
@@ -25,6 +24,20 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+  default_tags {
+    tags = {
+      project   = var.project_name
+      managedby = "terraform"
+    }
+  }
+}
+
+# ACM certs for CloudFront must be issued in us-east-1 regardless of the
+# distribution's own region -- a hard AWS constraint. Named generically,
+# not cert-specific, since a future CloudFront WAF ACL needs the same thing.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
   default_tags {
     tags = {
       project   = var.project_name

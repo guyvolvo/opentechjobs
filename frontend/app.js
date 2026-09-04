@@ -1,13 +1,9 @@
-// OpenMarketIL frontend. No framework, no build step -- this is a static file
-// served straight from S3/CloudFront (see infra/cloudfront.tf), so it has
-// to run as-shipped. Talks to the real API (api/handler.py) at /api/*,
-// same origin, no CORS needed in production (CloudFront routes /api/*
-// to the Lambda -- see cloudfront.tf's header comment).
+// OpenMarketIL frontend. No framework, no build step -- served straight
+// from S3/CloudFront, runs as-shipped. Talks to the API at /api/*,
+// same-origin (CloudFront routes /api/* to the Lambda).
 //
-// "CRUD" for an individual visitor -- starring a listing -- is
-// localStorage-only, on purpose: the API has no write endpoints and no
-// accounts (see api/handler.py's module docstring), so there's no server
-// side to hang that state off of.
+// Starring a listing is localStorage-only -- the API has no write
+// endpoints or accounts, so there's no server side to hang that state off.
 
 const API_BASE = "/api";
 const STAR_KEY = "iljobs_starred";
@@ -38,25 +34,29 @@ const WORKPLACE_LABELS = {
 
 const state = {
   q: "",
-  keywords: "", // ';'-separated, ALL must appear -- see api/handler.py's route_jobs comment on why AND not OR
-  department: [], // labeled "Role" in the UI -- see route_stats()'s comment on why the backend field stays "department". Multi-select -> joined with "," for the API (route_jobs' _add_in_filter).
+  keywords: "", // ';'-separated, ALL must appear (AND, not OR)
+  department: [], // labeled "Category" in the UI -- backend field stays "department"
   seniority: [],
   company: [], // multi-select; also set via clicking a company in the market panels
-  location: [], // multi-select of curated top raw location strings -- see route_stats()'s comment on why this isn't a real geocoded facet. israel_only stays the right tool for "just IL."
-  workplace: [], // remote|hybrid|onsite -- fixed vocabulary like seniority, see probe.py's Job.workplace_type docstring
-  confidence: "all", // no confidence filter in the UI -- verified vs best_effort is shown inline (the badge) instead of gating
-  israel_only: true, // this is an Israel-focused board -- global-by-default would bury the point of it
+  location: [], // curated top raw location strings, not a geocoded facet
+  workplace: [], // remote|hybrid|onsite
+  confidence: "all", // no confidence filter in the UI -- shown inline via badge instead
+  israel_only: true,
   starred_only: false,
   sort: "age",
-  dir: "asc", // newest first -- see api/handler.py's route_jobs comment on the age/dir flip
+  dir: "asc", // newest first by default
   offset: 0,
 };
 
-// Assigned once in wireFilters() -- referenced from loadFilterOptions()
-// (populating Role/Company's options once they're known) and from the
-// market panels' "click a company" handler (syncing that pick back into
-// the Company multi-select).
+// Assigned once in wireFilters(); referenced by loadFilterOptions() and
+// the market panels' "click a company" handler.
 let msDepartment, msSeniority, msCompany, msLocation, msWorkplace;
+
+// The job detail panel's current selection -- not part of `state` above
+// since it's ephemeral UI, never an API param. Survives filter changes
+// (doesn't get yanked closed), just loses its row highlight if that job
+// scrolls off the current page.
+let selectedJobId = null;
 
 // ---------------------------------------------------------------------------
 // storage
@@ -209,9 +209,8 @@ function renderMetrics(stats) {
 }
 
 // Market-insight panels -- who's hiring, what for, where. No ATS-vendor
-// breakdown here on purpose: which API a listing was polled from is
-// plumbing, not a market signal (still in the raw /api/stats response
-// as open_jobs_by_ats for anyone polling directly who wants it).
+// breakdown here -- that's plumbing, not a market signal (still available
+// as open_jobs_by_ats for anyone polling the raw API).
 function renderBarList(rows, nameKey, { clickable = false } = {}) {
   const max = Math.max(1, ...rows.map((r) => r.n));
   return rows
@@ -228,13 +227,10 @@ function renderBarList(rows, nameKey, { clickable = false } = {}) {
 }
 
 // SVG bar chart, 14 days of new-listing counts, with a closed-jobs line
-// overlaid on its OWN scale (max of `closed`, not max of `n`) -- closed
-// counts run far smaller than new-listing counts, so sharing one scale
-// would flatline the line near zero. That means the two series aren't
-// pixel-comparable to each other, just each legible in its own right --
-// the legend says so explicitly rather than implying a shared axis.
-// viewBox-scaled so it's responsive without JS recalculating on resize;
-// native <title> gives a free per-point tooltip with no extra markup.
+// on its own scale -- closed counts run much smaller, so sharing one
+// scale would flatline the line near zero. Not pixel-comparable to each
+// other; the legend says so. viewBox-scaled for responsiveness; native
+// <title> gives a free per-point tooltip.
 function renderTrendChart(daily) {
   const maxNew = Math.max(1, ...daily.map((d) => d.n));
   const maxClosed = Math.max(1, ...daily.map((d) => d.closed || 0));
@@ -275,9 +271,8 @@ function renderTrendChart(daily) {
     <div class="trend-axis"><span>${daily[0].date.slice(5)}</span><span>${daily[daily.length - 1].date.slice(5)}</span></div>`;
 }
 
-// Standalone line chart -- open_jobs_history, reconstructed retroactively
-// from first_seen/closed_at rather than a real snapshot (see
-// route_stats()'s comment on why that's honest, not a shortcut).
+// Standalone line chart -- open_jobs_history, reconstructed from
+// first_seen/closed_at rather than a real snapshot.
 function renderOpenJobsChart(history) {
   const max = Math.max(1, ...history.map((d) => d.n));
   const w = 320;
@@ -334,7 +329,7 @@ function renderPanels(stats) {
       }
     </div>
     <div class="panel">
-      <div class="panel-title">Top Roles</div>
+      <div class="panel-title">Top Categories</div>
       ${renderBarList(stats.top_departments, "department")}
     </div>
     <div class="panel">
@@ -380,10 +375,8 @@ function renderCompanyChip() {
     state.company.length === 1 ? state.company[0] : `${state.company.length} companies`;
 }
 
-// The filter (not sort/pagination) portion of the current state -- shared
-// between loadJobs and the topbar ticker, so "10 most recent" in the
-// ticker means "10 most recent matching what you've actually filtered
-// for," not a fixed sitewide list that ignores your selections.
+// The filter (not sort/pagination) portion of state -- shared by loadJobs
+// and the ticker, so "10 most recent" respects the active filters too.
 function currentFilterParams() {
   return {
     q: state.q,
@@ -477,7 +470,7 @@ function renderJobRows(jobs, starred) {
       const fresh = age !== null && age <= 3;
       const isStarred = starred.has(j.id);
       return `
-      <tr data-id="${j.id}">
+      <tr data-id="${j.id}" class="${j.id === selectedJobId ? "selected" : ""}">
         <td>
           <button class="star-btn ${isStarred ? "on" : ""}" data-star="${j.id}" title="Star (saved in this browser only)">
             ${isStarred ? "★" : "☆"}
@@ -492,21 +485,22 @@ function renderJobRows(jobs, starred) {
           <div class="job-links">
             <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
             <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
-            <a class="api-link" href="${API_BASE}/jobs/${j.id}" target="_blank" rel="noopener" title="Raw API record for this job -- not the application link">Raw JSON</a>
           </div>
         </td>
         <td data-label="Location">${escapeHtml(j.location || "-")}</td>
-        <td data-label="Role">${escapeHtml(j.department || "-")}</td>
+        <td data-label="Category">${escapeHtml(j.department || "-")}</td>
         <td data-label="Age" class="age-cell ${fresh ? "fresh" : ""}">${fmtAge(age)}</td>
       </tr>`;
     })
     .join("");
 
   document.querySelectorAll("[data-star]").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation(); // inside a now-clickable <tr> (opens the detail panel) -- starring shouldn't also open it
       const s = toggleStar(btn.dataset.star);
       btn.classList.toggle("on", s.has(btn.dataset.star));
       btn.textContent = s.has(btn.dataset.star) ? "★" : "☆";
+      syncDetailStarButton(btn.dataset.star, s);
       if (state.starred_only) loadJobs();
     });
   });
@@ -566,7 +560,168 @@ function renderPagination(data) {
 }
 
 // ---------------------------------------------------------------------------
-// multi-select filter dropdown (Role / Level / Company)
+// job detail panel -- opens beside the list on selecting a row (never a
+// modal). Renders instantly from the row's already-known fields, then
+// fills in `description` once GET /api/jobs/{id} resolves, since the list
+// endpoint doesn't carry full descriptions.
+// ---------------------------------------------------------------------------
+
+function findKnownJob(id) {
+  return lastJobsResponse?.jobs?.find((j) => j.id === id) || null;
+}
+
+// Keeps the panel's own star button in step with whichever table row was
+// clicked (either direction: starring from the row, or from the panel).
+function syncDetailStarButton(id, starredSet) {
+  if (id !== selectedJobId) return;
+  const btn = document.querySelector(".job-detail-star");
+  if (!btn) return;
+  const on = starredSet.has(id);
+  btn.classList.toggle("on", on);
+  btn.textContent = on ? "★ Saved" : "☆ Save";
+}
+
+// probe.py's _clean_text marks section headings with a leading "## " --
+// render those bold rather than showing the marker literally. Every line
+// is still escaped individually, so nothing in the source text is ever
+// treated as markup.
+function renderDescriptionLines(description) {
+  return description
+    .split("\n")
+    .map((line) =>
+      line.startsWith("## ")
+        ? `<strong class="job-detail-desc-heading">${escapeHtml(line.slice(3))}</strong>`
+        : escapeHtml(line)
+    )
+    .join("\n");
+}
+
+function renderJobDetailBody(job, { descriptionLoading = false, descriptionError = null } = {}) {
+  const age = job.posted_at ? (Date.now() - new Date(job.posted_at).getTime()) / 86400000 : null;
+  const starred = getStarred().has(job.id);
+
+  let descriptionHtml;
+  if (descriptionError) {
+    descriptionHtml = `<div class="error-state">Could not load the full description: ${escapeHtml(descriptionError)}</div>`;
+  } else if (descriptionLoading) {
+    descriptionHtml = `<div class="loading-state">Loading description…</div>`;
+  } else if (job.description) {
+    descriptionHtml = `<div class="job-detail-description">${renderDescriptionLines(job.description)}</div>`;
+  } else {
+    descriptionHtml = `<div class="job-detail-description empty">No description provided by this listing.</div>`;
+  }
+
+  return `
+    <div class="job-detail-header">
+      <div>
+        <div class="job-detail-company">${escapeHtml(job.company_domain)}</div>
+        <h3 class="job-detail-title">${escapeHtml(job.title)}</h3>
+        <div class="job-detail-badges">
+          ${job.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority)}</span>` : ""}
+          ${job.workplace_type ? `<span class="badge workplace">${escapeHtml(WORKPLACE_LABELS[job.workplace_type] || job.workplace_type)}</span>` : ""}
+          ${job.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
+          ${job.closed_at ? '<span class="badge">Closed</span>' : ""}
+        </div>
+      </div>
+      <button type="button" class="job-detail-close" title="Close" aria-label="Close job detail">✕</button>
+    </div>
+
+    <div class="job-detail-actions">
+      <a class="job-detail-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
+      <button type="button" class="job-detail-star ${starred ? "on" : ""}" data-star="${job.id}">${starred ? "★ Saved" : "☆ Save"}</button>
+      <button type="button" class="copy-link-btn" data-copy-url="${escapeHtml(job.url || "")}" title="Copy the application link">Save link</button>
+    </div>
+
+    <div class="job-detail-meta">
+      <div class="job-detail-meta-row"><span class="label">Location</span><span class="value">${escapeHtml(job.location || "-")}</span></div>
+      <div class="job-detail-meta-row"><span class="label">Category</span><span class="value">${escapeHtml(job.department || "-")}</span></div>
+      <div class="job-detail-meta-row"><span class="label">Seniority</span><span class="value">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority || "-")}</span></div>
+      <div class="job-detail-meta-row"><span class="label">Workplace</span><span class="value">${escapeHtml(WORKPLACE_LABELS[job.workplace_type] || job.workplace_type || "-")}</span></div>
+      <div class="job-detail-meta-row"><span class="label">Posted</span><span class="value">${age !== null ? `${fmtAge(age)} ago` : "-"}</span></div>
+      <div class="job-detail-meta-row"><span class="label">Via</span><span class="value">${escapeHtml(job.ats || "-")}</span></div>
+    </div>
+
+    <div class="job-detail-description-title">Description</div>
+    ${descriptionHtml}`;
+}
+
+function wireJobDetailPanel(job) {
+  const panel = document.getElementById("job-detail");
+  panel.querySelector(".job-detail-close").addEventListener("click", closeJobDetail);
+  panel.querySelector(".job-detail-star").addEventListener("click", (e) => {
+    const s = toggleStar(job.id);
+    const on = s.has(job.id);
+    e.currentTarget.classList.toggle("on", on);
+    e.currentTarget.textContent = on ? "★ Saved" : "☆ Save";
+    const rowBtn = document.querySelector(`[data-star="${job.id}"].star-btn`);
+    if (rowBtn) {
+      rowBtn.classList.toggle("on", on);
+      rowBtn.textContent = on ? "★" : "☆";
+    }
+    if (state.starred_only) loadJobs();
+  });
+  const copyBtn = panel.querySelector("[data-copy-url]");
+  if (copyBtn) copyBtn.addEventListener("click", () => copyToClipboard(copyBtn, copyBtn.dataset.copyUrl));
+}
+
+async function openJobDetail(id) {
+  const panel = document.getElementById("job-detail");
+  const known = findKnownJob(id);
+  if (!known) return; // row's own data is the minimum we need to render anything at all
+
+  const previousId = selectedJobId;
+  selectedJobId = id;
+  document.querySelector(`tr[data-id="${previousId}"]`)?.classList.remove("selected");
+  document.querySelector(`tr[data-id="${id}"]`)?.classList.add("selected");
+
+  panel.hidden = false;
+  panel.innerHTML = renderJobDetailBody(known, { descriptionLoading: true });
+  wireJobDetailPanel(known);
+
+  // On the stacked layout (<=1300px, see style.css) the panel renders
+  // below the *entire* list, not beside it -- invisible without this. On
+  // the desktop side-by-side layout it's already sticky-positioned into
+  // view, so skip the scroll there rather than yank the page around.
+  // -60 clears the sticky topbar, same offset renderPanels()'s company
+  // click and renderPagination()'s page-button handlers already use.
+  const rect = panel.getBoundingClientRect();
+  if (rect.top < 0 || rect.top > window.innerHeight * 0.8) {
+    window.scrollTo({ top: window.scrollY + rect.top - 60, behavior: "smooth" });
+  }
+
+  try {
+    const full = await getJSON(`/jobs/${encodeURIComponent(id)}`);
+    if (selectedJobId !== id) return; // a different row was picked while this was in flight
+    panel.innerHTML = renderJobDetailBody(full);
+    wireJobDetailPanel(full);
+  } catch (err) {
+    if (selectedJobId !== id) return;
+    panel.innerHTML = renderJobDetailBody(known, { descriptionError: err.message });
+    wireJobDetailPanel(known);
+  }
+}
+
+function closeJobDetail() {
+  const panel = document.getElementById("job-detail");
+  panel.hidden = true;
+  panel.innerHTML = "";
+  document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.remove("selected");
+  selectedJobId = null;
+}
+
+function wireJobDetail() {
+  document.getElementById("jobs-body").addEventListener("click", (e) => {
+    if (e.target.closest("a, button")) return; // Apply/Save link/star handle their own click
+    const row = e.target.closest("tr[data-id]");
+    if (row) openJobDetail(row.dataset.id);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && selectedJobId !== null) closeJobDetail();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// multi-select filter dropdown (Category / Level / Company)
 // ---------------------------------------------------------------------------
 
 // One open dropdown at a time -- opening a second one closes whichever
@@ -661,18 +816,14 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
     setOptions(opts) {
       const current = [...selected];
       currentOptions = opts;
-      // Drop any selected value that no longer exists in the new option
-      // set (e.g. Company's list arrives async, after boot -- nothing
-      // should stay "selected" that was never a valid choice; or
-      // Location's list narrowing to IL-only options when that toggle
-      // flips, dropping a non-IL pick that's no longer valid there).
+      // Drop any selected value no longer in the new option set (e.g.
+      // Location narrowing to IL-only, dropping a non-IL pick).
       selected.clear();
       current.filter((v) => opts.some((o) => o.value === v)).forEach((v) => selected.add(v));
       renderOptions(searchEl ? searchEl.value : "");
       updateLabel();
-      // If something was silently dropped, the caller's state needs to
-      // know -- otherwise it still holds a value this widget no longer
-      // shows as selected, and would keep sending it to the API.
+      // Tell the caller if something was silently dropped, so its state
+      // doesn't keep sending a value this widget no longer shows selected.
       if (selected.size !== current.length) onChange([...selected]);
     },
     reset() {
@@ -718,7 +869,7 @@ function wireFilters() {
   );
 
   msDepartment = createMultiSelect("ms-department", {
-    placeholder: "ROLES",
+    placeholder: "CATEGORIES",
     onChange: (values) => {
       state.department = values;
       state.offset = 0;
@@ -782,9 +933,7 @@ function wireFilters() {
   document.getElementById("f-starred").addEventListener("change", (e) => {
     state.starred_only = e.target.checked;
     loadJobs();
-    // Not loadTicker() -- "starred" is a personal, client-local view of
-    // the board (see toggleStar's docstring), not an API filter
-    // criterion; currentFilterParams() doesn't include it, on purpose.
+    // Not loadTicker() -- "starred" is a client-local view, not an API filter.
   });
 
   document.getElementById("f-reset").addEventListener("click", () => {
@@ -851,18 +1000,14 @@ function setActiveSortHeader(key, dir) {
 // ---------------------------------------------------------------------------
 
 async function loadFilterOptions(stats) {
-  // Roles: reuse /api/stats' top_departments (curated to the most common
-  // ~20 raw labels -- see route_stats()'s comment) rather than every
-  // distinct string in the DB, which would be a hundreds-long dropdown of
-  // noisy one-off ATS-specific labels.
+  // Reuse /api/stats' curated top_departments rather than every distinct
+  // string in the DB, which would be a hundreds-long noisy dropdown.
   msDepartment.setOptions(
     stats.top_departments.map((r) => ({ value: r.department, label: `${r.department} (${r.n})` }))
   );
 
-  // Location's options come from refreshLocationOptions() instead of this
-  // stats snapshot -- it needs to be re-scoped to the IL-only toggle's
-  // *current* value (true by default), not whatever this unscoped fetch
-  // happened to return.
+  // Location comes from refreshLocationOptions() instead, since it needs
+  // to be re-scoped to the IL-only toggle's current value.
   refreshLocationOptions();
 
   try {
@@ -875,13 +1020,9 @@ async function loadFilterOptions(stats) {
   }
 }
 
-// Re-fetches just the Location dropdown's options scoped to IL-only or
-// not, whenever that toggle flips -- so picking Israel only offers
-// Israeli locations instead of 40 mostly-irrelevant global offices. Does
-// NOT touch the Market Stats dashboard (metrics-grid/panel-grid): that's
-// a deliberately global, permanent view independent of the board's local
-// filters (see route_stats()'s docstring) -- this only reads
-// top_locations back out of that same endpoint and throws the rest away.
+// Re-fetches the Location dropdown's options scoped to IL-only or not,
+// whenever that toggle flips. Doesn't touch the Market Stats dashboard,
+// which stays a global view independent of the board's local filters.
 async function refreshLocationOptions() {
   try {
     const stats = await getJSON(`/stats${state.israel_only ? "?israel_only=1" : ""}`);
@@ -916,17 +1057,10 @@ function wireThemeToggle() {
   });
 }
 
-// Topbar ticker -- 10 most recent listings matching whatever's currently
-// filtered on the board (currentFilterParams(), shared with loadJobs --
-// same Role/Level/Company/Location/Workplace/IL-only/search/keywords
-// selections apply here too), not a fixed sitewide list. Called from
-// every filter-changing handler in wireFilters(), same as loadJobs, but
-// deliberately NOT from pagination/sort-column clicks -- which page
-// you're on or how it's sorted doesn't change what "recent" means. Each
-// item links straight to the application, same as the board's own Apply
-// link. Duplicated once in the DOM so the CSS animation (.ticker-track,
-// -50% translate) loops seamlessly -- see that rule's comment for why
-// exactly half, not some other fraction.
+// Topbar ticker -- 10 most recent listings matching the board's current
+// filters, not a fixed sitewide list. Called from every filter-changing
+// handler, but not pagination/sort (those don't change what "recent"
+// means). Duplicated once in the DOM so the CSS marquee loops seamlessly.
 async function loadTicker() {
   const track = document.getElementById("ticker-track");
   try {
@@ -956,6 +1090,7 @@ async function loadTicker() {
 
 async function boot() {
   wireFilters();
+  wireJobDetail();
   wireThemeToggle();
   setActiveSortHeader("age", "asc");
   loadTicker();

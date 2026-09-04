@@ -2,16 +2,12 @@
 """
 Local dev server for frontend/ -- serves the static files and proxies
 /api/* to the real Lambda handler in-process (api/handler.py), against a
-local jobs.db instead of S3. No AWS credentials, no deploy, no build step
--- this is how the frontend gets checked against real data before it ever
-touches CloudFront.
+local jobs.db instead of S3. No AWS credentials or deploy needed.
 
     python loader/load_to_sqlite.py --resolved resolved.json --out jobs.db
     python scripts/dev_server.py --db jobs.db
 
-Then open http://localhost:8000/. Same technique api/README.md documents
-for testing the handler alone; this just adds a static file server in
-front of it so the two can be exercised together.
+Then open http://localhost:8000/.
 """
 
 import argparse
@@ -95,10 +91,9 @@ def main() -> int:
     ap.add_argument("--db", type=Path, default=REPO_ROOT / "loader" / "jobs.db")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--host", default="127.0.0.1",
-                     help="bind address -- default is loopback-only; use 0.0.0.0 (or a specific "
-                          "interface IP, e.g. a Tailscale 100.x address) to reach this from other "
-                          "devices on your network/tailnet. There's no auth on this dev server at "
-                          "all, so only bind beyond loopback on a network you trust.")
+                     help="bind address -- default is loopback-only; use 0.0.0.0 or a specific "
+                          "interface IP to reach this from other devices. No auth on this server, "
+                          "so only bind beyond loopback on a network you trust.")
     args = ap.parse_args()
 
     if not args.db.exists():
@@ -108,7 +103,7 @@ def main() -> int:
 
     handler_cls = make_handler(args.db)
     server = ThreadingHTTPServer((args.host, args.port), handler_cls)
-    print(f"IL/JOBS dev server: http://{args.host}:{args.port}/  (db: {args.db})")
+    print(f"OpenMarketIL dev server: http://{args.host}:{args.port}/  (db: {args.db})")
     print("Ctrl+C to stop.")
     try:
         server.serve_forever()

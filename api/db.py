@@ -1,14 +1,10 @@
 """
 jobs.db lifecycle for the Lambda execution environment.
 
-Cold start: download jobs.db from S3 into /tmp, open it read-only.
-Warm invocations reuse the same connection (module-level globals persist
-across invocations in the same execution environment -- standard Lambda
-pattern) rather than re-downloading every request, but periodically
-HEAD-checks S3 so a long-lived warm container doesn't serve data that's
-hours stale relative to what scrape.yml just uploaded. The HEAD check is
-cheap (no data transfer) and only runs every STALE_CHECK_SECONDS, so it
-doesn't turn into a GetObject-per-request bill.
+Cold start: download jobs.db from S3 into /tmp, open it read-only. Warm
+invocations reuse the same connection (module-level globals persist
+across invocations), periodically HEAD-checking S3 (cheap, no data
+transfer) so a long-lived container doesn't serve stale data indefinitely.
 """
 
 import os

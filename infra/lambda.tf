@@ -1,14 +1,11 @@
 # ---------------------------------------------------------------------------
-# API Lambda, invoked via a Function URL (no API Gateway -- see the
-# architecture discussion: this is a single JSON API with no need for
-# usage-plan API keys or multi-service path routing, so API Gateway would
-# only add its per-request cost without buying anything this project uses).
+# API Lambda. Designed for a Function URL (no per-request cost, see
+# apigateway.tf for why it's temporarily fronted by API Gateway instead).
 #
 # The zip built here is a placeholder containing just api/handler.py at
-# infra-apply time. deploy-api.yml (GitHub Actions) is what actually ships
-# code changes afterward via `aws lambda update-function-code` -- Terraform
-# owns the function's existence and config, not its day-to-day code
-# updates, so infra applies don't need to run on every API code change.
+# infra-apply time -- deploy-api.yml (GitHub Actions) ships real code
+# changes via `aws lambda update-function-code`, so infra applies don't
+# need to run on every API code change.
 # ---------------------------------------------------------------------------
 
 data "archive_file" "api" {
@@ -70,18 +67,11 @@ resource "aws_lambda_function" "api" {
   }
 }
 
-resource "aws_lambda_function_url" "api" {
-  function_name      = aws_lambda_function.api.function_name
-  authorization_type = "NONE" # intentionally public -- the brief's own design point:
-  # "the public API is the alerting primitive, anyone can poll it." No paywall, no accounts.
-
-  cors {
-    allow_origins = ["*"]
-    allow_methods = ["GET"]
-    allow_headers = ["content-type"]
-    max_age       = 3600
-  }
-}
+# Public, unauthenticated invocation -- the brief's own design point: "the
+# public API is the alerting primitive, anyone can poll it." No paywall,
+# no accounts. Originally a Lambda Function URL (no per-request cost);
+# temporarily fronted by an API Gateway HTTP API instead -- see
+# apigateway.tf for why and the plan to revert.
 
 resource "aws_cloudwatch_log_group" "api_lambda" {
   name              = "/aws/lambda/${aws_lambda_function.api.function_name}"

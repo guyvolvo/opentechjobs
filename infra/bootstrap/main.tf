@@ -1,16 +1,13 @@
-# One-time bootstrap: creates the S3 bucket that holds Terraform state for
-# the real infra/ config. Chicken-and-egg problem -- Terraform can't manage
-# the bucket it stores its own state in before that bucket exists -- so
-# this lives in its own tiny local-state config, applied once by hand:
+# One-time bootstrap: creates the S3 bucket that holds infra/'s Terraform
+# state (a chicken-and-egg problem otherwise). Its own tiny local-state
+# config, applied once by hand:
 #
 #   cd infra/bootstrap
 #   terraform init
 #   terraform apply
 #
-# After this exists, infra/ points its backend at the bucket this creates
-# and is never touched again. Not part of the GitHub Actions deploy flow
-# on purpose: state-backend bootstrapping is a rare, deliberate action, not
-# something that should be able to happen from a CI trigger.
+# Not part of the GitHub Actions deploy flow -- state-backend bootstrapping
+# is a rare, deliberate action, not something a CI trigger should do.
 
 terraform {
   required_version = ">= 1.10.0" # >=1.10 for native S3 state locking, no DynamoDB table needed
@@ -30,7 +27,7 @@ variable "aws_region" {
 variable "state_bucket_name" {
   type        = string
   description = "Globally-unique S3 bucket name for Terraform state. S3 bucket names are a shared global namespace, so the default here WILL collide -- set your own."
-  default     = "iljobs-tfstate-CHANGE-ME"
+  default     = "iljobs-tfstate-876913698688"
 }
 
 provider "aws" {

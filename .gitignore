@@ -9,13 +9,30 @@ infra/**/.terraform/
 infra/build/
 *.tfstate
 *.tfstate.*
+*.tfvars
+tfplan
+**/tfplan
 crash.log
-# NOTE: .terraform.lock.hcl is deliberately NOT ignored -- it pins provider
-# versions and should be committed for reproducible applies.
+# .terraform.lock.hcl is committed on purpose -- it pins provider versions
+# for reproducible applies.
 
-# generated/local artifacts -- these are build outputs, not source
+# Node
+node_modules/
+
+# Generated data -- build outputs, not source
 resolved.json
+known.json
 batch_summary.txt
 loader/jobs.db
 api_test/
 *.db
+
+# Local/machine-specific state
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.impeccable/hook.cache.json
+*.log
+
+# OS cruft
+.DS_Store
+Thumbs.db

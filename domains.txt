@@ -403,3 +403,70 @@ israelpost.co.il
 isracard.co.il
 max.co.il
 cal-online.co.il
+
+# Israeli-founded unicorns, TechAviv's curated list (Company/Website
+# fields from TechAviv_Unicorn_List.2024-1-26.json, a snapshot of the
+# same Airtable table techaviv.com/unicorns embeds, mirrored at
+# github.com/TheBSD/scraping-israeli-data). Several of these are US/
+# global-HQ'd with Israeli founders and may have zero current Israel-
+# based listings -- that's fine, same as any other company with no IL
+# openings right now: they just contribute 0 rows to the default
+# israel_only-scoped board until/unless one opens. 47 companies from
+# this same list were already covered by earlier batches above; these
+# 45 are the ones that weren't.
+anyvision.com
+avant.com
+bigid.com
+bigpanda.io
+biocatch.com
+capitolis.com
+catonetworks.com
+compass.com
+dremio.com
+exabeam.com
+flow.life
+formlabs.com
+getfabric.com
+gopuff.com
+gusto.com
+houzz.com
+hubsecurity.com
+insightec.com
+joytunes.com
+khealth.ai
+landanano.com
+letsdeel.com
+meliopayments.com
+memicmed.com
+montecarlodata.com
+nextinsurance.com
+openweb.com
+optibus.com
+orcam.com
+ownbackup.com
+placer.ai
+rapyd.com
+redislabs.com
+ridewithvia.com
+shipveho.com
+spoton.com
+store-dot.com
+sunbit.com
+tanium.com
+tomorrow.io
+travelperk.com
+traxretail.com
+tripledotstudios.com
+valens.com
+visbymedical.com
+
+# US-Israel.co's Unicorn Tracker (usisrael.co/unicorn-tracker), companies
+# not already covered by earlier batches. Checked live via HTTP before
+# adding; excluded Vesttoo (vesttoo.com has no DNS records at all --
+# dead domain, consistent with the company's 2023 fraud-scandal collapse).
+liquiditygroup.com
+minutemedia.com
+oosto.com
+perimeter81.com
+rapidapi.com
+veev.com

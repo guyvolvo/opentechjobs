@@ -1,24 +1,20 @@
 name: deploy-infra
 
-# Terraform for infra/ (S3 buckets, Lambda function + Function URL,
-# CloudFront, GitHub OIDC roles). PRs get a plan for review; only pushes
-# to the deploy branch (see infra/variables.tf github_deploy_branch,
-# default "main") can apply -- the infra-deploy OIDC role's trust policy
-# enforces that at the AWS side too, not just here.
+# Terraform for infra/ (S3 buckets, Lambda, CloudFront, GitHub OIDC
+# roles). PRs get a plan for review; only pushes to the deploy branch can
+# apply -- enforced both here and by the infra-deploy OIDC role's trust
+# policy on the AWS side.
 #
-# Does NOT touch infra/bootstrap/ -- that's a one-time, apply-by-hand step
-# (see its own comment header) that creates the state bucket this
-# workflow's own `terraform init` depends on already existing.
+# Does NOT touch infra/bootstrap/ -- a one-time, apply-by-hand step (see
+# its own header) that creates the state bucket this workflow depends on.
 #
-# Bootstrapping order matters: this workflow authenticates via the
-# infra-deploy OIDC role, but that role is itself created BY this
-# Terraform config (iam_oidc.tf). The very first apply has no role to
-# assume yet and must be run locally with real AWS credentials:
+# Bootstrapping order: this workflow authenticates via the infra-deploy
+# OIDC role, but that role is created BY this same Terraform config. The
+# very first apply has no role to assume yet and must run locally:
 #   cd infra && terraform init && terraform apply
-# Only after that succeeds do INFRA_DEPLOY_ROLE_ARN / DATA_DEPLOY_ROLE_ARN
-# / API_DEPLOY_ROLE_ARN exist to paste into the repo's Settings -> Actions
-# -> Variables (see infra/outputs.tf) -- from then on, this workflow and
-# scrape.yml/deploy-api.yml can run unattended.
+# Only then do the *_DEPLOY_ROLE_ARN outputs exist to paste into the
+# repo's Settings -> Actions -> Variables -- after that, this workflow
+# and the others can run unattended.
 
 on:
   pull_request:

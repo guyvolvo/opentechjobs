@@ -11,13 +11,13 @@ variable "project_name" {
 variable "data_bucket_name" {
   type        = string
   description = "S3 bucket for jobs.db + raw resolved.json + Parquet snapshots. Globally unique -- set your own."
-  default     = "iljobs-data-CHANGE-ME"
+  default     = "iljobs-data-876913698688"
 }
 
 variable "frontend_bucket_name" {
   type        = string
   description = "S3 bucket for the static frontend. Globally unique -- set your own."
-  default     = "iljobs-frontend-CHANGE-ME"
+  default     = "iljobs-frontend-876913698688"
 }
 
 variable "github_repo" {
@@ -28,7 +28,7 @@ variable "github_repo" {
 
 variable "github_deploy_branch" {
   type        = string
-  description = "Branch allowed to assume the infra-deploy role (broad permissions). Data uploads (scrape-fast.yml, scrape-discover.yml) and frontend syncs (deploy-frontend.yml) are allowed from any branch via their own narrower roles -- see iam_oidc.tf."
+  description = "Branch allowed to assume the broad infra-deploy role. Data/frontend deploys use their own narrower roles, allowed from any branch -- see iam_oidc.tf."
   default     = "main"
 }
 
@@ -41,4 +41,10 @@ variable "lambda_memory_mb" {
 variable "lambda_timeout_s" {
   type    = number
   default = 10
+}
+
+variable "domain_name" {
+  type        = string
+  description = "Custom domain for the CloudFront distribution (site at /, API at /api/*). DNS lives in Cloudflare, not Terraform -- see infra/acm.tf for the manual validation-record step."
+  default     = "openmarket.guyvoloshin.com"
 }

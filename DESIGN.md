@@ -1,17 +1,17 @@
 ---
 name: OpenMarketIL
-description: Brutalist Swiss-grid job board for the Israeli tech market — ground-truthed data, zero decoration.
+description: Swiss-grid job board for the Israeli tech market — ground-truthed data, zero decoration, on an off-white paper ground.
 colors:
-  paper: "#ffffff"
+  paper: "#f2f0ef"
   ink: "#0a0a0a"
   signal-green: "#1c7c3f"
   muted-grey: "#6b6b6b"
-  hairline-grey: "#d4d4d4"
+  hairline-grey: "#d9d6d3"
   alert-red: "#b8362c"
-  hover-tint: "#f4f4f4"
+  hover-tint: "#e7e4e1"
 typography:
   display:
-    fontFamily: "Monocraft, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontFamily: "Inter, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "17px"
     fontWeight: 800
     lineHeight: 1.2
@@ -62,31 +62,32 @@ components:
 
 **Creative North Star: "The Exchange Ticker"**
 
-A market terminal, not a careers site: white paper, black ink, a single
-green reserved for the one number or status that matters right now, and a
-scrolling headline strip up top like a ticker tape. Everything reads as a
-live instrument panel over a job market, not as a brand experience —
-density and legibility win over warmth every time there's a conflict
-between them. The one indulgence is a single pixel-grid display face,
-kept to two places (the wordmark and the two section titles) so it reads
-as a signature, not a typeface choice bleeding into body text.
+A market terminal, not a careers site: off-white paper, near-black ink, a
+single green reserved for the one number or status that matters right
+now, and a scrolling headline strip up top like a ticker tape. Everything
+reads as a live instrument panel over a job market, not as a brand
+experience — density and legibility win over warmth every time there's a
+conflict between them. The one indulgence is a single bold display face
+(Inter, weight 700–800), kept to two places (the wordmark and the two
+section titles) so it reads as a signature, not a typeface choice
+bleeding into body text.
 
 Confirmed visual rejections: no border-radius anywhere, no box-shadow
 used for depth, no decorative color, no third accent hue, no drop-in UI
 framework look.
 
 **Key Characteristics:**
-- Flat, two-tone (white/black) surfaces with color used as signal, not decoration
-- Depth built entirely from 2px black hairline grids, never shadows
-- One pixel-grid display face for brand moments; Helvetica for everything data-dense
-- Light/dark is a total token inversion, not a second palette
+- Flat, two-tone (off-white/ink) surfaces with color used as signal, not decoration
+- Depth built entirely from 2px hairline grids, never shadows
+- One bold display face for brand moments; Helvetica for everything data-dense
+- Light and dark are two deliberately tuned palettes, not a hex inversion
 - A live-status vocabulary (the ticker, the status-dot torch flicker) borrowed from terminals/dashboards, not marketing sites
 
 ## Colors
 
-Two-tone by design — white paper, black ink — with exactly one accent
-color and one reserved alert color, both used sparingly enough that their
-rarity is the signal.
+Two-tone by design — off-white paper, near-black ink — with exactly one
+accent color and one reserved alert color, both used sparingly enough
+that their rarity is the signal.
 
 ### Primary
 - **Signal Green** (`#1c7c3f`, `--green`; dark mode `#2fae60`): the one
@@ -98,18 +99,20 @@ rarity is the signal.
   something.
 
 ### Neutral
-- **Paper** (`#ffffff`, `--white`; dark mode `#0a0a0a`): the base surface.
-  Never applied as a "panel" color — every black surface (buttons, the
-  metrics/panel grid background, the topbar hover) is a deliberate
-  component, not the page.
-- **Ink** (`#0a0a0a`, `--black`; dark mode `#ffffff`): body text, borders,
-  and every "component" surface (buttons, cards' outer frame, the topbar).
+- **Paper** (`#f2f0ef`, `--white`; dark mode `#17181c`): the base
+  surface — a soft off-white, not pure white; dark mode is a tuned
+  near-black, not pure black. Never applied as a "panel" color — every
+  ink surface (buttons, the metrics/panel grid background, the topbar
+  hover) is a deliberate component, not the page.
+- **Ink** (`#0a0a0a`, `--black`; dark mode `#ededec`): body text, borders,
+  and every "component" surface (buttons, cards' outer frame, the
+  topbar). Dark mode's ink is a soft off-white to match, not pure white.
 - **Muted Grey** (`#6b6b6b`, `--grey`; dark mode `#9a9a9a`): secondary
   text — labels, metadata, placeholders, the offline-state wordmark.
-- **Hairline Grey** (`#d4d4d4`, `--grey-line`; dark mode `#333333`): the
+- **Hairline Grey** (`#d9d6d3`, `--grey-line`; dark mode `#2b2c31`): the
   quiet dividers — table row separators, bar-chart tracks, input borders
   one step down from a full 2px rule.
-- **Hover Tint** (`#f4f4f4`, `--hover-bg`; dark mode `#1a1a1a`): the one
+- **Hover Tint** (`#e7e4e1`, `--hover-bg`; dark mode `#1e1f24`): the one
   soft, non-binary surface in the system, reserved for row/option hover
   states where a hard color flip would be too loud.
 
@@ -125,26 +128,25 @@ a time. If everything is green, nothing is — it never appears as
 decoration, only on live status, primary metrics, and the handful of
 buttons/links that actually do something.
 
-**The Straight Swap Rule.** Light and dark mode are not two palettes —
-`--white`/`--black` (and everything derived from them) simply invert
-their hex values under `[data-theme="dark"]`. Every rule in the system
-reads the token, never a literal hex, so the swap is total; a hardcoded
-`#fff`/`#000` anywhere breaks dark mode for that one element.
+**The Token Rule.** Light and dark mode are two independently tuned
+palettes, not a hex inversion of each other — but every rule in the
+system still reads `var(--white)`/`var(--black)` (never a literal hex),
+so retuning either palette only ever means editing the two `:root`
+blocks. A hardcoded `#fff`/`#000` anywhere breaks that.
 
 ## Typography
 
-**Display Font:** Monocraft (self-hosted pixel-grid face), falling back to Helvetica Neue / Helvetica / Arial
+**Display Font:** Inter, weight 700–800 (self-hosted), falling back to Helvetica Neue / Helvetica / Arial
 **Body Font:** Helvetica Neue, falling back to Helvetica, Arial, sans-serif
 
 **Character:** A dense, no-serif system voice everywhere text-heavy
-(tables, filters, panels), broken only at brand moments by one deliberate
-pixel-grid face — never the reverse.
+(tables, filters, panels), broken only at brand moments by one bold,
+grotesque-sans display face — never the reverse.
 
 ### Hierarchy
-- **Display** (800, 17px, 1.2 line-height, 0.04em tracking, Monocraft): the
+- **Display** (700–800, 17px, 1.2 line-height, 0.04em tracking, Inter): the
   topbar wordmark and the two section titles ("Job Board" / "Market
-  Stats") only. Never used at table-row or data-dense sizes — a pixel
-  font stops being legible there.
+  Stats") only. Never used at table-row or data-dense sizes.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
   metric tile — the one place body copy gets genuinely large.
 - **Body** (400, 13–14px): filters, table cells, panel prose, buttons.
@@ -153,7 +155,7 @@ pixel-grid face — never the reverse.
 
 ### Named Rules
 **The Two-Voice Rule.** Helvetica (via `--font`) carries everything
-dense; Monocraft (via `--font-display`) is reserved for exactly two
+dense; Inter (via `--font-display`) is reserved for exactly two
 brand-level spots. No third typeface is part of the system.
 
 ### Open inconsistency (flagged, not fixed here)
@@ -245,8 +247,8 @@ clipping or masking.
   wrapping or spilling past the box
 
 ### Navigation
-- **Topbar:** Monocraft wordmark, uppercase Helvetica nav links, sticky
-  to viewport top, 2px black bottom rule. `flex-wrap: nowrap` by design —
+- **Topbar:** Inter wordmark, uppercase Helvetica nav links, sticky
+  to viewport top, 2px ink bottom rule. `flex-wrap: nowrap` by design —
   the scrolling ticker between wordmark and status absorbs all the
   squeeze via `min-width: 0`, so the whole bar never wraps to multiple
   lines above the mobile breakpoint.
@@ -275,9 +277,9 @@ pulsing) to read as "the light went out," not "warning, still breathing."
 - **Do** build all depth/separation from the 2px black rule grid or a
   1px hairline — never a shadow.
 - **Do** read every color from a `var(--token)`, never a literal hex, so
-  the light/dark straight-swap stays total.
+  retuning a palette only ever means editing the two `:root` blocks.
 - **Do** keep green to exactly one "this matters most" element at a time.
-- **Do** keep Monocraft scoped to the wordmark and the two section
+- **Do** keep Inter (display) scoped to the wordmark and the two section
   titles only — never at data-dense sizes.
 - **Do** let `--gutter`'s `clamp()` drive side padding instead of a fixed
   `max-width` container, so the page keeps scaling at ultra-wide widths.

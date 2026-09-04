@@ -3,11 +3,8 @@
 Build/refresh jobs.db from probe.py's resolved.json (and, optionally, the
 best-effort deep-scraper's results), then optionally push it to S3.
 
-This is an UPSERT against whatever jobs.db already exists, not a
-wipe-and-reload -- that's what lets first_seen/last_seen/closed_at survive
-across runs (job age, repost detection) without a git-commit-per-snapshot
-history. See db/schema.sql for why this DB is current-state only, not the
-historical time-series store -- that's still git + Parquet, unchanged.
+This is an UPSERT against the existing jobs.db, not a wipe-and-reload --
+that's what lets first_seen/last_seen/closed_at survive across runs.
 
 Usage:
     # local only, for testing
@@ -39,11 +36,8 @@ def now_iso() -> str:
 
 
 def job_id(domain: str, ats: str, external_id: str | None, url: str | None, title: str) -> str:
-    """Stable id for a job row. Prefers external_id (most stable, ATS-assigned)
-    over url (can pick up tracking params) over title (last resort, so a
-    company with two openings of the same title on the same day don't collide
-    -- rare, and if it happens they'll just get merged, which is an acceptable
-    edge case for a job board, not a data-integrity problem).
+    """Stable id for a job row. Prefers external_id (ATS-assigned) over url
+    (can pick up tracking params) over title (last resort).
     """
     key = f"{domain}|{ats}|{external_id or url or title}"
     return hashlib.md5(key.encode("utf-8")).hexdigest()[:16]
@@ -82,25 +76,51 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
         # newer workday and personio ones, is a live API response and is
         # 'verified' same as always.
         confidence = None if not ats else ("best_effort" if ats == "jsonld" else "verified")
-        conn.execute(
-            """
-            INSERT INTO companies (domain, ats, token, confidence, job_count, tried, error, first_seen, last_checked)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(domain) DO UPDATE SET
-                ats = excluded.ats,
-                token = excluded.token,
-                confidence = excluded.confidence,
-                job_count = excluded.job_count,
-                tried = excluded.tried,
-                error = excluded.error,
-                last_checked = excluded.last_checked
-            """,
-            (domain, ats, r.get("token"), confidence,
-             r.get("job_count", 0), r.get("tried", 0), r.get("error"), ts, ts),
-        )
+
+        # ats=None with an error attached is an inconclusive result (a
+        # --known re-poll of an already-resolved board failing, e.g. a
+        # timeout) -- not the same as a confirmed MISS (--batch discovery
+        # genuinely finding no valid ATS, ats=None with no error). The
+        # class-level docstring above already promises a MISS leaves this
+        # domain "alone entirely," but only the jobs-closing skip below
+        # actually did that -- this upsert ran unconditionally and wiped a
+        # previously-confirmed ats/confidence back to NULL on nothing more
+        # than a transient failure. Only tried/error/last_checked update
+        # here; ats/token/confidence/job_count keep whatever they already
+        # were (NULL if this is a genuinely new, never-resolved domain).
+        inconclusive = ats is None and r.get("error")
+        if inconclusive:
+            conn.execute(
+                """
+                INSERT INTO companies (domain, ats, token, confidence, job_count, tried, error, first_seen, last_checked)
+                VALUES (?, NULL, NULL, NULL, 0, ?, ?, ?, ?)
+                ON CONFLICT(domain) DO UPDATE SET
+                    tried = excluded.tried,
+                    error = excluded.error,
+                    last_checked = excluded.last_checked
+                """,
+                (domain, r.get("tried", 0), r.get("error"), ts, ts),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO companies (domain, ats, token, confidence, job_count, tried, error, first_seen, last_checked)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(domain) DO UPDATE SET
+                    ats = excluded.ats,
+                    token = excluded.token,
+                    confidence = excluded.confidence,
+                    job_count = excluded.job_count,
+                    tried = excluded.tried,
+                    error = excluded.error,
+                    last_checked = excluded.last_checked
+                """,
+                (domain, ats, r.get("token"), confidence,
+                 r.get("job_count", 0), r.get("tried", 0), r.get("error"), ts, ts),
+            )
 
         if not ats:
-            continue  # MISS this run -- don't touch this domain's existing jobs
+            continue  # MISS (or inconclusive) this run -- don't touch this domain's existing jobs
 
         ids = set()
         for j in r.get("jobs") or []:
@@ -158,15 +178,11 @@ def close_missing_jobs(conn: sqlite3.Connection, seen_ids_by_domain: dict[str, s
 
 
 def load_deep(conn: sqlite3.Connection, deep_path: Path) -> None:
-    """Layer in the best-effort scraper's output. Shape (see scraper/deep_scrape.py):
+    """Layer in the best-effort scraper's output:
         [{"domain": ..., "jobs": [{"title":..., "location":..., "url":..., "department":...}, ...]}, ...]
-    No posted_at (best-effort scrape rarely gets a reliable date), no
-    company-level upsert (a domain here already exists in `companies` as a
-    MISS from the regular run -- this doesn't overwrite that row's ats/
-    confidence, since a best-effort scrape finding job listings doesn't
-    mean we've verified a real ATS). No close-missing-jobs pass either:
-    the deep scrape is best-effort and infrequent (weekly), so a job not
-    reappearing isn't strong enough evidence to mark it closed.
+    No posted_at, no company-level upsert (finding job listings doesn't
+    verify a real ATS), no close-missing-jobs pass (infrequent and
+    best-effort, so a job not reappearing isn't strong evidence of closure).
     """
     if not deep_path.exists():
         return
@@ -220,12 +236,9 @@ def s3_push(bucket: str, key: str, src: Path) -> None:
 
 
 def export_known(conn: sqlite3.Connection, path: Path) -> int:
-    """Write every resolved company's (domain, ats, token) as JSON in the
-    exact shape probe.py's --known expects -- this is the fast poll
-    path's whole reason to exist: re-check an already-known board in one
-    direct API call, no guessing. Written every load (fast poll runs and
-    discovery runs alike) so a newly-discovered company is available to
-    the *next* fast poll immediately, not just the next discovery run.
+    """Write every resolved company's (domain, ats, token) as JSON, in the
+    shape probe.py's --known expects. Written on every load so a newly
+    discovered company is available to the next fast poll immediately.
     """
     rows = conn.execute("SELECT domain, ats, token FROM companies WHERE ats IS NOT NULL").fetchall()
     known = [{"domain": r["domain"], "ats": r["ats"], "token": r["token"]} for r in rows]

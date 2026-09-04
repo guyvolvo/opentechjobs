@@ -1,9 +1,7 @@
 # ---------------------------------------------------------------------------
-# Data bucket: jobs.db (what Lambda reads), raw resolved.json, and the
-# Parquet snapshots from the brief's original git-history/DuckDB-WASM plan.
-# Private -- nothing here is served directly to the public; jobs.db is
-# only ever read by the Lambda's IAM role, and Parquet snapshots are meant
-# to ship as GitHub Release assets per the brief, not from this bucket.
+# Data bucket: jobs.db (read only by the Lambda's IAM role), raw
+# resolved.json, and Parquet snapshots. Private -- nothing here is served
+# directly to the public.
 # ---------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "data" {
@@ -38,9 +36,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
 }
 
 # ---------------------------------------------------------------------------
-# Frontend bucket: static site. Private + served only via CloudFront using
-# Origin Access Control -- nobody hits S3 directly, so there's no bucket
-# policy to accidentally leave public.
+# Frontend bucket: static site. Private, served only via CloudFront's
+# Origin Access Control -- nobody hits S3 directly.
 # ---------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "frontend" {

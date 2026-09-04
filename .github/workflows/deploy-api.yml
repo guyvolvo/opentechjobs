@@ -1,9 +1,7 @@
 name: deploy-api
 
-# Ships api/ code changes to the already-existing Lambda function without
-# a full Terraform apply -- Terraform owns the function's existence/config
-# (infra/lambda.tf), this workflow owns what code is running in it. Keeps
-# "I changed a query" from requiring a full infra plan/apply cycle.
+# Ships api/ code to the existing Lambda without a full Terraform apply --
+# Terraform owns the function's existence/config, this workflow owns its code.
 
 on:
   push:

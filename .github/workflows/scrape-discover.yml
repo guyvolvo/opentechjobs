@@ -1,24 +1,17 @@
 name: scrape-discover
 
-# The SLOW, expensive pipeline: full guess-and-verify token candidates
-# against every ATS, plus the Comeet careers-page scrape and the
-# embed/JobPosting-JSON-LD fallback, across every domain in domains.txt --
-# this is what finds a company's ATS in the first place. Minutes, not
-# seconds (comeet-scrape + embed-scrape alone are ~10-15 min over ~350
-# domains), which is exactly why it does NOT run on scrape-fast.yml's
-# cadence: a company's ATS platform doesn't change minute to minute, so
-# there's nothing to gain from re-discovering it constantly, only cost.
+# The SLOW pipeline: full guess-and-verify against every ATS, plus the
+# Comeet and embed/JSON-LD fallbacks, across every domain in domains.txt.
+# Minutes, not seconds (~10-15 min over ~350 domains) -- that's why it
+# doesn't run on scrape-fast.yml's cadence, since a company's ATS
+# platform doesn't change minute to minute.
 #
-# Once a company resolves here, scrape-fast.yml re-polls it directly
-# (no guessing) on a tight schedule from then on -- see loader.py's
-# export_known(), which is what makes that split possible: every load
-# here re-derives known.json so the *next* fast-poll run picks up
-# anything newly discovered immediately, not on some separate delay.
+# Once a company resolves here, scrape-fast.yml re-polls it directly from
+# then on (see loader.py's export_known(), which re-derives known.json
+# every load so the next fast-poll run picks up new discoveries immediately).
 #
-# Automated discovery of NEW company domains (finding companies to ADD to
-# domains.txt, as opposed to finding the ATS for domains already in it)
-# is a different, still-manual process -- Common Crawl/crt.sh-based
-# automation is a real idea from the original brief but isn't built yet.
+# Finding NEW company domains to ADD to domains.txt is a separate,
+# still-manual process -- not built yet.
 
 on:
   schedule:

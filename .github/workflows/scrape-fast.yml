@@ -1,25 +1,17 @@
 name: scrape-fast
 
-# The FAST path: re-poll every already-known (domain, ats, token) directly
-# -- one API call each, no guessing, no careers-page scraping. Measured
-# locally: ~4s of actual work for 123 companies, against ~15 minutes for
-# the full discovery pipeline (scrape-discover.yml) covering the same
-# domain list. That gap is the entire reason this workflow exists as a
-# separate thing instead of just running scrape-discover.yml more often --
-# this is what "as up to date as possible" actually costs once discovery
-# and polling are split apart.
+# The FAST path: re-poll every already-known (domain, ats, token)
+# directly, one API call each, no guessing. Measured locally: ~4s for
+# 123 companies vs. ~15 min for the full discovery pipeline over the same
+# list -- that gap is why this exists as a separate workflow.
 #
-# Every 10 minutes. This is a public repo, so GitHub Actions minutes are
-# free -- the constraint here is politeness to the ATS APIs being polled,
-# not CI budget. 10 min already exceeds what a 6h-cadence static site
-# could ever offer; there isn't a real product reason to go tighter than
-# that, so this isn't tuned down further just because it's free to do so.
+# Every 10 minutes -- GitHub Actions minutes are free on a public repo,
+# so the constraint is politeness to the ATS APIs, not CI budget.
 #
-# known.json comes from S3, not domains.txt -- it's whatever
-# scrape-discover.yml (or a previous run of this workflow) last derived
-# from jobs.db's companies table. If known.json doesn't exist yet (very
-# first deploy, before scrape-discover.yml has ever run), this workflow
-# has nothing to do and exits early rather than erroring.
+# known.json comes from S3, whatever scrape-discover.yml (or a previous
+# run of this workflow) last derived. If it doesn't exist yet (before the
+# first scrape-discover.yml run), this workflow exits early instead of
+# erroring.
 
 on:
   schedule:

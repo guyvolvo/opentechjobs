@@ -38,44 +38,50 @@
       <div class="container">
         <h2 class="section-title">Job Board</h2>
 
-        <div class="filters">
-          <input type="text" id="f-q" placeholder="SEARCH TITLE, COMPANY, LOCATION…" />
-          <input type="text" id="f-keywords" placeholder="KEYWORDS" title="Semicolon-separated, e.g. azure;excel;iso -- a job must mention all of them" />
-          <div class="ms" id="ms-department"></div>
-          <div class="ms" id="ms-seniority"></div>
-          <div class="ms" id="ms-company"></div>
-          <div class="ms" id="ms-location"></div>
-          <div class="ms" id="ms-workplace"></div>
-          <label class="toggle"><input type="checkbox" id="f-israel" checked /> IL only</label>
-          <label class="toggle"><input type="checkbox" id="f-starred" /> ★ starred</label>
-          <button class="btn ghost" id="f-reset">Reset</button>
-        </div>
+        <div class="board-split">
+          <div class="board-list">
+            <div class="filters">
+              <input type="text" id="f-q" placeholder="SEARCH TITLE, COMPANY, LOCATION…" />
+              <input type="text" id="f-keywords" placeholder="KEYWORDS" title="Semicolon-separated, e.g. azure;excel;iso -- a job must mention all of them" />
+              <div class="ms" id="ms-department"></div>
+              <div class="ms" id="ms-seniority"></div>
+              <div class="ms" id="ms-company"></div>
+              <div class="ms" id="ms-location"></div>
+              <div class="ms" id="ms-workplace"></div>
+              <label class="toggle"><input type="checkbox" id="f-israel" checked /> IL only</label>
+              <label class="toggle"><input type="checkbox" id="f-starred" /> ★ starred</label>
+              <button class="btn ghost" id="f-reset">Reset</button>
+            </div>
 
-        <button id="company-chip" class="chip" style="display:none" title="Clear company filter">
-          <span class="chip-label"></span> ✕
-        </button>
-        <div id="result-count" class="result-count"></div>
+            <button id="company-chip" class="chip" style="display:none" title="Clear company filter">
+              <span class="chip-label"></span> ✕
+            </button>
+            <div id="result-count" class="result-count"></div>
 
-        <div id="jobs-loading" class="loading-state" style="display:none">Loading listings…</div>
-        <div id="jobs-error" class="error-state" style="display:none"></div>
-        <div id="jobs-empty" class="empty-state" style="display:none">No listings match these filters.</div>
+            <div id="jobs-loading" class="loading-state" style="display:none">Loading listings…</div>
+            <div id="jobs-error" class="error-state" style="display:none"></div>
+            <div id="jobs-empty" class="empty-state" style="display:none">No listings match these filters.</div>
 
-        <table class="jobs">
-          <thead>
-            <tr>
-              <th></th>
-              <th data-sort="title">Title</th>
-              <th data-sort="location">Location</th>
-              <th>Role</th>
-              <th data-sort="age">Age</th>
-            </tr>
-          </thead>
-          <tbody id="jobs-body"></tbody>
-        </table>
+            <table class="jobs">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th data-sort="title">Title</th>
+                  <th data-sort="location">Location</th>
+                  <th>Category</th>
+                  <th data-sort="age">Age</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-body"></tbody>
+            </table>
 
-        <div class="pagination" id="pagination">
-          <span id="pagination-info"></span>
-          <div class="pages" id="pagination-pages"></div>
+            <div class="pagination" id="pagination">
+              <span id="pagination-info"></span>
+              <div class="pages" id="pagination-pages"></div>
+            </div>
+          </div>
+
+          <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail" hidden></aside>
         </div>
       </div>
     </section>

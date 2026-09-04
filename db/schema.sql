@@ -1,31 +1,21 @@
--- IL/JOBS live-serving schema (SQLite).
+-- OpenMarketIL live-serving schema (SQLite).
 --
--- This DB is the CURRENT-STATE store behind the API -- it gets rebuilt
--- from scratch every load (see loader/load_to_sqlite.py) from whatever
--- probe.py + the deep scraper found this run, upserted against what was
--- already here so first_seen/last_seen/closed_at survive across runs.
---
--- This is deliberately NOT the historical time-series store. The
--- original brief's git-snapshot + Parquet + DuckDB-WASM design already
--- covers "how has this looked over time" (daily/monthly snapshots as
--- GitHub Release assets, queried client-side). This DB exists to serve
--- the live API cheaply (SQLite in S3, loaded into Lambda) -- it answers
--- "what does the board look like right now," not "how did it trend."
--- Don't grow this into a second history mechanism; that's what Parquet
--- is for.
+-- This is a CURRENT-STATE store, not a time-series one: upserted every
+-- load (see loader/load_to_sqlite.py) against whatever probe.py + the
+-- deep scraper found, so first_seen/last_seen/closed_at survive across
+-- runs. It answers "what does the board look like right now," not "how
+-- did it trend" -- that's Parquet's job, not this DB's.
 
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS companies (
     domain          TEXT PRIMARY KEY,
-    ats             TEXT,               -- greenhouse | personio | lever | ashby | workable
-                                         -- | recruitee | smartrecruiters | comeet | workday
-                                         -- | jsonld (best-effort, see jobs.confidence) | NULL (miss)
+    ats             TEXT,               -- greenhouse|personio|lever|ashby|workable|recruitee|
+                                         -- smartrecruiters|comeet|workday|jsonld|NULL (miss)
     token           TEXT,               -- ats-specific token, or "uid:token" for comeet
-    confidence      TEXT,               -- 'verified' | NULL (miss) -- see note on jobs.confidence;
-                                         -- a companies.yml-pinned token is just as fresh as a
-                                         -- guessed one since resolve() still hits the live API
-                                         -- for it every run, so there's no separate 'pinned' tier
+    confidence      TEXT,               -- 'verified' | NULL (miss) -- see jobs.confidence note;
+                                         -- pinned and guessed tokens are equally fresh, both
+                                         -- hit the live API every run
     job_count       INTEGER NOT NULL DEFAULT 0,
     tried           INTEGER NOT NULL DEFAULT 0,   -- probe attempts made, for debugging hit rate
     error           TEXT,
@@ -44,38 +34,28 @@ CREATE TABLE IF NOT EXISTS jobs (
     location            TEXT,
     department          TEXT,
     url                 TEXT,
-    posted_at           TEXT,              -- ISO 8601 from the ATS, NULL if the ATS didn't report one
+    posted_at           TEXT,              -- ISO 8601 from the ATS, NULL if unreported
     description_chars   INTEGER NOT NULL DEFAULT 0,
-    description         TEXT,              -- cleaned/truncated plain text (see probe.py's _clean_text),
-                                            -- NULL where the ATS's list endpoint doesn't include
-                                            -- description content at all (SmartRecruiters, Comeet,
-                                            -- Workday -- confirmed live, would need a per-job detail
-                                            -- request to get it). Powers /jobs?keywords=.
+    description         TEXT,              -- cleaned plain text (see probe.py's _clean_text), NULL
+                                            -- where the ATS's list endpoint has no description at
+                                            -- all (SmartRecruiters, Comeet, Workday). Powers keyword search.
     seniority           TEXT,              -- intern|junior|mid|senior|staff|principal|lead|manager|
-                                            -- director|exec|NULL (no signal). Structured ATS field
-                                            -- when one exists (SmartRecruiters, Comeet), else a
-                                            -- title-keyword guess (see probe.py's _classify_seniority).
-                                            -- NULL is the common case -- most titles state no level.
-    workplace_type      TEXT,              -- remote|hybrid|onsite|NULL (no signal). Structured ATS
-                                            -- field when one exists (Ashby/Lever/SmartRecruiters/
-                                            -- Recruitee/Comeet), else a location-text guess (see
-                                            -- probe.py's _classify_workplace). NULL is common --
-                                            -- plenty of postings just don't say.
+                                            -- director|exec|NULL. Structured ATS field when one
+                                            -- exists, else a title-keyword guess. NULL is common --
+                                            -- most titles state no level.
+    workplace_type      TEXT,              -- remote|hybrid|onsite|NULL. Structured ATS field when
+                                            -- one exists, else a location-text guess. NULL is
+                                            -- common -- plenty of postings just don't say.
 
-    confidence          TEXT NOT NULL,     -- 'verified' | 'best_effort'
-                                            -- verified = a direct ATS API response (token guessed
-                                            -- or pinned, doesn't matter -- both hit the live API
-                                            -- every run). best_effort = deep scraper (JobPosting
-                                            -- JSON-LD or heuristic DOM scrape) against a domain that
-                                            -- misses every known ATS API. Lower trust -- never blend
-                                            -- silently into 'verified' counts in the API/UI.
+    confidence          TEXT NOT NULL,     -- 'verified' (direct ATS API response) | 'best_effort'
+                                            -- (deep scraper, JSON-LD or heuristic DOM scrape).
+                                            -- Never blend best_effort silently into verified counts.
 
     first_seen          TEXT NOT NULL,     -- ISO 8601, first load this job id appeared in
     last_seen           TEXT NOT NULL,     -- ISO 8601, most recent load it was still present
-    closed_at           TEXT,              -- ISO 8601, set when a load no longer sees this id --
-                                            -- (last_seen - first_seen) is the listing's lifetime;
-                                            -- a NULL-closed_at row reappearing with a new posted_at
-                                            -- after being closed is a repost signal
+    closed_at           TEXT,              -- ISO 8601, set when a load no longer sees this id.
+                                            -- Reappearing with a new posted_at after closing is a
+                                            -- repost signal.
 
     raw_json            TEXT               -- full fetched record, for reprocessing without a re-scrape
 );
@@ -86,15 +66,12 @@ CREATE INDEX IF NOT EXISTS idx_jobs_confidence ON jobs(confidence);
 CREATE INDEX IF NOT EXISTS idx_jobs_closed_at ON jobs(closed_at);
 CREATE INDEX IF NOT EXISTS idx_jobs_seniority ON jobs(seniority);
 CREATE INDEX IF NOT EXISTS idx_jobs_workplace_type ON jobs(workplace_type);
--- No index on `description`: it's only ever queried via LIKE '%term%'
--- (keyword search, leading wildcard), which can't use a btree index
--- anyway. A few thousand rows is a cheap sequential scan; SQLite FTS5
--- would be the answer if this dataset grew an order of magnitude past
--- that, not before.
+-- No index on `description`: only ever queried via leading-wildcard LIKE,
+-- which can't use a btree index anyway. A few thousand rows is a cheap
+-- sequential scan; FTS5 would be the answer at an order of magnitude more.
 
--- One row, updated every load; lets the API report "as of" without a
--- separate metadata channel and lets Lambda's staleness check work off
--- the DB file itself rather than trusting S3 object metadata alone.
+-- One row, updated every load -- lets the API report "as of" without a
+-- separate metadata channel.
 CREATE TABLE IF NOT EXISTS meta (
     key     TEXT PRIMARY KEY,
     value   TEXT

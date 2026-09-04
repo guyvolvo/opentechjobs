@@ -1,25 +1,20 @@
-# GitHub Actions authenticates to AWS via OIDC, not long-lived access keys
-# -- no AWS secret sits in GitHub's secret store waiting to leak. Each
+# GitHub Actions authenticates via OIDC, not long-lived access keys. Each
 # workflow assumes a role scoped to exactly what it needs:
-#   - infra-deploy: broad (Terraform manages S3/Lambda/CloudFront/IAM
-#     itself), but only assumable from pushes to the deploy branch.
-#   - data-deploy: narrow -- just jobs.db + known.json read/write on the
-#     data bucket. This is what scrape-fast.yml (every 10 min) and
-#     scrape-discover.yml (daily) both use; it should never be able to
-#     touch infra.
-#   - api-deploy: narrow -- just update the Lambda's code. Nothing else.
-#   - frontend-deploy: narrow -- sync frontend/ to the frontend bucket and
-#     invalidate this one CloudFront distribution. Can't touch jobs.db,
-#     the Lambda, or anything data-deploy/api-deploy can touch.
+#   - infra-deploy: broad (Terraform owns S3/Lambda/CloudFront/IAM), but
+#     only assumable from pushes to the deploy branch.
+#   - data-deploy: narrow -- jobs.db + known.json only, for the scrape
+#     workflows. Can't touch infra.
+#   - api-deploy: narrow -- update the Lambda's code, nothing else.
+#   - frontend-deploy: narrow -- sync frontend/, invalidate this one
+#     distribution. Can't touch jobs.db, the Lambda, or infra.
 
-data "tls_certificate" "github" {
-  url = "https://token.actions.githubusercontent.com/.well-known/openid-configuration"
-}
-
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
+# GitHub's OIDC provider is an account-wide singleton -- AWS allows only
+# one per URL per account, and this account's already has one (created by
+# the guyvoloshin.com portfolio's own Terraform). Read it rather than
+# trying to own/create it here, so the two projects' state never fight
+# over the same resource.
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
 }
 
 locals {
@@ -36,7 +31,7 @@ resource "aws_iam_role" "infra_deploy" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
@@ -47,10 +42,8 @@ resource "aws_iam_role" "infra_deploy" {
 }
 
 # Scoped to the resource types/prefixes this project's Terraform actually
-# manages -- not AdministratorAccess. Still broad within those bounds
-# (Terraform needs to create/modify/delete IAM roles, since it owns the
-# Lambda execution role), which is why this role is branch-restricted above
-# and separate from the much narrower data/api-deploy roles below.
+# manages -- not AdministratorAccess -- hence branch-restricted above and
+# separate from the much narrower data/api-deploy roles below.
 resource "aws_iam_role_policy" "infra_deploy" {
   name = "${var.project_name}-infra-deploy-policy"
   role = aws_iam_role.infra_deploy.id
@@ -122,7 +115,7 @@ resource "aws_iam_role" "data_deploy" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
@@ -141,10 +134,9 @@ resource "aws_iam_role_policy" "data_deploy" {
       Sid    = "JobsDbAndKnownReadWrite"
       Effect = "Allow"
       Action = ["s3:GetObject", "s3:PutObject"]
-      # jobs.db: both scrape-discover.yml and scrape-fast.yml pull-then-push it.
-      # known.json: scrape-fast.yml downloads it directly (aws s3 cp) before
-      # probing; loader.py re-derives and re-pushes it after every load, either
-      # workflow -- see export_known()'s docstring for why it's every load.
+      # jobs.db: both scrape workflows pull-then-push it. known.json:
+      # scrape-fast.yml downloads it before probing; loader.py re-derives
+      # and re-pushes it after every load.
       Resource = [
         "${aws_s3_bucket.data.arn}/jobs.db",
         "${aws_s3_bucket.data.arn}/known.json",
@@ -163,7 +155,7 @@ resource "aws_iam_role" "api_deploy" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
@@ -198,7 +190,7 @@ resource "aws_iam_role" "frontend_deploy" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
@@ -217,10 +209,8 @@ resource "aws_iam_role_policy" "frontend_deploy" {
       {
         Sid    = "SyncFrontendBucket"
         Effect = "Allow"
-        # `aws s3 sync --delete` needs List to diff against what's already
-        # there and Delete to remove files dropped from frontend/, not
-        # just Put -- narrower than that would make --delete silently
-        # leave stale files behind instead of failing loudly.
+        # `aws s3 sync --delete` needs List (to diff) and Delete (to
+        # remove dropped files), not just Put.
         Action = ["s3:ListBucket", "s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = [
           aws_s3_bucket.frontend.arn,

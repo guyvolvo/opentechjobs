@@ -1,10 +1,8 @@
 # Single CloudFront distribution, single domain: default behavior serves
-# the static frontend from S3 (via Origin Access Control -- the bucket
-# itself stays private), /api/* routes to the Lambda Function URL. One
-# domain for both means the frontend never needs CORS for its own API
-# calls; the Function URL's CORS config in lambda.tf only matters for
-# anyone hitting the API directly (which the brief wants supported --
-# "anyone can poll it").
+# the static frontend from S3 (via Origin Access Control, bucket stays
+# private), /api/* routes to the API Gateway origin (see apigateway.tf).
+# One domain for both means the frontend never needs CORS for its own
+# calls -- the API's own CORS config only matters for direct API access.
 
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${var.project_name}-frontend-oac"
@@ -13,15 +11,19 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
-# CloudFront needs a bare domain for a custom origin, not the full URL --
-# Lambda Function URLs are always "https://<id>.lambda-url.<region>.on.aws/".
+# CloudFront needs a bare domain for a custom origin. HTTP API domains
+# follow a fixed shape, no need to parse a URL like the Function URL did.
 locals {
-  lambda_url_domain = replace(replace(aws_lambda_function_url.api.function_url, "https://", ""), "/", "")
+  api_gateway_domain = "${aws_apigatewayv2_api.api.id}.execute-api.${var.aws_region}.amazonaws.com"
 }
 
+# Short TTL: known companies get re-polled every 10 min (scrape-fast.yml),
+# so the edge cache should track that rather than sit stale for hours.
+# (CloudFront's Comment field caps at 128 chars, hence the terse version
+# there and the full one here.)
 resource "aws_cloudfront_cache_policy" "api" {
   name        = "${var.project_name}-api-cache"
-  comment     = "Short TTL: known companies get re-polled every 10 min (scrape-fast.yml), so the edge cache should track that, not sit stale for hours -- long enough to absorb repeat traffic between polls, short enough that 'poll the API' stays a meaningful way to get fresh data per the brief's no-alerting-tier design."
+  comment     = "Short TTL tracking the 10-min scrape cadence"
   default_ttl = 120
   min_ttl     = 0
   max_ttl     = 3600
@@ -40,6 +42,7 @@ resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
   price_class         = "PriceClass_100" # NA+EU edge locations only -- cheapest tier; fine for an IL-focused audience mostly browsing from IL/EU/US
+  aliases             = [var.domain_name]
 
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
@@ -48,7 +51,7 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   origin {
-    domain_name = local.lambda_url_domain
+    domain_name = local.api_gateway_domain
     origin_id   = "api-lambda"
     custom_origin_config {
       http_port              = 80
@@ -84,7 +87,9 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true # swap for an ACM cert + aliases once a custom domain is wired up
+    acm_certificate_arn      = aws_acm_certificate_validation.site.certificate_arn
+    ssl_support_method       = "sni-only" # free; the alternative (vip) costs ~$600/mo and isn't needed for a modern SNI-capable domain
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 }
 
