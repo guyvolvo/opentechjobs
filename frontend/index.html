@@ -165,7 +165,7 @@
 
         <div class="api-endpoint">
           <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/health</span></div>
-          <p>Liveness check for the scrape pipeline.</p>
+          <p>Liveness check for both the API and the scrape pipeline. A 200 with a real DB query behind it, not just "the Lambda started": <span class="param">db_reachable</span>, <span class="param">jobs_total</span>, <span class="param">jobs_open</span>, <span class="param">companies_resolved</span>, <span class="param">last_checked</span>, <span class="param">minutes_since_check</span>.</p>
         </div>
       </div>
     </div>

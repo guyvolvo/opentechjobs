@@ -76,7 +76,7 @@ def lambda_handler(event, context):
         if path == "/stats":
             return _response(200, json.dumps(route_stats(params), default=str))
         if path == "/health":
-            return _response(200, json.dumps({"ok": True}))
+            return _response(200, json.dumps(route_health(), default=str))
         return _response(404, json.dumps({"error": f"no route for {path}"}))
     except ValueError as e:
         return _response(400, json.dumps({"error": str(e)}))
@@ -250,6 +250,42 @@ def route_job_detail(job_id: str) -> dict | None:
         (job_id,),
     ).fetchone()
     return dict(row) if row else None
+
+
+# /health
+
+def route_health() -> dict:
+    """Confirms the DB is actually reachable and reports pipeline
+    freshness, not just "the Lambda is running." A 200 with ok=True here
+    only means the process started; the real liveness signal is whether
+    the query below succeeds and how stale last_checked is.
+    """
+    conn = get_connection()
+    row = conn.execute(
+        """
+        SELECT
+          (SELECT COUNT(*) FROM jobs) AS jobs_total,
+          (SELECT COUNT(*) FROM jobs WHERE closed_at IS NULL) AS jobs_open,
+          (SELECT COUNT(*) FROM companies WHERE ats IS NOT NULL) AS companies_resolved,
+          (SELECT MAX(last_checked) FROM companies) AS last_checked
+        """
+    ).fetchone()
+    minutes_since_check = None
+    if row["last_checked"] is not None:
+        mins = conn.execute(
+            "SELECT (julianday('now') - julianday(?)) * 1440.0 AS mins", (row["last_checked"],)
+        ).fetchone()["mins"]
+        if mins is not None:
+            minutes_since_check = round(mins, 1)
+    return {
+        "ok": True,
+        "db_reachable": True,
+        "jobs_total": row["jobs_total"],
+        "jobs_open": row["jobs_open"],
+        "companies_resolved": row["companies_resolved"],
+        "last_checked": row["last_checked"],
+        "minutes_since_check": minutes_since_check,
+    }
 
 
 # /companies

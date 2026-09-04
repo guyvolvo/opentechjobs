@@ -1109,13 +1109,11 @@ async function loadTicker() {
   }
 }
 
-async function boot() {
-  wireFilters();
-  wireJobDetail();
-  wireThemeToggle();
-  setActiveSortHeader("age", "asc");
-  loadTicker();
-
+// Refreshes everything driven by /api/stats -- metrics, market panels,
+// filter option counts. Not the job table/pagination itself: a listing
+// re-rendering under a user mid-scroll or mid-page would be more
+// disruptive than useful, so that stays a manual reload.
+async function refreshStats() {
   try {
     const stats = await getJSON("/stats");
     renderMetrics(stats);
@@ -1126,8 +1124,27 @@ async function boot() {
     document.getElementById("metrics-grid").innerHTML = msg;
     document.getElementById("panel-grid").innerHTML = msg;
   }
+}
 
+// scrape-fast.yml re-polls every 10 min; 2 min keeps an open tab
+// reasonably current without hammering the API, and lines up with
+// CloudFront's own 120s cache on /api/* so most polls never even reach
+// the Lambda.
+const STATS_POLL_MS = 120_000;
+
+async function boot() {
+  wireFilters();
+  wireJobDetail();
+  wireThemeToggle();
+  setActiveSortHeader("age", "asc");
+  loadTicker();
+  await refreshStats();
   loadJobs();
+
+  setInterval(() => {
+    refreshStats();
+    loadTicker();
+  }, STATS_POLL_MS);
 }
 
 boot();

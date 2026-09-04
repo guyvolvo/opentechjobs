@@ -32,7 +32,7 @@
   --black: #40513b;
   --green: #609966;
   --green-bright: #80ad85;
-  --grey: #89947c;
+  --grey: #5b6a54;
   --grey-line: #dce8ce;
   --red: #b8362c;
   --hover-bg: #e9efdb;
@@ -118,10 +118,10 @@ button, input, select {
 
 .section-title {
   font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 34px;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   margin: 0 0 24px;
 }
 
@@ -196,7 +196,7 @@ button, input, select {
 .ticker-item:hover .ticker-company { color: var(--green); }
 
 .wordmark {
-  font-weight: 800;
+  font-weight: 400;
   font-size: 15px;
   letter-spacing: 0.02em;
   text-decoration: none;
