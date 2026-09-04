@@ -143,9 +143,36 @@ function debounce(fn, ms) {
 
 // metrics dashboard
 
+// Set on every renderMetrics() call, read by tickApiStatus() so the "X
+// AGO" text can keep counting up client-side between the 2-min stats
+// polls instead of sitting frozen at whatever the last poll said.
+let lastCheckedAt = null;
+
+function apiStatusFields() {
+  const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
+  const fresh = (minutesSince ?? 9999) <= 15;
+  return {
+    fresh,
+    value: fresh ? "LIVE" : fmtMinutesAgo(minutesSince),
+    sub: fresh ? fmtMinutesAgo(minutesSince) : "no recent updates",
+  };
+}
+
+function tickApiStatus() {
+  const card = document.getElementById("metric-api-status");
+  if (!card) return;
+  const { fresh, value, sub } = apiStatusFields();
+  card.classList.toggle("highlight", fresh);
+  card.querySelector(".value").textContent = value;
+  card.querySelector(".sub").textContent = sub;
+  document.getElementById("status-dot").classList.toggle("offline", !fresh);
+  document.getElementById("status-text").textContent = fresh ? "LIVE" : "OFFLINE";
+}
+
 function renderMetrics(stats) {
   const el = document.getElementById("metrics-grid");
-  const fresh = (stats.freshness.minutes_since_update ?? 9999) <= 15;
+  lastCheckedAt = stats.freshness.last_checked ? new Date(stats.freshness.last_checked).getTime() : null;
+  const { fresh } = apiStatusFields();
 
   const cards = [
     {
@@ -176,9 +203,10 @@ function renderMetrics(stats) {
       sub: `oldest ${fmtAge(stats.age.oldest_open_days)}`,
     },
     {
+      id: "metric-api-status",
       label: "API Status",
-      value: fresh ? "LIVE" : fmtMinutesAgo(stats.freshness.minutes_since_update),
-      sub: fresh ? fmtMinutesAgo(stats.freshness.minutes_since_update) : "no recent updates",
+      value: apiStatusFields().value,
+      sub: apiStatusFields().sub,
       hl: fresh,
     },
   ];
@@ -186,7 +214,7 @@ function renderMetrics(stats) {
   el.innerHTML = cards
     .map(
       (c) => `
-      <div class="metric-card ${c.hl ? "highlight" : ""}">
+      <div class="metric-card ${c.hl ? "highlight" : ""}" ${c.id ? `id="${c.id}"` : ""}>
         <div class="label">${c.label}</div>
         <div>
           <div class="value">${c.value}</div>
@@ -199,6 +227,10 @@ function renderMetrics(stats) {
   document.getElementById("status-dot").classList.toggle("offline", !fresh);
   document.getElementById("status-text").textContent = fresh ? "LIVE" : "OFFLINE";
 }
+
+// Recomputes from lastCheckedAt every 15s so "X AGO" keeps counting up
+// between the 2-min stats polls instead of sitting frozen.
+const API_STATUS_TICK_MS = 15_000;
 
 // Market-insight panels: who's hiring, what for, where. No ATS-vendor
 // breakdown here; that's plumbing, not a market signal (still available
@@ -1144,6 +1176,7 @@ async function boot() {
     refreshStats();
     loadTicker();
   }, STATS_POLL_MS);
+  setInterval(tickApiStatus, API_STATUS_TICK_MS);
 }
 
 boot();
