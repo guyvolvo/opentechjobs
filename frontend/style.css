@@ -225,7 +225,11 @@ button, input, select {
 /* Auth. Same dropdown shape as .ms-menu (position:relative parent,
    absolute panel, 2px ink border, paper background) -- one hand-built
    pattern, not a second one invented for this. */
-.auth-area { position: relative; }
+/* display:flex here is only for the signed-in case's two triggers
+   (+ Alert, email) sitting side by side -- the signed-out case's single
+   trigger and the (always position:absolute, out of flow) panel are
+   unaffected either way. */
+.auth-area { position: relative; display: flex; align-items: center; gap: 12px; }
 .auth-trigger {
   background: none;
   border: none;
@@ -819,8 +823,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 #f-keywords { flex: 1 1 90px; }
 .filters .ms { flex: 1 1 80px; }
 .filters label.toggle,
-.filters #f-reset,
-.filters #board-alert-btn { flex: 0 0 auto; }
+.filters #f-reset { flex: 0 0 auto; }
 
 .filters input[type="text"],
 .filters select {

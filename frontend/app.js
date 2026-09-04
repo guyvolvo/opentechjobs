@@ -1472,11 +1472,11 @@ function renderAuthState() {
       </div>`;
     wireAuthTrigger();
     wireAuthPanel();
-    updateBoardAlertButtonVisibility();
     return;
   }
   const email = decodeJwtEmail(tokens.id_token) || "signed in";
   area.innerHTML = `
+    <button class="auth-trigger" id="topbar-alert-btn" type="button">+ Alert</button>
     <button class="auth-trigger" id="auth-trigger" type="button">${escapeHtml(email)}</button>
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
       <div class="alerts-header">My Alerts</div>
@@ -1500,9 +1500,9 @@ function renderAuthState() {
       <button class="auth-signout" id="auth-signout" type="button">Sign Out</button>
     </div>`;
   wireAuthTrigger();
+  wireTopbarAlertButton();
   document.getElementById("auth-signout").addEventListener("click", signOut);
   wireAlertCreateForm();
-  updateBoardAlertButtonVisibility();
   loadMyAlerts().then(renderAlertsList);
 }
 
@@ -1515,24 +1515,18 @@ function wireAuthTrigger() {
   });
 }
 
-// A "+ Alert" shortcut next to the board's own filters (visible only
-// when signed in) -- opens the same My Alerts panel the topbar trigger
-// does, scrolled into view, rather than creating anything itself. Wired
-// once at boot since, unlike the panel's internals, this button is a
-// static element in index.html that survives sign-in/out re-renders.
-function wireBoardAlertButton() {
-  document.getElementById("board-alert-btn").addEventListener("click", () => {
+// A second trigger next to the email one, signed-in only -- opens the
+// same panel (My Alerts + New Alert form), just a more discoverable
+// entry point than clicking your own email. Doesn't create anything
+// itself. Rewired on every renderAuthState() re-render like the rest of
+// this panel's internals, since sign-in/out replaces the whole subtree.
+function wireTopbarAlertButton() {
+  document.getElementById("topbar-alert-btn").addEventListener("click", () => {
     const trigger = document.getElementById("auth-trigger");
     const panel = document.getElementById("auth-panel");
-    if (!trigger || !panel) return; // signed out -- button is hidden in that state anyway
     panel.hidden = false;
     trigger.classList.add("active");
-    panel.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-}
-
-function updateBoardAlertButtonVisibility() {
-  document.getElementById("board-alert-btn").hidden = !getAuthTokens();
 }
 
 function wireAuthPanel() {
@@ -1842,7 +1836,6 @@ const STATS_POLL_MS = 120_000;
 async function boot() {
   await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render
   wireAuth();
-  wireBoardAlertButton();
   wireFilters();
   wireJobDetail();
   wireThemeToggle();
