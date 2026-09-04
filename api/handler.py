@@ -203,8 +203,11 @@ def route_jobs(params: dict) -> dict:
     if sort_key == "age":
         sort_dir = "ASC" if sort_dir == "DESC" else "DESC"
     # NULLS LAST regardless of direction: SQLite treats NULL as smaller
-    # than everything else, which would put it first on an ASC sort.
-    null_order = "posted_at IS NULL" if sort_key == "age" else "0"
+    # than everything else, which would put it first on an ASC sort. The
+    # non-age branch needs a genuine no-op constant, not a bare "0":
+    # SQLite reads a bare integer literal in ORDER BY as a 1-indexed
+    # column-position reference, and "0" is out of range there.
+    null_order = "posted_at IS NULL" if sort_key == "age" else "NULL"
 
     limit = _int_param(params, "limit", default=100, lo=1, hi=500)
     offset = _int_param(params, "offset", default=0, lo=0, hi=10_000_000)
