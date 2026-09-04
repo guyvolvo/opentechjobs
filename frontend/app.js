@@ -438,6 +438,35 @@ function currentFilterParams() {
   };
 }
 
+// Stale-while-revalidate for the job list: keyed by the exact
+// filter/sort/page combo, so a revisit with the same view renders
+// instantly from whatever was cached last time instead of sitting on a
+// loading screen, while the real fetch still always runs in the
+// background and silently replaces it the moment fresh data lands.
+// Reported live: every visit meant a few seconds of "Loading
+// listings..." even though the underlying data rarely changes that
+// fast (scrape-fast.yml re-polls every 10 min, most visits land well
+// inside that window).
+const JOBS_CACHE_PREFIX = "iljobs_jobs_cache:";
+
+function getCachedJobs(params) {
+  try {
+    const raw = localStorage.getItem(JOBS_CACHE_PREFIX + params);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedJobs(params, data) {
+  try {
+    localStorage.setItem(JOBS_CACHE_PREFIX + params, JSON.stringify(data));
+  } catch {
+    // Full quota or unavailable (private browsing) -- this is a pure UX
+    // nicety, silently skip rather than break the real fetch over it.
+  }
+}
+
 async function loadJobs() {
   const tbody = document.getElementById("jobs-body");
   const starred = getStarred();
@@ -448,8 +477,6 @@ async function loadJobs() {
     return;
   }
 
-  tbody.closest("table").style.display = "";
-  document.getElementById("jobs-loading").style.display = "block";
   document.getElementById("jobs-error").style.display = "none";
   document.getElementById("jobs-empty").style.display = "none";
 
@@ -461,17 +488,39 @@ async function loadJobs() {
     offset: state.offset,
   });
 
+  const cached = getCachedJobs(params);
+  tbody.closest("table").style.display = "";
+  if (cached) {
+    document.getElementById("jobs-loading").style.display = "none";
+    lastJobsResponse = cached;
+    renderJobs(cached, starred);
+    renderPagination(cached);
+  } else {
+    document.getElementById("jobs-loading").style.display = "block";
+  }
+
   try {
     const data = await getJSON(`/jobs?${params}`);
-    lastJobsResponse = data;
     document.getElementById("jobs-loading").style.display = "none";
-    renderJobs(data, starred);
-    renderPagination(data);
+    // Skip the re-render when the background refresh just confirms
+    // nothing changed -- avoids a jarring flicker/scroll-reset for what
+    // will be the common case (revisiting within the same 10-min window).
+    const changed = !cached || JSON.stringify(data) !== JSON.stringify(cached);
+    lastJobsResponse = data;
+    if (changed) {
+      renderJobs(data, starred);
+      renderPagination(data);
+    }
+    setCachedJobs(params, data);
   } catch (err) {
     document.getElementById("jobs-loading").style.display = "none";
-    const errEl = document.getElementById("jobs-error");
-    errEl.textContent = `Could not load jobs: ${err.message}`;
-    errEl.style.display = "block";
+    // A cached render is still on screen and still useful -- don't bury
+    // it under an error banner over a transient fetch failure.
+    if (!cached) {
+      const errEl = document.getElementById("jobs-error");
+      errEl.textContent = `Could not load jobs: ${err.message}`;
+      errEl.style.display = "block";
+    }
   }
 }
 
