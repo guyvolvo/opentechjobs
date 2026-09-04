@@ -587,11 +587,18 @@ COMEET_TIMEOUT = 6
 def _comeet_job(j: dict, uid: str, token: str) -> Job:
     """Shared by f_comeet_scrape and _fetch_comeet_pin. Both hit the same
     positions endpoint via different token-discovery paths.
+
+    time_updated is the only timestamp Comeet's API exposes; there's no
+    separate created/posted field. A listing edited after it first went
+    up (location tweak, typo fix) reports that edit time, not the
+    original post date, so this understates age for edited listings.
+    Same class of limitation as _parse_workday_posted_on's relative-string
+    approximation above: a real signal, just not ground truth.
     """
     return Job("comeet", f"{uid}:{token}", _txt(j.get("position_uid")),
                _txt(j.get("name")), _txt(j.get("location")),
                _txt(j.get("careers_page_active_url") or j.get("careers_page_url")),
-               None, _txt(j.get("department")) or None,
+               _normalize_date(j.get("time_updated")), _txt(j.get("department")) or None,
                seniority=_COMEET_LEVEL_MAP.get(_txt(j.get("experience_level")).lower()) or None,
                workplace_type=_ATS_WORKPLACE_MAP.get(_txt(j.get("Remote")).lower()) or None)
 
