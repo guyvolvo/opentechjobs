@@ -85,6 +85,14 @@ resource "aws_iam_role_policy" "infra_deploy" {
         Resource = "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${var.project_name}-*"
       },
       {
+        # DescribeLogGroups is a list operation, not scopable to one log
+        # group's ARN the way ManageLambdaLogs above is.
+        Sid      = "ListLogGroups"
+        Effect   = "Allow"
+        Action   = ["logs:DescribeLogGroups"]
+        Resource = "*"
+      },
+      {
         Sid    = "ManageIamForLambda"
         Effect = "Allow"
         Action = ["iam:GetRole", "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy",
@@ -95,7 +103,8 @@ resource "aws_iam_role_policy" "infra_deploy" {
       {
         Sid    = "ManageOidcProvider"
         Effect = "Allow"
-        Action = ["iam:GetOpenIDConnectProvider", "iam:CreateOpenIDConnectProvider",
+        Action = ["iam:GetOpenIDConnectProvider", "iam:ListOpenIDConnectProviders",
+          "iam:CreateOpenIDConnectProvider",
         "iam:UpdateOpenIDConnectProviderThumbprint", "iam:TagOpenIDConnectProvider"]
         Resource = "*"
       },
@@ -104,6 +113,12 @@ resource "aws_iam_role_policy" "infra_deploy" {
         Effect   = "Allow"
         Action   = ["cloudfront:*"]
         Resource = "*" # CloudFront ARNs aren't known until distribution creation; scope via Sid intent, not Resource
+      },
+      {
+        Sid      = "ManageApiGateway"
+        Effect   = "Allow"
+        Action   = ["apigateway:*"]
+        Resource = "*" # API Gateway v2 doesn't support resource-level scoping for most actions
       }
     ]
   })
