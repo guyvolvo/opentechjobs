@@ -505,8 +505,11 @@ button, input, select {
    the responsive section for the actual fix. */
 #board { container-type: inline-size; }
 
+/* --grey-line, not a full 2px --rule -- per request, matching the same
+   "quiet divider" family as the row separators now, instead of a bold
+   wall standing apart from the rest of the board's muted lines. */
 .workspace > #board {
-  border-right: var(--rule) solid var(--black);
+  border-right: 1px solid var(--grey-line);
   padding-right: var(--gutter);
 }
 .workspace > #board .container { padding: 0; }
