@@ -31,6 +31,10 @@ output "lambda_function_name" {
   value = aws_lambda_function.api.function_name
 }
 
+output "scrape_lambda_function_name" {
+  value = aws_lambda_function.scrape_fast.function_name
+}
+
 output "cloudfront_distribution_id" {
   value       = aws_cloudfront_distribution.main.id
   description = "For deploy-frontend.yml's CreateInvalidation call. CLOUDFRONT_DISTRIBUTION_ID repo variable."
@@ -40,9 +44,10 @@ output "cloudfront_distribution_id" {
 # role ARNs carry no key material) so workflows know which role to assume.
 output "github_actions_role_arns" {
   value = {
-    infra_deploy    = aws_iam_role.infra_deploy.arn
-    data_deploy     = aws_iam_role.data_deploy.arn
-    api_deploy      = aws_iam_role.api_deploy.arn
-    frontend_deploy = aws_iam_role.frontend_deploy.arn
+    infra_deploy         = aws_iam_role.infra_deploy.arn
+    data_deploy          = aws_iam_role.data_deploy.arn
+    api_deploy           = aws_iam_role.api_deploy.arn
+    scrape_lambda_deploy = aws_iam_role.scrape_lambda_deploy.arn
+    frontend_deploy      = aws_iam_role.frontend_deploy.arn
   }
 }

@@ -202,6 +202,39 @@ resource "aws_iam_role_policy" "api_deploy" {
   })
 }
 
+# scrape-lambda-deploy: used by deploy-scrape-lambda.yml. Update the
+# scrape-fast Lambda's code, nothing else.
+
+resource "aws_iam_role" "scrape_lambda_deploy" {
+  name = "${var.project_name}-scrape-lambda-deploy"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
+        StringLike   = { "token.actions.githubusercontent.com:sub" = local.github_oidc_sub }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "scrape_lambda_deploy" {
+  name = "${var.project_name}-scrape-lambda-deploy-policy"
+  role = aws_iam_role.scrape_lambda_deploy.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "UpdateScrapeLambdaCode"
+      Effect   = "Allow"
+      Action   = ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:PublishVersion"]
+      Resource = aws_lambda_function.scrape_fast.arn
+    }]
+  })
+}
+
 # frontend-deploy: used by deploy-frontend.yml. Sync frontend/ to the
 # frontend bucket, invalidate this one distribution. Nothing else.
 

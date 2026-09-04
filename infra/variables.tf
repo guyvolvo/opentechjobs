@@ -63,6 +63,18 @@ variable "lambda_timeout_s" {
   default = 10
 }
 
+variable "scrape_lambda_memory_mb" {
+  type        = number
+  default     = 512
+  description = "The scrape-fast Lambda re-polls every known board and upserts into a growing SQLite DB, heavier than the read-only API Lambda's workload."
+}
+
+variable "scrape_lambda_timeout_s" {
+  type        = number
+  default     = 120
+  description = "Ceiling for probe.py --known (all boards, in parallel) plus the SQLite upsert; both run well under this in practice."
+}
+
 variable "domain_name" {
   type        = string
   description = "Custom domain for the CloudFront distribution (site at /, API at /api/*). DNS lives in Cloudflare, not Terraform; see infra/acm.tf for the manual validation-record step."

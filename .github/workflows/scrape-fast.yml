@@ -5,23 +5,20 @@ name: scrape-fast
 # 123 companies vs. ~15 min for the full discovery pipeline over the same
 # list; that gap is why this exists as a separate workflow.
 #
-# Every 10 minutes: GitHub Actions minutes are free on a public repo,
-# so the constraint is politeness to the ATS APIs, not CI budget.
+# The recurring every-10-minutes run lives on an EventBridge-scheduled
+# Lambda now (infra/scrape_lambda.tf, code in scrape_handler.py), not
+# here. GitHub Actions' own schedule: trigger sat for over an hour, on
+# every cron offset tried, without ever firing a single scheduled run --
+# a known, long-standing GitHub issue with no official fix (see
+# scrape_handler.py's docstring for the writeup). This workflow now
+# exists for manual/on-demand runs only.
 #
 # known.json comes from S3, whatever scrape-discover.yml (or a previous
-# run of this workflow) last derived. If it doesn't exist yet (before the
-# first scrape-discover.yml run), this workflow exits early instead of
-# erroring.
-#
-# Offset 3 minutes past each 10-min mark, not "*/10 * * * *": GitHub's
-# own docs warn schedule triggers get delayed or dropped during high-load
-# windows, and the top of every 10-min boundary (:00, :10, :20...) is
-# exactly that window. This repo's schedule never fired once in over an
-# hour on the on-the-mark pattern.
+# run of this workflow, or the scrape-fast Lambda) last derived. If it
+# doesn't exist yet (before the first scrape-discover.yml run), this
+# workflow exits early instead of erroring.
 
 on:
-  schedule:
-    - cron: "3-59/10 * * * *"
   workflow_dispatch: {}
 
 permissions:

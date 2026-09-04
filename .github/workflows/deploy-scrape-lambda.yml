@@ -1,0 +1,53 @@
+name: deploy-scrape-lambda
+
+# Ships probe.py + loader/ + scrape_handler.py to the scrape-fast Lambda
+# without a full Terraform apply, mirroring deploy-api.yml. Terraform owns
+# the function's existence/config, this workflow owns its code.
+
+on:
+  push:
+    branches: [main]
+    paths: ["probe.py", "loader/**", "db/schema.sql", "scrape_handler.py"]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build deployment package
+        run: |
+          mkdir -p build/loader build/db
+          cp probe.py scrape_handler.py build/
+          cp loader/load_to_sqlite.py build/loader/
+          cp db/schema.sql build/db/
+          pip install --target build requests
+          cd build && zip -r ../scrape-lambda.zip . -x "__pycache__/*" && cd ..
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SCRAPE_LAMBDA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ vars.SCRAPE_LAMBDA_FUNCTION_NAME }} \
+            --zip-file fileb://scrape-lambda.zip
+
+      - name: Wait for update to finish
+        run: |
+          aws lambda wait function-updated \
+            --function-name ${{ vars.SCRAPE_LAMBDA_FUNCTION_NAME }}
