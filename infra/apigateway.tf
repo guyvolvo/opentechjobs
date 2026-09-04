@@ -50,6 +50,38 @@ resource "aws_apigatewayv2_stage" "api" {
   }
 }
 
+# Account-wide, one-time, not specific to this one API: confirmed live
+# via `aws apigateway get-account`, this account had never set a
+# cloudwatchRoleArn at all, which silently blocks ALL API Gateway
+# CloudWatch logging (access logs, execution logs, both REST and HTTP
+# APIs) regardless of any stage's own access_log_settings. Found and
+# fixed while diagnosing a live 403 on /api/me/alerts through CloudFront
+# (root cause turned out to be cloudfront.tf's origin request policy
+# forwarding the wrong Host header, unrelated -- but this gap is real
+# and worth keeping fixed for any future logging need). AWS's own
+# managed policy, not a hand-rolled one: this is exactly the standard,
+# documented shape for it.
+resource "aws_iam_role" "api_gateway_cloudwatch" {
+  name = "${var.project_name}-apigateway-cloudwatch"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "apigateway.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "api_gateway_cloudwatch" {
+  role       = aws_iam_role.api_gateway_cloudwatch.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+}
+
+resource "aws_api_gateway_account" "main" {
+  cloudwatch_role_arn = aws_iam_role.api_gateway_cloudwatch.arn
+}
+
 # Validates the Cognito JWT natively at the API Gateway layer -- an
 # unauthenticated or forged-token request never reaches the Lambda for
 # the routes below at all, not just rejected in application code.

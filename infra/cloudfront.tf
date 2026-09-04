@@ -146,11 +146,17 @@ data "aws_cloudfront_cache_policy" "caching_disabled" {
   name = "Managed-CachingDisabled"
 }
 
-# All-viewer forwards every header (Authorization included), cookie, and
-# query string to origin, independent of caching. The pairing with
-# CachingDisabled above is exactly AWS's own recommended shape for a
-# dynamic, authenticated-request path -- see the aws_cloudfront_
-# distribution's origin_request_policy_id on the /api/me/* behavior.
+# Except-Host, not plain AllViewer: this API Gateway has no custom
+# domain name mapped (it's addressed via its own raw execute-api
+# domain, see local.api_gateway_domain), so it only recognizes Host
+# headers matching that domain. Plain AllViewer forwards the *viewer's*
+# original Host (openmarket.guyvoloshin.com) instead of the origin's --
+# API Gateway doesn't know that domain, and likely rejected the request
+# on that mismatch before authorization even ran, not a genuine JWT
+# validation failure. This is AWS's own documented fix for exactly this
+# "API Gateway (or any origin without a matching custom domain) behind
+# CloudFront" shape: forward everything else, let CloudFront's own
+# custom_origin_config supply the correct Host.
 data "aws_cloudfront_origin_request_policy" "all_viewer" {
-  name = "Managed-AllViewer"
+  name = "Managed-AllViewerExceptHostHeader"
 }
