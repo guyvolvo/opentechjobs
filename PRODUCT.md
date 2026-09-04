@@ -45,7 +45,7 @@ careers-page scraping or manual listings couldn't truthfully match:
   scraped off a rendered careers page — confidence is tiered
   (`verified`/`best_effort`) and exposed in the API, not asserted blindly.
 - A job's full lifetime (`first_seen`/`last_seen`/`closed_at`) persists
-  even after it closes, so staleness/ghost-listing detection and
+  even after it closes, so dormancy/ghost-listing detection and
   reconstructed market history (open-jobs-over-time, closings) are real
   computed facts, not guesses.
 - No accounts, no paywall, no rate-limit tier beyond CloudFront's edge
@@ -76,9 +76,9 @@ the full diagram, not duplicated here):
 - **Confidence tiers**: `verified` (matched a known ATS API) vs.
   `best_effort` (JobPosting JSON-LD fallback scraping) — the API defaults
   to `verified` only; callers opt into `best_effort`/`all` explicitly.
-- **Freshness/staleness**: a `FRESH_CLAUSE` window excludes stale listings
+- **Freshness window**: a `FRESH_CLAUSE` window excludes outdated listings
   by default from both `/jobs` and every `/stats` aggregate; callers can
-  opt into `include_stale`/`include_closed`.
+  opt into `include_outdated`/`include_closed`.
 - **Israel scoping is a location-keyword heuristic** (`IL_KEYWORDS`), not
   a structured field — expanded over time as real unmatched location
   strings turn up in the data, never guessed in bulk.

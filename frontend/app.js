@@ -196,7 +196,7 @@ function renderMetrics(stats) {
     )
     .join("");
 
-  document.getElementById("status-dot").classList.toggle("stale", !fresh);
+  document.getElementById("status-dot").classList.toggle("offline", !fresh);
   document.getElementById("status-text").textContent = fresh ? "LIVE" : "OFFLINE";
 }
 
@@ -312,10 +312,10 @@ function renderOpenJobsChart(history) {
 // stopped moving. threshold_days comes from the API, not hardcoded here,
 // so a backend change to the cutoff doesn't need a matching frontend edit.
 function renderGhostStat(ghost, openJobs) {
-  const pct = Math.round(ghost.stale_pct * 1000) / 10;
+  const pct = Math.round(ghost.dormant_pct * 1000) / 10;
   return `
     <div class="ghost-pct">${pct}%</div>
-    <div class="ghost-sub">${fmtInt(ghost.stale_count)} of ${fmtInt(ghost.sample_size)} open listings with a known post date haven't moved in over ${ghost.threshold_days} days (${fmtInt(openJobs)} open in total).</div>`;
+    <div class="ghost-sub">${fmtInt(ghost.dormant_count)} of ${fmtInt(ghost.sample_size)} open listings with a known post date haven't moved in over ${ghost.threshold_days} days (${fmtInt(openJobs)} open in total).</div>`;
 }
 
 function renderPanels(stats) {
@@ -354,7 +354,7 @@ function renderPanels(stats) {
       )}
     </div>
     <div class="panel">
-      <div class="panel-title">Stale Listings</div>
+      <div class="panel-title">Dormant Listings</div>
       ${renderGhostStat(stats.ghost, stats.totals.open_jobs)}
     </div>`;
 

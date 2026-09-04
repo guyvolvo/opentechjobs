@@ -5,7 +5,7 @@ colors:
   paper: "#f3f6e4"
   ink: "#40513b"
   signal-green: "#609966"
-  muted-grey: "#89947c"
+  muted-grey: "#40513b"
   hairline-grey: "#dce8ce"
   alert-red: "#b8362c"
   hover-tint: "#e9efdb"
@@ -111,9 +111,10 @@ plain near-black/white inversion.
   topbar) — a deep forest green standing in for black, not a literal
   black anywhere in light mode. Dark mode's ink is a soft off-white to
   match, unrelated to this light-mode swap.
-- **Muted Grey** (`#89947c`, `--grey`; dark mode `#9a9a9a`): secondary
-  text — labels, metadata, placeholders, the offline-state wordmark. A
-  desaturated olive-green blend of ink and paper, not a true grey.
+- **Muted Grey** (`#40513b`, `--grey`; dark mode `#9a9a9a`): secondary
+  text — labels, metadata, placeholders, the offline-state wordmark.
+  Light mode reads this at full ink darkness (the earlier softer tint
+  wasn't legible enough); dark mode keeps its own true muted grey.
 - **Hairline Grey** (`#dce8ce`, `--grey-line`; dark mode `#2b2c31`): the
   quiet dividers — table row separators, bar-chart tracks, input borders
   one step down from a full 2px rule.
@@ -274,7 +275,7 @@ list is duplicated once in the DOM, animated `translateX(0)` to
 A square (not circular) block that "torch-flickers" — `steps(1)` timing
 with hand-placed, irregular opacity keyframes, deliberately closer to a
 Minecraft torch/redstone lamp than a smooth pulse — while the pipeline is
-live. Goes stale-red with the animation killed outright (not still
+live. Goes offline-red with the animation killed outright (not still
 pulsing) to read as "the light went out," not "warning, still breathing."
 
 ## Do's and Don'ts

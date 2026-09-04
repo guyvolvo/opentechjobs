@@ -90,7 +90,7 @@ comeet:
     token: "A6248AE298853101F2614C45D7214C433EA5310"
     jobs_seen: 8
     source: hand-extracted
-    note: Mentee Robotics; announced acquisition by Mobileye, board may go stale
+    note: Mentee Robotics; announced acquisition by Mobileye, board may stop updating
 
   - domain: team8.vc
     uid: "61.003"

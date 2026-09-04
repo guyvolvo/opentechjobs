@@ -18,7 +18,7 @@ locals {
 }
 
 # Short TTL: known companies get re-polled every 10 min (scrape-fast.yml),
-# so the edge cache should track that rather than sit stale for hours.
+# so the edge cache should track that rather than serve outdated data for hours.
 # (CloudFront's Comment field caps at 128 chars, hence the terse version
 # there and the full one here.)
 resource "aws_cloudfront_cache_policy" "api" {

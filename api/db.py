@@ -4,7 +4,8 @@ jobs.db lifecycle for the Lambda execution environment.
 Cold start: download jobs.db from S3 into /tmp, open it read-only. Warm
 invocations reuse the same connection (module-level globals persist
 across invocations), periodically HEAD-checking S3 (cheap, no data
-transfer) so a long-lived container doesn't serve stale data indefinitely.
+transfer) so a long-lived container doesn't serve an outdated copy
+indefinitely.
 """
 
 import os
@@ -16,7 +17,7 @@ import boto3
 DATA_BUCKET = os.environ["DATA_BUCKET"]
 DATA_KEY = os.environ["DATA_KEY"]
 LOCAL_PATH = "/tmp/jobs.db"
-STALE_CHECK_SECONDS = 300  # re-check S3 for a newer version at most every 5 min per warm container
+S3_RECHECK_SECONDS = 300  # re-check S3 for a newer version at most every 5 min per warm container
 
 _s3 = boto3.client("s3")
 _conn: sqlite3.Connection | None = None
@@ -49,7 +50,7 @@ def get_connection() -> sqlite3.Connection:
         _last_checked = now
         return _conn
 
-    if now - _last_checked < STALE_CHECK_SECONDS:
+    if now - _last_checked < S3_RECHECK_SECONDS:
         return _conn  # warm and recently checked, reuse as-is
 
     _last_checked = now

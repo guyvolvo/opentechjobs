@@ -32,7 +32,7 @@
   --black: #40513b;
   --green: #609966;
   --green-bright: #80ad85;
-  --grey: #5b6a54;
+  --grey: #40513b;
   --grey-line: #dce8ce;
   --red: #b8362c;
   --hover-bg: #e9efdb;
@@ -122,7 +122,8 @@ button, input, select {
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin: 0 0 24px;
+  line-height: 1;
+  margin: 0 0 12px;
 }
 
 /* Topbar */
@@ -238,7 +239,7 @@ button, input, select {
   margin-right: 6px;
   animation: torch-flicker 1.6s steps(1) infinite;
 }
-.status-dot.stale { background: var(--red); animation: none; }
+.status-dot.offline { background: var(--red); animation: none; }
 @keyframes torch-flicker {
   0%, 100% { opacity: 1; }
   6% { opacity: 0.8; }
@@ -343,7 +344,7 @@ button, input, select {
    breakdown here; that's plumbing, not a market signal. */
 
 .panel-grid {
-  margin-top: var(--rule);
+  margin-top: calc(var(--rule) * -1); /* overlaps metrics-grid's bottom border into one shared line, no visible gap */
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--rule);
@@ -420,7 +421,7 @@ button, input, select {
 }
 
 /* One big headline number, for a panel whose whole point is a single
-   stat (the stale-listing rate), not a list of several. */
+   stat (the dormant-listing rate), not a list of several. */
 .ghost-pct {
   font-size: 34px;
   font-weight: 800;

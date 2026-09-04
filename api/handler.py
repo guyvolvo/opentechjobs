@@ -45,10 +45,10 @@ IL_KEYWORDS = [
 ]
 
 # A posting older than this is treated as an archived ghost listing, not
-# a real open req. ATSes don't reliably mark stale postings closed.
-# Hidden from the board and stats by default (see include_stale/
+# a real open req. ATSes don't reliably mark outdated postings closed.
+# Hidden from the board and stats by default (see include_outdated/
 # include_closed params). NULL posted_at is kept, not hidden: unknown
-# isn't evidence of staleness.
+# isn't evidence the posting has aged out.
 BOARD_MAX_AGE_DAYS = 365
 FRESH_CLAUSE = f"(posted_at IS NULL OR julianday('now') - julianday(posted_at) <= {BOARD_MAX_AGE_DAYS})"
 
@@ -156,7 +156,7 @@ def route_jobs(params: dict) -> dict:
     _add_in_filter(where, args, params, "location", "location")
     _add_in_filter(where, args, params, "workplace", "workplace_type")
 
-    if not _bool_param(params, "include_stale"):
+    if not _bool_param(params, "include_outdated"):
         where.append(FRESH_CLAUSE)
 
     if params.get("q"):
@@ -258,7 +258,7 @@ def route_health() -> dict:
     """Confirms the DB is actually reachable and reports pipeline
     freshness, not just "the Lambda is running." A 200 with ok=True here
     only means the process started; the real liveness signal is whether
-    the query below succeeds and how stale last_checked is.
+    the query below succeeds and how old last_checked is.
     """
     conn = get_connection()
     row = conn.execute(
@@ -489,7 +489,7 @@ def route_stats(params: dict | None = None) -> dict:
     # threshold_days is a response field, not a frontend assumption, so
     # changing it here needs no matching frontend edit.
     GHOST_THRESHOLD_DAYS = 60
-    stale_count = sum(1 for a in ages if a > GHOST_THRESHOLD_DAYS)
+    dormant_count = sum(1 for a in ages if a > GHOST_THRESHOLD_DAYS)
 
     # error_count: domains currently failing to resolve at all.
     # oldest_resolved_check: is the slowest part of the pipeline still
@@ -569,8 +569,8 @@ def route_stats(params: dict | None = None) -> dict:
         "seniority_breakdown": [dict(r) for r in seniority_breakdown],
         "ghost": {
             "threshold_days": GHOST_THRESHOLD_DAYS,
-            "stale_count": stale_count,
-            "stale_pct": round(stale_count / n, 4) if n else 0,
+            "dormant_count": dormant_count,
+            "dormant_pct": round(dormant_count / n, 4) if n else 0,
             "sample_size": n,
         },
         "pipeline": {
