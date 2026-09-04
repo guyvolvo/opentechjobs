@@ -55,13 +55,13 @@ class Job:
     description_chars: int = 0
     # Cleaned plain text via _clean_text(). None when the ATS's list
     # endpoint doesn't include a description (SmartRecruiters, Comeet,
-    # Workday). For Comeet specifically, an extra per-job detail request
-    # can fill this in -- see COMEET_FETCH_DESCRIPTIONS -- but only during
-    # scrape-discover.yml's slower, less-frequent pass; a per-job request
-    # for every one of ~1000 known Comeet listings on every 10-min
-    # fast-poll would be both too slow and needlessly hard on Comeet's
-    # API for content that rarely changes. SmartRecruiters/Workday have
-    # the same list-endpoint gap, not yet given the same treatment.
+    # Workday). For Comeet and Workday, an extra per-job detail request
+    # can fill this in -- see FETCH_FULL_DESCRIPTIONS -- but only during
+    # scrape-discover.yml's slower, less-frequent pass; doing this on
+    # every 10-min fast-poll, for every known listing on either ATS,
+    # would be both too slow and needlessly hard on their APIs for
+    # content that rarely changes. SmartRecruiters has the same
+    # list-endpoint gap, not yet given the same treatment.
     description: str | None = None
     # intern/junior/mid/senior/staff/principal/lead/manager/director/exec,
     # or None if the posting doesn't state a level. Some ATSes provide a
@@ -89,7 +89,7 @@ class Resolution:
 VERBOSE = False
 SCRAPE_COMEET = True
 SCRAPE_EMBED = True
-COMEET_FETCH_DESCRIPTIONS = False
+FETCH_FULL_DESCRIPTIONS = False  # Comeet + Workday's extra per-job detail request; see the Job.description comment
 
 
 def session() -> requests.Session:
@@ -604,7 +604,7 @@ def _comeet_job(sess: requests.Session, j: dict, uid: str, token: str) -> Job:
     """
     description = None
     description_chars = 0
-    if COMEET_FETCH_DESCRIPTIONS:
+    if FETCH_FULL_DESCRIPTIONS:
         # Confirmed live: the positions LIST endpoint (what `j` is) never
         # has a description at all, but the per-job detail endpoint
         # (position_url) has both `description` (role/company overview)
@@ -727,24 +727,35 @@ def _parse_workday_posted_on(s: str | None) -> str | None:
 _WORKDAY_MULTI_LOCATION_RE = re.compile(r"^\d+\s+Locations?$", re.IGNORECASE)
 
 
-def _workday_location(sess: requests.Session, api_base: str, external_path: str, locations_text: str) -> str:
-    """locationsText on the list endpoint collapses to "2 Locations" /
-    "3 Locations" once a job has more than one office. The real names are
-    available via one extra GET to the per-job detail endpoint (called
-    only for postings that hit this case) as jobPostingInfo.location plus
-    .additionalLocations. Falls back to the summary text if that fetch
-    fails.
+def _workday_job_detail(sess: requests.Session, api_base: str, external_path: str, locations_text: str) -> tuple[str, str | None]:
+    """One GET to the per-job detail endpoint, shared by two unrelated
+    needs that happen to both live at jobPostingInfo: locationsText on
+    the list endpoint collapses to "2 Locations" / "3 Locations" once a
+    job has more than one office (the real names are at .location plus
+    .additionalLocations), and the list endpoint never has a description
+    at all (FETCH_FULL_DESCRIPTIONS wants .jobDescription). Only fetches
+    when at least one of those actually applies, and only once even when
+    both do. Falls back to the summary location text if the fetch fails;
+    description stays None on failure, same as never having tried.
 
     api_base must be the /wday/cxs/{tenant}/{site} API prefix, not the
-    human-browsable URL f_workday builds job.url from. The browsable
-    one returns an HTML SPA shell with no embedded data, not JSON.
+    human-browsable URL f_workday builds job.url from. The browsable one
+    returns an HTML SPA shell with no embedded data, not JSON.
     """
-    if not _WORKDAY_MULTI_LOCATION_RE.match(locations_text) or not external_path:
-        return locations_text
+    needs_location = bool(_WORKDAY_MULTI_LOCATION_RE.match(locations_text))
+    if (not needs_location and not FETCH_FULL_DESCRIPTIONS) or not external_path:
+        return locations_text, None
+
     detail = get_json(sess, f"{api_base}{external_path}")
     info = (detail or {}).get("jobPostingInfo") or {}
-    names = [n for n in [_txt(info.get("location")), *(info.get("additionalLocations") or [])] if n]
-    return ", ".join(names) if names else locations_text
+
+    location = locations_text
+    if needs_location:
+        names = [n for n in [_txt(info.get("location")), *(info.get("additionalLocations") or [])] if n]
+        location = ", ".join(names) if names else locations_text
+
+    description = _clean_text(info.get("jobDescription")) if FETCH_FULL_DESCRIPTIONS else None
+    return location, description
 
 
 def f_workday(sess: requests.Session, tenant: str, wd: str, site: str) -> list[Job] | None:
@@ -760,11 +771,13 @@ def f_workday(sess: requests.Session, tenant: str, wd: str, site: str) -> list[J
     for j in d["jobPostings"]:
         bullets = j.get("bulletFields") or []
         external_path = _txt(j.get("externalPath"))
-        location = _workday_location(sess, api_base, external_path, _txt(j.get("locationsText")))
+        location, description = _workday_job_detail(sess, api_base, external_path, _txt(j.get("locationsText")))
         out.append(Job("workday", f"{tenant}:{wd}:{site}", _txt(bullets[0] if bullets else j.get("externalPath")),
                        _txt(j.get("title")), location,
                        base + external_path,
-                       _parse_workday_posted_on(j.get("postedOn")), None))
+                       _parse_workday_posted_on(j.get("postedOn")), None,
+                       description_chars=len(description) if description else 0,
+                       description=description))
     return out
 
 
@@ -1124,9 +1137,9 @@ def main() -> int:
                      help="skip the Comeet careers-page scrape (companies.yml pins still apply), much faster batch runs")
     ap.add_argument("--no-embed-scrape", action="store_true",
                      help="skip the careers-page embed/JobPosting-JSON-LD fallback, much faster batch runs")
-    ap.add_argument("--comeet-descriptions", action="store_true",
-                     help="fetch each Comeet job's per-job detail page for a real description (Comeet's list "
-                          "endpoint never has one). One extra request per Comeet listing -- meant for "
+    ap.add_argument("--fetch-descriptions", action="store_true",
+                     help="fetch each Comeet/Workday job's per-job detail page for a real description (neither "
+                          "ATS's list endpoint has one). One extra request per listing on either -- meant for "
                           "scrape-discover.yml's slower pass, not the 10-min fast-poll.")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
@@ -1134,10 +1147,10 @@ def main() -> int:
     if args.selftest:
         return selftest()
 
-    global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED, COMEET_FETCH_DESCRIPTIONS
+    global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED, FETCH_FULL_DESCRIPTIONS
     VERBOSE = args.verbose
     SCRAPE_COMEET = not args.no_comeet
-    COMEET_FETCH_DESCRIPTIONS = args.comeet_descriptions
+    FETCH_FULL_DESCRIPTIONS = args.fetch_descriptions
     SCRAPE_EMBED = not args.no_embed_scrape
 
     sess = session()

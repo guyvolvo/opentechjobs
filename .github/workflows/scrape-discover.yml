@@ -39,7 +39,7 @@ jobs:
         run: pip install requests pyyaml boto3
 
       - name: Full probe, guess, Comeet scrape, embed/JSON-LD fallback
-        run: python probe.py --batch domains.txt --comeet-descriptions --json > resolved.json
+        run: python probe.py --batch domains.txt --fetch-descriptions --json > resolved.json
 
       - name: Report hit rate
         run: |

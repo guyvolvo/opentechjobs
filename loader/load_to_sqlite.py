@@ -145,15 +145,26 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             location = excluded.location,
             department = excluded.department,
             url = excluded.url,
-            posted_at = excluded.posted_at,
+            -- Workday's posted_at is a relative-string approximation
+            -- (_parse_workday_posted_on: "Posted Yesterday" -> now() minus
+            -- 1 day), recomputed fresh from that same string on every
+            -- poll -- so a job whose real postedOn text never advances
+            -- past "Yesterday" gets a *different* now-minus-1-day value
+            -- each time, perpetually creeping forward to stay ~1 day old
+            -- forever, regardless of how long it's actually been open.
+            -- Reported live: a job sat at the very top of the age sort on
+            -- every visit. Frozen at whatever it first resolved to on
+            -- initial discovery instead -- ages normally from there, like
+            -- every ats with a genuine absolute date already does.
+            posted_at = CASE WHEN excluded.ats = 'workday' THEN posted_at ELSE excluded.posted_at END,
             -- Keep the existing description/description_chars when this
             -- upsert's own value is empty, rather than blindly overwriting.
-            -- Real for one case today: Comeet's fast-poll re-verify never
-            -- has a description at all (see probe.py's COMEET_FETCH_DESCRIPTIONS),
-            -- so without this, a description scrape-discover.yml worked to
-            -- capture would get nulled back out on the very next 10-min
-            -- fast-poll. Every other ats always sends a real value here, so
-            -- this is a no-op for them.
+            -- Real for two cases today: Comeet and Workday's fast-poll
+            -- re-verify never has a description at all (see probe.py's
+            -- FETCH_FULL_DESCRIPTIONS), so without this, a description
+            -- scrape-discover.yml worked to capture would get nulled back
+            -- out on the very next 10-min fast-poll. Every other ats
+            -- always sends a real value here, so this is a no-op for them.
             description_chars = CASE WHEN excluded.description_chars > 0 THEN excluded.description_chars ELSE description_chars END,
             description = CASE WHEN excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.description ELSE description END,
             seniority = excluded.seniority,
