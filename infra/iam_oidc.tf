@@ -18,7 +18,11 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 locals {
-  github_oidc_sub = "repo:${var.github_repo}:ref:refs/heads/${var.github_deploy_branch}"
+  # GitHub's actual sub claim is ID-suffixed ("owner@id/repo@id"), not the
+  # plain "org/name" form -- see the variables' own comments for why.
+  github_owner_name = split("/", var.github_repo)[0]
+  github_repo_name  = split("/", var.github_repo)[1]
+  github_oidc_sub   = "repo:${local.github_owner_name}@${var.github_owner_id}/${local.github_repo_name}@${var.github_repo_id}:ref:refs/heads/${var.github_deploy_branch}"
 }
 
 # infra-deploy: used by deploy-infra.yml (terraform plan/apply)

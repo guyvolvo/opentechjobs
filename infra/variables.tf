@@ -26,6 +26,26 @@ variable "github_repo" {
   default     = "guyvolvo/openmarketil"
 }
 
+# GitHub appends immutable owner/repo IDs to the OIDC token's `sub` claim
+# (e.g. "guyvolvo@92536827", "openmarketil@1356856304" instead of the
+# plain names) so a renamed or deleted-and-recreated repo can't silently
+# inherit another repo's trust policy. Confirmed via CloudTrail against
+# this repo's actual failed AssumeRoleWithWebIdentity calls -- the plain
+# "org/name" form never matches. Find these for a different repo from a
+# failed run's CloudTrail event, or GET /repos/{owner}/{repo} (id) and
+# GET /users/{owner} (id) via the GitHub API.
+variable "github_owner_id" {
+  type        = string
+  description = "Numeric GitHub user/org id for the owner in github_repo."
+  default     = "92536827"
+}
+
+variable "github_repo_id" {
+  type        = string
+  description = "Numeric GitHub repo id for github_repo."
+  default     = "1356856304"
+}
+
 variable "github_deploy_branch" {
   type        = string
   description = "Branch allowed to assume the broad infra-deploy role. Data/frontend deploys use their own narrower roles, allowed from any branch; see iam_oidc.tf."
