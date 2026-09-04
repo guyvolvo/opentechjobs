@@ -146,8 +146,16 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             department = excluded.department,
             url = excluded.url,
             posted_at = excluded.posted_at,
-            description_chars = excluded.description_chars,
-            description = excluded.description,
+            -- Keep the existing description/description_chars when this
+            -- upsert's own value is empty, rather than blindly overwriting.
+            -- Real for one case today: Comeet's fast-poll re-verify never
+            -- has a description at all (see probe.py's COMEET_FETCH_DESCRIPTIONS),
+            -- so without this, a description scrape-discover.yml worked to
+            -- capture would get nulled back out on the very next 10-min
+            -- fast-poll. Every other ats always sends a real value here, so
+            -- this is a no-op for them.
+            description_chars = CASE WHEN excluded.description_chars > 0 THEN excluded.description_chars ELSE description_chars END,
+            description = CASE WHEN excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.description ELSE description END,
             seniority = excluded.seniority,
             workplace_type = excluded.workplace_type,
             last_seen = excluded.last_seen,

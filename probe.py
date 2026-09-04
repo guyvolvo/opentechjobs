@@ -55,7 +55,13 @@ class Job:
     description_chars: int = 0
     # Cleaned plain text via _clean_text(). None when the ATS's list
     # endpoint doesn't include a description (SmartRecruiters, Comeet,
-    # Workday). A per-job detail request would be too slow at batch scale.
+    # Workday). For Comeet specifically, an extra per-job detail request
+    # can fill this in -- see COMEET_FETCH_DESCRIPTIONS -- but only during
+    # scrape-discover.yml's slower, less-frequent pass; a per-job request
+    # for every one of ~1000 known Comeet listings on every 10-min
+    # fast-poll would be both too slow and needlessly hard on Comeet's
+    # API for content that rarely changes. SmartRecruiters/Workday have
+    # the same list-endpoint gap, not yet given the same treatment.
     description: str | None = None
     # intern/junior/mid/senior/staff/principal/lead/manager/director/exec,
     # or None if the posting doesn't state a level. Some ATSes provide a
@@ -83,6 +89,7 @@ class Resolution:
 VERBOSE = False
 SCRAPE_COMEET = True
 SCRAPE_EMBED = True
+COMEET_FETCH_DESCRIPTIONS = False
 
 
 def session() -> requests.Session:
@@ -584,7 +591,7 @@ COMEET_PATHS = ["/careers", "/careers/", "/jobs", "/about-us/careers", "/company
 COMEET_TIMEOUT = 6
 
 
-def _comeet_job(j: dict, uid: str, token: str) -> Job:
+def _comeet_job(sess: requests.Session, j: dict, uid: str, token: str) -> Job:
     """Shared by f_comeet_scrape and _fetch_comeet_pin. Both hit the same
     positions endpoint via different token-discovery paths.
 
@@ -595,10 +602,26 @@ def _comeet_job(j: dict, uid: str, token: str) -> Job:
     Same class of limitation as _parse_workday_posted_on's relative-string
     approximation above: a real signal, just not ground truth.
     """
+    description = None
+    description_chars = 0
+    if COMEET_FETCH_DESCRIPTIONS:
+        # Confirmed live: the positions LIST endpoint (what `j` is) never
+        # has a description at all, but the per-job detail endpoint
+        # (position_url) has both `description` (role/company overview)
+        # and `requirements` (qualifications) as separate HTML fields --
+        # concatenated here so a listing reads the way the real posting
+        # does, not split across two DB columns this schema doesn't have.
+        detail = get_json(sess, j.get("position_url")) if j.get("position_url") else None
+        if isinstance(detail, dict):
+            raw = "\n\n".join(p for p in (_txt(detail.get("description")), _txt(detail.get("requirements"))) if p)
+            description = _clean_text(raw) if raw else None
+            description_chars = len(description) if description else 0
+
     return Job("comeet", f"{uid}:{token}", _txt(j.get("position_uid")),
                _txt(j.get("name")), _txt(j.get("location")),
                _txt(j.get("careers_page_active_url") or j.get("careers_page_url")),
                _normalize_date(j.get("time_updated")), _txt(j.get("department")) or None,
+               description_chars, description,
                seniority=_COMEET_LEVEL_MAP.get(_txt(j.get("experience_level")).lower()) or None,
                workplace_type=_ATS_WORKPLACE_MAP.get(_txt(j.get("Remote")).lower()) or None)
 
@@ -633,7 +656,7 @@ def f_comeet_scrape(sess: requests.Session, domain: str) -> tuple[list[Job], str
                                    f"{uid}/positions?token={token}")
             if not isinstance(jobs, list):
                 continue
-            out = [_comeet_job(j, uid, token) for j in jobs]
+            out = [_comeet_job(sess, j, uid, token) for j in jobs]
             return out, f"{uid}:{token}"
     return None
 
@@ -645,7 +668,7 @@ def _fetch_comeet_pin(sess: requests.Session, uid: str, token: str) -> list[Job]
     jobs = get_json(sess, f"https://www.comeet.com/careers-api/1.0/company/{uid}/positions?token={token}")
     if not isinstance(jobs, list):
         return None
-    return [_comeet_job(j, uid, token) for j in jobs]
+    return [_comeet_job(sess, j, uid, token) for j in jobs]
 
 
 # Best-effort tier: for domains that miss every guessable/pinned ATS above.
@@ -1101,15 +1124,20 @@ def main() -> int:
                      help="skip the Comeet careers-page scrape (companies.yml pins still apply), much faster batch runs")
     ap.add_argument("--no-embed-scrape", action="store_true",
                      help="skip the careers-page embed/JobPosting-JSON-LD fallback, much faster batch runs")
+    ap.add_argument("--comeet-descriptions", action="store_true",
+                     help="fetch each Comeet job's per-job detail page for a real description (Comeet's list "
+                          "endpoint never has one). One extra request per Comeet listing -- meant for "
+                          "scrape-discover.yml's slower pass, not the 10-min fast-poll.")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
 
     if args.selftest:
         return selftest()
 
-    global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED
+    global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED, COMEET_FETCH_DESCRIPTIONS
     VERBOSE = args.verbose
     SCRAPE_COMEET = not args.no_comeet
+    COMEET_FETCH_DESCRIPTIONS = args.comeet_descriptions
     SCRAPE_EMBED = not args.no_embed_scrape
 
     sess = session()
