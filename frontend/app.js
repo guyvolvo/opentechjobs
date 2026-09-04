@@ -148,9 +148,13 @@ function debounce(fn, ms) {
 // polls instead of sitting frozen at whatever the last poll said.
 let lastCheckedAt = null;
 
+// Shared by the topbar status dot/text and the API Status card: past
+// this, both flip from LIVE (green) to OFFLINE (red) together.
+const FRESH_THRESHOLD_MINUTES = 16;
+
 function apiStatusFields() {
   const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
-  const fresh = (minutesSince ?? 9999) <= 15;
+  const fresh = (minutesSince ?? 9999) <= FRESH_THRESHOLD_MINUTES;
   return {
     fresh,
     value: fresh ? "LIVE" : fmtMinutesAgo(minutesSince),
