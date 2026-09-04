@@ -1038,10 +1038,15 @@ table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
 /* Third column (was 15%/30% split for salary+skills) is just salary now
    -- skills pulled from the UI per request, kept in the codebase but
    unused (see app.js). 20% gives it a bit more room now it's not
-   sharing the row with a second column. */
+   sharing the row with a second column.
+   First column is 70px, wider than the 40px logo itself (see
+   .company-logo.listing's justify-self:center below) -- reported live,
+   a column sized exactly to the logo left it sitting flush against the
+   star with all the breathing room dumped on the far side, in front of
+   the title text instead. */
 table.jobs .title-cell {
   display: grid;
-  grid-template-columns: 40px 1fr 20%;
+  grid-template-columns: 70px 1fr 20%;
   column-gap: 12px;
   align-items: start;
 }
@@ -1141,7 +1146,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
    see above) just for the logo -- everything else in the row still
    top-aligns, but the logo centers against the row's full height,
    which varies with how much the card body wraps to. */
-.company-logo.listing { width: 40px; height: 40px; margin-right: 0; align-self: center; }
+.company-logo.listing { width: 40px; height: 40px; margin-right: 0; align-self: center; justify-self: center; }
 .job-detail-company .company-logo.detail { width: 32px; height: 32px; vertical-align: -8px; margin-right: 8px; }
 .bar-row .company-logo { width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; }
 
