@@ -156,7 +156,13 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- every visit. Frozen at whatever it first resolved to on
             -- initial discovery instead -- ages normally from there, like
             -- every ats with a genuine absolute date already does.
-            posted_at = CASE WHEN excluded.ats = 'workday' THEN posted_at ELSE excluded.posted_at END,
+            -- "posted_at IS NOT NULL" matters: a one-time cleanup nulled
+            -- every existing workday posted_at (the already-stored values
+            -- were themselves inflated by the same bug, no honest baseline
+            -- to freeze at), and without this guard the CASE below would
+            -- freeze them at that NULL forever instead of ever accepting
+            -- this run's first real computed value.
+            posted_at = CASE WHEN excluded.ats = 'workday' AND posted_at IS NOT NULL THEN posted_at ELSE excluded.posted_at END,
             -- Keep the existing description/description_chars when this
             -- upsert's own value is empty, rather than blindly overwriting.
             -- Real for two cases today: Comeet and Workday's fast-poll
