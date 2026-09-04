@@ -10,12 +10,24 @@ colors:
   alert-red: "#b8362c"
   hover-tint: "#e9efdb"
 typography:
-  display:
+  display-wordmark:
     fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
-    fontSize: "17px"
+    fontSize: "15px"
+    fontWeight: 400
+    lineHeight: 1
+    letterSpacing: "0.02em"
+  display-section-title:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "34px"
+    fontWeight: 400
+    lineHeight: 1
+    letterSpacing: "0.1em"
+  title-metric:
+    fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "30px"
     fontWeight: 800
-    lineHeight: 1.2
-    letterSpacing: "0.04em"
+    lineHeight: 1
+    letterSpacing: "normal"
   body:
     fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "14px"

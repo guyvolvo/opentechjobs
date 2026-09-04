@@ -1,29 +1,33 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-09T00:00:00Z",
+  "generatedAt": "2026-09-04T10:58:00Z",
   "title": "Design System: OpenMarketIL",
   "extensions": {
     "colorMeta": {
-      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#ffffff", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
-      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#0a0a0a", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
-      "signal-green": { "role": "primary", "displayName": "Signal Green", "canonical": "#1c7c3f", "tonalRamp": ["#0e3e20", "#1a743b", "#26a655", "#37d270", "#69dd93", "#97e8b4", "#c1f1d2", "#eafaf0"] },
-      "muted-grey": { "role": "neutral", "displayName": "Muted Grey", "canonical": "#6b6b6b", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
-      "hairline-grey": { "role": "neutral", "displayName": "Hairline Grey", "canonical": "#d4d4d4", "tonalRamp": ["#262626", "#474747", "#666666", "#858585", "#a3a3a3", "#bfbfbf", "#d9d9d9", "#f2f2f2"] },
-      "alert-red": { "role": "error", "displayName": "Alert Red", "canonical": "#b8362c", "tonalRamp": ["#3e120f", "#73221c", "#a53027", "#d04439", "#dc736b", "#e69e98", "#f0c5c1", "#faecea"] }
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#f3f6e4", "tonalRamp": ["#232922", "#3d4634", "#586346", "#747f57", "#909c6b", "#adba82", "#cad79c", "#e9f5c0"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#40513b", "tonalRamp": ["#141c12", "#233020", "#324430", "#435840", "#546c51", "#688164", "#7f9679", "#98ac91"] },
+      "signal-green": { "role": "primary", "displayName": "Signal Green", "canonical": "#609966", "tonalRamp": ["#193b1e", "#2c5c32", "#417d47", "#549e5b", "#69b06f", "#8bc490", "#b1d9b4", "#daecdb"] },
+      "muted-grey": { "role": "neutral", "displayName": "Muted Grey", "canonical": "#40513b", "tonalRamp": ["#141c12", "#233020", "#324430", "#435840", "#546c51", "#688164", "#7f9679", "#98ac91"] },
+      "hairline-grey": { "role": "neutral", "displayName": "Hairline Grey", "canonical": "#dce8ce", "tonalRamp": ["#5a6b4c", "#7e9269", "#a2b78c", "#c0d0ac", "#dce8ce", "#e6efdc", "#f0f6ea", "#f9fbf5"] },
+      "alert-red": { "role": "error", "displayName": "Alert Red", "canonical": "#b8362c", "tonalRamp": ["#3e120f", "#73221c", "#a53027", "#d04439", "#dc736b", "#e69e98", "#f0c5c1", "#faecea"] },
+      "hover-tint": { "role": "neutral", "displayName": "Hover Tint", "canonical": "#e9efdb", "tonalRamp": ["#4c583e", "#6c7a58", "#8c9c76", "#a8b992", "#c4d1af", "#dbe4c8", "#e9efdb", "#f5f8ee"] }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Wordmark and the two section titles only -- never at data-dense sizes." },
+      "display-wordmark": { "displayName": "Display / Wordmark", "purpose": "The topbar wordmark only (\"OpenMarket.IL\"). 13px below the 640px breakpoint." },
+      "display-section-title": { "displayName": "Display / Section Title", "purpose": "The two section titles (\"Job Board\" / \"Market Stats\") only -- never at table-row or data-dense sizes." },
+      "title-metric": { "displayName": "Title / Metric", "purpose": "The large number on a metric tile -- the one place body copy gets genuinely large." },
       "body": { "displayName": "Body", "purpose": "Filters, table cells, panel prose, buttons -- everything data-dense." },
       "label": { "displayName": "Label", "purpose": "Uppercase micro-labels: column headers, panel titles, chips, result count, topnav." }
     },
     "shadows": [],
     "motion": [
-      { "name": "torch-flicker", "value": "steps(1) 1.6s infinite, hand-placed irregular opacity keyframes (6%, 11%, 19%, 27%, 33%, 41%, 52%, 58%, 69%, 74%, 83%, 89%)", "purpose": "Live-status dot -- jump-cut flicker meant to read as a torch/redstone lamp, not a smooth pulse." },
-      { "name": "ticker-scroll", "value": "translateX(0) to translateX(-50%), linear, duration scales with item count (items * 4s)", "purpose": "Seamless looping marquee of the board's own current top listings." }
+      { "name": "torch-flicker", "value": "steps(1) 1.6s infinite, hand-placed irregular opacity keyframes (6%, 11%, 19%, 27%, 33%, 41%, 52%, 58%, 69%, 74%, 83%, 89%)", "purpose": "Live-status dot -- jump-cut flicker meant to read as a torch/redstone lamp, not a smooth pulse. Killed outright (not still pulsing) when offline." },
+      { "name": "ticker-scroll", "value": "translateX(0) to translateX(-50%), linear 40s, paused on hover", "purpose": "Seamless looping marquee of the board's own current top listings between the wordmark and the online/offline status." }
     ],
     "breakpoints": [
       { "name": "tablet-stack", "value": "960px" },
-      { "name": "phone-stack", "value": "640px" }
+      { "name": "phone-stack", "value": "640px" },
+      { "name": "filter-bar-wrap", "value": "900px (container query on #board, not viewport -- the two-column workspace grid decouples #board's actual width from the viewport width)" }
     ]
   },
   "components": [
@@ -33,7 +37,7 @@
       "refersTo": "button-primary",
       "description": "Default action button -- ink surface, inverts to signal green on hover.",
       "html": "<button class=\"ds-btn-primary\">Reset</button>",
-      "css": ".ds-btn-primary { border: var(--rule) solid var(--black); background: var(--black); color: var(--white); height: 38px; padding: 0 16px; font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer; } .ds-btn-primary:hover, .ds-btn-primary:focus-visible { background: var(--green); border-color: var(--green); }"
+      "css": ".ds-btn-primary { border: 2px solid var(--black); background: var(--black); color: var(--white); height: 38px; padding: 0 16px; font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer; } .ds-btn-primary:hover, .ds-btn-primary:focus-visible { background: var(--green); border-color: var(--green); }"
     },
     {
       "name": "Ghost Button",
@@ -41,7 +45,7 @@
       "refersTo": "button-ghost",
       "description": "Secondary action button -- paper surface, fully inverts to ink on hover (mirror of Primary's hover, not a separate treatment).",
       "html": "<button class=\"ds-btn-ghost\">Reset</button>",
-      "css": ".ds-btn-ghost { border: var(--rule) solid var(--black); background: var(--white); color: var(--black); height: 38px; padding: 0 16px; font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer; } .ds-btn-ghost:hover, .ds-btn-ghost:focus-visible { background: var(--black); color: var(--white); border-color: var(--black); }"
+      "css": ".ds-btn-ghost { border: 2px solid var(--black); background: var(--white); color: var(--black); height: 38px; padding: 0 16px; font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer; } .ds-btn-ghost:hover, .ds-btn-ghost:focus-visible { background: var(--black); color: var(--white); border-color: var(--black); }"
     },
     {
       "name": "Filter Chip",
@@ -49,7 +53,7 @@
       "refersTo": "chip",
       "description": "Active single-value filter pill (e.g. the company filter) -- green by default, inverts to ink on hover.",
       "html": "<button class=\"ds-chip\">snyk.io <span aria-hidden=\"true\">✕</span></button>",
-      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--green); color: var(--white); border: var(--rule) solid var(--green); font-family: var(--font); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 10px; cursor: pointer; } .ds-chip:hover, .ds-chip:focus-visible { background: var(--black); border-color: var(--black); }"
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--green); color: var(--white); border: 2px solid var(--green); font-family: var(--font); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 10px; cursor: pointer; } .ds-chip:hover, .ds-chip:focus-visible { background: var(--black); border-color: var(--black); }"
     },
     {
       "name": "Text Input",
@@ -57,49 +61,57 @@
       "refersTo": "input-text",
       "description": "Search/keyword filter field -- 2px ink border, inset green focus ring.",
       "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"SEARCH TITLE, COMPANY, LOCATION…\" />",
-      "css": ".ds-input { border: var(--rule) solid var(--black); background: var(--white); color: var(--black); padding: 9px 10px; height: 38px; width: 100%; font-family: var(--font); font-size: 13px; } .ds-input:focus { outline: 2px solid var(--green); outline-offset: -2px; }"
+      "css": ".ds-input { border: 2px solid var(--black); background: var(--white); color: var(--black); padding: 9px 10px; height: 38px; width: 100%; font-family: var(--font); font-size: 13px; } .ds-input:focus { outline: 2px solid var(--green); outline-offset: -2px; }"
     },
     {
       "name": "Metric Card",
       "kind": "card",
       "refersTo": "metric-card",
       "description": "One tile in the top metrics strip -- part of the black-hairline card grid, not individually bordered.",
-      "html": "<div class=\"ds-metric-card\"><div class=\"ds-metric-label\">Open Listings</div><div class=\"ds-metric-value\">3,897</div></div>",
-      "css": ".ds-metric-card { background: var(--white); color: var(--black); padding: 18px 16px; min-height: 116px; display: flex; flex-direction: column; justify-content: space-between; } .ds-metric-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--grey); } .ds-metric-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 10px; color: var(--black); }"
+      "html": "<div class=\"ds-metric-card\"><div class=\"ds-metric-label\">Open Jobs</div><div class=\"ds-metric-value\">4,705</div></div>",
+      "css": ".ds-metric-card { background: var(--white); color: var(--black); padding: 18px 16px; min-height: 116px; display: flex; flex-direction: column; justify-content: space-between; } .ds-metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--grey); } .ds-metric-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 10px; color: var(--black); }"
     },
     {
       "name": "Status Dot",
       "kind": "custom",
       "refersTo": null,
-      "description": "Signature live-status indicator -- square block, jump-cut torch flicker while live, goes solid alert-red with animation killed outright when stale.",
+      "description": "Signature live-status indicator -- square block, jump-cut torch flicker while live, goes solid alert-red with animation killed outright when offline (no sync in 16+ minutes).",
       "html": "<span class=\"ds-status-dot\"></span>",
-      "css": ".ds-status-dot { width: 8px; height: 8px; background: var(--green); display: inline-block; animation: ds-torch-flicker 1.6s steps(1) infinite; } .ds-status-dot.ds-stale { background: var(--red); animation: none; } @keyframes ds-torch-flicker { 0%, 100% { opacity: 1; } 6% { opacity: 0.8; } 11% { opacity: 1; } 19% { opacity: 0.55; } 27% { opacity: 1; } 33% { opacity: 0.85; } 41% { opacity: 1; } 52% { opacity: 0.7; } 58% { opacity: 1; } 69% { opacity: 0.9; } 74% { opacity: 1; } 83% { opacity: 0.6; } 89% { opacity: 1; } }"
+      "css": ".ds-status-dot { width: 8px; height: 8px; background: var(--green); display: inline-block; animation: ds-torch-flicker 1.6s steps(1) infinite; } .ds-status-dot.ds-offline { background: var(--red); animation: none; } @keyframes ds-torch-flicker { 0%, 100% { opacity: 1; } 6% { opacity: 0.8; } 11% { opacity: 1; } 19% { opacity: 0.55; } 27% { opacity: 1; } 33% { opacity: 0.85; } 41% { opacity: 1; } 52% { opacity: 0.7; } 58% { opacity: 1; } 69% { opacity: 0.9; } 74% { opacity: 1; } 83% { opacity: 0.6; } 89% { opacity: 1; } }"
+    },
+    {
+      "name": "GitHub Icon Link",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Replaces a text \"source\" link -- inline SVG, ink by default, signal green on hover, sends visitors to the repo.",
+      "html": "<a class=\"ds-icon-link\" href=\"#\" aria-label=\"View source on GitHub\"><svg viewBox=\"0 0 16 16\" width=\"18\" height=\"18\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z\"/></svg></a>",
+      "css": ".ds-icon-link { display: inline-flex; align-items: center; color: var(--black); } .ds-icon-link:hover { color: var(--green); }"
     }
   ],
   "narrative": {
     "northStar": "The Exchange Ticker",
-    "overview": "A market terminal, not a careers site: white paper, black ink, a single green reserved for the one number or status that matters right now, and a scrolling headline strip up top like a ticker tape. Everything reads as a live instrument panel over a job market, not as a brand experience -- density and legibility win over warmth every time there's a conflict between them. The one indulgence is a single pixel-grid display face, kept to two places (the wordmark and the two section titles) so it reads as a signature, not a typeface choice bleeding into body text.",
+    "overview": "A market terminal, not a careers site: sage-cream paper, deep forest-green ink, a single lighter green reserved for the one number or status that matters right now, and a scrolling headline strip up top like a ticker tape. Everything reads as a live instrument panel over a job market, not as a brand experience -- density and legibility win over warmth every time there's a conflict between them. The one indulgence is a single display face (Overused Grotesk, weight 400), kept to two places (the wordmark and the two section titles) so it reads as a signature, not a typeface choice bleeding into body text.",
     "keyCharacteristics": [
-      "Flat, two-tone (white/black) surfaces with color used as signal, not decoration",
-      "Depth built entirely from 2px black hairline grids, never shadows",
-      "One pixel-grid display face for brand moments; Helvetica for everything data-dense",
-      "Light/dark is a total token inversion, not a second palette",
+      "Flat, two-tone (sage-cream/forest-green) surfaces with color used as signal, not decoration",
+      "Depth built entirely from 2px hairline grids, never shadows",
+      "One bold display face for brand moments; Helvetica for everything data-dense",
+      "Light and dark are two deliberately tuned palettes, not a hex inversion",
       "A live-status vocabulary (the ticker, the status-dot torch flicker) borrowed from terminals/dashboards, not marketing sites"
     ],
     "rules": [
       { "name": "The One Voice Rule", "body": "Green marks exactly one \"this matters\" element at a time. If everything is green, nothing is -- it never appears as decoration, only on live status, primary metrics, and the handful of buttons/links that actually do something.", "section": "colors" },
-      { "name": "The Straight Swap Rule", "body": "Light and dark mode are not two palettes -- --white/--black (and everything derived from them) simply invert their hex values under [data-theme=\"dark\"]. Every rule in the system reads the token, never a literal hex, so the swap is total; a hardcoded #fff/#000 anywhere breaks dark mode for that one element.", "section": "colors" },
-      { "name": "The Two-Voice Rule", "body": "Helvetica (--font) carries everything dense; Monocraft (--font-display) is reserved for exactly two brand-level spots. No third typeface is part of the system.", "section": "typography" },
+      { "name": "The Token Rule", "body": "Light and dark mode are two independently tuned palettes, not a hex inversion of each other -- but every rule in the system still reads var(--white)/var(--black) (never a literal hex), so retuning either palette only ever means editing the two :root blocks. A hardcoded #fff/#000 anywhere breaks that.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Helvetica (via --font) carries everything dense; Overused Grotesk (via --font-display) is reserved for exactly two brand-level spots. No third typeface is part of the system.", "section": "typography" },
       { "name": "The No-Shadow Rule", "body": "The black rules between cards are the only depth cue this design uses. A shadow anywhere is a bug, not a style choice.", "section": "elevation" }
     ],
     "dos": [
       "Do keep border-radius at 0 everywhere, no exceptions.",
       "Do build all depth/separation from the 2px black rule grid or a 1px hairline -- never a shadow.",
-      "Do read every color from a var(--token), never a literal hex, so the light/dark straight-swap stays total.",
+      "Do read every color from a var(--token), never a literal hex, so retuning a palette only ever means editing the two :root blocks.",
       "Do keep green to exactly one \"this matters most\" element at a time.",
-      "Do keep Monocraft scoped to the wordmark and the two section titles only -- never at data-dense sizes.",
+      "Do keep Overused Grotesk (display) scoped to the wordmark and the two section titles only -- never at data-dense sizes.",
       "Do let --gutter's clamp() drive side padding instead of a fixed max-width container, so the page keeps scaling at ultra-wide widths.",
-      "Do give any element holding an unbreakable-width child (a curl command, a long label) min-width: 0."
+      "Do give any element holding an unbreakable-width child (a curl command, a long label) min-width: 0 -- this codebase has hit the grid/flex default-overflow bug repeatedly and the fix is always this."
     ],
     "donts": [
       "Don't add a second accent color. Signal Green is the only one; a second dilutes what green means everywhere else.",
