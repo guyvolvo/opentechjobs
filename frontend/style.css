@@ -294,7 +294,7 @@ button, input, select {
   background: var(--white);
   color: var(--black);
   font-family: var(--font);
-  font-size: 12.5px;
+  font-size: 13px; /* Body, matching .filters input/.ms-toggle -- 12.5px sat in the gap between Label and Body for no reason */
   font-weight: 700;
   text-align: left;
   cursor: pointer;
