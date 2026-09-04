@@ -109,18 +109,42 @@ function companyLogoUrl(domain, size = 32) {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
 }
 
-// apple-touch-icon.png is a near-universal convention (iOS/PWA
-// home-screen bookmarks) that most sites serve at a real resolution --
-// 180x180 typically, sometimes 512x512 -- miles better than a favicon.
-// A plain same-path image request, no API/key/account involved. Falls
-// back to the (lower-quality but near-universally present) favicon via
-// onerror when a site doesn't have one, rather than showing a broken
-// image -- still $0, still no signup, just a better first attempt.
+// Generated, not fetched -- a flat ink-on-paper initial in the same
+// square/no-radius language as everything else in DESIGN.md, for when
+// no real icon worth showing exists anywhere. A data: URI, so it's
+// always available with no network round-trip once picked.
+function monogramLogoSvg(domain) {
+  const letter = (domain || "").trim().charAt(0).toUpperCase() || "?";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#40513b"/><text x="32" y="33" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#f3f6e4" text-anchor="middle" dominant-baseline="central">${letter}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+// Reported live: Overwolf's real favicon.ico is a genuine 16x16 (verified
+// via a direct curl, not assumed) with no apple-touch-icon anywhere on
+// the site either -- Google's service was never the bug there, it was
+// already showing the best real source, just upscaled. Four tiers, each
+// one a same-origin/no-key image request or a local fallback, cheapest
+// and most honest first:
+//   1. apple-touch-icon.png -- the high-res convention, when it exists.
+//   2. the domain's own favicon.ico, fetched directly (not through a
+//      resizing proxy) specifically so naturalWidth reflects the real
+//      file -- a genuinely tiny one (<=32px) skips straight to the
+//      monogram instead of rendering blurry, rather than pretending an
+//      upscale is a real logo.
+//   3. Google's favicon service -- catches the case a site's icon isn't
+//      at a guessable path at all (declared via a <link> tag instead);
+//      that's the one failure mode a direct path guess can't solve.
+//   4. the generated monogram, unconditionally available.
 function companyLogoImg(domain, size, extraClass = "") {
-  const highRes = escapeHtml(`https://${domain}/apple-touch-icon.png`);
-  const fallback = escapeHtml(companyLogoUrl(domain, size));
+  const touchIcon = escapeHtml(`https://${domain}/apple-touch-icon.png`);
+  const directFavicon = escapeHtml(`https://${domain}/favicon.ico`);
+  const googleFavicon = escapeHtml(companyLogoUrl(domain, size));
+  const monogram = escapeHtml(monogramLogoSvg(domain));
   const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
-  return `<img class="${cls}" src="${highRes}" data-fallback="${fallback}" alt="" loading="lazy" onerror="this.onerror=null;this.src=this.dataset.fallback;" />`;
+  return `<img class="${cls}" src="${touchIcon}" alt="" loading="lazy"
+    data-stage="1" data-direct-favicon="${directFavicon}" data-google-favicon="${googleFavicon}" data-monogram="${monogram}"
+    onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.src=this.dataset.monogram;}"
+    onload="if(this.dataset.stage==='2'&&this.naturalWidth&&this.naturalWidth<=32){this.onerror=null;this.src=this.dataset.monogram;}" />`;
 }
 
 function fmtInt(n) {
