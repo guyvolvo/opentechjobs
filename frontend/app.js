@@ -58,9 +58,7 @@ let msDepartment, msSeniority, msCompany, msLocation, msWorkplace;
 // scrolls off the current page.
 let selectedJobId = null;
 
-// ---------------------------------------------------------------------------
 // storage
-// ---------------------------------------------------------------------------
 
 function getStarred() {
   try {
@@ -77,9 +75,7 @@ function toggleStar(id) {
   return s;
 }
 
-// ---------------------------------------------------------------------------
 // fetch helpers
-// ---------------------------------------------------------------------------
 
 async function getJSON(path) {
   const res = await fetch(`${API_BASE}${path}`);
@@ -99,9 +95,7 @@ function qs(params) {
   return p.toString();
 }
 
-// ---------------------------------------------------------------------------
 // formatting
-// ---------------------------------------------------------------------------
 
 function fmtInt(n) {
   return (n ?? 0).toLocaleString("en-US");
@@ -147,9 +141,7 @@ function debounce(fn, ms) {
   };
 }
 
-// ---------------------------------------------------------------------------
 // metrics dashboard
-// ---------------------------------------------------------------------------
 
 function renderMetrics(stats) {
   const el = document.getElementById("metrics-grid");
@@ -358,9 +350,7 @@ function renderPanels(stats) {
   });
 }
 
-// ---------------------------------------------------------------------------
 // job board
-// ---------------------------------------------------------------------------
 
 let lastJobsResponse = null;
 
@@ -559,12 +549,10 @@ function renderPagination(data) {
   });
 }
 
-// ---------------------------------------------------------------------------
 // job detail panel: opens beside the list on selecting a row (never a
 // modal). Renders instantly from the row's already-known fields, then
 // fills in `description` once GET /api/jobs/{id} resolves, since the list
 // endpoint doesn't carry full descriptions.
-// ---------------------------------------------------------------------------
 
 function findKnownJob(id) {
   return lastJobsResponse?.jobs?.find((j) => j.id === id) || null;
@@ -720,9 +708,7 @@ function wireJobDetail() {
   });
 }
 
-// ---------------------------------------------------------------------------
 // multi-select filter dropdown (Category / Level / Company)
-// ---------------------------------------------------------------------------
 
 // One open dropdown at a time. Opening a second one closes whichever
 // was already open, same as a native <select> would behave.
@@ -843,9 +829,7 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
 
 document.addEventListener("click", () => OPEN_MULTISELECTS.forEach((closeOther) => closeOther()));
 
-// ---------------------------------------------------------------------------
 // filter wiring
-// ---------------------------------------------------------------------------
 
 function wireFilters() {
   document.getElementById("f-q").addEventListener(
@@ -995,9 +979,7 @@ function setActiveSortHeader(key, dir) {
   th.setAttribute("data-dir", dir === "desc" ? "↓" : "↑");
 }
 
-// ---------------------------------------------------------------------------
 // boot
-// ---------------------------------------------------------------------------
 
 async function loadFilterOptions(stats) {
   // Reuse /api/stats' curated top_departments rather than every distinct
@@ -1032,9 +1014,7 @@ async function refreshLocationOptions() {
   }
 }
 
-// ---------------------------------------------------------------------------
 // theme (light/dark)
-// ---------------------------------------------------------------------------
 
 const THEME_KEY = "iljobs_theme";
 

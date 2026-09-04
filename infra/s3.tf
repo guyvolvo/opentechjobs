@@ -1,8 +1,6 @@
-# ---------------------------------------------------------------------------
 # Data bucket: jobs.db (read only by the Lambda's IAM role), raw
 # resolved.json, and Parquet snapshots. Private, nothing here is served
 # directly to the public.
-# ---------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "data" {
   bucket = var.data_bucket_name
@@ -35,10 +33,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
   }
 }
 
-# ---------------------------------------------------------------------------
 # Frontend bucket: static site. Private, served only via CloudFront's
 # Origin Access Control; nobody hits S3 directly.
-# ---------------------------------------------------------------------------
 
 resource "aws_s3_bucket" "frontend" {
   bucket = var.frontend_bucket_name

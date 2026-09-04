@@ -165,9 +165,7 @@ def token_candidates(domain: str) -> list[str]:
     return uniq
 
 
-# --------------------------------------------------------------------------
 # fetchers: each returns a list[Job], or None if the token does not exist
-# --------------------------------------------------------------------------
 
 def _txt(v: Any) -> str:
     if v is None:
@@ -564,7 +562,6 @@ FETCHERS: dict[str, Callable] = {
     "smartrecruiters": f_smartrecruiters,
 }
 
-# --------------------------------------------------------------------------
 # Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered
 # server-side from two embeds on the company's own careers page, no JS
@@ -576,7 +573,6 @@ FETCHERS: dict[str, Callable] = {
 #      streamed React payloads, so unescape before matching)
 # Sites with neither embed (e.g. Coralogix) aren't caught here. This is
 # a real subset of Comeet, not all of it.
-# --------------------------------------------------------------------------
 
 COMEET_RE = re.compile(
     r'"(?:comeet_token|token)"\s*:\s*"([^"]+)"\s*,\s*"(?:comeet_uid|company-uid)"\s*:\s*"([^"]+)"'
@@ -645,7 +641,6 @@ def _fetch_comeet_pin(sess: requests.Session, uid: str, token: str) -> list[Job]
     return [_comeet_job(j, uid, token) for j in jobs]
 
 
-# --------------------------------------------------------------------------
 # Best-effort tier: for domains that miss every guessable/pinned ATS above.
 # Scrapes the company's own careers page (never a third party), two ways:
 #
@@ -658,7 +653,6 @@ def _fetch_comeet_pin(sess: requests.Session, uid: str, token: str) -> list[Job]
 #   2. schema.org JobPosting JSON-LD: many custom career sites emit this
 #      for Google for Jobs SEO. No live API to verify against, so these
 #      are tagged confidence='best_effort', never blended into 'verified'.
-# --------------------------------------------------------------------------
 
 EMBED_ATS_PATTERNS: list[tuple[str, "re.Pattern[str]"]] = [
     ("greenhouse", re.compile(r"(?:job-)?boards\.greenhouse\.io/([a-zA-Z0-9_-]+)")),

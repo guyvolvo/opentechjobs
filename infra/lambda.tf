@@ -1,4 +1,3 @@
-# ---------------------------------------------------------------------------
 # API Lambda. Designed for a Function URL (no per-request cost, see
 # apigateway.tf for why it's temporarily fronted by API Gateway instead).
 #
@@ -6,7 +5,6 @@
 # infra-apply time. deploy-api.yml (GitHub Actions) ships real code
 # changes via `aws lambda update-function-code`, so infra applies don't
 # need to run on every API code change.
-# ---------------------------------------------------------------------------
 
 data "archive_file" "api" {
   type        = "zip"

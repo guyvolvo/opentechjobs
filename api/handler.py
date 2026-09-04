@@ -129,9 +129,7 @@ def _add_in_filter(where: list, args: list, params: dict, param_name: str, colum
     args.extend(values)
 
 
-# ---------------------------------------------------------------------------
 # /jobs
-# ---------------------------------------------------------------------------
 
 def route_jobs(params: dict) -> dict:
     conn = get_connection()
@@ -234,11 +232,9 @@ def route_jobs(params: dict) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
 # /jobs/{id}: a stable permalink, separate from job.url (which the ATS
 # can 404 once a role closes). Always resolves, answering with closed_at
 # set if the job has closed, so a saved link never just dead-ends.
-# ---------------------------------------------------------------------------
 
 def route_job_detail(job_id: str) -> dict | None:
     conn = get_connection()
@@ -253,9 +249,7 @@ def route_job_detail(job_id: str) -> dict | None:
     return dict(row) if row else None
 
 
-# ---------------------------------------------------------------------------
 # /companies
-# ---------------------------------------------------------------------------
 
 def route_companies(params: dict) -> dict:
     conn = get_connection()
@@ -283,9 +277,7 @@ def route_companies(params: dict) -> dict:
     return {"companies": [dict(r) for r in rows], "total": len(rows)}
 
 
-# ---------------------------------------------------------------------------
 # /stats
-# ---------------------------------------------------------------------------
 
 def route_stats(params: dict | None = None) -> dict:
     """Everything the homepage dashboard needs, as a handful of cheap SQL

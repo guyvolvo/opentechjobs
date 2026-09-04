@@ -21,9 +21,7 @@ locals {
   github_oidc_sub = "repo:${var.github_repo}:ref:refs/heads/${var.github_deploy_branch}"
 }
 
-# ---------------------------------------------------------------------------
 # infra-deploy: used by deploy-infra.yml (terraform plan/apply)
-# ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "infra_deploy" {
   name = "${var.project_name}-infra-deploy"
@@ -105,9 +103,7 @@ resource "aws_iam_role_policy" "infra_deploy" {
   })
 }
 
-# ---------------------------------------------------------------------------
 # data-deploy: used by both scrape workflows. jobs.db/known.json only, nothing else.
-# ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "data_deploy" {
   name = "${var.project_name}-data-deploy"
@@ -145,9 +141,7 @@ resource "aws_iam_role_policy" "data_deploy" {
   })
 }
 
-# ---------------------------------------------------------------------------
 # api-deploy: used by deploy-api.yml. Update Lambda code, nothing else.
-# ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "api_deploy" {
   name = "${var.project_name}-api-deploy"
@@ -179,10 +173,8 @@ resource "aws_iam_role_policy" "api_deploy" {
   })
 }
 
-# ---------------------------------------------------------------------------
 # frontend-deploy: used by deploy-frontend.yml. Sync frontend/ to the
 # frontend bucket, invalidate this one distribution. Nothing else.
-# ---------------------------------------------------------------------------
 
 resource "aws_iam_role" "frontend_deploy" {
   name = "${var.project_name}-frontend-deploy"

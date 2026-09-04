@@ -115,9 +115,7 @@ button, input, select {
   margin: 0 0 24px;
 }
 
-/* ---------------------------------------------------------------------- */
 /* Topbar */
-/* ---------------------------------------------------------------------- */
 
 .topbar {
   font-family: var(--font-display);
@@ -143,10 +141,8 @@ button, input, select {
 .topbar .container > * { min-width: 0; } /* same min-width:auto issue as everywhere else in this file */
 .wordmark, .topnav { flex: 0 0 auto; } /* natural width; the ticker is the one flexible element between them */
 
-/* ---------------------------------------------------------------------- */
 /* Topbar ticker: seamless CSS-loop marquee. The item list is duplicated
    once in the track, animated exactly -50% so the loop has no visible seam. */
-/* ---------------------------------------------------------------------- */
 
 .ticker-rule { flex: 0 0 auto; width: var(--rule); height: 22px; background: var(--black); }
 
@@ -249,11 +245,9 @@ button, input, select {
   89% { opacity: 1; }
 }
 
-/* ---------------------------------------------------------------------- */
 /* Workspace: Job Board (main) + Market Stats (a permanent right-hand
    board, not a drawer/overlay). Stacks vertically under the responsive
    breakpoint at the end of this file. */
-/* ---------------------------------------------------------------------- */
 
 .workspace {
   display: grid;
@@ -290,9 +284,7 @@ button, input, select {
 .stats-board .metrics-grid { grid-template-columns: repeat(2, 1fr); }
 .stats-board .panel-grid { grid-template-columns: 1fr; }
 
-/* ---------------------------------------------------------------------- */
 /* Metrics grid */
-/* ---------------------------------------------------------------------- */
 
 /* Same shape as .panel-grid/.panel below: the black background is just
    the hairline showing through the gaps. The cells are the light
@@ -431,9 +423,7 @@ button, input, select {
   .panel-grid { grid-template-columns: 1fr; }
 }
 
-/* ---------------------------------------------------------------------- */
 /* Job board */
-/* ---------------------------------------------------------------------- */
 
 /* The list and its detail panel, side by side. Same fixed-width-sidebar
    idiom as .workspace (board/stats). .job-detail starts [hidden] in
@@ -888,9 +878,7 @@ table.jobs .company { color: var(--grey); font-size: 11.5px; text-transform: upp
 }
 .error-state { border-color: var(--red); color: var(--red); }
 
-/* ---------------------------------------------------------------------- */
 /* Footer */
-/* ---------------------------------------------------------------------- */
 
 footer {
   padding: 40px 0 60px;
@@ -975,9 +963,7 @@ footer code {
 }
 footer p { color: var(--grey); margin: 0 0 8px; }
 
-/* ---------------------------------------------------------------------- */
 /* Responsive */
-/* ---------------------------------------------------------------------- */
 
 @media (max-width: 960px) {
   .workspace { grid-template-columns: 1fr; }
