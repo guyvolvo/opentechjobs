@@ -169,6 +169,9 @@ grotesque-sans display face — never the reverse.
   "Market Stats") only. Never used at table-row or data-dense sizes.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
   metric tile — the one place body copy gets genuinely large.
+- **Subtitle** (700, 17px): the job-detail panel's title (`.job-detail-title`)
+  — needs to read as more prominent than table-row body text without
+  competing with the two genuine display-face headings above it.
 - **Body** (400, 13–14px): filters, table cells, panel prose, buttons.
 - **Label** (700, 10–12px, uppercase, 0.06–0.1em tracking): column
   headers, panel titles, chip text, the result count, the topnav.
@@ -188,6 +191,14 @@ fold it into the Two-Voice Rule as a named third case, or replace it with
 `--font` + a `.param` background treatment to keep the claim literally
 true. Left for `/impeccable audit` / a deliberate call, not silently
 changed here.
+
+`footer code` (the API-Reference `curl` example) uses literal
+`#0a0a0a`/`#2fae60`, not `var(--black)`/`var(--green)`, with its own
+inline comment explaining why: a terminal/code block reads as an actual
+terminal, so it stays fixed-dark regardless of the page's own light/dark
+state, the same way a real code sample in a README doesn't re-theme
+itself. A deliberate, narrow exception to the Token Rule below, not
+drift — noted here so it doesn't get "fixed" back to a token by mistake.
 
 ## Layout
 

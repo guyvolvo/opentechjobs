@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-04T10:58:00Z",
+  "generatedAt": "2026-09-04T11:35:00Z",
   "title": "Design System: OpenMarketIL",
   "extensions": {
     "colorMeta": {
@@ -16,6 +16,7 @@
       "display-wordmark": { "displayName": "Display / Wordmark", "purpose": "The topbar wordmark only (\"OpenMarket.IL\"). 13px below the 640px breakpoint." },
       "display-section-title": { "displayName": "Display / Section Title", "purpose": "The two section titles (\"Job Board\" / \"Market Stats\") only -- never at table-row or data-dense sizes." },
       "title-metric": { "displayName": "Title / Metric", "purpose": "The large number on a metric tile -- the one place body copy gets genuinely large." },
+      "subtitle": { "displayName": "Subtitle", "purpose": "The job-detail panel's title (.job-detail-title) -- more prominent than table-row body text, without competing with the two display-face headings." },
       "body": { "displayName": "Body", "purpose": "Filters, table cells, panel prose, buttons -- everything data-dense." },
       "label": { "displayName": "Label", "purpose": "Uppercase micro-labels: column headers, panel titles, chips, result count, topnav." }
     },
