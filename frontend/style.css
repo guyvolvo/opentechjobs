@@ -1007,10 +1007,15 @@ table.jobs tbody tr { border-bottom: 1px solid var(--black); }
 table.jobs tbody tr:hover { background: var(--hover-bg); }
 table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
 
-/* Card layout: logo left, title/meta/actions stacked right -- the
-   LinkedIn-style grouping the user asked for, replacing what used to be
-   three separate table columns (Title, Location, Category) merged into
-   one. min-width:0 on the body is load-bearing (DESIGN.md's own rule):
+/* Card layout: logo left, title/meta/actions in the middle, salary +
+   skills as a third column at the right -- the LinkedIn-style grouping
+   the user asked for, replacing what used to be three separate table
+   columns (Title, Location, Category). .job-card-body's flex:1 is what
+   pushes .job-tags to the row's right edge: the body's own text is
+   left-aligned and usually much narrower than the space flex:1 gives
+   its box, so .job-tags (the next flex item) lands right after that
+   box ends, near the Age column -- not immediately after the text.
+   min-width:0 on the body is load-bearing (DESIGN.md's own rule):
    without it a long unbroken domain/title stops the flex item from
    ever shrinking below its content width. */
 table.jobs .title-cell {
@@ -1036,11 +1041,16 @@ table.jobs .title-cell a:hover { color: var(--green); }
 
 /* Salary (real disclosed or an estimate, see app.js's jobSalaryHtml)
    plus skill chips -- confirmed live: plain text, no border/background
-   at all, same weight as .job-meta above it, not a boxed/badge
-   treatment. Fills the row's own width with real structured data
-   instead of the empty space a bare title+meta line left behind. */
+   at all, same weight as .job-meta, not a boxed/badge treatment. A
+   third flex column of .title-cell (not stacked under the card body --
+   reported live, that just added row height without using the row's
+   actual horizontal space), roughly aligned with .job-meta's height via
+   the top padding below. flex-shrink:0 plus a max-width keeps it from
+   either collapsing to nothing or stretching to eat the whole row. */
 .job-tags {
-  margin-top: 4px;
+  flex: 0 1 220px;
+  max-width: 220px;
+  padding-top: 20px; /* clears .job-card-title's line so this starts level with .job-meta */
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1283,8 +1293,11 @@ footer p { color: var(--grey); margin: 0 0 8px; }
   /* One class more specific than the blanket "table.jobs td" reset
      above, so this wins without !important -- logo-left/title-right
      stays a real card at phone width too, instead of the logo stacking
-     above the text like every other cell here. */
-  table.jobs td.title-cell { display: flex; }
+     above the text like every other cell here. flex-wrap (desktop stays
+     nowrap, the default): .job-tags drops to its own row below the card
+     body instead of squeezing a 3-column layout into a phone's width. */
+  table.jobs td.title-cell { display: flex; flex-wrap: wrap; }
+  table.jobs .job-tags { padding-top: 4px; max-width: 100%; }
   table.jobs tr { padding: 10px 0; }
   /* Stacked cells need a label to tell them apart. app.js's data-label
      attribute stands in for the table header that display:none removed. */
