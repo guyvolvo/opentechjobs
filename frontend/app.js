@@ -100,12 +100,27 @@ function qs(params) {
 // Google's favicon endpoint, keyed off the domain we already track for
 // every job/company. Clearbit's free logo API (the previous go-to for
 // this) shut down in December 2025 -- this is the zero-setup
-// replacement: no signup, no key, no per-request cost. Quality is
-// favicon-grade (small, occasionally a generic placeholder for an
-// obscure domain), not a real logo API's crisp square mark, but that's
-// the tradeoff for staying at $0 with no new account.
+// fallback: no signup, no key, no per-request cost. It's genuinely low
+// quality though -- most sites' actual favicon.ico is a crude 16x16,
+// and Google just upscales whatever's there (reported live: Overwolf's
+// detailed claw-mark logo turned to mush at display size). See
+// companyLogoImg below for the higher-res attempt this backs up.
 function companyLogoUrl(domain, size = 32) {
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
+}
+
+// apple-touch-icon.png is a near-universal convention (iOS/PWA
+// home-screen bookmarks) that most sites serve at a real resolution --
+// 180x180 typically, sometimes 512x512 -- miles better than a favicon.
+// A plain same-path image request, no API/key/account involved. Falls
+// back to the (lower-quality but near-universally present) favicon via
+// onerror when a site doesn't have one, rather than showing a broken
+// image -- still $0, still no signup, just a better first attempt.
+function companyLogoImg(domain, size, extraClass = "") {
+  const highRes = escapeHtml(`https://${domain}/apple-touch-icon.png`);
+  const fallback = escapeHtml(companyLogoUrl(domain, size));
+  const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
+  return `<img class="${cls}" src="${highRes}" data-fallback="${fallback}" alt="" loading="lazy" onerror="this.onerror=null;this.src=this.dataset.fallback;" />`;
 }
 
 function fmtInt(n) {
@@ -257,7 +272,7 @@ function renderBarList(rows, nameKey, { clickable = false } = {}) {
       const name = escapeHtml(r[nameKey]);
       return `
       <div class="bar-row ${clickable ? "clickable" : ""}" ${clickable ? `data-company="${name}"` : ""}>
-        <div class="name">${clickable ? `<img class="company-logo" src="${companyLogoUrl(r[nameKey], 16)}" alt="" loading="lazy" />` : ""}${name}</div>
+        <div class="name">${clickable ? companyLogoImg(r[nameKey], 16) : ""}${name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${(r.n / max) * 100}%"></div></div>
         <div class="n">${fmtInt(r.n)}</div>
       </div>`;
@@ -597,7 +612,7 @@ function renderJobRows(jobs, starred) {
           </button>
         </td>
         <td class="title-cell">
-          <img class="company-logo listing" src="${companyLogoUrl(j.company_domain, 64)}" alt="" loading="lazy" />
+          ${companyLogoImg(j.company_domain, 64, "listing")}
           <div class="job-card-body">
             <div class="job-card-title">
               <a href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>
@@ -734,7 +749,7 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
   return `
     <div class="job-detail-header">
       <div>
-        <div class="job-detail-company"><img class="company-logo detail" src="${companyLogoUrl(job.company_domain, 64)}" alt="" loading="lazy" />${escapeHtml(job.company_domain)}</div>
+        <div class="job-detail-company">${companyLogoImg(job.company_domain, 64, "detail")}${escapeHtml(job.company_domain)}</div>
         <h3 class="job-detail-title">${escapeHtml(job.title)}</h3>
         <div class="job-detail-badges">
           ${job.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority)}</span>` : ""}
