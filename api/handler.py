@@ -188,7 +188,7 @@ def route_jobs(params: dict) -> dict:
     rows = conn.execute(
         f"""
         SELECT id, company_domain, ats, title, location, department, seniority, workplace_type, url,
-               posted_at, confidence, first_seen, last_seen, closed_at, description_snippet
+               posted_at, confidence, first_seen, last_seen, closed_at
         FROM jobs
         WHERE {where_sql}
         ORDER BY {null_order}, {sort_col} {sort_dir}

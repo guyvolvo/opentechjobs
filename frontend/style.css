@@ -1034,22 +1034,6 @@ table.jobs .title-cell a:hover { color: var(--green); }
    read oddly shouted in all-caps) than to a table-header-style tag. */
 .job-meta { color: var(--grey); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
 
-/* probe.py's _extract_snippet already caps this to ~220 chars at a word
-   boundary, so the clamp below is a defensive backstop, not the primary
-   length control -- fills the row's own width with something real
-   instead of empty space, without letting an edge-case-long one blow
-   out row height. */
-.job-snippet {
-  color: var(--black);
-  font-size: 12px;
-  line-height: 1.4;
-  margin-top: 6px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
 /* Google's favicon endpoint (see app.js's companyLogoUrl) -- no border
    radius, matching DESIGN.md's rounded:none everywhere else in this
    Swiss-grid layout, not a soft app-icon treatment. object-fit:contain

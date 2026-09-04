@@ -39,9 +39,6 @@ CREATE TABLE IF NOT EXISTS jobs (
     description         TEXT,              -- cleaned plain text (see probe.py's _clean_text), NULL
                                             -- where the ATS's list endpoint has no description at
                                             -- all (SmartRecruiters, Comeet, Workday). Powers keyword search.
-    description_snippet TEXT,              -- 1-2 line preview of the role itself, not "About us"
-                                            -- boilerplate -- see probe.py's _extract_snippet. NULL
-                                            -- wherever description itself is NULL.
     seniority           TEXT,              -- intern|junior|mid|senior|staff|principal|lead|manager|
                                             -- director|exec|NULL. Structured ATS field when one
                                             -- exists, else a title-keyword guess. NULL is common:
