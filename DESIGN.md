@@ -1,14 +1,14 @@
 ---
 name: OpenMarketIL
-description: Swiss-grid job board for the Israeli tech market — ground-truthed data, zero decoration, on an off-white paper ground.
+description: Swiss-grid job board for the Israeli tech market — ground-truthed data, zero decoration, on an earthy sage-and-cream ground.
 colors:
-  paper: "#f2f0ef"
-  ink: "#0a0a0a"
-  signal-green: "#1c7c3f"
-  muted-grey: "#6b6b6b"
-  hairline-grey: "#d9d6d3"
+  paper: "#edf1d6"
+  ink: "#40513b"
+  signal-green: "#609966"
+  muted-grey: "#89947c"
+  hairline-grey: "#c9dbb4"
   alert-red: "#b8362c"
-  hover-tint: "#e7e4e1"
+  hover-tint: "#dde7c7"
 typography:
   display:
     fontFamily: "Inter, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
@@ -62,8 +62,8 @@ components:
 
 **Creative North Star: "The Exchange Ticker"**
 
-A market terminal, not a careers site: off-white paper, near-black ink, a
-single green reserved for the one number or status that matters right
+A market terminal, not a careers site: sage-cream paper, deep forest-green
+ink, a single lighter green reserved for the one number or status that matters right
 now, and a scrolling headline strip up top like a ticker tape. Everything
 reads as a live instrument panel over a job market, not as a brand
 experience — density and legibility win over warmth every time there's a
@@ -77,7 +77,7 @@ used for depth, no decorative color, no third accent hue, no drop-in UI
 framework look.
 
 **Key Characteristics:**
-- Flat, two-tone (off-white/ink) surfaces with color used as signal, not decoration
+- Flat, two-tone (sage-cream/forest-green) surfaces with color used as signal, not decoration
 - Depth built entirely from 2px hairline grids, never shadows
 - One bold display face for brand moments; Helvetica for everything data-dense
 - Light and dark are two deliberately tuned palettes, not a hex inversion
@@ -85,12 +85,14 @@ framework look.
 
 ## Colors
 
-Two-tone by design — off-white paper, near-black ink — with exactly one
-accent color and one reserved alert color, both used sparingly enough
-that their rarity is the signal.
+Two-tone by design — sage-tinted cream paper, deep forest-green ink —
+with exactly one accent color and one reserved alert color, both used
+sparingly enough that their rarity is the signal. Light mode is a fully
+earthy, monochromatic-green palette; dark mode is untouched, still a
+plain near-black/white inversion.
 
 ### Primary
-- **Signal Green** (`#1c7c3f`, `--green`; dark mode `#2fae60`): the one
+- **Signal Green** (`#609966`, `--green`; dark mode `#2fae60`): the one
   color that means "this matters more than what's around it." Live status
   (online indicator), the accent letters in the wordmark, active
   filter/sort state, hover state on buttons and links, the single
@@ -99,20 +101,23 @@ that their rarity is the signal.
   something.
 
 ### Neutral
-- **Paper** (`#f2f0ef`, `--white`; dark mode `#17181c`): the base
-  surface — a soft off-white, not pure white; dark mode is a tuned
+- **Paper** (`#edf1d6`, `--white`; dark mode `#17181c`): the base
+  surface — a sage-tinted cream, not pure white; dark mode is a tuned
   near-black, not pure black. Never applied as a "panel" color — every
   ink surface (buttons, the metrics/panel grid background, the topbar
   hover) is a deliberate component, not the page.
-- **Ink** (`#0a0a0a`, `--black`; dark mode `#ededec`): body text, borders,
+- **Ink** (`#40513b`, `--black`; dark mode `#ededec`): body text, borders,
   and every "component" surface (buttons, cards' outer frame, the
-  topbar). Dark mode's ink is a soft off-white to match, not pure white.
-- **Muted Grey** (`#6b6b6b`, `--grey`; dark mode `#9a9a9a`): secondary
-  text — labels, metadata, placeholders, the offline-state wordmark.
-- **Hairline Grey** (`#d9d6d3`, `--grey-line`; dark mode `#2b2c31`): the
+  topbar) — a deep forest green standing in for black, not a literal
+  black anywhere in light mode. Dark mode's ink is a soft off-white to
+  match, unrelated to this light-mode swap.
+- **Muted Grey** (`#89947c`, `--grey`; dark mode `#9a9a9a`): secondary
+  text — labels, metadata, placeholders, the offline-state wordmark. A
+  desaturated olive-green blend of ink and paper, not a true grey.
+- **Hairline Grey** (`#c9dbb4`, `--grey-line`; dark mode `#2b2c31`): the
   quiet dividers — table row separators, bar-chart tracks, input borders
   one step down from a full 2px rule.
-- **Hover Tint** (`#e7e4e1`, `--hover-bg`; dark mode `#1e1f24`): the one
+- **Hover Tint** (`#dde7c7`, `--hover-bg`; dark mode `#1e1f24`): the one
   soft, non-binary surface in the system, reserved for row/option hover
   states where a hard color flip would be too loud.
 

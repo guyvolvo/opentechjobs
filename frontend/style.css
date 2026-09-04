@@ -1,6 +1,6 @@
 /* OpenMarketIL. Swiss grid, modernized. System rules, don't break them
    ad hoc elsewhere in this file:
-   1. Off-white page background (--white); black/near-black ink is a
+   1. Sage-cream page background (--white); forest-green ink is a
       component color (buttons, rules), never on <body> directly.
    2. Green marks exactly one "this matters" element, never decoration.
    3. Sharp corners everywhere. No border-radius, no box-shadow depth.
@@ -21,14 +21,14 @@
 }
 
 :root {
-  --white: #f2f0ef;
-  --black: #0a0a0a;
-  --green: #1c7c3f;
-  --green-bright: #2fae60;
-  --grey: #6b6b6b;
-  --grey-line: #d9d6d3;
+  --white: #edf1d6;
+  --black: #40513b;
+  --green: #609966;
+  --green-bright: #80ad85;
+  --grey: #89947c;
+  --grey-line: #c9dbb4;
   --red: #b8362c;
-  --hover-bg: #e7e4e1;
+  --hover-bg: #dde7c7;
 
   --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
