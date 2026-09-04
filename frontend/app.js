@@ -1106,6 +1106,11 @@ function setActiveSortHeader(key, dir) {
 
 // boot
 
+// Cached so the alert-creation form (populateAlertFilterOptions, wired
+// independently of the board) can reuse whatever the board's own
+// filters last fetched instead of issuing its own duplicate requests.
+let latestCompanyOptions = null;
+
 async function loadFilterOptions(stats) {
   // Reuse /api/stats' curated top_departments rather than every distinct
   // string in the DB, which would be a hundreds-long noisy dropdown.
@@ -1120,7 +1125,9 @@ async function loadFilterOptions(stats) {
   try {
     const companies = await getJSON("/companies?resolved_only=1");
     const sorted = [...companies.companies].sort((a, b) => a.domain.localeCompare(b.domain));
-    msCompany.setOptions(sorted.map((c) => ({ value: c.domain, label: c.domain })));
+    latestCompanyOptions = sorted.map((c) => ({ value: c.domain, label: c.domain }));
+    msCompany.setOptions(latestCompanyOptions);
+    populateAlertFilterOptions();
   } catch {
     // Non-fatal: the board itself doesn't depend on this list, and
     // clicking a company in the market panels still works either way.
@@ -1197,12 +1204,18 @@ async function loadTicker() {
 // filter option counts. Not the job table/pagination itself: a listing
 // re-rendering under a user mid-scroll or mid-page would be more
 // disruptive than useful, so that stays a manual reload.
+// Cached so the alert-creation form can reuse the board's own last-fetched
+// stats (top_departments/top_locations) instead of a duplicate fetch.
+let latestStats = null;
+
 async function refreshStats() {
   try {
     const stats = await getJSON("/stats");
+    latestStats = stats;
     renderMetrics(stats);
     renderPanels(stats);
     loadFilterOptions(stats);
+    populateAlertFilterOptions();
   } catch (err) {
     const msg = `<div class="error-state" style="grid-column:1/-1">Could not load /api/stats: ${escapeHtml(err.message)}</div>`;
     document.getElementById("metrics-grid").innerHTML = msg;
@@ -1459,7 +1472,6 @@ function renderAuthState() {
       </div>`;
     wireAuthTrigger();
     wireAuthPanel();
-    updateCreateAlertVisibility();
     return;
   }
   const email = decodeJwtEmail(tokens.id_token) || "signed in";
@@ -1468,11 +1480,27 @@ function renderAuthState() {
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
       <div class="alerts-header">My Alerts</div>
       <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
+
+      <div class="alert-create">
+        <div class="alerts-header">New Alert</div>
+        <div class="alert-create-fields">
+          <input type="text" id="alert-f-q" placeholder="SEARCH TITLE, COMPANY, LOCATION…" />
+          <div class="ms" id="alert-ms-department"></div>
+          <div class="ms" id="alert-ms-seniority"></div>
+          <div class="ms" id="alert-ms-company"></div>
+          <div class="ms" id="alert-ms-location"></div>
+          <div class="ms" id="alert-ms-workplace"></div>
+          <label class="toggle"><input type="checkbox" id="alert-f-israel" checked /> Israel only</label>
+        </div>
+        <button class="btn" id="create-alert-btn" type="button">Create Alert</button>
+        <p class="create-alert-feedback" id="create-alert-feedback" hidden></p>
+      </div>
+
       <button class="auth-signout" id="auth-signout" type="button">Sign Out</button>
     </div>`;
   wireAuthTrigger();
   document.getElementById("auth-signout").addEventListener("click", signOut);
-  updateCreateAlertVisibility();
+  wireAlertCreateForm();
   loadMyAlerts().then(renderAlertsList);
 }
 
@@ -1617,7 +1645,7 @@ function renderAlertsList(alerts) {
   const container = document.getElementById("alerts-list");
   if (!container) return; // signed out (or panel re-rendered) before this resolved
   if (!alerts.length) {
-    container.innerHTML = `<p class="alerts-empty">No alerts yet. Apply some filters on the board, then click "+ Alert."</p>`;
+    container.innerHTML = `<p class="alerts-empty">No alerts yet. Pick some filters below and create one.</p>`;
     return;
   }
   container.innerHTML = alerts
@@ -1660,27 +1688,123 @@ function renderAlertsList(alerts) {
   });
 }
 
-function updateCreateAlertVisibility() {
-  document.getElementById("create-alert-btn").hidden = !getAuthTokens();
-}
-
 function showCreateAlertFeedback(msg, isError) {
   const el = document.getElementById("create-alert-feedback");
+  if (!el) return; // panel got torn down (sign out) while a request was in flight
   el.textContent = msg;
   el.classList.toggle("error", !!isError);
   el.hidden = false;
   setTimeout(() => { el.hidden = true; }, 3000);
 }
 
-function wireCreateAlert() {
+// New-alert form, lives inside the My Alerts panel with its own filter
+// pickers -- deliberately independent of `state` (the board's live
+// filters). Reported live: tying "+ Alert" to whatever the board
+// happened to be showing meant you had to first go set up the board
+// exactly right, create the alert, then undo it to keep browsing.
+// Wired fresh each time the signed-in panel renders (sign in/out
+// recreates the underlying DOM), same as wireAuthPanel().
+let alertMsDepartment, alertMsSeniority, alertMsCompany, alertMsLocation, alertMsWorkplace;
+
+const alertFormState = {
+  q: "",
+  department: [],
+  seniority: [],
+  company: [],
+  location: [],
+  workplace: [],
+  israel_only: true,
+};
+
+function resetAlertForm() {
+  alertFormState.q = "";
+  alertFormState.department = [];
+  alertFormState.seniority = [];
+  alertFormState.company = [];
+  alertFormState.location = [];
+  alertFormState.workplace = [];
+  alertFormState.israel_only = true;
+  document.getElementById("alert-f-q").value = "";
+  document.getElementById("alert-f-israel").checked = true;
+  alertMsDepartment.reset();
+  alertMsSeniority.reset();
+  alertMsCompany.reset();
+  alertMsLocation.reset();
+  alertMsWorkplace.reset();
+}
+
+// Options come from whatever /api/stats and /api/companies last
+// returned for the board's own filters (see refreshStats/
+// loadFilterOptions, which cache into latestStats/latestCompanyOptions
+// and call this again on every refresh) -- no separate fetch just for
+// this form. Location uses the unscoped, global top_locations (the
+// refreshStats() call, not the board's IL-only-rescoped one), so it
+// doesn't need its own re-fetch when the form's own Israel-only
+// checkbox is toggled.
+function populateAlertFilterOptions() {
+  if (!alertMsDepartment) return; // signed out, or panel not built yet
+  if (latestStats) {
+    alertMsDepartment.setOptions(
+      latestStats.top_departments.map((r) => ({ value: r.department, label: `${r.department} (${r.n})` }))
+    );
+    alertMsLocation.setOptions(
+      latestStats.top_locations.map((r) => ({ value: r.location, label: `${r.location} (${r.n})` }))
+    );
+  }
+  if (latestCompanyOptions) alertMsCompany.setOptions(latestCompanyOptions);
+}
+
+function wireAlertCreateForm() {
+  document.getElementById("alert-f-q").addEventListener("input", (e) => {
+    alertFormState.q = e.target.value.trim();
+  });
+
+  alertMsDepartment = createMultiSelect("alert-ms-department", {
+    placeholder: "CATEGORIES",
+    onChange: (values) => { alertFormState.department = values; },
+  });
+  alertMsSeniority = createMultiSelect("alert-ms-seniority", {
+    placeholder: "LEVELS",
+    options: Object.entries(SENIORITY_LABELS).map(([value, label]) => ({ value, label })),
+    onChange: (values) => { alertFormState.seniority = values; },
+  });
+  alertMsCompany = createMultiSelect("alert-ms-company", {
+    placeholder: "COMPANIES",
+    searchable: true,
+    onChange: (values) => { alertFormState.company = values; },
+  });
+  alertMsLocation = createMultiSelect("alert-ms-location", {
+    placeholder: "LOCATIONS",
+    searchable: true,
+    onChange: (values) => { alertFormState.location = values; },
+  });
+  alertMsWorkplace = createMultiSelect("alert-ms-workplace", {
+    placeholder: "WORKPLACE",
+    options: Object.entries(WORKPLACE_LABELS).map(([value, label]) => ({ value, label })),
+    onChange: (values) => { alertFormState.workplace = values; },
+  });
+  populateAlertFilterOptions();
+
+  document.getElementById("alert-f-israel").addEventListener("change", (e) => {
+    alertFormState.israel_only = e.target.checked;
+  });
+
   document.getElementById("create-alert-btn").addEventListener("click", async () => {
-    const raw = currentFilterParams();
-    const filter = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== "" && v != null && v !== false));
+    const raw = {
+      q: alertFormState.q,
+      department: alertFormState.department.join(","),
+      seniority: alertFormState.seniority.join(","),
+      company: alertFormState.company.join(","),
+      location: alertFormState.location.join(","),
+      workplace: alertFormState.workplace.join(","),
+      israel_only: alertFormState.israel_only ? "1" : "",
+    };
+    const filter = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== "" && v != null));
     try {
       await authedFetch("/me/alerts", { method: "POST", body: JSON.stringify({ filter }) });
       showCreateAlertFeedback("Alert created.");
-      const panel = document.getElementById("auth-panel");
-      if (panel && !panel.hidden) renderAlertsList(await loadMyAlerts());
+      resetAlertForm();
+      renderAlertsList(await loadMyAlerts());
     } catch (err) {
       showCreateAlertFeedback(err.message || "Could not create alert.", true);
     }
@@ -1696,7 +1820,6 @@ const STATS_POLL_MS = 120_000;
 async function boot() {
   await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render
   wireAuth();
-  wireCreateAlert();
   wireFilters();
   wireJobDetail();
   wireThemeToggle();

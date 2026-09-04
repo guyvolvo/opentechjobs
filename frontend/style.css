@@ -332,17 +332,56 @@ button, input, select {
 .alert-delete:hover { color: var(--red); }
 
 .create-alert-feedback {
-  margin: -12px 0 12px;
+  margin: 8px 0 0;
   font-size: 11px;
   color: var(--green);
 }
 .create-alert-feedback.error { color: var(--red); }
+
+/* New-alert form, inside the My Alerts panel (app.js's wireAlertCreateForm) --
+   its own filter pickers, independent of the board's .filters above. */
+.alert-create {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--grey-line);
+}
+.alert-create-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.alert-create-fields input[type="text"] {
+  border: var(--rule) solid var(--black);
+  background: var(--white);
+  padding: 9px 10px;
+  height: 38px;
+  width: 100%;
+  font-family: var(--font);
+}
+.alert-create-fields input[type="text"]:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+.alert-create-fields label.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px;
+  border: var(--rule) solid var(--black);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.alert-create-fields label.toggle input { accent-color: var(--green); }
+.alert-create .btn { width: 100%; }
 
 .auth-panel {
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
   width: 260px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
   background: var(--white);
   border: var(--rule) solid var(--black);
   z-index: 40;
@@ -351,7 +390,7 @@ button, input, select {
   letter-spacing: normal;
   font-family: var(--font);
 }
-.auth-panel.alerts-panel { width: 320px; } /* alert summaries + action buttons need more room than the sign-in form */
+.auth-panel.alerts-panel { width: 320px; } /* alert summaries + action buttons, plus the new-alert form, need more room than the sign-in form */
 
 .auth-provider-btn {
   display: flex;
