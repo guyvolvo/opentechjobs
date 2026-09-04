@@ -1084,7 +1084,19 @@ table.jobs .title-cell a:hover { color: var(--green); }
   cursor: pointer;
 }
 .skill-chip:hover { color: var(--green); text-decoration: underline; }
-.skill-chip:not(:last-child)::after { content: "·"; margin-left: 10px; color: var(--grey-line); }
+/* + (adjacent sibling), not :not(:last-child) -- .skill-bracket's "]"
+   is the column's real last child now (see jobSkillsHtml), so a
+   last-child check would put a stray "·" on every chip, right before
+   the bracket too. This instead marks every chip preceded by another
+   chip specifically, which the bracket spans never are. */
+.skill-chip + .skill-chip::before { content: "·"; margin-right: 10px; color: var(--grey-line); }
+/* Groups the whole skill list visually, per a live request -- the
+   brackets sit right against the first/last chip (no gap token
+   consumed for them) via negative margins, rather than reading as
+   their own separately-spaced list items. */
+.skill-bracket { color: var(--grey); }
+.skill-bracket:first-child { margin-right: -6px; }
+.skill-bracket:last-child { margin-left: -6px; }
 
 /* Google's favicon endpoint (see app.js's companyLogoUrl) -- no border
    radius, matching DESIGN.md's rounded:none everywhere else in this

@@ -641,9 +641,10 @@ function jobSalaryHtml(j) {
 function jobSkillsHtml(j) {
   const skills = (j.skills || "").split(",").filter(Boolean);
   if (!skills.length) return "";
-  return skills
+  const chips = skills
     .map((s) => `<button class="skill-chip" data-skill="${escapeHtml(s)}" type="button">${escapeHtml(s)}</button>`)
     .join("");
+  return `<span class="skill-bracket">[</span>${chips}<span class="skill-bracket">]</span>`;
 }
 
 function renderJobRows(jobs, starred) {
