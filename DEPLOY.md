@@ -51,3 +51,10 @@ From here, `scrape-discover.yml` runs unattended once/day,
 `scrape-fast.yml` every 10 min, and `deploy-infra.yml` / `deploy-api.yml` /
 `deploy-frontend.yml` handle changes to `infra/`, `api/`, and `frontend/`
 respectively.
+
+If you rename the GitHub repo (or transfer it to a different owner) after
+setup, the OIDC trust policy breaks silently: GitHub's token `sub` claim
+is ID-suffixed (`owner@id/repo@id`, not the plain name), and those IDs
+don't change on a rename, but `github_owner_id`/`github_repo_id` in
+`infra/variables.tf` still need to match whatever `github_repo` is set to
+now. Update both and re-apply.
