@@ -350,7 +350,7 @@ function renderGhostStat(ghost, openJobs) {
   const pct = Math.round(ghost.dormant_pct * 1000) / 10;
   return `
     <div class="ghost-pct">${pct}%</div>
-    <div class="ghost-sub">${fmtInt(ghost.dormant_count)} of ${fmtInt(ghost.sample_size)} open listings with a known post date haven't moved in over ${ghost.threshold_days} days (${fmtInt(openJobs)} open in total).</div>`;
+    <div class="ghost-sub">${fmtInt(ghost.dormant_count)} of ${fmtInt(ghost.sample_size)} open listings haven't been filled in over ${ghost.threshold_days} days (${fmtInt(openJobs)} open in total).</div>`;
 }
 
 function renderPanels(stats) {
