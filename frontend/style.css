@@ -831,7 +831,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
    badges, chips, cards, panels) stays sharp-cornered. */
 .filters input[type="text"],
 .filters select {
-  border: 1px solid var(--black);
+  border: 1.5px solid var(--black);
   border-radius: 4px;
   background: var(--white);
   padding: 9px 10px;
@@ -848,7 +848,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   width: 100%;
   height: 38px;
   padding: 9px 10px;
-  border: 1px solid var(--black);
+  border: 1.5px solid var(--black);
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
@@ -925,7 +925,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid var(--black);
+  border: 1.5px solid var(--black);
   border-radius: 4px;
   padding: 0 10px;
   height: 38px;
@@ -937,7 +937,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .filters label.toggle input { accent-color: var(--green); }
 /* #f-reset (Reset), not .btn generally -- .btn is used well outside the
    filter bar (Create Alert, Sign Out, etc.), which stays sharp-cornered. */
-#f-reset { border-width: 1px; border-radius: 4px; }
+#f-reset { border-width: 1.5px; border-radius: 4px; }
 
 .btn {
   border: var(--rule) solid var(--black);
