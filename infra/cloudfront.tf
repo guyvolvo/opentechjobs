@@ -74,10 +74,16 @@ resource "aws_cloudfront_distribution" "main" {
     path_pattern           = "/api/*"
     target_origin_id       = "api-lambda"
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = aws_cloudfront_cache_policy.api.id
-    compress               = true
+    # CloudFront only accepts one of three fixed sets here, not an
+    # arbitrary subset -- GET/HEAD, GET/HEAD/OPTIONS, or all seven. The
+    # full set is needed now that /api/* carries real write routes
+    # (email/start POST; the alerts CRUD routes to come are PUT/PATCH/
+    # DELETE) -- confirmed live: a plain POST 403'd ("only cachable
+    # requests") against the GET/HEAD/OPTIONS-only set this used to be.
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"]
+    cached_methods  = ["GET", "HEAD"] # never cache a write response, regardless of what's allowed through
+    cache_policy_id = aws_cloudfront_cache_policy.api.id
+    compress        = true
   }
 
   restrictions {
