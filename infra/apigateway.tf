@@ -38,6 +38,16 @@ resource "aws_apigatewayv2_stage" "api" {
   api_id      = aws_apigatewayv2_api.api.id
   name        = "$default"
   auto_deploy = true
+
+  # Free built-in cap against a runaway bill from a bot flood or scraper --
+  # no WAF, no extra service, just API Gateway's own throttle. Requests
+  # past this get a 429 instead of reaching the Lambda. Not per-IP (HTTP
+  # API v2 stage throttling is account-wide for this API), but it bounds
+  # the worst case regardless of source.
+  default_route_settings {
+    throttling_rate_limit  = 20
+    throttling_burst_limit = 40
+  }
 }
 
 resource "aws_lambda_permission" "apigw" {

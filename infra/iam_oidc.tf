@@ -119,6 +119,12 @@ resource "aws_iam_role_policy" "infra_deploy" {
         Effect   = "Allow"
         Action   = ["apigateway:*"]
         Resource = "*" # API Gateway v2 doesn't support resource-level scoping for most actions
+      },
+      {
+        Sid      = "ManageAcmCertificate"
+        Effect   = "Allow"
+        Action   = ["acm:*"]
+        Resource = "arn:aws:acm:us-east-1:*:certificate/*" # certs are always us-east-1, see acm.tf
       }
     ]
   })

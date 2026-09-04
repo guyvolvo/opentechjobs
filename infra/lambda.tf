@@ -57,6 +57,13 @@ resource "aws_lambda_function" "api" {
   memory_size      = var.lambda_memory_mb
   timeout          = var.lambda_timeout_s
 
+  # Reserved concurrency would be a second free cost cap alongside the API
+  # Gateway throttle, but this account's total il-central-1 Lambda
+  # concurrency limit is only 10 (AWS's default floor for this region),
+  # and AWS requires >=10 unreserved to remain -- reserving any amount
+  # here isn't possible without a quota increase first. The API Gateway
+  # throttle above is the real protection until that's requested.
+
   environment {
     variables = {
       DATA_BUCKET = aws_s3_bucket.data.bucket
