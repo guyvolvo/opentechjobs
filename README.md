@@ -11,7 +11,6 @@ GitHub Actions (compute + CI/CD)
 scrape-discover.yml, once/day discovery scraper that tries to find new job boards
 
 probe.py --batch domains.txt --json > resolved.json
-
 loader/load_to_sqlite.py > upserts jobs.db + re-derives known.json
 
 both pushed to S3
@@ -19,18 +18,6 @@ both pushed to S3
 scrape-fast.yml, a quicker scrape that runs every 10 min to find job postings in existing job boards
 ```
 
-Why two scrape workflows instead of one: discovering a company's ATS
-(guessing tokens, scraping its careers page for Comeet/Workday/embedded-
-ATS links, falling back to JobPosting JSON-LD) is expensive, measured
-~15 min over ~350 domains, but a company's ATS platform essentially
-never changes minute to minute, so there's nothing to gain from
-re-running that discovery often, only cost. Re-polling a board whose
-ats+token is *already known* is a single direct API call, ~4s for 123
-companies measured, so that's the piece that actually runs "as up to
-date as possible" (every 10 min; see scrape-fast.yml's header for why not
-tighter). `loader.py` re-derives `known.json` on every load, discovery or
-fast-poll alike, so anything newly discovered is available to the very
-next fast-poll run, not stuck behind the next daily discovery cycle.
 
 Since budget was the the primary limitation for this project I went with an SQLite DB in S3 instead of RDS which costs basically nothing
 
