@@ -156,6 +156,12 @@ resource "aws_iam_role_policy" "infra_deploy" {
         Effect   = "Allow"
         Action   = ["cognito-idp:DescribeUserPoolDomain", "cognito-idp:CreateUserPoolDomain", "cognito-idp:UpdateUserPoolDomain", "cognito-idp:DeleteUserPoolDomain"]
         Resource = "*"
+      },
+      {
+        Sid      = "ManageSes"
+        Effect   = "Allow"
+        Action   = ["ses:*", "sesv2:*"]
+        Resource = "*" # identity/DKIM/MAIL FROM verification state isn't consistently ARN-scopable across the v1/v2 API split this project's resources straddle
       }
     ]
   })

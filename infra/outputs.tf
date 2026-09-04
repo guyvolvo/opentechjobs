@@ -47,6 +47,27 @@ output "cognito_app_client_id" {
   value = aws_cognito_user_pool_client.web.id
 }
 
+output "ses_dns_records" {
+  description = "Add these in Cloudflare (DNS-only / grey-cloud) to verify guyvoloshin.com for SES. Leave in place permanently."
+  value = {
+    dkim = [for token in aws_ses_domain_dkim.main.dkim_tokens : {
+      name  = "${token}._domainkey.guyvoloshin.com"
+      type  = "CNAME"
+      value = "${token}.dkim.amazonses.com"
+    }]
+    mail_from_mx = {
+      name  = aws_ses_domain_mail_from.main.mail_from_domain
+      type  = "MX"
+      value = "10 feedback-smtp.${var.aws_region}.amazonses.com"
+    }
+    mail_from_spf = {
+      name  = aws_ses_domain_mail_from.main.mail_from_domain
+      type  = "TXT"
+      value = "v=spf1 include:amazonses.com ~all"
+    }
+  }
+}
+
 output "cognito_domain" {
   value       = aws_cognito_user_pool_domain.main.domain
   description = "Cognito's own auth domain (<domain>.auth.<region>.amazoncognito.com), for the frontend's Google sign-in redirect. Not user-facing directly."
