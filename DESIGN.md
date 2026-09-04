@@ -2,13 +2,13 @@
 name: OpenMarketIL
 description: Swiss-grid job board for the Israeli tech market — ground-truthed data, zero decoration, on an earthy sage-and-cream ground.
 colors:
-  paper: "#edf1d6"
+  paper: "#f3f6e4"
   ink: "#40513b"
   signal-green: "#609966"
   muted-grey: "#89947c"
-  hairline-grey: "#c9dbb4"
+  hairline-grey: "#dce8ce"
   alert-red: "#b8362c"
-  hover-tint: "#dde7c7"
+  hover-tint: "#e9efdb"
 typography:
   display:
     fontFamily: "Inter, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
@@ -101,7 +101,7 @@ plain near-black/white inversion.
   something.
 
 ### Neutral
-- **Paper** (`#edf1d6`, `--white`; dark mode `#17181c`): the base
+- **Paper** (`#f3f6e4`, `--white`; dark mode `#17181c`): the base
   surface — a sage-tinted cream, not pure white; dark mode is a tuned
   near-black, not pure black. Never applied as a "panel" color — every
   ink surface (buttons, the metrics/panel grid background, the topbar
@@ -114,10 +114,10 @@ plain near-black/white inversion.
 - **Muted Grey** (`#89947c`, `--grey`; dark mode `#9a9a9a`): secondary
   text — labels, metadata, placeholders, the offline-state wordmark. A
   desaturated olive-green blend of ink and paper, not a true grey.
-- **Hairline Grey** (`#c9dbb4`, `--grey-line`; dark mode `#2b2c31`): the
+- **Hairline Grey** (`#dce8ce`, `--grey-line`; dark mode `#2b2c31`): the
   quiet dividers — table row separators, bar-chart tracks, input borders
   one step down from a full 2px rule.
-- **Hover Tint** (`#dde7c7`, `--hover-bg`; dark mode `#1e1f24`): the one
+- **Hover Tint** (`#e9efdb`, `--hover-bg`; dark mode `#1e1f24`): the one
   soft, non-binary surface in the system, reserved for row/option hover
   states where a hard color flip would be too loud.
 

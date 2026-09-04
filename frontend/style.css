@@ -21,14 +21,14 @@
 }
 
 :root {
-  --white: #edf1d6;
+  --white: #f3f6e4;
   --black: #40513b;
   --green: #609966;
   --green-bright: #80ad85;
   --grey: #89947c;
-  --grey-line: #c9dbb4;
+  --grey-line: #dce8ce;
   --red: #b8362c;
-  --hover-bg: #dde7c7;
+  --hover-bg: #e9efdb;
 
   --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
