@@ -125,6 +125,12 @@ resource "aws_iam_role_policy" "infra_deploy" {
         Effect   = "Allow"
         Action   = ["acm:*"]
         Resource = "arn:aws:acm:us-east-1:*:certificate/*" # certs are always us-east-1, see acm.tf
+      },
+      {
+        Sid      = "ManageEventBridge"
+        Effect   = "Allow"
+        Action   = ["events:*"]
+        Resource = "arn:aws:events:${var.aws_region}:*:rule/${var.project_name}-*"
       }
     ]
   })
