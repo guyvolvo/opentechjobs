@@ -1007,6 +1007,19 @@ table.jobs tbody tr { border-bottom: 1px solid var(--black); }
 table.jobs tbody tr:hover { background: var(--hover-bg); }
 table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
 
+/* Card layout: logo left, title/meta/actions stacked right -- the
+   LinkedIn-style grouping the user asked for, replacing what used to be
+   three separate table columns (Title, Location, Category) merged into
+   one. min-width:0 on the body is load-bearing (DESIGN.md's own rule):
+   without it a long unbroken domain/title stops the flex item from
+   ever shrinking below its content width. */
+table.jobs .title-cell {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.job-card-body { min-width: 0; flex: 1 1 auto; }
+
 /* overflow-wrap:anywhere. A company domain has no spaces to break at,
    and some job titles arrive as one long hyphenated/slashed word too. */
 table.jobs .title-cell a {
@@ -1016,7 +1029,29 @@ table.jobs .title-cell a {
   overflow-wrap: anywhere;
 }
 table.jobs .title-cell a:hover { color: var(--green); }
-table.jobs .company { color: var(--grey); font-size: 11.5px; text-transform: uppercase; margin-top: 2px; overflow-wrap: anywhere; }
+/* Sentence case, not the system's usual uppercase Label treatment --
+   deliberately closer to a normal reading line (company/location names
+   read oddly shouted in all-caps) than to a table-header-style tag. */
+.job-meta { color: var(--grey); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
+
+/* Google's favicon endpoint (see app.js's companyLogoUrl) -- no border
+   radius, matching DESIGN.md's rounded:none everywhere else in this
+   Swiss-grid layout, not a soft app-icon treatment. object-fit:contain
+   keeps a non-square favicon from stretching. */
+.company-logo {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: -3px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+/* The row's own logo is a flex sibling of .job-card-body (gap above
+   handles spacing), not inline text -- sized up to actually read as a
+   company mark, the way it does on LinkedIn's job cards. */
+.company-logo.listing { width: 40px; height: 40px; margin-right: 0; }
+.job-detail-company .company-logo.detail { width: 32px; height: 32px; vertical-align: -8px; margin-right: 8px; }
+.bar-row .company-logo { width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; }
 
 .job-links {
   display: flex;
@@ -1217,6 +1252,11 @@ footer p { color: var(--grey); margin: 0 0 8px; }
   /* Reset the desktop bleed (width:100%+gutter, negative margin) back to
      plain 100%, meaningless once every cell stacks as its own block. */
   table.jobs, table.jobs tbody, table.jobs tr, table.jobs td { display: block; width: 100%; margin-right: 0; }
+  /* One class more specific than the blanket "table.jobs td" reset
+     above, so this wins without !important -- logo-left/title-right
+     stays a real card at phone width too, instead of the logo stacking
+     above the text like every other cell here. */
+  table.jobs td.title-cell { display: flex; }
   table.jobs tr { padding: 10px 0; }
   /* Stacked cells need a label to tell them apart. app.js's data-label
      attribute stands in for the table header that display:none removed. */

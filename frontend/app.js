@@ -97,6 +97,17 @@ function qs(params) {
 
 // formatting
 
+// Google's favicon endpoint, keyed off the domain we already track for
+// every job/company. Clearbit's free logo API (the previous go-to for
+// this) shut down in December 2025 -- this is the zero-setup
+// replacement: no signup, no key, no per-request cost. Quality is
+// favicon-grade (small, occasionally a generic placeholder for an
+// obscure domain), not a real logo API's crisp square mark, but that's
+// the tradeoff for staying at $0 with no new account.
+function companyLogoUrl(domain, size = 32) {
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
+}
+
 function fmtInt(n) {
   return (n ?? 0).toLocaleString("en-US");
 }
@@ -246,7 +257,7 @@ function renderBarList(rows, nameKey, { clickable = false } = {}) {
       const name = escapeHtml(r[nameKey]);
       return `
       <div class="bar-row ${clickable ? "clickable" : ""}" ${clickable ? `data-company="${name}"` : ""}>
-        <div class="name">${name}</div>
+        <div class="name">${clickable ? `<img class="company-logo" src="${companyLogoUrl(r[nameKey], 16)}" alt="" loading="lazy" />` : ""}${name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${(r.n / max) * 100}%"></div></div>
         <div class="n">${fmtInt(r.n)}</div>
       </div>`;
@@ -557,6 +568,19 @@ function renderJobs(data, starred) {
     `<b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> open listings`;
 }
 
+// "Company · Department · Location (Workplace)" -- one scannable line
+// under the title, LinkedIn-card style, standing in for what used to be
+// three separate table columns (Company was already folded in as the
+// row's ".company" div; Location and Category had their own <td>s).
+function jobMetaLine(j) {
+  const parts = [escapeHtml(j.company_domain)];
+  if (j.department) parts.push(escapeHtml(j.department));
+  if (j.location) parts.push(escapeHtml(j.location));
+  let line = parts.join(" · ");
+  if (j.workplace_type) line += ` (${escapeHtml(WORKPLACE_LABELS[j.workplace_type] || j.workplace_type)})`;
+  return line;
+}
+
 function renderJobRows(jobs, starred) {
   document.getElementById("jobs-body").innerHTML = jobs
     .map((j) => {
@@ -573,18 +597,20 @@ function renderJobRows(jobs, starred) {
           </button>
         </td>
         <td class="title-cell">
-          <a href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>
-          ${j.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[j.seniority] || j.seniority)}</span>` : ""}
-          ${j.workplace_type ? `<span class="badge workplace">${escapeHtml(WORKPLACE_LABELS[j.workplace_type] || j.workplace_type)}</span>` : ""}
-          ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
-          <div class="company">${escapeHtml(j.company_domain)}</div>
-          <div class="job-links">
-            <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
-            <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
+          <img class="company-logo listing" src="${companyLogoUrl(j.company_domain, 64)}" alt="" loading="lazy" />
+          <div class="job-card-body">
+            <div class="job-card-title">
+              <a href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>
+              ${j.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[j.seniority] || j.seniority)}</span>` : ""}
+              ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
+            </div>
+            <div class="job-meta">${jobMetaLine(j)}</div>
+            <div class="job-links">
+              <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
+              <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
+            </div>
           </div>
         </td>
-        <td data-label="Location">${escapeHtml(j.location || "-")}</td>
-        <td data-label="Category">${escapeHtml(j.department || "-")}</td>
         <td data-label="Age" class="age-cell ${fresh ? "fresh" : ""}">${fmtAge(age)}</td>
       </tr>`;
     })
@@ -708,7 +734,7 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
   return `
     <div class="job-detail-header">
       <div>
-        <div class="job-detail-company">${escapeHtml(job.company_domain)}</div>
+        <div class="job-detail-company"><img class="company-logo detail" src="${companyLogoUrl(job.company_domain, 64)}" alt="" loading="lazy" />${escapeHtml(job.company_domain)}</div>
         <h3 class="job-detail-title">${escapeHtml(job.title)}</h3>
         <div class="job-detail-badges">
           ${job.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority)}</span>` : ""}
