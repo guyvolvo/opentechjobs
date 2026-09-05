@@ -1339,7 +1339,8 @@ function wireFilters() {
   });
 
   document.getElementById("f-date-posted").addEventListener("change", (e) => {
-    state.max_age_days = e.target.value;
+    if (!e.target.value) return; // the blank "Date posted" placeholder, not a real choice
+    state.max_age_days = e.target.value === "any" ? "" : e.target.value;
     state.offset = 0;
     loadJobs();
     loadTicker();
