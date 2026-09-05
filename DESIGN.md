@@ -315,6 +315,17 @@ table rows.
 - **Mobile:** nav wraps and the ticker hides outright below 960px rather
   than trying to keep a marquee legible at phone width.
 
+### Favicon
+Rounded square (not the system's usual sharp corners — an OS/browser-chrome
+artifact, not page UI, same reasoning a favicon always sits outside the
+sharp-corner rule), fixed dark-mode `--green` (`#2fae60`, not the light-mode
+`#609966`) background regardless of the page's own theme toggle — same
+"can't respond to the page's own theme, so pick one and hold it" reasoning
+as the footer's fixed-dark `curl` block. A bold off-white (`#f3f6e4`) "O",
+Helvetica/Arial Bold, centered. `favicon.svg` is the source of truth;
+`favicon-{16,32,180}.png` and `favicon.ico` are pre-rendered for browsers
+that don't take an SVG icon.
+
 ### The Ticker (signature component)
 A `News headline`-style scrolling marquee between the wordmark and the
 online/offline status, seamlessly looping the board's own most-recent
