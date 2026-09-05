@@ -23,8 +23,8 @@ Two audiences, treated as equally primary:
 
 An open-source Israeli tech job board that scrapes postings directly from
 ATS APIs (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters,
-Comeet, Workday — never careers-page fingerprinting as the primary
-method), tracks each listing's lifetime (first seen / last seen / closed),
+JazzHR, Teamtailor, Comeet, Workday — never careers-page fingerprinting as
+the primary method), tracks each listing's lifetime (first seen / last seen / closed),
 and serves the result through a small, fully public API plus a static
 frontend. Success is a visitor finding a real, currently-open listing they
 couldn't have found faster elsewhere, or a developer standing up their own

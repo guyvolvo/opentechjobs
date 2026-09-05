@@ -898,11 +898,119 @@ def f_personio(sess, token):
     return out
 
 
+# JazzHR's hosted career page has no JSON API at all -- plain
+# server-rendered HTML, ground-truthed against firstadvantage.applytojob.com
+# and talentwwinc.applytojob.com (both real, live companies). Matches this
+# file's token-guessing model anyway (the subdomain is just the company's
+# slugified name), so it's still a drop-in FETCHERS entry, just parsing
+# markup instead of calling an API -- the one exception to this module's
+# own "does not parse careers pages" framing besides the Comeet/embed-scrape
+# fallback tier further below.
+_JAZZHR_JOB_RE = re.compile(
+    r'<a href="(https://[^"]+/apply/[^"]+)">\s*(.*?)\s*</a>.*?'
+    r'<ul[^>]*class=["\']list-inline[^"\']*["\'][^>]*>(.*?)</ul>',
+    re.DOTALL,
+)
+# The map-marker icon line is always present (location); sitemap (department)
+# is optional per posting -- not every JazzHR customer sets one.
+_JAZZHR_META_RE = re.compile(r"fa-(map-marker|sitemap)[\"']?\s*></i>\s*([^<]*)<")
+
+
+def f_jazzhr(sess, token):
+    """A nonexistent token 302s to jazzhr.com's own marketing site rather
+    than 404ing on its own subdomain -- both a real and a fake token come
+    back HTTP 200, so "did the response actually stay on
+    {token}.applytojob.com" is the real existence check, not status code
+    alone. No posted-date field on this list view, and no per-job
+    description without a second request per posting -- not done here,
+    same cost tradeoff as Comeet's FETCH_FULL_DESCRIPTIONS.
+
+    JazzHR is mid-migration to a newer template -- one ground-truth
+    company's own page source carries the comment "temporary switch to
+    support feature flag disabling customers from seeing the new
+    styles." This only covers the classic list-group-item template both
+    ground-truth companies still render. A company already switched to
+    the new template comes back a real 200 this regex simply finds zero
+    jobs in -- indistinguishable from a genuinely empty board.
+    """
+    url = f"https://{token}.applytojob.com/apply"
+    try:
+        r = sess.get(url, timeout=TIMEOUT, allow_redirects=True)
+    except requests.RequestException:
+        return None
+    if r.status_code != 200 or f"{token}.applytojob.com" not in r.url:
+        return None
+    out = []
+    for m in _JAZZHR_JOB_RE.finditer(r.text):
+        job_url, raw_title, meta_html = m.group(1), m.group(2), m.group(3)
+        title = html.unescape(_WHITESPACE_RE.sub(" ", raw_title)).strip()
+        location = department = None
+        for kind, raw_text in _JAZZHR_META_RE.findall(meta_html):
+            text = html.unescape(raw_text).strip() or None
+            if kind == "map-marker":
+                location = text
+            elif kind == "sitemap":
+                department = text
+        job_id = job_url.split("/apply/", 1)[-1].split("/", 1)[0]
+        out.append(Job("jazzhr", token, job_id, title, location or "", job_url,
+                       None, department))
+    return out
+
+
+# Teamtailor's hosted career page (`{token}.teamtailor.com`) is also plain
+# server-rendered HTML, no public JSON API -- the real API
+# (api.teamtailor.com) needs a per-company key, useless for probing
+# companies we haven't onboarded. Ground-truthed against
+# cigames.teamtailor.com and sessions.teamtailor.com. A nonexistent token
+# 404s cleanly, unlike JazzHR's redirect-to-marketing-site trick.
+_TEAMTAILOR_JOB_RE = re.compile(
+    r'<a[^>]+href="(https://[^"]+/jobs/\d+-[^"]*)"[^>]*>\s*'
+    r'(?:<span[^>]*></span>\s*)?(.*?)\s*</a>\s*'
+    r'<div class="mt-1 text-md">(.*?)</div>',
+    re.DOTALL,
+)
+
+
+def f_teamtailor(sess, token):
+    """The per-job meta line (department/office/remote-type, separated by
+    a middot span) has no consistent field-by-field meaning across
+    companies -- confirmed live, one board's middle segment is a real
+    department ("Finance"), another's is a legal-entity/office name ("CI
+    Games SE"), not a department at all, and a company can configure
+    fewer segments or none. Rather than guess a mapping that would be
+    right for some companies and wrong for others, every segment is
+    joined into one `location` string (informative, not fabricated) and
+    department is left unset. _classify_workplace() still catches
+    "remote"/"hybrid"/"onsite" out of that combined text the same way it
+    already does for Greenhouse's unstructured locations.
+    """
+    url = f"https://{token}.teamtailor.com/jobs"
+    try:
+        r = sess.get(url, timeout=TIMEOUT, allow_redirects=True)
+    except requests.RequestException:
+        return None
+    if r.status_code != 200 or f"{token}.teamtailor.com" not in r.url:
+        return None
+    out = []
+    for m in _TEAMTAILOR_JOB_RE.finditer(r.text):
+        job_url, raw_title, meta_html = m.group(1), m.group(2), m.group(3)
+        title = html.unescape(_WHITESPACE_RE.sub(" ", raw_title)).strip()
+        meta_text = html.unescape(_HTML_TAG_RE.sub(" ", meta_html))
+        segments = [s.strip() for s in meta_text.split("·") if s.strip()]
+        location = ", ".join(segments)
+        job_id_match = re.search(r"/jobs/(\d+)-", job_url)
+        job_id = job_id_match.group(1) if job_id_match else job_url
+        out.append(Job("teamtailor", token, job_id, title, location, job_url, None, None))
+    return out
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
 # above; recruitee: bogus subdomains 404 cleanly; personio: personio's own
-# token, bogus tokens redirect to personio.com). No 403s seen with the
+# token, bogus tokens redirect to personio.com; jazzhr: firstadvantage,
+# talentwwinc (career.io), bogus subdomains 302 to jazzhr.com; teamtailor:
+# cigames, sessions, bogus subdomains 404 cleanly). No 403s seen with the
 # ats-probe UA; swap for a browser UA if that changes.
 #
 # KNOWN_FALSE_POSITIVES below are guessed tokens that ARE a real, valid
@@ -932,6 +1040,8 @@ FETCHERS: dict[str, Callable] = {
     "workable": f_workable,
     "recruitee": f_recruitee,
     "smartrecruiters": f_smartrecruiters,
+    "jazzhr": f_jazzhr,
+    "teamtailor": f_teamtailor,
 }
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque

@@ -11,7 +11,8 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS companies (
     domain          TEXT PRIMARY KEY,
     ats             TEXT,               -- greenhouse|personio|lever|ashby|workable|recruitee|
-                                         -- smartrecruiters|comeet|workday|jsonld|NULL (miss)
+                                         -- smartrecruiters|jazzhr|teamtailor|comeet|workday|
+                                         -- jsonld|NULL (miss)
     token           TEXT,               -- ats-specific token, or "uid:token" for comeet
     confidence      TEXT,               -- 'verified' | NULL (miss). See jobs.confidence note;
                                          -- pinned and guessed tokens are equally fresh, both
