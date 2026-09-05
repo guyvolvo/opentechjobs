@@ -127,14 +127,18 @@ function monogramLogoSvg(domain) {
 // and most honest first:
 //   1. apple-touch-icon.png -- the high-res convention, when it exists.
 //   2. the domain's own favicon.ico, fetched directly (not through a
-//      resizing proxy) specifically so naturalWidth reflects the real
-//      file -- a genuinely tiny one (<=32px) skips straight to the
-//      monogram instead of rendering blurry, rather than pretending an
-//      upscale is a real logo.
+//      resizing proxy).
 //   3. Google's favicon service -- catches the case a site's icon isn't
 //      at a guessable path at all (declared via a <link> tag instead);
 //      that's the one failure mode a direct path guess can't solve.
 //   4. the generated monogram, unconditionally available.
+// Stage 2 used to reject anything <=32px naturalWidth and drop straight
+// to the monogram rather than show it upscaled -- reported live, that
+// meant real, recognizable marks (Cisco, Mastercard: both genuinely just
+// a small classic .ico, confirmed live) were losing to a flat letter
+// square. A soft, real mark beats a generic initial for a company this
+// recognizable, so stage 2 now renders whatever it gets, same as stage 3
+// always has.
 function companyLogoImg(domain, size, extraClass = "") {
   const touchIcon = escapeHtml(`https://${domain}/apple-touch-icon.png`);
   const directFavicon = escapeHtml(`https://${domain}/favicon.ico`);
@@ -143,8 +147,7 @@ function companyLogoImg(domain, size, extraClass = "") {
   const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
   return `<img class="${cls}" src="${touchIcon}" alt="" loading="lazy"
     data-stage="1" data-direct-favicon="${directFavicon}" data-google-favicon="${googleFavicon}" data-monogram="${monogram}"
-    onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.src=this.dataset.monogram;}"
-    onload="if(this.dataset.stage==='2'&&this.naturalWidth&&this.naturalWidth<=32){this.onerror=null;this.src=this.dataset.monogram;}" />`;
+    onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.src=this.dataset.monogram;}" />`;
 }
 
 function fmtInt(n) {
