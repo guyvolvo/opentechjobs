@@ -1267,26 +1267,78 @@ def _workday_job_detail(sess: requests.Session, api_base: str, external_path: st
     return location, description
 
 
+# Reported live: intel.com was only ever showing 20 jobs when Intel's own
+# board (intel.wd1.myworkdayjobs.com/External) lists 600. The API's "limit"
+# is a hard server-enforced max of 20 per page (confirmed live -- asking
+# for 50 silently comes back empty, not just clamped), not a choice this
+# code was making; a single unpaginated request could only ever surface
+# the first page. WORKDAY_MAX_JOBS caps how far pagination goes per
+# company rather than fetching every page unconditionally: some of these
+# pinned giants have thousands of global postings, re-fetched fresh every
+# 10-min fast-poll re-check, and Workday's location filtering is a
+# per-tenant opaque facet ID (not a generic query param), so there's no
+# cheap way to ask any given tenant's API for "Israel only" server-side.
+# 200 is a real tradeoff, not a guess: enough pages that a company with a
+# few hundred global postings (most of these) still comes back complete,
+# while bounding the worst case (a company with thousands) well under the
+# scrape-fast Lambda's 90s subprocess budget.
+WORKDAY_PAGE_SIZE = 20
+WORKDAY_MAX_JOBS = 200
+
+
+def _workday_build_job(sess: requests.Session, api_base: str, base: str, tenant: str, wd: str, site: str, j: dict) -> Job:
+    bullets = j.get("bulletFields") or []
+    external_path = _txt(j.get("externalPath"))
+    location, description = _workday_job_detail(sess, api_base, external_path, _txt(j.get("locationsText")))
+    return Job("workday", f"{tenant}:{wd}:{site}", _txt(bullets[0] if bullets else j.get("externalPath")),
+               _txt(j.get("title")), location,
+               base + external_path,
+               _parse_workday_posted_on(j.get("postedOn")), None,
+               description_chars=len(description) if description else 0,
+               description=description)
+
+
 def f_workday(sess: requests.Session, tenant: str, wd: str, site: str) -> list[Job] | None:
     api_base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
-    d = get_json_post(sess, f"{api_base}/jobs", {"appliedFacets": {}, "limit": 20, "offset": 0, "searchText": ""})
-    if not isinstance(d, dict) or "jobPostings" not in d:
-        return None
     # externalPath ("/job/<location>/<title>_<reqid>") omits the site slug,
     # even though the browsable URL requires it. Without /{site}, the
     # link silently bounces to a generic error page instead of 404ing.
     base = f"https://{tenant}.{wd}.myworkdayjobs.com/{site}"
     out = []
-    for j in d["jobPostings"]:
-        bullets = j.get("bulletFields") or []
-        external_path = _txt(j.get("externalPath"))
-        location, description = _workday_job_detail(sess, api_base, external_path, _txt(j.get("locationsText")))
-        out.append(Job("workday", f"{tenant}:{wd}:{site}", _txt(bullets[0] if bullets else j.get("externalPath")),
-                       _txt(j.get("title")), location,
-                       base + external_path,
-                       _parse_workday_posted_on(j.get("postedOn")), None,
-                       description_chars=len(description) if description else 0,
-                       description=description))
+    offset = 0
+    total = None
+    # Per-job detail fetches (see _workday_job_detail -- multi-location
+    # postings need a second request) dominate the real cost here, not
+    # the page fetches themselves: measured live, a single-threaded pass
+    # over a 200-job company took 35-43s, easily enough on its own to eat
+    # the scrape-fast Lambda's whole 90s subprocess budget with ~200
+    # other companies still needing their own re-poll in the same run.
+    # A small pool per page (this project's Session is already built for
+    # concurrent use -- see session()'s pool_connections/pool_maxsize)
+    # cut that to 13-16s for the same three companies, measured the same
+    # way -- latency-bound now instead of request-count-bound.
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        while True:
+            d = get_json_post(
+                sess, f"{api_base}/jobs",
+                {"appliedFacets": {}, "limit": WORKDAY_PAGE_SIZE, "offset": offset, "searchText": ""},
+            )
+            if not isinstance(d, dict) or "jobPostings" not in d:
+                # A failure on page 1 means no valid board at all (existing
+                # MISS signal); a failure on a later page just means stop
+                # paginating, keep whatever already came back real.
+                return out if offset else None
+            if total is None:
+                total = d.get("total") or 0
+            postings = d["jobPostings"]
+            if not postings:
+                break
+            out.extend(pool.map(
+                lambda j: _workday_build_job(sess, api_base, base, tenant, wd, site, j), postings
+            ))
+            offset += WORKDAY_PAGE_SIZE
+            if offset >= total or offset >= WORKDAY_MAX_JOBS:
+                break
     return out
 
 
