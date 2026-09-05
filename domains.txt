@@ -309,6 +309,11 @@ variantyx.com
 # SuccessFactors/custom systems, not the startup-oriented ATSes this
 # project checks. Same gap as the Israeli banks/telecom/defense
 # companies already in this file. A MISS here is real signal too.
+# Two exceptions with real data now: nvidia.com and paloaltonetworks.com
+# both run Workday behind their own custom-branded careers page, which
+# this project can't guess (no fixed slug the way Greenhouse/Lever have
+# one) -- companies.yml's new "workday" pins section hand-recovers both,
+# same idea as the existing Comeet pins just above it in that file.
 microsoft.com
 google.com
 amazon.com
@@ -332,6 +337,7 @@ appliedmaterials.com
 palantir.com
 mastercard.com
 visa.com
+paloaltonetworks.com
 dell.com
 hp.com
 hpe.com

@@ -122,3 +122,25 @@ comeet:
 # Rejected during extraction, kept as a note so nobody re-does this work:
 #   "Guideline" (comeet.com/jobs/guideline) is a US 401(k) provider,
 #   unrelated to Israel: a coincidental token match, not a company to add.
+
+# Workday needs the same hand-pinning as Comeet above, for a different
+# reason: it's not guess-and-verify-able the way Greenhouse/Lever/etc are
+# (see probe.py's resolve(), the comment right above where this file's
+# "workday" key gets read). tenant/wd/site found by locating the
+# company's own real careers page and reading the myworkdayjobs.com URL
+# it links to, then verified live with f_workday before adding here --
+# same discipline as every domains.txt batch, just for a token instead
+# of a plain domain.
+workday:
+  - domain: nvidia.com
+    tenant: nvidia
+    wd: wd5
+    site: NVIDIAExternalCareerSite
+    source: hand-verified
+    note: nvidia.com itself also guesses a false-positive workable:nvidia hit (an unrelated, empty tenant) -- see KNOWN_FALSE_POSITIVES in probe.py
+
+  - domain: paloaltonetworks.com
+    tenant: paloaltonetworks
+    wd: wd5
+    site: panwexternalcareers
+    source: hand-verified

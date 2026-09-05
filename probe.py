@@ -1057,6 +1057,13 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
                                    # literally titled "Sample Job" -- an unconfigured demo tenant, not the
                                    # real Intuit. Titled convincingly enough that the Inactive-Career-Page
                                    # check above doesn't catch it, hence the explicit entry.
+    ("recruitee", "google"),      # google.com: the one posting is literally titled "Senior Marketer
+                                   # (Sample)" -- an unconfigured demo tenant, not the real Google (which
+                                   # has no third-party ATS at all; see the workday pins block above for
+                                   # how giants like this actually get in, when they can at all).
+    ("workable", "nvidia"),       # nvidia.com: the real NVIDIA runs Workday (see companies.yml's workday
+                                   # pin for it) -- a multi-trillion-dollar company does not run its global
+                                   # hiring through a small-business ATS. Some unrelated tenant, empty board.
 }
 
 FETCHERS: dict[str, Callable] = {
@@ -1485,6 +1492,35 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
             jobs = None
         if jobs is not None:
             res.ats, res.token, res.jobs = "comeet", f"{pin['uid']}:{pin['token']}", _fill_classifications(jobs)
+            res.job_count = len(jobs)
+            res.tried = tried
+            return res
+
+    # Workday needs the same hand-pinning as Comeet, for a different
+    # reason: it's not guess-and-verify-able at all -- token_candidates()
+    # never even tries it (not in FETCHERS), because there's no fixed
+    # "obvious slug" the way boards-api.greenhouse.io/v1/boards/{token}
+    # has one. A company's real tenant/wd-shard/site triple is only
+    # discoverable by finding their own careers page and reading the
+    # myworkdayjobs.com URL it links to (which f_embed_scrape's regex
+    # does automatically, but only when that page is reachable and not
+    # bot-walled -- reported live, several giants' own sites block a
+    # plain scrape). Hand-verified the same way as Comeet's pins: find
+    # the company's real careers page via search, confirm the
+    # myworkdayjobs.com URL it resolves to, verify f_workday actually
+    # returns real postings from it.
+    pin = PINS.get("workday", {}).get(domain)
+    if pin:
+        tried += 1
+        if VERBOSE:
+            print(f"    probe workday-pin:{domain}", file=sys.stderr)
+        try:
+            jobs = f_workday(sess, pin["tenant"], pin["wd"], pin["site"])
+        except Exception:
+            jobs = None
+        if jobs is not None:
+            token = f"{pin['tenant']}:{pin['wd']}:{pin['site']}"
+            res.ats, res.token, res.jobs = "workday", token, _fill_classifications(jobs)
             res.job_count = len(jobs)
             res.tried = tried
             return res
