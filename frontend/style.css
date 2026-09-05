@@ -379,6 +379,7 @@ button, input, select {
 .alert-create-fields label.toggle input { accent-color: var(--green); }
 .alert-create .btn { width: 100%; }
 
+/* 4px radius -- same scoped exception as .job-detail/.ms-menu above. */
 .auth-panel {
   position: absolute;
   top: calc(100% + 4px);
@@ -388,6 +389,7 @@ button, input, select {
   overflow-y: auto;
   background: var(--white);
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   z-index: 40;
   padding: 14px;
   text-transform: none;
@@ -537,8 +539,13 @@ button, input, select {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: var(--rule);
-  background: var(--black);
-  border: var(--rule) solid var(--black);
+  /* --grey-line, not --black -- reported live, the dividers read too
+     bold/high-contrast (this is the same "quiet divider" token already
+     used for table.jobs row separators, same reasoning: a full-strength
+     ink line is a section-level rule, not what a dense grid of small
+     tiles needs between every cell). */
+  background: var(--grey-line);
+  border: var(--rule) solid var(--grey-line);
   /* Scoped to just the Market Stats box, per request -- same 4px radius
      as the filter bar, top corners only (the seam it shares with
      panel-grid below stays square). overflow:hidden so the corner
@@ -598,8 +605,8 @@ button, input, select {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--rule);
-  background: var(--black);
-  border: var(--rule) solid var(--black);
+  background: var(--grey-line); /* same reasoning as metrics-grid above */
+  border: var(--rule) solid var(--grey-line);
   /* Bottom corners only -- see metrics-grid above, this is the other
      half of the same visually-seamless box. */
   border-radius: 0 0 4px 4px;
@@ -699,6 +706,10 @@ button, input, select {
 }
 .board-list { flex: 1 1 0; min-width: 0; }
 
+/* 4px radius, per request -- same scoped exception as the filter bar
+   and Market Stats box (see DESIGN.md's Shapes section), extended to
+   every standalone floating/bordered container. 20px padding already
+   keeps content clear of the corners, so no overflow:hidden needed. */
 .job-detail {
   flex: 0 0 clamp(320px, 34%, 420px);
   min-width: 0;
@@ -707,6 +718,7 @@ button, input, select {
   max-height: calc(100vh - 97px);
   overflow-y: auto;
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   padding: 20px;
 }
 .job-detail[hidden] { display: none; }
@@ -889,6 +901,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .ms-toggle.active { border-color: var(--green); color: var(--green); font-weight: 700; }
 .ms-toggle:focus { outline: 2px solid var(--green); outline-offset: -2px; }
 
+/* 4px radius -- same scoped exception as .job-detail above. */
 .ms-menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -898,6 +911,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   overflow-y: auto;
   background: var(--white);
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   z-index: 40;
   padding: 8px;
 }

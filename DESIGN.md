@@ -129,9 +129,11 @@ plain near-black/white inversion.
   wasn't legible enough); dark mode keeps its own true muted grey.
 - **Hairline Grey** (`#c7d9b3`, `--grey-line`; dark mode `#2b2c31`): the
   quiet dividers — table row separators, bar-chart tracks, input borders
-  one step down from a full 2px rule. Darkened from an earlier `#dce8ce`
-  in light mode, same reasoning as Muted Grey above: too close to
-  `--white`'s `#f3f6e4` to read as a visible line at all.
+  one step down from a full 2px rule, and (reported live, too
+  high-contrast at full `--black`) the Statistics grid's own gap/border
+  color, `var(--rule)`'s 2px width kept, just recolored. Darkened from an
+  earlier `#dce8ce` in light mode, same reasoning as Muted Grey above:
+  too close to `--white`'s `#f3f6e4` to read as a visible line at all.
 - **Hover Tint** (`#e9efdb`, `--hover-bg`; dark mode `#1e1f24`): the one
   soft, non-binary surface in the system, reserved for row/option hover
   states where a hard color flip would be too loud.
@@ -241,21 +243,31 @@ cue this design uses. A shadow anywhere is a bug, not a style choice.
 ## Shapes
 
 Sharp corners is the default everywhere — `border-radius: 0` unless a
-component is one of the two named exceptions below. Borders are always
-one of exactly two weights: `var(--rule)` (2px, solid, ink or
-accent-colored — buttons, the topbar/section dividers, card-grid gaps) or
-a 1px hairline (`var(--grey-line)` — table row separators, the
-`.ms-search` field, `.ms-clear`). No intermediate weights, no
-dashed/dotted borders, no clipping or masking outside the two exceptions.
+component is one of the named exceptions below. Borders are always one
+of exactly two weights: `var(--rule)` (2px, solid, ink or
+accent-colored — buttons, the topbar/section dividers) or a 1px hairline
+(`var(--grey-line)` — table row separators, the `.ms-search` field,
+`.ms-clear`). No intermediate weights, no dashed/dotted borders, no
+clipping or masking outside these exceptions.
 
-Two scoped exceptions, both by explicit request, neither a system-wide
+Four scoped exceptions, all by explicit request, none a system-wide
 change: the filter bar (`.filters input`, `.ms-toggle`, `label.toggle`,
-`#f-reset`) uses a 1.5px border and 4px radius instead of `--rule`/0, and
-the Market Stats box (`#metrics-grid` + `#panel-grid`, which share one
-seamless visual outline via the negative-margin overlap above) rounds
-only its four outer corners at that same 4px, with `overflow: hidden` so
-the corner cells' square backgrounds actually follow the curve. Every
-other card/container/input stays sharp.
+`#f-reset`) uses a 1.5px border and 4px radius instead of `--rule`/0; the
+Statistics grid (`#metrics-grid` + `#panel-grid`) keeps `var(--rule)`'s
+2px width for its card-grid gaps/border but in `--grey-line`, not ink —
+full-strength `--black` read too bold for a dense grid of small tiles
+(same "quiet divider" reasoning as table row separators, just at 2px
+instead of 1px); this box (which shares one seamless visual outline via
+the negative-margin overlap above) also rounds only its four outer
+corners at that same 4px, with `overflow: hidden` so the corner cells'
+square backgrounds actually follow the curve; and every standalone
+floating/bordered container — the job detail panel
+(`.job-detail`), a multi-select dropdown (`.ms-menu`), the auth/alerts
+dropdown (`.auth-panel`) — rounds all four corners at that same 4px.
+Deliberately not this last group: the metric/panel tiles inside the
+Market Stats box (they share one grid box already rounded at its outer
+edge, not individual boxes of their own), buttons, chips, badges, and
+table rows.
 
 ## Components
 
@@ -273,7 +285,10 @@ other card/container/input stays sharp.
   the active company filter). Hover inverts to ink.
 
 ### Cards / Containers
-- **Corner style:** square (0px)
+- **Corner style:** square (0px) for a grid-tile card (metric/panel tile,
+  supplied by the shared grid's own border, not the tile). A standalone
+  floating box with its own border (job detail panel, `.ms-menu`,
+  `.auth-panel`) rounds all four corners at 4px — see Shapes above.
 - **Background:** paper, laid on a black `--rule`-width gap grid (see
   Layout) — the grid supplies the border, not the card itself
 - **Shadow strategy:** none — see Elevation & Depth
@@ -318,8 +333,8 @@ pulsing) to read as "the light went out," not "warning, still breathing."
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep `border-radius` at 0 everywhere outside the filter bar and
-  the Market Stats box (see Shapes above) — no further exceptions.
+- **Do** keep `border-radius` at 0 everywhere outside the three named
+  exceptions (see Shapes above) — no further ones without asking first.
 - **Do** build all depth/separation from the 2px black rule grid or a
   1px hairline — never a shadow.
 - **Do** read every color from a `var(--token)`, never a literal hex, so
