@@ -906,6 +906,22 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .filters input[type="text"]:focus,
 .filters select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
 
+/* The native select arrow sits right against the border by default --
+   reported live as too tight. appearance:none drops it in favor of a
+   hand-drawn chevron with real breathing room from the edge; currentColor
+   inside the data URI follows body's color (var(--black)) automatically,
+   no separate light/dark copy needed. */
+.filters select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 10px 6px;
+}
+
 /* Multi-select filter. A native <select multiple> needs ctrl/cmd-click
    to pick more than one, not discoverable, so this is a checkbox-dropdown. */
 .ms { position: relative; }
