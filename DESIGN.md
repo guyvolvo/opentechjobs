@@ -168,7 +168,7 @@ grotesque-sans display face — never the reverse.
   topbar wordmark only ("OpenMarket.IL"). 13px below the 640px breakpoint.
 - **Display / Section Title** (400, 34px, uppercase, 1 line-height,
   0.1em tracking, Overused Grotesk): the two section titles ("Job Board" /
-  "Market Stats") only. Never used at table-row or data-dense sizes.
+  "Statistics") only. Never used at table-row or data-dense sizes.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
   metric tile — the one place body copy gets genuinely large.
 - **Subtitle** (700, 17px): the job-detail panel's title (`.job-detail-title`)

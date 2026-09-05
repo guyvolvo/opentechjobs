@@ -193,10 +193,25 @@ function debounce(fn, ms) {
 
 // metrics dashboard
 
-// Set on every renderMetrics() call, read by tickApiStatus() so the "X
-// AGO" text can keep counting up client-side between the 2-min stats
-// polls instead of sitting frozen at whatever the last poll said.
+// Set from both renderMetrics() (every 2-min /stats poll) and
+// refreshFreshness() (every 30s /health poll, see below), read by
+// tickApiStatus() so the "X AGO" text and the sync countdown can keep
+// moving client-side between polls instead of sitting frozen at
+// whatever the last poll said.
 let lastCheckedAt = null;
+
+// last_checked only ever moves forward (MAX(companies.last_checked) in
+// the DB), so two independently-cached samples of it (/stats and
+// /health are separate CloudFront cache entries, each up to 120s stale
+// on its own clock -- see infra/cloudfront.tf's api cache policy) should
+// never be combined by just overwriting: whichever poll happens to land
+// on a staler cached copy would yank the countdown backwards. Take the
+// newer of the two instead.
+function setLastCheckedAt(iso) {
+  if (!iso) return;
+  const t = new Date(iso).getTime();
+  if (lastCheckedAt === null || t > lastCheckedAt) lastCheckedAt = t;
+}
 
 // Shared by the topbar status dot/text and the API Status card: past
 // this, both flip from LIVE (green) to OFFLINE (red) together.
@@ -223,11 +238,11 @@ function apiStatusFields() {
 function nextSyncText() {
   if (lastCheckedAt === null) return null;
   const remainingMs = lastCheckedAt + SYNC_INTERVAL_MINUTES * 60_000 - Date.now();
-  if (remainingMs <= 0) return "next sync any moment";
+  if (remainingMs <= 0) return "next sync: syncing";
   const totalSeconds = Math.floor(remainingMs / 1000);
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
-  return `next sync in ${m}:${String(s).padStart(2, "0")}`;
+  return `next sync: ${m}:${String(s).padStart(2, "0")}`;
 }
 
 function tickApiStatus() {
@@ -245,7 +260,7 @@ function tickApiStatus() {
 
 function renderMetrics(stats) {
   const el = document.getElementById("metrics-grid");
-  lastCheckedAt = stats.freshness.last_checked ? new Date(stats.freshness.last_checked).getTime() : null;
+  setLastCheckedAt(stats.freshness.last_checked);
   const { fresh } = apiStatusFields();
 
   const cards = [
@@ -1007,7 +1022,7 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
       const opt = currentOptions.find((o) => o.value === [...selected][0]);
       toggle.textContent = opt ? opt.label : [...selected][0];
     } else {
-      toggle.textContent = `${selected.size} SELECTED`;
+      toggle.textContent = `${selected.size} selected`;
     }
     toggle.classList.toggle("active", selected.size > 0);
   }
@@ -1106,7 +1121,7 @@ function wireFilters() {
   );
 
   msDepartment = createMultiSelect("ms-department", {
-    placeholder: "CATEGORIES",
+    placeholder: "Categories",
     onChange: (values) => {
       state.department = values;
       state.offset = 0;
@@ -1116,7 +1131,7 @@ function wireFilters() {
   });
 
   msSeniority = createMultiSelect("ms-seniority", {
-    placeholder: "LEVELS",
+    placeholder: "Levels",
     options: Object.entries(SENIORITY_LABELS).map(([value, label]) => ({ value, label })),
     onChange: (values) => {
       state.seniority = values;
@@ -1127,7 +1142,7 @@ function wireFilters() {
   });
 
   msCompany = createMultiSelect("ms-company", {
-    placeholder: "COMPANIES",
+    placeholder: "Companies",
     searchable: true,
     onChange: (values) => {
       state.company = values;
@@ -1138,7 +1153,7 @@ function wireFilters() {
   });
 
   msLocation = createMultiSelect("ms-location", {
-    placeholder: "LOCATIONS",
+    placeholder: "Locations",
     searchable: true,
     pinnedOption: {
       id: "f-israel",
@@ -1161,7 +1176,7 @@ function wireFilters() {
   });
 
   msWorkplace = createMultiSelect("ms-workplace", {
-    placeholder: "WORKPLACE",
+    placeholder: "Workplace",
     options: Object.entries(WORKPLACE_LABELS).map(([value, label]) => ({ value, label })),
     onChange: (values) => {
       state.workplace = values;
@@ -1352,6 +1367,27 @@ async function refreshStats() {
     const msg = `<div class="error-state" style="grid-column:1/-1">Could not load /api/stats: ${escapeHtml(err.message)}</div>`;
     document.getElementById("metrics-grid").innerHTML = msg;
     document.getElementById("panel-grid").innerHTML = msg;
+  }
+}
+
+// /api/health is a tiny, cheap endpoint built for exactly this: a
+// freshness ping without hauling the whole /stats payload over again.
+// Polled far more often than the 2-min full stats refresh so the "X AGO"
+// text and the sync countdown don't sit on data up to a full 2-min-poll
+// -plus-2-min-CDN-cache stale (reported live: the countdown was landing
+// a few minutes off). Doesn't touch latestStats or re-render panels --
+// setLastCheckedAt's monotonic guard means this can only ever pull the
+// countdown's anchor forward, never regress it against a fresher value
+// the last /stats poll already saw.
+const HEALTH_POLL_MS = 30_000;
+
+async function refreshFreshness() {
+  try {
+    const health = await getJSON("/health");
+    setLastCheckedAt(health.last_checked);
+    tickApiStatus();
+  } catch {
+    // Non-fatal: the next /stats or /health poll will catch up.
   }
 }
 
@@ -1908,26 +1944,26 @@ function wireAlertCreateForm() {
   });
 
   alertMsDepartment = createMultiSelect("alert-ms-department", {
-    placeholder: "CATEGORIES",
+    placeholder: "Categories",
     onChange: (values) => { alertFormState.department = values; },
   });
   alertMsSeniority = createMultiSelect("alert-ms-seniority", {
-    placeholder: "LEVELS",
+    placeholder: "Levels",
     options: Object.entries(SENIORITY_LABELS).map(([value, label]) => ({ value, label })),
     onChange: (values) => { alertFormState.seniority = values; },
   });
   alertMsCompany = createMultiSelect("alert-ms-company", {
-    placeholder: "COMPANIES",
+    placeholder: "Companies",
     searchable: true,
     onChange: (values) => { alertFormState.company = values; },
   });
   alertMsLocation = createMultiSelect("alert-ms-location", {
-    placeholder: "LOCATIONS",
+    placeholder: "Locations",
     searchable: true,
     onChange: (values) => { alertFormState.location = values; },
   });
   alertMsWorkplace = createMultiSelect("alert-ms-workplace", {
-    placeholder: "WORKPLACE",
+    placeholder: "Workplace",
     options: Object.entries(WORKPLACE_LABELS).map(([value, label]) => ({ value, label })),
     onChange: (values) => { alertFormState.workplace = values; },
   });
@@ -1981,6 +2017,7 @@ async function boot() {
     loadTicker();
   }, STATS_POLL_MS);
   setInterval(tickApiStatus, API_STATUS_TICK_MS);
+  setInterval(refreshFreshness, HEALTH_POLL_MS);
 }
 
 boot();

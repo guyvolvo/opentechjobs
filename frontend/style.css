@@ -945,6 +945,12 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 }
 .ms-clear:hover { border-color: var(--black); color: var(--black); }
 
+/* Sentence case, not uppercase -- DESIGN.md's own type ramp already
+   classifies filters as Body voice, not Label voice (uppercase/tracked
+   is for column headers, panel titles, chip text); this was a real drift
+   from that, not a documented exception. font-family/size fall through
+   from body's var(--font), same as table.jobs' row text -- no separate
+   override needed, the shouty look was purely the uppercase+tracking. */
 .filters label.toggle {
   display: flex;
   align-items: center;
@@ -954,14 +960,21 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   padding: 0 10px;
   height: 38px;
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   cursor: pointer;
 }
 .filters label.toggle input { accent-color: var(--green); }
 /* #f-reset (Reset), not .btn generally -- .btn is used well outside the
-   filter bar (Create Alert, Sign Out, etc.), which stays sharp-cornered. */
-#f-reset { border-width: 1.5px; border-radius: 4px; }
+   filter bar (Create Alert, Sign Out, etc.), which stays sharp-cornered
+   and keeps its uppercase/bold Label-style treatment. This one drops
+   back to sentence case/regular weight, same reasoning as label.toggle
+   above -- it's still `.btn.ghost` otherwise (border, hover, colors). */
+#f-reset {
+  border-width: 1.5px;
+  border-radius: 4px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
 
 .btn {
   border: var(--rule) solid var(--black);
