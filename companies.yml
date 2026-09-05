@@ -144,3 +144,75 @@ workday:
     wd: wd5
     site: panwexternalcareers
     source: hand-verified
+
+  # Batch 2: went looking for more tier-1/FAANG-adjacent giants after the
+  # first two above turned up real. Also checked and found NOT reachable
+  # this way, so not worth re-attempting later without new evidence:
+  # Google, Apple, Amazon, Microsoft, Meta, IBM, Oracle, and SAP all run
+  # fully custom/in-house hiring systems, no Workday board at all. Qualcomm
+  # and Texas Instruments do use Workday, but the tenant's live site slug
+  # couldn't be pinned down with confidence (Qualcomm's wd5 tenant is
+  # gone, wd12 resolves but returns zero postings via the real API --
+  # possibly the wrong/a stale site name, not a company with zero jobs).
+  # Palantir needed no pin at all: it already resolves correctly via the
+  # existing Lever guessing loop (jobs.lever.co/palantir, 310 real jobs).
+  - domain: crowdstrike.com
+    tenant: crowdstrike
+    wd: wd5
+    site: crowdstrikecareers
+    source: hand-verified
+
+  - domain: ebay.com
+    tenant: ebay
+    wd: wd5
+    site: apply
+    source: hand-verified
+
+  - domain: mastercard.com
+    tenant: mastercard
+    wd: wd1
+    site: CorporateCareers
+    source: hand-verified
+
+  - domain: appliedmaterials.com
+    tenant: amat
+    wd: wd1
+    site: External
+    source: hand-verified
+
+  - domain: broadcom.com
+    tenant: broadcom
+    wd: wd1
+    site: External_Career
+    source: hand-verified
+
+  - domain: cisco.com
+    tenant: cisco
+    wd: wd5
+    site: Cisco_Careers
+    source: hand-verified
+
+  - domain: intel.com
+    tenant: intel
+    wd: wd1
+    site: External
+    source: hand-verified
+
+  - domain: visa.com
+    tenant: visa
+    wd: wd5
+    site: Visa
+    source: hand-verified
+
+  - domain: paypal.com
+    tenant: paypal
+    wd: wd1
+    site: jobs
+    source: hand-verified
+
+  - domain: salesforce.com
+    tenant: salesforce
+    wd: wd12
+    site: External_Career_Site
+    source: hand-verified
+    note: salesforce.wd1 (the other shard search results pointed at) 404s -- wd12 is the live one

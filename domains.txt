@@ -309,11 +309,19 @@ variantyx.com
 # SuccessFactors/custom systems, not the startup-oriented ATSes this
 # project checks. Same gap as the Israeli banks/telecom/defense
 # companies already in this file. A MISS here is real signal too.
-# Two exceptions with real data now: nvidia.com and paloaltonetworks.com
-# both run Workday behind their own custom-branded careers page, which
-# this project can't guess (no fixed slug the way Greenhouse/Lever have
-# one) -- companies.yml's new "workday" pins section hand-recovers both,
-# same idea as the existing Comeet pins just above it in that file.
+# Real exceptions now: nvidia.com, paloaltonetworks.com, crowdstrike.com
+# (added below), ebay.com, mastercard.com, appliedmaterials.com,
+# broadcom.com, cisco.com, intel.com, visa.com, paypal.com, and
+# salesforce.com all run
+# Workday behind their own custom-branded careers page, which this
+# project can't guess (no fixed slug the way Greenhouse/Lever have one)
+# -- companies.yml's "workday" pins section hand-recovers each one, same
+# idea as the existing Comeet pins just above it in that file. Checked
+# and confirmed NOT reachable this way: google.com, apple.com,
+# amazon.com, microsoft.com, meta.com, ibm.com, oracle.com, sap.com --
+# all run fully custom/in-house systems with no Workday board at all.
+# palantir.com needed no pin: it already resolves via the existing Lever
+# guessing loop.
 microsoft.com
 google.com
 amazon.com
@@ -338,6 +346,7 @@ palantir.com
 mastercard.com
 visa.com
 paloaltonetworks.com
+crowdstrike.com
 dell.com
 hp.com
 hpe.com
