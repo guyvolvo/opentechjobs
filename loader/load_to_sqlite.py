@@ -103,18 +103,28 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
         # 'verified' same as always.
         confidence = None if not ats else ("best_effort" if ats == "jsonld" else "verified")
 
-        # ats=None with an error attached is an inconclusive result (a
+        # ats=None with retryable=True is an inconclusive result (a
         # --known re-poll of an already-resolved board failing, e.g. a
         # timeout), not the same as a confirmed MISS (--batch discovery
-        # genuinely finding no valid ATS, ats=None with no error). The
-        # class-level docstring above already promises a MISS leaves this
-        # domain "alone entirely," but only the jobs-closing skip below
-        # actually did that. This upsert ran unconditionally and wiped a
-        # previously-confirmed ats/confidence back to NULL on nothing more
-        # than a transient failure. Only tried/error/last_checked update
-        # here; ats/token/confidence/job_count keep whatever they already
-        # were (NULL if this is a genuinely new, never-resolved domain).
-        inconclusive = ats is None and r.get("error")
+        # genuinely finding no valid ATS, ats=None with retryable=False).
+        # The class-level docstring above already promises a MISS leaves
+        # this domain "alone entirely," but only the jobs-closing skip
+        # below actually did that. This upsert ran unconditionally and
+        # wiped a previously-confirmed ats/confidence back to NULL on
+        # nothing more than a transient failure. Only tried/error/
+        # last_checked update here; ats/token/confidence/job_count keep
+        # whatever they already were (NULL if this is a genuinely new,
+        # never-resolved domain).
+        #
+        # Reported live: retryable used to be inferred from error's mere
+        # presence, but resolve()'s own genuine "searched everything, no
+        # match" result also sets error (to explain the MISS, not to flag
+        # it as transient) -- so a real, confident correction (a company
+        # wrongly resolved once, correctly returning no match on a later
+        # run, e.g. after a false-positive fix) was being silently
+        # swallowed here forever instead of ever landing. probe.py now
+        # sets this field explicitly instead of leaving it to be inferred.
+        inconclusive = ats is None and r.get("retryable")
         if inconclusive:
             conn.execute(
                 """

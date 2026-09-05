@@ -106,6 +106,15 @@ class Resolution:
     job_count: int = 0
     tried: int = 0
     error: str | None = None
+    # True only for refetch_known()'s "a previously-good board didn't
+    # answer this time" failure -- a transient blip on an already-trusted
+    # company, worth ignoring rather than acting on. False (the default)
+    # for resolve()'s own "genuinely searched everything and nothing
+    # matched" result, even though that ALSO sets `error`: that one is a
+    # real, confident negative, not something to shrug off. load_to_sqlite.py
+    # reads this, not error's mere presence, to decide whether a MISS
+    # should overwrite a stale ats/token or leave it alone.
+    retryable: bool = False
     jobs: list[Job] = field(default_factory=list)
 
 
@@ -1425,8 +1434,12 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str) -> 
     if jobs is None:
         # Surfaced as an error, not downgraded to a silent MISS. Could
         # mean the board closed, the token rotated, or a transient
-        # failure; --verbose shows which.
+        # failure; --verbose shows which. retryable=True: this is a single
+        # re-poll of an already-trusted pair, not the full search resolve()
+        # runs -- worth trying again next cycle rather than treating as a
+        # confident correction.
         res.error = f"known {ats}:{token} did not return a valid board on re-poll"
+        res.retryable = True
         return res
     res.ats, res.token, res.jobs = ats, token, _fill_classifications(jobs)
     res.job_count = len(jobs)
