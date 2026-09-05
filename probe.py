@@ -1278,12 +1278,26 @@ def _workday_job_detail(sess: requests.Session, api_base: str, external_path: st
 # 10-min fast-poll re-check, and Workday's location filtering is a
 # per-tenant opaque facet ID (not a generic query param), so there's no
 # cheap way to ask any given tenant's API for "Israel only" server-side.
-# 200 is a real tradeoff, not a guess: enough pages that a company with a
-# few hundred global postings (most of these) still comes back complete,
-# while bounding the worst case (a company with thousands) well under the
-# scrape-fast Lambda's 90s subprocess budget.
+#
+# 200 (10 pages) was the first number shipped here and it took the whole
+# scrape-fast pipeline down for over an hour: measured live at 13-27s per
+# company under good conditions, but that's 18 pinned Workday companies
+# now needing this every single 10-min cycle, sharing the *outer*
+# run_and_report pool (8 workers) with the inner per-page pool below (also
+# 8, at the time) -- worst case several Workday companies land on outer
+# workers simultaneously, each opening its own inner pool, spiking well
+# past session()'s 16-connection pool and, combined with any real-world
+# network variance driving get_json_post's own retry-on-timeout path,
+# past the scrape-fast Lambda's 90s subprocess budget entirely. A
+# subprocess.TimeoutExpired there isn't caught anywhere in
+# scrape_handler.py -- the whole Lambda invocation fails, silently, every
+# 10 minutes, which is exactly what happened. 60 (3 pages) cuts per-company
+# time roughly 3x; the inner pool below is also cut to 4 so worst-case
+# simultaneous connections (a few concurrent Workday companies, each at
+# 4 inner workers) actually fits inside that 16-connection budget instead
+# of routinely exceeding it.
 WORKDAY_PAGE_SIZE = 20
-WORKDAY_MAX_JOBS = 200
+WORKDAY_MAX_JOBS = 60
 
 
 def _workday_build_job(sess: requests.Session, api_base: str, base: str, tenant: str, wd: str, site: str, j: dict) -> Job:
@@ -1309,15 +1323,15 @@ def f_workday(sess: requests.Session, tenant: str, wd: str, site: str) -> list[J
     total = None
     # Per-job detail fetches (see _workday_job_detail -- multi-location
     # postings need a second request) dominate the real cost here, not
-    # the page fetches themselves: measured live, a single-threaded pass
-    # over a 200-job company took 35-43s, easily enough on its own to eat
-    # the scrape-fast Lambda's whole 90s subprocess budget with ~200
-    # other companies still needing their own re-poll in the same run.
-    # A small pool per page (this project's Session is already built for
-    # concurrent use -- see session()'s pool_connections/pool_maxsize)
-    # cut that to 13-16s for the same three companies, measured the same
-    # way -- latency-bound now instead of request-count-bound.
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    # the page fetches themselves. A small pool per page (this project's
+    # Session is already built for concurrent use -- see session()'s
+    # pool_connections/pool_maxsize) turns that latency-bound instead of
+    # request-count-bound. 4, not 8: this function's own caller
+    # (run_and_report) already runs up to 8 companies concurrently, each
+    # of which might be a Workday company opening its own pool here --
+    # see WORKDAY_MAX_JOBS's comment above for the outage this
+    # nested-concurrency math actually caused at 8/8.
+    with ThreadPoolExecutor(max_workers=4) as pool:
         while True:
             d = get_json_post(
                 sess, f"{api_base}/jobs",
