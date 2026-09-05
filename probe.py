@@ -79,7 +79,7 @@ class Job:
     # Workday). For Comeet and Workday, an extra per-job detail request
     # can fill this in -- see FETCH_FULL_DESCRIPTIONS -- but only during
     # scrape-discover.yml's slower, less-frequent pass; doing this on
-    # every 10-min fast-poll, for every known listing on either ATS,
+    # every 5-min fast-poll, for every known listing on either ATS,
     # would be both too slow and needlessly hard on their APIs for
     # content that rarely changes. SmartRecruiters has the same
     # list-endpoint gap, not yet given the same treatment.

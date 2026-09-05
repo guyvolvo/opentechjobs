@@ -219,7 +219,7 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- re-verify never has a description at all (see probe.py's
             -- FETCH_FULL_DESCRIPTIONS), so without this, a description
             -- scrape-discover.yml worked to capture would get nulled back
-            -- out on the very next 10-min fast-poll. Every other ats
+            -- out on the very next 5-min fast-poll. Every other ats
             -- always sends a real value here, so this is a no-op for them.
             description_chars = CASE WHEN excluded.description_chars > 0 THEN excluded.description_chars ELSE description_chars END,
             description = CASE WHEN excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.description ELSE description END,
@@ -236,7 +236,7 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- probe.py's estimate falls back to matching the bare title
             -- alone -- still a real, non-empty value (the generic
             -- "backend" catch-all), so the old "not empty" guard let it
-            -- overwrite the better one every 10 minutes. A new estimate
+            -- overwrite the better one every 5 minutes. A new estimate
             -- now only wins when it's a real disclosed salary (never an
             -- estimate, always the most trustworthy), or this pass had
             -- real description text to estimate from (as good or better

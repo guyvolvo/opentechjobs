@@ -217,17 +217,21 @@ function setLastCheckedAt(iso) {
   if (lastCheckedAt === null || t > lastCheckedAt) lastCheckedAt = t;
 }
 
-// Shared by the topbar status dot/text and the API Status card: past
-// this, both flip from LIVE (green) to OFFLINE (red) together.
-const FRESH_THRESHOLD_MINUTES = 16;
-
-// EventBridge fires the scrape-fast Lambda on a flat rate(10 minutes)
+// EventBridge fires the scrape-fast Lambda on a flat rate(5 minutes)
 // schedule (infra/scrape_lambda.tf), and each run's start time is what
-// gets written to companies.last_checked -- so lastCheckedAt + 10m is a
+// gets written to companies.last_checked -- so lastCheckedAt + 5m is a
 // close read on when the next run should land. Not a guarantee: a run
 // that takes longer than usual, or a rare failed invocation, pushes the
 // real next update later than this estimate says.
-const SYNC_INTERVAL_MINUTES = 10;
+const SYNC_INTERVAL_MINUTES = 5;
+
+// Shared by the topbar status dot/text and the API Status card: past
+// this, both flip from LIVE (green) to OFFLINE (red) together. Same
+// ~1.6x-the-cycle margin as before the schedule tightened from 10 to 5
+// minutes (was 16/10) -- enough slack for one slow or skipped cycle plus
+// the /health and /stats CloudFront cache TTLs (up to 120s each) without
+// staying "LIVE" long enough to stop meaning anything.
+const FRESH_THRESHOLD_MINUTES = 8;
 
 function apiStatusFields() {
   const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
@@ -623,8 +627,8 @@ function applyStateToFilterUI() {
 // background and silently replaces it the moment fresh data lands.
 // Reported live: every visit meant a few seconds of "Loading
 // listings..." even though the underlying data rarely changes that
-// fast (scrape-fast.yml re-polls every 10 min, most visits land well
-// inside that window).
+// fast (the EventBridge-scheduled scrape-fast Lambda re-polls every 5
+// min, most visits land well inside that window).
 const JOBS_CACHE_PREFIX = "iljobs_jobs_cache:";
 
 function getCachedJobs(params) {
@@ -687,7 +691,7 @@ async function loadJobs() {
     document.getElementById("jobs-loading").style.display = "none";
     // Skip the re-render when the background refresh just confirms
     // nothing changed -- avoids a jarring flicker/scroll-reset for what
-    // will be the common case (revisiting within the same 10-min window).
+    // will be the common case (revisiting within the same 5-min window).
     const changed = !cached || JSON.stringify(data) !== JSON.stringify(cached);
     lastJobsResponse = data;
     if (changed) {
