@@ -8,6 +8,12 @@
         "value": "inter",
         "createdAt": "2026-09-02T15:49:28.566Z",
         "reason": "User explicitly requested Inter by name for headlines, twice in the same request"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "4px",
+        "createdAt": "2026-09-05T09:49:24.415Z",
+        "reason": "User explicitly requested 4px rounding twice: the filter bar inputs/toggles/Reset, and the Market Stats box's outer corners"
       }
     ]
   }
