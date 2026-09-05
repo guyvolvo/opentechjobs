@@ -885,6 +885,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 #f-q { flex: 2 1 120px; }
 #f-keywords { flex: 1 1 90px; }
 .filters .ms { flex: 1 1 80px; }
+.filters #f-date-posted,
+.filters #f-sort { flex: 1 1 100px; }
 .filters label.toggle,
 .filters #f-reset { flex: 0 0 auto; }
 

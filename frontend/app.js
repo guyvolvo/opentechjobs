@@ -42,6 +42,7 @@ const state = {
   workplace: [], // remote|hybrid|onsite
   confidence: "all", // no confidence filter in the UI; shown inline via badge instead
   israel_only: true,
+  max_age_days: "", // "" = any time; else days-since-posting cutoff, straight into the API param of the same name
   starred_only: false,
   sort: "age",
   dir: "asc", // newest first by default
@@ -526,6 +527,7 @@ function currentFilterParams() {
     workplace: state.workplace.join(","),
     confidence: state.confidence,
     israel_only: state.israel_only ? "1" : "",
+    max_age_days: state.max_age_days,
   };
 }
 
@@ -551,6 +553,7 @@ function buildShareParams() {
   if (state.workplace.length) p.set("workplace", state.workplace.join(","));
   if (state.confidence !== "all") p.set("confidence", state.confidence);
   if (!state.israel_only) p.set("israel_only", "0");
+  if (state.max_age_days) p.set("max_age_days", state.max_age_days);
   if (state.starred_only) p.set("starred", "1");
   if (state.sort !== "age") p.set("sort", state.sort);
   if (state.dir !== "asc") p.set("dir", state.dir);
@@ -585,6 +588,7 @@ function applyStateFromUrl(search) {
   }
   if (p.has("confidence")) state.confidence = p.get("confidence");
   if (p.has("israel_only")) state.israel_only = p.get("israel_only") !== "0";
+  if (p.has("max_age_days")) state.max_age_days = p.get("max_age_days");
   if (p.has("starred")) state.starred_only = p.get("starred") === "1";
   if (p.has("sort")) state.sort = p.get("sort");
   if (p.has("dir")) state.dir = p.get("dir");
@@ -602,6 +606,7 @@ function applyStateFromUrl(search) {
 function applyStateToFilterUI() {
   document.getElementById("f-q").value = state.q;
   document.getElementById("f-keywords").value = state.keywords;
+  document.getElementById("f-date-posted").value = state.max_age_days || "";
   document.getElementById("f-starred").checked = state.starred_only;
   msDepartment.setSelected(state.department);
   msSeniority.setSelected(state.seniority);
@@ -1329,6 +1334,27 @@ function wireFilters() {
     },
   });
 
+  document.getElementById("f-date-posted").addEventListener("change", (e) => {
+    state.max_age_days = e.target.value;
+    state.offset = 0;
+    loadJobs();
+    loadTicker();
+  });
+
+  // Newest/Oldest are both just the existing age-column sort under a
+  // clearer label -- the th[data-sort="age"] click handler below does the
+  // same thing, this is a second, more discoverable way in. Salary and
+  // Relevance sorting aren't here: neither has real backing yet (salary
+  // estimates are computed but never persisted as a sortable number, and
+  // there's no ranking/search-relevance signal in the schema at all).
+  document.getElementById("f-sort").addEventListener("change", (e) => {
+    if (!e.target.value) return; // the blank "Sort" placeholder, not a real choice
+    const [key, dir] = e.target.value.split(":");
+    setActiveSortHeader(key, dir);
+    state.offset = 0;
+    loadJobs();
+  });
+
   document.getElementById("f-starred").addEventListener("change", (e) => {
     state.starred_only = e.target.checked;
     loadJobs();
@@ -1344,12 +1370,14 @@ function wireFilters() {
     state.location = [];
     state.workplace = [];
     state.israel_only = true;
+    state.max_age_days = "";
     state.starred_only = false;
     state.sort = "age";
     state.dir = "asc";
     state.offset = 0;
     document.getElementById("f-q").value = "";
     document.getElementById("f-keywords").value = "";
+    document.getElementById("f-date-posted").value = "";
     msDepartment.reset();
     msSeniority.reset();
     msCompany.reset();
@@ -1392,6 +1420,11 @@ function setActiveSortHeader(key, dir) {
   const th = document.querySelector(`th[data-sort="${key}"]`);
   th.classList.add("active");
   th.setAttribute("data-dir", dir === "desc" ? "↓" : "↑");
+  // Keep the "Sort:" dropdown in step -- it only offers the two age-column
+  // sorts (Newest/Oldest), so clicking the Age header updates it and
+  // clicking the Listing header falls back to its blank "Sort" placeholder
+  // rather than showing a now-wrong stale option.
+  document.getElementById("f-sort").value = key === "age" ? `age:${dir}` : "";
 }
 
 // boot
