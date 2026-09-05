@@ -189,7 +189,20 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- to freeze at), and without this guard the CASE below would
             -- freeze them at that NULL forever instead of ever accepting
             -- this run's first real computed value.
-            posted_at = CASE WHEN excluded.ats = 'workday' AND posted_at IS NOT NULL THEN posted_at ELSE excluded.posted_at END,
+            --
+            -- Comeet has the identical failure mode, different cause:
+            -- time_updated (see _comeet_job's docstring) is the only
+            -- timestamp its API exposes, and it moves on any touch to the
+            -- listing, not just a real edit -- reported live, listings
+            -- first_seen days ago were reading "15m ago" because
+            -- something on Comeet's side keeps bumping time_updated on
+            -- basically every poll. Same fix: freeze at whatever posted_at
+            -- already resolved to, age normally from there. No separate
+            -- one-time null-out needed here -- unlike workday's synthetic
+            -- now-minus-N value, every already-stored comeet posted_at
+            -- came from a real time_updated read, still a legitimate value
+            -- to freeze at; this just stops it drifting forward further.
+            posted_at = CASE WHEN excluded.ats IN ('workday', 'comeet') AND posted_at IS NOT NULL THEN posted_at ELSE excluded.posted_at END,
             -- Keep the existing description/description_chars when this
             -- upsert's own value is empty, rather than blindly overwriting.
             -- Real for two cases today: Comeet and Workday's fast-poll
