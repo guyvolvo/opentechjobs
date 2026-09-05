@@ -3,11 +3,15 @@
    1. Sage-cream page background (--white); forest-green ink is a
       component color (buttons, rules), never on <body> directly.
    2. Green marks exactly one "this matters" element, never decoration.
-   3. Sharp corners everywhere. No border-radius, no box-shadow depth.
+   3. 4px radius on every discrete bordered box (buttons, chips, badges,
+      inputs, floating panels); sharp (0) only for what isn't really a
+      box -- grid-tile cards, the table, dividers. No box-shadow depth
+      anywhere either way. See DESIGN.md's Shapes section for the full
+      list of what stays sharp and why.
    4. Two voices: --font (Helvetica) for everything dense; --font-display
       (Overused Grotesk, bold/extrabold) only for the topbar and the two section
       titles.
-   5. Job Board and Market Stats are permanent, side by side above the
+   5. Job Board and Statistics are permanent, side by side above the
       mobile breakpoint (where they stack), never a drawer or toggle.
    6. Light/dark both read var(--white)/var(--black), never a literal
       hex, but the two palettes are tuned independently rather than one
@@ -314,6 +318,7 @@ button, input, select {
 .alert-toggle {
   background: none;
   border: 1px solid var(--black);
+  border-radius: 4px;
   padding: 3px 8px;
   font-family: var(--font);
   font-size: 10.5px;
@@ -357,6 +362,7 @@ button, input, select {
 }
 .alert-create-fields input[type="text"] {
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   padding: 9px 10px;
   height: 38px;
@@ -371,6 +377,7 @@ button, input, select {
   height: 38px;
   padding: 0 10px;
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -407,6 +414,7 @@ button, input, select {
   padding: 0 12px;
   margin-bottom: 8px;
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   color: var(--black);
   font-family: var(--font);
@@ -435,6 +443,7 @@ button, input, select {
   height: 38px;
   padding: 9px 10px;
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   color: var(--black);
   font-family: var(--font);
@@ -736,6 +745,7 @@ button, input, select {
   align-items: center;
   justify-content: center;
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   color: var(--black);
   width: 28px;
@@ -790,6 +800,7 @@ button, input, select {
   background: var(--green);
   color: var(--white);
   border: var(--rule) solid var(--green);
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -800,6 +811,7 @@ button, input, select {
 .job-detail-apply:hover { background: var(--black); border-color: var(--black); }
 .job-detail-star {
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   height: 38px;
   padding: 0 14px;
@@ -937,6 +949,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   padding: 6px 8px;
   margin-bottom: 6px;
   border: 1px solid var(--grey-line);
+  border-radius: 4px;
   background: var(--white);
   color: var(--black);
   font-family: var(--font);
@@ -964,6 +977,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   margin-top: 6px;
   padding: 6px;
   border: 1px solid var(--grey-line);
+  border-radius: 4px;
   background: none;
   color: var(--grey);
   font-family: var(--font);
@@ -1007,6 +1021,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 
 .btn {
   border: var(--rule) solid var(--black);
+  border-radius: 4px;
   background: var(--black);
   color: var(--white);
   height: 38px;
@@ -1028,6 +1043,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   background: var(--green);
   color: var(--white);
   border: var(--rule) solid var(--green);
+  border-radius: 4px;
   font-family: var(--font);
   font-size: 11px;
   font-weight: 700;
@@ -1169,17 +1185,16 @@ table.jobs .title-cell a:hover { color: var(--green); }
 }
 .job-salary { color: var(--black); font-weight: 700; }
 /* Filled green box per a live reference (a rounded pill on another
-   board) -- reusing .chip's existing solid-green/paper-text/square-
-   corner treatment rather than introducing a new rounded shape;
-   DESIGN.md's rounded:none is a hard invariant everywhere else in this
-   system. Still visually distinct from a real disclosed figure (plain
-   bold black, no box) -- deliberately bold/eye-catching regardless, so
-   the rows that DO have a number are easy to spot scanning down a
-   column mostly full of "Undisclosed." */
+   board) -- reusing .chip's solid-green/paper-text treatment. Still
+   visually distinct from a real disclosed figure (plain bold black, no
+   box) -- deliberately bold/eye-catching regardless, so the rows that DO
+   have a number are easy to spot scanning down a column mostly full of
+   "Undisclosed." */
 .job-salary.estimate {
   display: inline-block;
   background: var(--green);
   color: var(--white);
+  border-radius: 4px;
   font-weight: 700;
   padding: 2px 8px;
 }
@@ -1259,6 +1274,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
   color: var(--white);
   background: var(--green);
   border: var(--rule) solid var(--green);
+  border-radius: 4px;
   padding: 4px 10px;
   text-decoration: none;
   white-space: nowrap;
@@ -1288,6 +1304,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
   text-transform: uppercase;
   letter-spacing: 0.06em;
   border: 1px solid var(--black);
+  border-radius: 4px;
   padding: 2px 6px;
   font-weight: 700;
 }
@@ -1323,6 +1340,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
 .pagination .pages { display: flex; gap: 6px; }
 .pagination .pages button {
   border: 1px solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   width: 32px;
   height: 32px;
@@ -1333,6 +1351,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
 
 .empty-state, .error-state, .loading-state {
   border: var(--rule) dashed var(--grey-line);
+  border-radius: 4px;
   padding: 40px;
   text-align: center;
   color: var(--grey);

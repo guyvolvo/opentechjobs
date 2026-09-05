@@ -977,10 +977,13 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
       </div>
     </div>
 
+    <!-- No copy-link/"Save link" button here anymore -- redundant with
+         the header's own copy-link icon next to ✕ above. The row-level
+         one (renderJobRows) copies something different (the external
+         apply URL, not this page's permalink) and stays. -->
     <div class="job-detail-actions">
       <a class="job-detail-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
       <button type="button" class="job-detail-star ${starred ? "on" : ""}" data-star="${job.id}">${starred ? "★ Saved" : "☆ Save"}</button>
-      <button type="button" class="copy-link-btn" data-copy-url="${escapeHtml(job.url || "")}" title="Copy the application link">Save link</button>
     </div>
 
     <div class="job-detail-meta">
@@ -1011,8 +1014,6 @@ function wireJobDetailPanel(job) {
     }
     if (state.starred_only) loadJobs();
   });
-  const copyBtn = panel.querySelector("[data-copy-url]");
-  if (copyBtn) copyBtn.addEventListener("click", () => copyToClipboard(copyBtn, copyBtn.dataset.copyUrl));
   const permalinkBtn = panel.querySelector("[data-copy-permalink]");
   if (permalinkBtn) permalinkBtn.addEventListener("click", () => copyToClipboard(permalinkBtn, permalinkBtn.dataset.copyPermalink));
 }

@@ -42,6 +42,7 @@ typography:
     letterSpacing: "0.08em"
 rounded:
   none: "0px"
+  default: "4px"
 spacing:
   gutter: "clamp(20px, 4vw, 64px)"
   rule: "2px"
@@ -50,7 +51,7 @@ components:
   button-primary:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.paper}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.default}"
     padding: "0 16px"
     height: "38px"
   button-primary-hover:
@@ -58,13 +59,13 @@ components:
   button-ghost:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.default}"
     padding: "0 16px"
     height: "38px"
   chip:
     backgroundColor: "{colors.signal-green}"
     textColor: "{colors.paper}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.default}"
     padding: "6px 10px"
 ---
 
@@ -84,9 +85,11 @@ conflict between them. The one indulgence is a single display face
 two section titles) so it reads as a signature, not a typeface choice
 bleeding into body text.
 
-Confirmed visual rejections: no border-radius anywhere, no box-shadow
-used for depth, no decorative color, no third accent hue, no drop-in UI
-framework look.
+Confirmed visual rejections: no box-shadow used for depth, no decorative
+color, no third accent hue, no drop-in UI framework look. Every discrete
+bordered box (buttons, chips, badges, inputs, floating panels) uses a
+flat 4px radius — see Shapes below for exactly what stays sharp instead
+(grid-tile cards, the table, dividers) and why.
 
 **Key Characteristics:**
 - Flat, two-tone (sage-cream/forest-green) surfaces with color used as signal, not decoration
@@ -242,37 +245,38 @@ cue this design uses. A shadow anywhere is a bug, not a style choice.
 
 ## Shapes
 
-Sharp corners is the default everywhere — `border-radius: 0` unless a
-component is one of the named exceptions below. Borders are always one
-of exactly two weights: `var(--rule)` (2px, solid, ink or
-accent-colored — buttons, the topbar/section dividers) or a 1px hairline
-(`var(--grey-line)` — table row separators, the `.ms-search` field,
-`.ms-clear`). No intermediate weights, no dashed/dotted borders, no
-clipping or masking outside these exceptions.
+4px radius is the default for every discrete bordered box — buttons
+(`.btn`, `.job-detail-apply`, `.job-detail-star`, `.job-detail-icon-btn`),
+chips and badges (`.chip`, `.badge`, `.job-salary.estimate`), pagination
+buttons, inputs/toggles (filter bar, alert-create form, auth email/social
+buttons), and every floating panel/dropdown (`.job-detail`, `.ms-menu`,
+`.auth-panel`, `.ms-search`/`.ms-clear` inside it), and the
+empty/error/loading placeholder boxes. Borders otherwise stay one of
+exactly two weights: `var(--rule)` (2px, solid, ink or accent-colored) or
+a 1px hairline (`var(--grey-line)` — table row separators); the filter
+bar's own inputs/toggles are the one exception at 1.5px, by request.
 
-Four scoped exceptions, all by explicit request, none a system-wide
-change: the filter bar (`.filters input`, `.ms-toggle`, `label.toggle`,
-`#f-reset`) uses a 1.5px border and 4px radius instead of `--rule`/0; the
-Statistics grid (`#metrics-grid` + `#panel-grid`) keeps `var(--rule)`'s
+Sharp corners remain only where there's no real enclosed box to round:
+the job table itself and its row separators (a hairline divider, not a
+shape with corners), the topbar/section dividers, and the Statistics
+grid's individual metric/panel tiles — they share one grid box already
+rounded at its outer edge (see below), not individual boxes of their
+own. Company logos and skill-chip text are images/plain text, not
+bordered boxes, so nothing to round there either.
+
+The Statistics grid (`#metrics-grid` + `#panel-grid`) keeps `var(--rule)`'s
 2px width for its card-grid gaps/border but in `--grey-line`, not ink —
 full-strength `--black` read too bold for a dense grid of small tiles
 (same "quiet divider" reasoning as table row separators, just at 2px
 instead of 1px); this box (which shares one seamless visual outline via
-the negative-margin overlap above) also rounds only its four outer
-corners at that same 4px, with `overflow: hidden` so the corner cells'
-square backgrounds actually follow the curve; and every standalone
-floating/bordered container — the job detail panel
-(`.job-detail`), a multi-select dropdown (`.ms-menu`), the auth/alerts
-dropdown (`.auth-panel`) — rounds all four corners at that same 4px.
-Deliberately not this last group: the metric/panel tiles inside the
-Market Stats box (they share one grid box already rounded at its outer
-edge, not individual boxes of their own), buttons, chips, badges, and
-table rows.
+the negative-margin overlap above) rounds only its four outer corners at
+4px, with `overflow: hidden` so the corner cells' square backgrounds
+actually follow the curve.
 
 ## Components
 
 ### Buttons
-- **Shape:** square corners (0px), 2px solid border, fixed 38px height
+- **Shape:** 4px radius, 2px solid border, fixed 38px height
 - **Primary** (`.btn`): ink background, paper text; hover flips to signal
   green (background + border)
 - **Ghost** (`.btn.ghost`): paper background, ink text/border; hover
@@ -281,14 +285,15 @@ table rows.
 
 ### Chips
 - **Style** (`.chip`): signal-green background, paper text, uppercase,
-  700 weight, 11px, 0.06em tracking — a single filter-state pill (e.g.
-  the active company filter). Hover inverts to ink.
+  700 weight, 11px, 0.06em tracking, 4px radius — a single filter-state
+  pill (e.g. the active company filter). Hover inverts to ink.
 
 ### Cards / Containers
 - **Corner style:** square (0px) for a grid-tile card (metric/panel tile,
-  supplied by the shared grid's own border, not the tile). A standalone
-  floating box with its own border (job detail panel, `.ms-menu`,
-  `.auth-panel`) rounds all four corners at 4px — see Shapes above.
+  supplied by the shared grid's own border, not the tile — see Shapes
+  above for why these specifically stay sharp). A standalone floating
+  box with its own border (job detail panel, `.ms-menu`, `.auth-panel`)
+  rounds all four corners at 4px.
 - **Background:** paper, laid on a black `--rule`-width gap grid (see
   Layout) — the grid supplies the border, not the card itself
 - **Shadow strategy:** none — see Elevation & Depth
@@ -296,9 +301,9 @@ table rows.
   vs. market panel)
 
 ### Inputs / Fields
-- **Style** (`.filters input`, `.ms-toggle`): 1.5px solid ink border, paper
-  background, 38px height, 4px radius — see the Shapes section above for
-  why this one deviates from the sharp-corner default
+- **Style** (`.filters input`, `.ms-toggle`): 1.5px solid ink border
+  (every other input/toggle in the system uses `var(--rule)`'s 2px — see
+  Shapes above), paper background, 38px height, 4px radius
 - **Focus:** 2px signal-green outline, inset (`outline-offset: -2px`) so
   it reads as a border-color change rather than a halo
 - **Multi-select** (`.ms-*`): a hand-built checkbox dropdown, not a
@@ -344,8 +349,10 @@ pulsing) to read as "the light went out," not "warning, still breathing."
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep `border-radius` at 0 everywhere outside the three named
-  exceptions (see Shapes above) — no further ones without asking first.
+- **Do** use 4px radius on every discrete bordered box (see Shapes
+  above); keep it at 0 only for the grid-tile cards, table, and dividers
+  that stay sharp there — check with the user before adding a new sharp
+  exception, not before rounding something new.
 - **Do** build all depth/separation from the 2px black rule grid or a
   1px hairline — never a shadow.
 - **Do** read every color from a `var(--token)`, never a literal hex, so
