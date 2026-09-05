@@ -539,6 +539,13 @@ button, input, select {
   gap: var(--rule);
   background: var(--black);
   border: var(--rule) solid var(--black);
+  /* Scoped to just the Market Stats box, per request -- same 4px radius
+     as the filter bar, top corners only (the seam it shares with
+     panel-grid below stays square). overflow:hidden so the corner
+     .metric-card's square white background actually follows the curve
+     instead of poking a square corner past it. */
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
 }
 
 .metric-card {
@@ -572,6 +579,16 @@ button, input, select {
   color: var(--grey);
   margin-top: 4px;
 }
+/* API Status card only, third line -- same size/color as .sub above,
+   just a second one, so it introduces no new type-ramp step.
+   tabular-nums keeps the countdown's digits from jittering in width
+   as it ticks down every second. */
+.metric-card .sync-countdown {
+  font-size: 11.5px;
+  color: var(--grey);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Market-insight panels: who's hiring, what for, where. No ATS-vendor
    breakdown here; that's plumbing, not a market signal. */
@@ -583,6 +600,10 @@ button, input, select {
   gap: var(--rule);
   background: var(--black);
   border: var(--rule) solid var(--black);
+  /* Bottom corners only -- see metrics-grid above, this is the other
+     half of the same visually-seamless box. */
+  border-radius: 0 0 4px 4px;
+  overflow: hidden;
 }
 
 .panel {

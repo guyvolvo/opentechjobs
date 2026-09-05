@@ -202,6 +202,14 @@ let lastCheckedAt = null;
 // this, both flip from LIVE (green) to OFFLINE (red) together.
 const FRESH_THRESHOLD_MINUTES = 16;
 
+// EventBridge fires the scrape-fast Lambda on a flat rate(10 minutes)
+// schedule (infra/scrape_lambda.tf), and each run's start time is what
+// gets written to companies.last_checked -- so lastCheckedAt + 10m is a
+// close read on when the next run should land. Not a guarantee: a run
+// that takes longer than usual, or a rare failed invocation, pushes the
+// real next update later than this estimate says.
+const SYNC_INTERVAL_MINUTES = 10;
+
 function apiStatusFields() {
   const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
   const fresh = (minutesSince ?? 9999) <= FRESH_THRESHOLD_MINUTES;
@@ -212,6 +220,16 @@ function apiStatusFields() {
   };
 }
 
+function nextSyncText() {
+  if (lastCheckedAt === null) return null;
+  const remainingMs = lastCheckedAt + SYNC_INTERVAL_MINUTES * 60_000 - Date.now();
+  if (remainingMs <= 0) return "next sync any moment";
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `next sync in ${m}:${String(s).padStart(2, "0")}`;
+}
+
 function tickApiStatus() {
   const card = document.getElementById("metric-api-status");
   if (!card) return;
@@ -219,6 +237,8 @@ function tickApiStatus() {
   card.classList.toggle("highlight", fresh);
   card.querySelector(".value").textContent = value;
   card.querySelector(".sub").textContent = sub;
+  const syncEl = card.querySelector(".sync-countdown");
+  if (syncEl) syncEl.textContent = nextSyncText() ?? "";
   document.getElementById("status-dot").classList.toggle("offline", !fresh);
   document.getElementById("status-text").textContent = fresh ? "LIVE" : "OFFLINE";
 }
@@ -261,6 +281,7 @@ function renderMetrics(stats) {
       label: "API Status",
       value: apiStatusFields().value,
       sub: apiStatusFields().sub,
+      sub2: nextSyncText(),
       hl: fresh,
     },
   ];
@@ -273,6 +294,7 @@ function renderMetrics(stats) {
         <div>
           <div class="value">${c.value}</div>
           <div class="sub">${c.sub}</div>
+          ${c.sub2 ? `<div class="sync-countdown">${c.sub2}</div>` : ""}
         </div>
       </div>`
     )
@@ -282,9 +304,10 @@ function renderMetrics(stats) {
   document.getElementById("status-text").textContent = fresh ? "LIVE" : "OFFLINE";
 }
 
-// Recomputes from lastCheckedAt every 15s so "X AGO" keeps counting up
-// between the 2-min stats polls instead of sitting frozen.
-const API_STATUS_TICK_MS = 15_000;
+// Recomputes from lastCheckedAt every 1s -- the sync countdown needs a
+// real per-second tick to read as "live"; the AGO text along for the
+// ride is a no-op most seconds, negligible cost either way.
+const API_STATUS_TICK_MS = 1_000;
 
 // Market-insight panels: who's hiring, what for, where. No ATS-vendor
 // breakdown here; that's plumbing, not a market signal (still available

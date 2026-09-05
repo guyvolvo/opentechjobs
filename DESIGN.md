@@ -240,13 +240,22 @@ cue this design uses. A shadow anywhere is a bug, not a style choice.
 
 ## Shapes
 
-Sharp corners everywhere — `border-radius: 0` is a hard invariant, not a
-default that happened to go unset. Borders are always one of exactly two
-weights: `var(--rule)` (2px, solid, ink or accent-colored — buttons,
-inputs, the topbar/section dividers, card-grid gaps) or a 1px hairline
-(`var(--grey-line)` — table row separators, the `.ms-search` field,
-`.ms-clear`). No intermediate weights, no dashed/dotted borders, no
-clipping or masking.
+Sharp corners is the default everywhere — `border-radius: 0` unless a
+component is one of the two named exceptions below. Borders are always
+one of exactly two weights: `var(--rule)` (2px, solid, ink or
+accent-colored — buttons, the topbar/section dividers, card-grid gaps) or
+a 1px hairline (`var(--grey-line)` — table row separators, the
+`.ms-search` field, `.ms-clear`). No intermediate weights, no
+dashed/dotted borders, no clipping or masking outside the two exceptions.
+
+Two scoped exceptions, both by explicit request, neither a system-wide
+change: the filter bar (`.filters input`, `.ms-toggle`, `label.toggle`,
+`#f-reset`) uses a 1.5px border and 4px radius instead of `--rule`/0, and
+the Market Stats box (`#metrics-grid` + `#panel-grid`, which share one
+seamless visual outline via the negative-margin overlap above) rounds
+only its four outer corners at that same 4px, with `overflow: hidden` so
+the corner cells' square backgrounds actually follow the curve. Every
+other card/container/input stays sharp.
 
 ## Components
 
@@ -272,8 +281,9 @@ clipping or masking.
   vs. market panel)
 
 ### Inputs / Fields
-- **Style** (`.filters input`, `.ms-toggle`): 2px solid ink border, paper
-  background, 38px height, no radius
+- **Style** (`.filters input`, `.ms-toggle`): 1.5px solid ink border, paper
+  background, 38px height, 4px radius — see the Shapes section above for
+  why this one deviates from the sharp-corner default
 - **Focus:** 2px signal-green outline, inset (`outline-offset: -2px`) so
   it reads as a border-color change rather than a halo
 - **Multi-select** (`.ms-*`): a hand-built checkbox dropdown, not a
@@ -308,7 +318,8 @@ pulsing) to read as "the light went out," not "warning, still breathing."
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep `border-radius` at 0 everywhere, no exceptions.
+- **Do** keep `border-radius` at 0 everywhere outside the filter bar and
+  the Market Stats box (see Shapes above) — no further exceptions.
 - **Do** build all depth/separation from the 2px black rule grid or a
   1px hairline — never a shadow.
 - **Do** read every color from a `var(--token)`, never a literal hex, so
