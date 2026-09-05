@@ -65,14 +65,14 @@ variable "lambda_timeout_s" {
 
 variable "scrape_lambda_memory_mb" {
   type        = number
-  default     = 512
-  description = "The scrape-fast Lambda re-polls every known board and upserts into a growing SQLite DB, heavier than the read-only API Lambda's workload."
+  default     = 1024
+  description = "The scrape-fast Lambda re-polls every known board and upserts into a growing SQLite DB, heavier than the read-only API Lambda's workload. Bumped from 512 the same day a run was measured at 510/512MB used (Comeet's re-poll upserting a 100MB+ jobs.db) -- real OOM risk, not headroom. Lambda's network throughput scales with memory too, so this also helps the timeout margin below, not just safety."
 }
 
 variable "scrape_lambda_timeout_s" {
   type        = number
   default     = 120
-  description = "Ceiling for probe.py --known (all boards, in parallel) plus the SQLite upsert; both run well under this in practice."
+  description = "Ceiling for probe.py --known (all boards, in parallel) plus the SQLite upsert. Reported live (2026-09-05): this was NOT true -- a full run measured 103.85s of this 120s budget even after excluding Workday entirely (see probe.py's --known filter), and repeated runs before that fix were hitting the ceiling and erroring outright for over an hour straight. Comment corrected, not removed, so the next person doesn't repeat the same false assumption -- watch actual Duration in CloudWatch before trusting any number here again."
 }
 
 variable "domain_name" {

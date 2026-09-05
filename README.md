@@ -15,7 +15,7 @@ loader/load_to_sqlite.py > upserts jobs.db + re-derives known.json
 
 both pushed to S3
 
-scrape-fast.yml, a quicker scrape that runs every 10 min to find job postings in existing job boards
+scrape_handler.py, an EventBridge-scheduled Lambda that re-polls existing job boards every 5 min (scrape-fast.yml itself is workflow_dispatch-only now, see its own header comment)
 ```
 
 

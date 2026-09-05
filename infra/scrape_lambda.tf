@@ -73,6 +73,17 @@ resource "aws_lambda_function" "scrape_fast" {
   source_code_hash = data.archive_file.scrape_fast.output_base64sha256
   memory_size      = var.scrape_lambda_memory_mb
   timeout          = var.scrape_lambda_timeout_s
+  # A run pulls the current jobs.db from S3, upserts into it, pushes it
+  # back -- not an atomic/locked operation. Two overlapping invocations
+  # (a slow run still going when the next scheduled one fires) would race
+  # on that read-modify-write and could silently drop whichever one
+  # finished writing first. Reserved at 1 so EventBridge's own retry
+  # mechanism absorbs a slow cycle (queues/retries) instead of ever
+  # letting two runs touch jobs.db at the same time. Matters more now that
+  # a shorter schedule (see the event rule below) is being considered
+  # specifically because runs got faster, not because they're guaranteed
+  # short.
+  reserved_concurrent_executions = 1
 
   environment {
     variables = {
@@ -105,9 +116,15 @@ resource "aws_cloudwatch_log_group" "scrape_fast_lambda" {
 }
 
 resource "aws_cloudwatch_event_rule" "scrape_fast_schedule" {
-  name                = "${var.project_name}-scrape-fast-schedule"
-  description         = "Fires the fast re-poll Lambda every 10 minutes"
-  schedule_expression = "rate(10 minutes)"
+  name        = "${var.project_name}-scrape-fast-schedule"
+  description = "Fires the fast re-poll Lambda every 5 minutes"
+  # Was 10 minutes. Tightened once, not blindly: a full run (Workday
+  # excluded, WORKERS still 8) measured 103.85s live -- comfortably under
+  # this 300s window even before the memory/concurrency bumps above.
+  # reserved_concurrent_executions=1 on the function itself is the real
+  # guard against two runs ever overlapping, not just this number being
+  # generous; that's what actually made shortening the interval safe.
+  schedule_expression = "rate(5 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_fast_schedule" {

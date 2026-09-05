@@ -57,9 +57,14 @@ careers-page scraping or manual listings couldn't truthfully match:
 Fully serverless, near-$0/mo pipeline (see README's `## Architecture` for
 the full diagram, not duplicated here):
 
-- GitHub Actions run the scraper on a schedule — a slow daily discovery
-  pass (guessing ATS tokens, Comeet/embed scraping for new companies) and
-  a fast 10-minute re-poll of already-known company/ATS pairs.
+- A slow daily discovery pass (GitHub Actions, guessing ATS tokens,
+  Comeet/embed scraping for new companies) and a fast 5-minute re-poll of
+  already-known company/ATS pairs (an EventBridge-scheduled Lambda —
+  GitHub Actions' own schedule trigger proved unreliable, see
+  scrape_handler.py's header comment). Workday companies are the one
+  exception: pinned tenants only refresh on the slow daily pass, not the
+  fast one — reported live, re-polling all of them every cycle was
+  blowing the fast Lambda's time budget.
 - Output lands in a SQLite file pushed to S3 (`jobs.db`), read by a Lambda
   behind a Function URL (`api/handler.py`) — chosen over RDS specifically
   to stay near $0/mo (write pattern is single-writer batch upsert, not

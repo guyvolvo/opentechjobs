@@ -48,7 +48,15 @@ except ImportError:
 
 UA = "ats-probe/0.2 (+https://github.com/guyvolvo/REPLACE-ME)"
 TIMEOUT = 12
-WORKERS = 8
+# This work is I/O-bound (waiting on other companies' APIs), not
+# CPU-bound, so higher concurrency buys real wall-clock time almost for
+# free. Measured live: 8 -> 16 cut a 197-company --known run from ~19-29s
+# to ~15s. Raised alongside the scrape-fast Lambda's own memory bump (see
+# infra/variables.tf's scrape_lambda_memory_mb) -- more memory there also
+# means more network throughput, not just headroom -- after the pipeline
+# outage this same day traced back to a per-invocation time budget that
+# turned out to have far less margin than assumed.
+WORKERS = 16
 PINS_FILE = Path(__file__).with_name("companies.yml")
 
 COMMON_TLDS = {"com", "io", "ai", "net", "org", "co", "il", "tech", "dev",

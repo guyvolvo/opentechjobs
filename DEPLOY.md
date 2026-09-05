@@ -47,10 +47,11 @@ authenticate to locally at least once.
    too (push to main, or trigger it manually). The frontend bucket
    starts out empty, Terraform only provisions it.
 
-From here, `scrape-discover.yml` runs unattended once/day,
-`scrape-fast.yml` every 10 min, and `deploy-infra.yml` / `deploy-api.yml` /
-`deploy-frontend.yml` handle changes to `infra/`, `api/`, and `frontend/`
-respectively.
+From here, `scrape-discover.yml` runs unattended once/day, the
+EventBridge-scheduled `scrape-fast` Lambda every 5 min (`scrape-fast.yml`
+itself is workflow_dispatch-only, see its own header comment), and
+`deploy-infra.yml` / `deploy-api.yml` / `deploy-frontend.yml` handle
+changes to `infra/`, `api/`, and `frontend/` respectively.
 
 If you rename the GitHub repo (or transfer it to a different owner) after
 setup, the OIDC trust policy breaks silently: GitHub's token `sub` claim

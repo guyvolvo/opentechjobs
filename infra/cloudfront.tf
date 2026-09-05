@@ -17,13 +17,15 @@ locals {
   api_gateway_domain = "${aws_apigatewayv2_api.api.id}.execute-api.${var.aws_region}.amazonaws.com"
 }
 
-# Short TTL: known companies get re-polled every 10 min (scrape-fast.yml),
-# so the edge cache should track that rather than serve outdated data for hours.
+# Short TTL: known companies get re-polled every 5 min (the EventBridge-
+# scheduled scrape-fast Lambda, see scrape_handler.py -- not
+# scrape-fast.yml itself, which is workflow_dispatch-only), so the edge
+# cache should track that rather than serve outdated data for hours.
 # (CloudFront's Comment field caps at 128 chars, hence the terse version
 # there and the full one here.)
 resource "aws_cloudfront_cache_policy" "api" {
   name        = "${var.project_name}-api-cache"
-  comment     = "Short TTL tracking the 10-min scrape cadence"
+  comment     = "Short TTL tracking the 5-min scrape cadence"
   default_ttl = 120
   min_ttl     = 0
   max_ttl     = 3600
