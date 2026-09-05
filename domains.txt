@@ -469,4 +469,46 @@ minutemedia.com
 oosto.com
 perimeter81.com
 rapidapi.com
+
+# Vertex Ventures Israel's portfolio (vertexventures.co.il/portfolio) and
+# poteto/hiring-without-whiteboards on GitHub (filtered to Israel-located
+# entries only -- that list is global, not Israel-specific), companies not
+# already covered by earlier batches. Every one below checked live via
+# HTTP first; several plausible name-guesses were dropped after actually
+# checking: Adaptive Shield, Identiq, and Kryon were each acquired and now
+# just redirect to their acquirer's own site (CrowdStrike, Incode, and
+# Nintex respectively) -- no longer independent hiring entities. Upswift
+# was acquired by JFrog, already covered under its own domain above.
+# Twistlock (acquired by Palo Alto Networks in 2019) looks defunct as a
+# standalone site. Firedome's own domain has lapsed and is now squatted
+# with gambling spam -- a live, current instance of the same "domain
+# decayed" class of exclusion as Vesttoo above, not assumed from an old
+# search snippet. EverAfter and Magical's first-guessed domains
+# (everafter.com, magical.team) turned out to be unrelated sites (a
+# Vegas wedding chapel, a dead parking page) -- everafter.ai and
+# getmagical.com are their real ones.
+500tech.com
+atidot.com
+blings.io
+blinkops.com
+classiq.io
+cylus.com
+dotcompliance.com
+easysend.io
+everafter.ai
+evinced.com
+getmagical.com
+growthspace.com
+hear.ai
+myheritage.com
+navina.ai
+nexite.io
+nucleai.co
+persado.com
+scylladb.com
+siteaware.com
+tailorbrands.com
+tensorleap.ai
+watchful.ai
+zenity.io
 veev.com
