@@ -925,6 +925,17 @@ def f_jazzhr(sess, token):
     description without a second request per posting -- not done here,
     same cost tradeoff as Comeet's FETCH_FULL_DESCRIPTIONS.
 
+    A THIRD state, distinct from both of the above: reported live, a
+    generic/brand-name token guess (amazon, apple, microsoft, cisco,
+    dell, oracle, siemens, broadcom, plus a few Israeli-company guesses:
+    d-id, gem, tytocare, compass) resolves to a real 200 that stays on
+    {token}.applytojob.com, but the page itself is titled "JazzHR -
+    Inactive Career Page" -- someone registered the slug and never
+    configured real content. Confirmed live: no false negative risk,
+    genuinely active boards (including a currently-empty one, Wrap
+    Technologies) carry their own real company name in that title
+    instead. Treated as a MISS, same as the nonexistent-token case.
+
     JazzHR is mid-migration to a newer template -- one ground-truth
     company's own page source carries the comment "temporary switch to
     support feature flag disabling customers from seeing the new
@@ -939,6 +950,8 @@ def f_jazzhr(sess, token):
     except requests.RequestException:
         return None
     if r.status_code != 200 or f"{token}.applytojob.com" not in r.url:
+        return None
+    if "Inactive Career Page" in r.text:
         return None
     out = []
     for m in _JAZZHR_JOB_RE.finditer(r.text):
@@ -1030,6 +1043,11 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("personio", "hpe"),          # hpe.com: unrelated German tenant (job titles in German)
     ("personio", "matrix"),       # matrix.co.il, second collision on top of the ashby one above
     ("personio", "monday"),       # monday.com: real board is "Monday" coworking spaces (Spain/Portugal)
+    ("jazzhr", "electra"),        # electra.co.il: real board is "Electra Aero," an unrelated US eVTOL company
+    ("jazzhr", "intuit"),         # intuit.com: real title says "Intuit - Career Page" but the one posting is
+                                   # literally titled "Sample Job" -- an unconfigured demo tenant, not the
+                                   # real Intuit. Titled convincingly enough that the Inactive-Career-Page
+                                   # check above doesn't catch it, hence the explicit entry.
 }
 
 FETCHERS: dict[str, Callable] = {
