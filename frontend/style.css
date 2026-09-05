@@ -908,18 +908,26 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 
 /* The native select arrow sits right against the border by default --
    reported live as too tight. appearance:none drops it in favor of a
-   hand-drawn chevron with real breathing room from the edge; currentColor
-   inside the data URI follows body's color (var(--black)) automatically,
-   no separate light/dark copy needed. */
+   hand-drawn chevron with real breathing room from the edge.
+   Reported live: currentColor inside a *referenced* SVG (a data URI
+   used as background-image, as opposed to an inline <svg> in the DOM)
+   doesn't reliably inherit the element's CSS color -- it fell back to
+   black, invisible against dark mode's near-black box fill. Hardcoded
+   per theme instead, same hex as --black's two definitions above (a
+   data URI can't read a custom property, so these two have to be kept
+   in sync with those by hand if that token ever changes). */
 .filters select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   padding-right: 30px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2340513b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 10px 6px;
+}
+:root[data-theme="dark"] .filters select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ededec' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* Multi-select filter. A native <select multiple> needs ctrl/cmd-click
