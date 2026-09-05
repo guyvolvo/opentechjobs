@@ -2137,7 +2137,8 @@ function wireAlertCreateForm() {
   });
 }
 
-// scrape-fast.yml re-polls every 10 min; 2 min keeps an open tab
+// The scrape-fast Lambda (EventBridge, not scrape-fast.yml -- see its own
+// header comment) re-polls every 5 min; 2 min keeps an open tab
 // reasonably current without hammering the API, and lines up with
 // CloudFront's own 120s cache on /api/* so most polls never even reach
 // the Lambda.
@@ -2196,6 +2197,14 @@ async function boot() {
   setInterval(() => {
     refreshStats();
     loadTicker();
+    // Piggybacks on the same 2-min tick as the stats/ticker refresh
+    // above, not a separate timer -- loadJobs() already has its own
+    // "did the response actually change" guard (see its own comment),
+    // so an open tab quietly picks up new listings without a page
+    // reload, a scroll jump, or losing the open detail drawer, but
+    // never re-renders (and never flickers) when nothing really did
+    // change, which is the common case within one 2-min window.
+    loadJobs();
   }, STATS_POLL_MS);
   setInterval(tickApiStatus, API_STATUS_TICK_MS);
   setInterval(refreshFreshness, HEALTH_POLL_MS);
