@@ -1791,10 +1791,26 @@ def main() -> int:
     elif args.known:
         with open(args.known, encoding="utf-8") as fh:
             entries = json.load(fh)
-        known = [e for e in entries if e.get("ats") and e.get("token")]
+        # ats != "workday": reported live, re-polling all 18 pinned
+        # Workday companies every 10 minutes -- each needing its own
+        # paginated fetch (see f_workday/WORKDAY_MAX_JOBS) -- was blowing
+        # past the scrape-fast Lambda's 90s subprocess timeout almost
+        # every single cycle (confirmed via CloudWatch: ~90.3s duration,
+        # Errors == Invocations, for over an hour straight), even after
+        # cutting the per-company cost down repeatedly. Real-world
+        # latency from AWS's network to these tenants is evidently much
+        # worse than from a dev machine, where the same fetch measured
+        # 29s for all 215 known companies combined. Workday isn't
+        # guess-and-verify-able in the first place (see the pins comment
+        # in resolve()), so these companies only ever refresh from
+        # scrape-discover.yml's own pass now (daily, or on manual
+        # dispatch) -- no tight timeout there, and pagination stays at
+        # full strength for that path. A staler Workday listing beats a
+        # pipeline that silently stops updating everything else too.
+        known = [e for e in entries if e.get("ats") and e.get("token") and e.get("ats") != "workday"]
         skipped = len(entries) - len(known)
         if VERBOSE and skipped:
-            print(f"    [--known] skipping {skipped} unresolved entries from {args.known}", file=sys.stderr)
+            print(f"    [--known] skipping {skipped} unresolved/workday entries from {args.known}", file=sys.stderr)
         if not known:
             print(f"no resolved (ats+token) entries in {args.known}", file=sys.stderr)
             return 2
