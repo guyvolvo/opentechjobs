@@ -729,8 +729,12 @@ button, input, select {
   justify-content: space-between;
   gap: 12px;
 }
-.job-detail-close {
+.job-detail-header-actions { display: flex; align-items: flex-start; gap: 8px; flex: 0 0 auto; }
+.job-detail-icon-btn {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: var(--rule) solid var(--black);
   background: var(--white);
   color: var(--black);
@@ -739,7 +743,18 @@ button, input, select {
   font-size: 13px;
   cursor: pointer;
 }
-.job-detail-close:hover { background: var(--black); color: var(--white); }
+.job-detail-icon-btn:hover { background: var(--black); color: var(--white); }
+/* The "Copied" text feedback (see copyToClipboard) doesn't fit a fixed
+   28px square -- briefly relaxes to a small pill instead of clipping,
+   then snaps back once the timeout restores the plain icon. */
+.job-detail-icon-btn.copied {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--green);
+  border-color: var(--green);
+  background: var(--white);
+}
 
 .job-detail-title {
   font-size: 17px;

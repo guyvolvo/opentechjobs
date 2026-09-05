@@ -526,6 +526,88 @@ function currentFilterParams() {
   };
 }
 
+// URL query-param syncing: filters/sort/page state and the open job
+// drawer both round-trip through the URL, so a bookmarked or shared link
+// reproduces the exact view. buildShareParams/shareUrl/syncUrl (write)
+// pair with applyStateFromUrl/applyStateToFilterUI (read) below.
+// replaceState throughout here, not pushState -- a filter change or page
+// turn isn't a distinct "page" a user expects Back to undo one keystroke
+// at a time. Opening a job IS treated as a real navigation (see
+// openJobDetailAndPush), so that one pushes instead.
+
+// Only ever set for a non-default value, so a plain visit to "/" stays
+// a plain "/" instead of growing every field's default into the URL.
+function buildShareParams() {
+  const p = new URLSearchParams();
+  if (state.q) p.set("q", state.q);
+  if (state.keywords) p.set("keywords", state.keywords);
+  if (state.department.length) p.set("department", state.department.join(","));
+  if (state.seniority.length) p.set("seniority", state.seniority.join(","));
+  if (state.company.length) p.set("company", state.company.join(","));
+  if (state.location.length) p.set("location", state.location.join(","));
+  if (state.workplace.length) p.set("workplace", state.workplace.join(","));
+  if (state.confidence !== "all") p.set("confidence", state.confidence);
+  if (!state.israel_only) p.set("israel_only", "0");
+  if (state.starred_only) p.set("starred", "1");
+  if (state.sort !== "age") p.set("sort", state.sort);
+  if (state.dir !== "asc") p.set("dir", state.dir);
+  if (state.offset) p.set("offset", String(state.offset));
+  if (selectedJobId) p.set("job", selectedJobId);
+  return p;
+}
+
+function shareUrl() {
+  const qsStr = buildShareParams().toString();
+  return location.pathname + (qsStr ? `?${qsStr}` : "");
+}
+
+// Called from loadJobs() so every state-mutating handler (they all call
+// loadJobs() right after) keeps the URL in step with zero extra wiring
+// at each individual call site.
+function syncUrl() {
+  history.replaceState(null, "", shareUrl());
+}
+
+// Populates `state` from a query string -- location.search on boot, or
+// whatever new URL a Back/Forward navigation hands back via popstate.
+// Anything absent keeps state's existing default; an absent param means
+// "default," not "clear," so a partial URL (just ?q=... say) doesn't
+// stomp the rest back to defaults.
+function applyStateFromUrl(search) {
+  const p = new URLSearchParams(search);
+  if (p.has("q")) state.q = p.get("q");
+  if (p.has("keywords")) state.keywords = p.get("keywords");
+  for (const key of ["department", "seniority", "company", "location", "workplace"]) {
+    if (p.has(key)) state[key] = p.get(key).split(",").filter(Boolean);
+  }
+  if (p.has("confidence")) state.confidence = p.get("confidence");
+  if (p.has("israel_only")) state.israel_only = p.get("israel_only") !== "0";
+  if (p.has("starred")) state.starred_only = p.get("starred") === "1";
+  if (p.has("sort")) state.sort = p.get("sort");
+  if (p.has("dir")) state.dir = p.get("dir");
+  if (p.has("offset")) {
+    const n = parseInt(p.get("offset"), 10);
+    state.offset = Number.isFinite(n) && n > 0 ? n : 0;
+  }
+}
+
+// Reflects `state` (just populated by applyStateFromUrl) into the actual
+// filter controls. setSelected()/a direct .value assignment don't fire
+// onChange, so this never double-triggers loadJobs() on its own -- the
+// caller (boot, or the popstate handler) does that once, itself, after.
+// Requires wireFilters() to have already run (msDepartment etc. assigned).
+function applyStateToFilterUI() {
+  document.getElementById("f-q").value = state.q;
+  document.getElementById("f-keywords").value = state.keywords;
+  document.getElementById("f-starred").checked = state.starred_only;
+  msDepartment.setSelected(state.department);
+  msSeniority.setSelected(state.seniority);
+  msCompany.setSelected(state.company);
+  msLocation.setSelected(state.location);
+  msWorkplace.setSelected(state.workplace);
+  setActiveSortHeader(state.sort, state.dir);
+}
+
 // Stale-while-revalidate for the job list: keyed by the exact
 // filter/sort/page combo, so a revisit with the same view renders
 // instantly from whatever was cached last time instead of sitting on a
@@ -556,6 +638,11 @@ function setCachedJobs(params, data) {
 }
 
 async function loadJobs() {
+  // Every state-mutating handler in this file calls loadJobs() right
+  // after, so state is already final for this transition -- one call
+  // here covers all of them instead of one at each call site.
+  syncUrl();
+
   const tbody = document.getElementById("jobs-body");
   const starred = getStarred();
   renderCompanyChip();
@@ -770,11 +857,15 @@ async function copyToClipboard(btn, url) {
     document.execCommand("copy");
     document.body.removeChild(ta);
   }
-  const original = btn.textContent;
+  // innerHTML, not textContent -- a plain-text button (Save link) round-trips
+  // through either the same way, but an icon-only button (an inline <svg>,
+  // no text content at all) needs innerHTML or the restore below would wipe
+  // the icon out instead of bringing it back.
+  const original = btn.innerHTML;
   btn.textContent = "Copied";
   btn.classList.add("copied");
   setTimeout(() => {
-    btn.textContent = original;
+    btn.innerHTML = original;
     btn.classList.remove("copied");
   }, 1200);
 }
@@ -837,6 +928,19 @@ function renderDescriptionLines(description) {
     .join("\n");
 }
 
+// Hand-written, not an icon font/library -- this project has zero
+// external dependencies anywhere in the frontend, and one glyph doesn't
+// change that. currentColor so it inherits the button's own ink/hover
+// color for free, same as every other flat, monochrome control here.
+const LINK_ICON_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.5"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07L13.5 19.5"/></svg>`;
+
+// Deep link to one job, independent of whatever filters are currently
+// active -- see openJobDetail's "not in the current list" fallback,
+// which is what makes opening this link from cold actually work.
+function jobPermalink(id) {
+  return `${location.origin}${location.pathname}?job=${encodeURIComponent(id)}`;
+}
+
 function renderJobDetailBody(job, { descriptionLoading = false, descriptionError = null } = {}) {
   const age = job.posted_at ? (Date.now() - new Date(job.posted_at).getTime()) / 86400000 : null;
   const starred = getStarred().has(job.id);
@@ -864,7 +968,10 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
           ${job.closed_at ? '<span class="badge">Closed</span>' : ""}
         </div>
       </div>
-      <button type="button" class="job-detail-close" title="Close" aria-label="Close job detail">✕</button>
+      <div class="job-detail-header-actions">
+        <button type="button" class="job-detail-icon-btn" data-copy-permalink="${escapeHtml(jobPermalink(job.id))}" title="Copy link to this job" aria-label="Copy link to this job">${LINK_ICON_SVG}</button>
+        <button type="button" class="job-detail-icon-btn job-detail-close" title="Close" aria-label="Close job detail">✕</button>
+      </div>
     </div>
 
     <div class="job-detail-actions">
@@ -888,7 +995,7 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
 
 function wireJobDetailPanel(job) {
   const panel = document.getElementById("job-detail");
-  panel.querySelector(".job-detail-close").addEventListener("click", closeJobDetail);
+  panel.querySelector(".job-detail-close").addEventListener("click", closeJobDetailAndSync);
   panel.querySelector(".job-detail-star").addEventListener("click", (e) => {
     const s = toggleStar(job.id);
     const on = s.has(job.id);
@@ -903,21 +1010,30 @@ function wireJobDetailPanel(job) {
   });
   const copyBtn = panel.querySelector("[data-copy-url]");
   if (copyBtn) copyBtn.addEventListener("click", () => copyToClipboard(copyBtn, copyBtn.dataset.copyUrl));
+  const permalinkBtn = panel.querySelector("[data-copy-permalink]");
+  if (permalinkBtn) permalinkBtn.addEventListener("click", () => copyToClipboard(permalinkBtn, permalinkBtn.dataset.copyPermalink));
 }
 
 async function openJobDetail(id) {
   const panel = document.getElementById("job-detail");
+  // Not always in the currently loaded/filtered page -- a deep link (see
+  // jobPermalink/applyStateFromUrl) can point at a job that isn't on
+  // this view at all. When it's on-screen, its row data renders
+  // immediately as a placeholder while the full fetch is in flight, same
+  // as before; when it isn't, there's nothing to render early, just a
+  // loading state, and no row to highlight.
   const known = findKnownJob(id);
-  if (!known) return; // row's own data is the minimum we need to render anything at all
 
   const previousId = selectedJobId;
   selectedJobId = id;
   document.querySelector(`tr[data-id="${previousId}"]`)?.classList.remove("selected");
-  document.querySelector(`tr[data-id="${id}"]`)?.classList.add("selected");
+  if (known) document.querySelector(`tr[data-id="${id}"]`)?.classList.add("selected");
 
   panel.hidden = false;
-  panel.innerHTML = renderJobDetailBody(known, { descriptionLoading: true });
-  wireJobDetailPanel(known);
+  panel.innerHTML = known
+    ? renderJobDetailBody(known, { descriptionLoading: true })
+    : `<div class="loading-state">Loading job…</div>`;
+  if (known) wireJobDetailPanel(known);
 
   // On the stacked layout (<=1300px, see style.css) the panel renders
   // below the *entire* list, not beside it, invisible without this. On
@@ -937,9 +1053,24 @@ async function openJobDetail(id) {
     wireJobDetailPanel(full);
   } catch (err) {
     if (selectedJobId !== id) return;
-    panel.innerHTML = renderJobDetailBody(known, { descriptionError: err.message });
-    wireJobDetailPanel(known);
+    if (known) {
+      panel.innerHTML = renderJobDetailBody(known, { descriptionError: err.message });
+      wireJobDetailPanel(known);
+    } else {
+      panel.innerHTML = `<div class="error-state">Could not load this job: ${escapeHtml(err.message)}</div>`;
+    }
   }
+}
+
+// Wraps openJobDetail for a real, user-initiated navigation (a row
+// click, or restoring a deep link on boot) -- pushes a new history
+// entry so Back closes the drawer, same expectation as any other
+// permalink-backed detail view. The popstate handler below calls
+// openJobDetail directly instead, since the URL there already changed
+// out from under it; pushing again would double up the history stack.
+async function openJobDetailAndPush(id) {
+  await openJobDetail(id);
+  if (selectedJobId === id) history.pushState(null, "", shareUrl());
 }
 
 function closeJobDetail() {
@@ -950,14 +1081,22 @@ function closeJobDetail() {
   selectedJobId = null;
 }
 
+// Same reasoning as openJobDetailAndPush -- closing via the header
+// button is a real, user-initiated step back, so the URL drops ?job=
+// right away rather than waiting for the next filter change to notice.
+function closeJobDetailAndSync() {
+  closeJobDetail();
+  syncUrl();
+}
+
 function wireJobDetail() {
   document.getElementById("jobs-body").addEventListener("click", (e) => {
     if (e.target.closest("a, button")) return; // Apply/Save link/star handle their own click
     const row = e.target.closest("tr[data-id]");
-    if (row) openJobDetail(row.dataset.id);
+    if (row) openJobDetailAndPush(row.dataset.id);
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && selectedJobId !== null) closeJobDetail();
+    if (e.key === "Escape" && selectedJobId !== null) closeJobDetailAndSync();
   });
 }
 
@@ -2002,15 +2141,54 @@ function wireAlertCreateForm() {
 const STATS_POLL_MS = 120_000;
 
 async function boot() {
-  await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render
+  await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render; also before applyStateFromUrl below, since a code-exchange redirect strips the URL down to location.pathname first
+
+  // Restore filters/sort/page from the URL before wireFilters() creates
+  // the actual controls -- state.israel_only (read at creation time by
+  // ms-location's pinned "IL Only" checkbox) needs to already be right
+  // by then. applyStateToFilterUI() below handles the rest (the
+  // multi-selects/#f-q/#f-keywords/#f-starred), which all need
+  // wireFilters() to have already assigned msDepartment etc. first.
+  applyStateFromUrl(location.search);
+
   wireAuth();
   wireFilters();
+  applyStateToFilterUI();
   wireJobDetail();
   wireThemeToggle();
-  setActiveSortHeader("age", "asc");
   loadTicker();
   await refreshStats();
   loadJobs();
+
+  // A deep link to one specific job (see jobPermalink) opens after the
+  // above, not folded into applyStateToFilterUI -- it's not a filter
+  // control, and openJobDetail needs the DOM/state from everything above
+  // to already be in place. loadJobs() just ran its own syncUrl() with
+  // no job selected yet, so this needs its own explicit re-sync after.
+  const deepLinkJobId = new URLSearchParams(location.search).get("job");
+  if (deepLinkJobId) {
+    await openJobDetail(deepLinkJobId);
+    syncUrl();
+  }
+
+  // Back/Forward: the browser already changed the URL, so this only
+  // ever reads it back into state/UI -- never pushes or replaces itself
+  // (that would corrupt the very history entry the user just navigated
+  // to). loadJobs() at the end still does its own replaceState, but
+  // that's just re-serializing the same state to the same canonical
+  // form, a no-op in practice.
+  window.addEventListener("popstate", () => {
+    applyStateFromUrl(location.search);
+    applyStateToFilterUI();
+    const jobId = new URLSearchParams(location.search).get("job");
+    if (jobId) {
+      if (jobId !== selectedJobId) openJobDetail(jobId);
+    } else if (selectedJobId) {
+      closeJobDetail();
+    }
+    loadJobs();
+    loadTicker();
+  });
 
   setInterval(() => {
     refreshStats();
