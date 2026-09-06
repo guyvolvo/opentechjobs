@@ -10,6 +10,7 @@ exactly what its owner would see applying those filters on the live
 board, not a second, independently-drifting approximation of it.
 """
 
+import html
 import os
 import sqlite3
 from datetime import datetime, timezone
@@ -102,21 +103,98 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
     if not to_email:
         return
     n = len(matches)
-    lines = [f"{n} new listing{'s' if n != 1 else ''} match your OpenTechJobs alert:", ""]
-    for j in matches:
-        lines.append(f"- {j['title']} — {j['company_domain']} ({j['location'] or 'location unknown'})")
-        lines.append(f"  {j['url']}")
-    lines.append("")
-    lines.append(f"Manage this alert: {SITE_ORIGIN}/")
-    body = "\n".join(lines)
+    subject = f"{n} new job{'s' if n != 1 else ''} on OpenTechJobs"
 
     _ses.send_email(
         FromEmailAddress=FROM_EMAIL,
         Destination={"ToAddresses": [to_email]},
         Content={
             "Simple": {
-                "Subject": {"Data": f"{n} new job{'s' if n != 1 else ''} on OpenTechJobs"},
-                "Body": {"Text": {"Data": body}},
+                "Subject": {"Data": subject},
+                # Both parts of one multipart/alternative message, not two
+                # separate sends -- an HTML-capable client (virtually all
+                # of them, Gmail included) renders Html and ignores Text
+                # entirely. Reported live: without an Html part, Gmail's
+                # plain-text autolinker was turning the bare company
+                # domain into its own (wrong-destination) link on top of
+                # the real job URL printed below it, so every listing
+                # showed two separate, differently-colored links. The
+                # title is the only link in the Html version, pointed at
+                # the real URL, so that duplication can't happen there.
+                "Body": {
+                    "Html": {"Data": _digest_html(n, matches)},
+                    "Text": {"Data": _digest_text(n, matches)},
+                },
             }
         },
     )
+
+
+def _digest_text(n: int, matches: list[dict]) -> str:
+    lines = [f"{n} new listing{'s' if n != 1 else ''} match your OpenTechJobs alert:", ""]
+    for j in matches:
+        lines.append(f"- {j['title']} — {j['company_domain']} ({j['location'] or 'location unknown'})")
+        lines.append(f"  {j['url']}")
+    lines.append("")
+    lines.append(f"Manage this alert: {SITE_ORIGIN}/")
+    return "\n".join(lines)
+
+
+# Matches frontend/style.css's light-mode tokens directly (--black,
+# --green, --grey-line) -- an email client renders in its own chrome,
+# never the site's own light/dark toggle, so there's no dark-mode
+# variant to keep in sync here, same reasoning as the favicon's own
+# fixed color (DESIGN.md).
+_DIGEST_INK = "#40513b"
+_DIGEST_GREEN = "#609966"
+_DIGEST_GREY = "#767b74"
+_DIGEST_LINE = "#c7d9b3"
+
+
+def _digest_html(n: int, matches: list[dict]) -> str:
+    rows = []
+    for j in matches:
+        location = html.escape(j["location"] or "Location unknown")
+        rows.append(f"""
+          <tr>
+            <td style="padding:14px 0; border-bottom:1px solid {_DIGEST_LINE};">
+              <a href="{html.escape(j['url'])}" style="font-size:15px; font-weight:600; color:{_DIGEST_INK}; text-decoration:none;">{html.escape(j['title'])}</a>
+              <div style="font-size:13px; color:{_DIGEST_GREY}; margin-top:3px;">{html.escape(j['company_domain'])} &middot; {location}</div>
+            </td>
+          </tr>""")
+
+    return f"""<!doctype html>
+<html>
+  <body style="margin:0; padding:0; background:#f3f6e4;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6e4;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+            <tr>
+              <td style="padding-bottom:20px;">
+                <span style="font-size:16px; font-weight:700; color:{_DIGEST_INK};">OpenTechJobs<span style="color:{_DIGEST_GREEN};">.org</span></span>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:14px; color:{_DIGEST_INK}; padding-bottom:8px;">
+                {n} new listing{"s" if n != 1 else ""} match your alert:
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  {"".join(rows)}
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top:20px; font-size:12.5px; color:{_DIGEST_GREY};">
+                Manage this alert: <a href="{SITE_ORIGIN}/" style="color:{_DIGEST_GREEN};">{SITE_ORIGIN.replace("https://", "")}</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>"""
