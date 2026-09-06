@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — OpenTechJobs.org</title>
+  <meta name="description" content="What OpenTechJobs.org collects, why, and how to remove it." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container">
+      <a class="wordmark" href="/">
+        <img src="logo-horizontal.png" alt="OpenTechJobs.org" class="wordmark-logo" />
+      </a>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <section class="section legal">
+      <div class="container">
+        <h2 class="section-title">Privacy Policy</h2>
+        <p class="legal-updated">Last updated September 2026.</p>
+
+        <p>OpenTechJobs.org is a job board. Browsing, searching, and filtering listings needs no account and sends nothing about you to us — the only data this site collects is what you give it if you choose to save a job alert.</p>
+
+        <h3>What we collect, and why</h3>
+        <p>Creating an alert asks you to sign in (Google, GitHub, or an anonymous email one-time code) and saves your alert's filter criteria under your account. That's used for exactly one purpose: checking new postings against your saved filter and emailing you a digest when something matches. We don't use it for anything else, and we don't sell or share it with anyone outside the services below.</p>
+
+        <h3>Who else sees it</h3>
+        <p>Running the alerts feature means a few AWS services necessarily handle this data on our behalf: Amazon Cognito (authentication), DynamoDB (storing your alert), and SES (sending the digest email). If you sign in with Google or GitHub, that provider sees that you're signing into this site, the same as signing into any other site with them — that's the standard OAuth handshake, not something we control.</p>
+
+        <h3>What stays on your device</h3>
+        <p>Starred jobs and your light/dark theme choice are stored only in your browser's own local storage. They're never sent to our servers and we have no way to see them.</p>
+
+        <h3>Cookies</h3>
+        <p>This site doesn't set cookies. The handful of things it remembers (starred jobs, theme, and your sign-in session if you use alerts) live in local storage instead, and none of it is used to track you across sites or serve ads — there is no analytics or advertising on this site at all.</p>
+
+        <h3>How long we keep it, and how to remove it</h3>
+        <p>An alert's data is kept for as long as it stays active. Delete an alert from within the site at any time and its stored filter and email address are deleted with it.</p>
+
+        <h3>The job listings themselves</h3>
+        <p>Job postings on this board are scraped from companies' own public career pages and ATS APIs. That's public information about companies and open roles, not personal data about you.</p>
+
+        <h3>Changes</h3>
+        <p>If anything here changes, this page will be updated to reflect it.</p>
+
+        <h3>Questions</h3>
+        <p>Open an issue on <a class="link" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">the GitHub repo</a>.</p>
+
+        <p class="legal-back"><a class="link" href="/">← Back to the job board</a></p>
+      </div>
+    </section>
+  </div>
+
+</body>
+</html>

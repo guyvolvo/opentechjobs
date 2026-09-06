@@ -1473,6 +1473,25 @@ footer code {
   white-space: pre;
 }
 footer p { color: var(--grey); margin: 0 0 8px; }
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--grey-line);
+  color: var(--grey);
+  font-size: 12.5px;
+}
+
+/* privacy.html only -- a plain reading column, not the board/stats
+   two-up layout .workspace otherwise implies. */
+.legal .container { max-width: 640px; padding-top: 32px; }
+.legal h3 { font-size: 15px; margin: 28px 0 8px; }
+.legal p { margin: 0 0 12px; }
+.legal-updated { color: var(--grey); font-size: 12.5px; margin-top: -4px; }
+.legal-back { margin-top: 32px; }
 
 /* Responsive */
 
