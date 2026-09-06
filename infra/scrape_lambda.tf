@@ -49,10 +49,24 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
         Resource = aws_dynamodb_table.alerts.arn
       },
       {
+        # Reported live: every alert digest failed with AccessDenied on
+        # 'ses:SendEmail' against the *recipient's* identity ARN, not
+        # the sender's -- this account is still in the SES sandbox
+        # (confirmed via `aws sesv2 get-account`), and sandbox mode
+        # requires IAM authorization against both identities in a send,
+        # not just the verified sending domain. Alert recipients are
+        # arbitrary Cognito users' own email addresses, impossible to
+        # enumerate as fixed Resource ARNs ahead of time -- Resource:*
+        # is the standard pattern for exactly this shape. Not a
+        # broadened blast radius in practice: the action itself only
+        # ever sends mail, and SES's own identity verification (plus
+        # the sandbox's verified-recipient requirement, until
+        # production access is granted) remains the real boundary on
+        # what can actually go out, regardless of what this policy allows.
         Sid      = "SendAlertDigests"
         Effect   = "Allow"
         Action   = ["ses:SendEmail"]
-        Resource = aws_ses_domain_identity.main.arn
+        Resource = "*"
       },
       {
         Sid      = "Logs"
