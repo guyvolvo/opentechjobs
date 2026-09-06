@@ -59,6 +59,19 @@ let msDepartment, msSeniority, msCompany, msLocation, msWorkplace;
 // scrolls off the current page.
 let selectedJobId = null;
 
+// Below this width, .job-detail becomes a fixed full-screen sheet
+// instead of a stacked-inline panel (see style.css's 960px block) --
+// same cutoff the mobile card-list table layout already switches on.
+// Matches getBoundingClientRect()'s manual-scroll workaround below one
+// media query, not two independently-drifting width literals.
+const MOBILE_DRAWER_QUERY = window.matchMedia("(max-width: 960px)");
+
+// Guards the close-then-reopen race: closeJobDetail's hidden=true is
+// delayed to let the slide-out transition finish, so picking a
+// different job mid-close would otherwise let that stale timeout yank
+// the just-opened panel back to hidden a moment later.
+let jobDetailCloseTimer = null;
+
 // storage
 
 function getStarred() {
@@ -654,6 +667,7 @@ async function loadJobs() {
   // after, so state is already final for this transition -- one call
   // here covers all of them instead of one at each call site.
   syncUrl();
+  updateFiltersToggleLabel();
 
   const tbody = document.getElementById("jobs-body");
   const starred = getStarred();
@@ -1042,21 +1056,32 @@ async function openJobDetail(id) {
   document.querySelector(`tr[data-id="${previousId}"]`)?.classList.remove("selected");
   if (known) document.querySelector(`tr[data-id="${id}"]`)?.classList.add("selected");
 
+  clearTimeout(jobDetailCloseTimer);
   panel.hidden = false;
   panel.innerHTML = known
     ? renderJobDetailBody(known, { descriptionLoading: true })
     : `<div class="loading-state">Loading job…</div>`;
   if (known) wireJobDetailPanel(known);
 
-  // On the stacked layout (<=1300px, see style.css) the panel renders
-  // below the *entire* list, not beside it, invisible without this. On
-  // the desktop side-by-side layout it's already sticky-positioned into
-  // view, so skip the scroll there rather than yank the page around.
-  // -60 clears the sticky topbar, same offset renderPanels()'s company
-  // click and renderPagination()'s page-button handlers already use.
-  const rect = panel.getBoundingClientRect();
-  if (rect.top < 0 || rect.top > window.innerHeight * 0.8) {
-    window.scrollTo({ top: window.scrollY + rect.top - 60, behavior: "smooth" });
+  if (MOBILE_DRAWER_QUERY.matches) {
+    // Fixed full-screen sheet (see style.css) -- lock the page behind it
+    // so the drawer's own scroll doesn't also scroll the job list
+    // underneath, and slide it in on the next frame (added after
+    // hidden=false paints, or there's no off-screen starting position
+    // for the transition to animate from).
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(() => panel.classList.add("open"));
+  } else {
+    // On the stacked layout (<=1300px, see style.css) the panel renders
+    // below the *entire* list, not beside it, invisible without this. On
+    // the desktop side-by-side layout it's already sticky-positioned into
+    // view, so skip the scroll there rather than yank the page around.
+    // -60 clears the sticky topbar, same offset renderPanels()'s company
+    // click and renderPagination()'s page-button handlers already use.
+    const rect = panel.getBoundingClientRect();
+    if (rect.top < 0 || rect.top > window.innerHeight * 0.8) {
+      window.scrollTo({ top: window.scrollY + rect.top - 60, behavior: "smooth" });
+    }
   }
 
   try {
@@ -1088,8 +1113,21 @@ async function openJobDetailAndPush(id) {
 
 function closeJobDetail() {
   const panel = document.getElementById("job-detail");
-  panel.hidden = true;
-  panel.innerHTML = "";
+  if (MOBILE_DRAWER_QUERY.matches) {
+    panel.classList.remove("open");
+    document.body.style.overflow = "";
+    // Delayed to match style.css's 0.25s slide-out transition -- an
+    // immediate hidden=true would cut straight to display:none, same as
+    // no animation at all. Cleared by the next openJobDetail (see its
+    // own comment) so switching jobs mid-close can't get yanked shut.
+    jobDetailCloseTimer = setTimeout(() => {
+      panel.hidden = true;
+      panel.innerHTML = "";
+    }, 250);
+  } else {
+    panel.hidden = true;
+    panel.innerHTML = "";
+  }
   document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.remove("selected");
   selectedJobId = null;
 }
@@ -1413,6 +1451,32 @@ function wireFilters() {
       loadJobs();
     });
   });
+
+  document.getElementById("filters-toggle").addEventListener("click", () => {
+    const sub = document.getElementById("filters-sub");
+    const open = sub.classList.toggle("open");
+    document.getElementById("filters-toggle").setAttribute("aria-expanded", String(open));
+  });
+}
+
+// Only meaningful below the @container breakpoint that collapses
+// .filters-sub in the first place (see style.css) -- harmless to call
+// unconditionally above it too, the button just stays display:none.
+// Counts against #f-q deliberately excluded: it's always visible on
+// its own, never one of the controls this button is hiding.
+function updateFiltersToggleLabel() {
+  let n = 0;
+  if (state.keywords) n++;
+  if (state.department.length) n++;
+  if (state.seniority.length) n++;
+  if (state.company.length) n++;
+  if (state.location.length) n++;
+  if (state.workplace.length) n++;
+  if (!state.israel_only) n++; // the location dropdown's own pinned "IL Only" checkbox
+  if (state.max_age_days) n++;
+  if (state.starred_only) n++;
+  if (state.sort !== "age" || state.dir !== "asc") n++;
+  document.getElementById("filters-toggle").textContent = n ? `Filters (${n})` : "Filters";
 }
 
 function setActiveSortHeader(key, dir) {

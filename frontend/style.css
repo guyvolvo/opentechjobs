@@ -871,7 +871,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   gap: 10px;
   margin-bottom: 20px;
 }
-.filters > * { min-width: 0; } /* form controls have a real intrinsic width too */
+.filters > *, .filters-sub > * { min-width: 0; } /* form controls have a real intrinsic width too */
 #f-q { flex: 2 1 120px; }
 #f-keywords { flex: 1 1 90px; }
 .filters .ms { flex: 1 1 80px; }
@@ -879,6 +879,13 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .filters #f-sort { flex: 1 1 100px; }
 .filters label.toggle,
 .filters #f-reset { flex: 0 0 auto; }
+
+/* A second flex row nested in the first, not a wrapper div that steps
+   out of the layout -- visually just more items in .filters's own row
+   above the @container breakpoint below, real box only needed so the
+   breakpoint has something to collapse. */
+.filters-sub { display: flex; flex: 1 1 auto; flex-wrap: nowrap; gap: 10px; }
+.filters-toggle { display: none; }
 
 /* Scoped to just the filter bar, per request -- a small radius and a
    1px (not --rule's 2px) border here only, not a system-wide change to
@@ -1468,6 +1475,29 @@ footer p { color: var(--grey); margin: 0 0 8px; }
     border-top: var(--rule) solid var(--black);
     overflow-y: visible;
   }
+
+  /* Reported live ("atrocious" on mobile): the stacked-inline job-detail
+     panel from the 1300px rule above gets appended below the *entire*
+     list in document flow, so opening one visibly jerks the whole page
+     down -- app.js's manual scroll-to-panel was working around this,
+     not fixing it. A fixed full-screen sheet instead: openJobDetail/
+     closeJobDetail (app.js) toggle .open on the next frame and lock
+     document.body's own scroll for as long as it's up, both gated to
+     this exact width via MOBILE_DRAWER_QUERY. */
+  .job-detail {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    max-height: none;
+    z-index: 20; /* above .topbar's 10 */
+    border-width: var(--rule) 0 0 0;
+    border-radius: 0;
+    background: var(--white);
+    transform: translateY(100%);
+    transition: transform 0.25s ease;
+  }
+  .job-detail.open { transform: translateY(0); }
   table.jobs thead { display: none; }
   /* Reset the desktop bleed (width:100%+gutter, negative margin) back to
      plain 100%, meaningless once every cell stacks as its own block. */
@@ -1512,14 +1542,36 @@ footer p { color: var(--grey); margin: 0 0 8px; }
    gap between 640px and ~860px of #board width. */
 @container (max-width: 900px) {
   .filters { flex-wrap: wrap; }
-  .filters > * { flex-basis: 100%; }
+  .filters > * { flex-basis: 100%; } /* #f-q and .filters-toggle each get their own full-width row */
+
+  /* Reported live ("atrocious" on mobile): every sub-filter wrapping
+     onto its own row still left a tall wall of controls between the
+     search box and the actual results. Collapsed behind a single
+     Filters (N) trigger instead -- #filters-toggle's click handler in
+     wireFilters() (app.js) flips .open, and updateFiltersToggleLabel()
+     keeps the button's own count in sync every time loadJobs() runs. */
+  .filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .filters-sub {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .filters-sub.open { display: flex; }
+  /* Column flex now, not the row layout the base rule sized these for
+     (flex-basis there meant a row-axis width, meaningless as a height
+     here) -- each control just takes the full column width instead. */
+  .filters-sub > * { flex: 0 0 auto; width: 100%; }
 }
 
 @media (max-width: 640px) {
   /* Wordmark + 4 nav items don't fit a 360-390px phone at full size.
      Tighten rather than let the topbar force wider than the viewport. */
   .topnav { gap: 14px; font-size: 10.5px; }
-  .wordmark { font-size: 13px; }
+  .wordmark-logo { height: 28px; }
   .ticker-rule, .ticker { display: none; } /* topbar is already tight without a marquee too */
   .topbar .container { flex-wrap: wrap; row-gap: 8px; }
 }

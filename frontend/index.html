@@ -60,28 +60,37 @@
           <div class="board-list">
             <div class="filters">
               <input type="text" id="f-q" placeholder="Search title, company, location…" />
-              <input type="text" id="f-keywords" placeholder="Keywords" title="Semicolon-separated, e.g. azure;excel;iso. A job must mention all of them" />
-              <div class="ms" id="ms-department"></div>
-              <div class="ms" id="ms-seniority"></div>
-              <div class="ms" id="ms-company"></div>
-              <div class="ms" id="ms-location"></div>
-              <div class="ms" id="ms-workplace"></div>
-              <select id="f-date-posted" title="Date posted">
-                <option value="">Date posted</option>
-                <option value="any">Any time</option>
-                <option value="1">Past 24 hours</option>
-                <option value="3">Past 3 days</option>
-                <option value="7">Past 7 days</option>
-                <option value="14">Past 14 days</option>
-                <option value="30">Past 30 days</option>
-              </select>
-              <select id="f-sort" title="Sort">
-                <option value="">Sort</option>
-                <option value="age:asc">Newest</option>
-                <option value="age:desc">Oldest</option>
-              </select>
-              <label class="toggle"><input type="checkbox" id="f-starred" /> ★ starred</label>
-              <button class="btn ghost" id="f-reset">Reset</button>
+              <!-- Collapsed behind #filters-toggle below a certain #board
+                   width (see style.css's @container rule) -- everything
+                   here is a refinement on top of the search box above,
+                   never the only way to find something. Above that
+                   width .filters-sub is just another flex row, visually
+                   identical to before this existed. -->
+              <button type="button" class="btn ghost filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="filters-sub">Filters</button>
+              <div class="filters-sub" id="filters-sub">
+                <input type="text" id="f-keywords" placeholder="Keywords" title="Semicolon-separated, e.g. azure;excel;iso. A job must mention all of them" />
+                <div class="ms" id="ms-department"></div>
+                <div class="ms" id="ms-seniority"></div>
+                <div class="ms" id="ms-company"></div>
+                <div class="ms" id="ms-location"></div>
+                <div class="ms" id="ms-workplace"></div>
+                <select id="f-date-posted" title="Date posted">
+                  <option value="">Date posted</option>
+                  <option value="any">Any time</option>
+                  <option value="1">Past 24 hours</option>
+                  <option value="3">Past 3 days</option>
+                  <option value="7">Past 7 days</option>
+                  <option value="14">Past 14 days</option>
+                  <option value="30">Past 30 days</option>
+                </select>
+                <select id="f-sort" title="Sort">
+                  <option value="">Sort</option>
+                  <option value="age:asc">Newest</option>
+                  <option value="age:desc">Oldest</option>
+                </select>
+                <label class="toggle"><input type="checkbox" id="f-starred" /> ★ starred</label>
+                <button class="btn ghost" id="f-reset">Reset</button>
+              </div>
             </div>
 
             <button id="company-chip" class="chip" style="display:none" title="Clear company filter">
