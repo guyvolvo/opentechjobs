@@ -732,9 +732,17 @@ def _normalize_date(v: Any) -> str | None:
             return None
 
     # standard ISO 8601, including a trailing "Z" (Python's fromisoformat
-    # doesn't accept bare "Z" as an offset marker until it's swapped for "+00:00")
+    # doesn't accept bare "Z" as an offset marker until it's swapped for "+00:00").
+    # Converted to UTC, not just parsed: some ATSes (Greenhouse's updated_at
+    # among them) report the poster's own local offset rather than UTC, and
+    # posted_at is stored as plain TEXT and sorted lexicographically
+    # (api/handler.py) -- two rows at genuinely different instants but
+    # different offsets would otherwise sort as text in the wrong order
+    # even though each one's own displayed age is individually correct.
+    # Reported live: age-sorted listings came back with newer jobs
+    # stuck beneath older ones.
     try:
-        return datetime.fromisoformat(s.replace("Z", "+00:00")).isoformat()
+        return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat()
     except ValueError:
         if VERBOSE:
             print(f"    [_normalize_date] unrecognized date format: {v!r}", file=sys.stderr)
@@ -1816,6 +1824,24 @@ def main() -> int:
         # full strength for that path. A staler Workday listing beats a
         # pipeline that silently stops updating everything else too.
         known = [e for e in entries if e.get("ats") and e.get("token") and e.get("ats") != "workday"]
+
+        # A domain can be stuck on something worse than what companies.yml
+        # already knows for certain. Reported live: team8.vc has a working
+        # Comeet pin, but refetch_known() (above) never re-checks resolve()'s
+        # own pin-first priority order -- it just blindly re-fetches whatever
+        # known.json already says, so a resolution that once fell through to
+        # a website/jsonld scrape (a transient failure during the pin fetch,
+        # say) stays silently stuck re-scraping the wrong source until the
+        # next once-daily scrape-discover.yml run happens to notice. A pin
+        # lookup is a local dict read, no extra HTTP round-trip, so it's
+        # safe to always prefer it here over a lower-tier cached resolution.
+        comeet_pins = PINS.get("comeet", {})
+        for e in known:
+            pin = comeet_pins.get(e["domain"])
+            if pin and e.get("ats") != "comeet":
+                e["ats"] = "comeet"
+                e["token"] = f"{pin['uid']}:{pin['token']}"
+
         skipped = len(entries) - len(known)
         if VERBOSE and skipped:
             print(f"    [--known] skipping {skipped} unresolved/workday entries from {args.known}", file=sys.stderr)

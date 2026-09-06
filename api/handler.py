@@ -1,5 +1,5 @@
 """
-OpenMarketIL API. One Lambda behind CloudFront (/api/* routes here, see
+OpenTechJobs API. One Lambda behind CloudFront (/api/* routes here, see
 infra/cloudfront.tf).
 
 No framework: a handful of routes over a small SQLite file plus a
@@ -192,7 +192,13 @@ def route_jobs(params: dict) -> dict:
                skills, salary_text, salary_is_estimate
         FROM jobs
         WHERE {where_sql}
-        ORDER BY {null_order}, {sort_col} {sort_dir}
+        -- datetime(), not a bare column: posted_at is TEXT, and rows written
+        -- before _normalize_date() started forcing UTC (see probe.py) can
+        -- carry other offsets, which a plain lexicographic ORDER BY sorts
+        -- wrong even though each row's own age is individually correct.
+        -- SQLite's datetime() parses the offset and compares real instants,
+        -- fixing existing rows too without a backfill.
+        ORDER BY {null_order}, datetime({sort_col}) {sort_dir}
         LIMIT ? OFFSET ?
         """,
         [*args, limit, offset],

@@ -207,11 +207,20 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- first_seen days ago were reading "15m ago" because
             -- something on Comeet's side keeps bumping time_updated on
             -- basically every poll. Same fix: freeze at whatever posted_at
-            -- already resolved to, age normally from there. No separate
-            -- one-time null-out needed here -- unlike workday's synthetic
-            -- now-minus-N value, every already-stored comeet posted_at
-            -- came from a real time_updated read, still a legitimate value
-            -- to freeze at; this just stops it drifting forward further.
+            -- already resolved to, age normally from there.
+            --
+            -- Unlike workday's synthetic now-minus-N value, this alone
+            -- isn't enough for Comeet: freezing only protects a row
+            -- *after* it already has a posted_at. Confirmed live -- a
+            -- long-standing Comeet listing's time_updated was freshly
+            -- bumped again well after this freeze shipped, so a row
+            -- captured for the first time right then would still freeze
+            -- at an already-inflated "just now" forever, since Comeet
+            -- exposes no real creation-date field to fall back on. See the
+            -- ats == 'comeet' substitution below, in the VALUES tuple:
+            -- the first-ever insert for a Comeet job uses this run's own
+            -- timestamp instead of time_updated, which this CASE then
+            -- correctly holds forever after, same as any other ats.
             posted_at = CASE WHEN excluded.ats IN ('workday', 'comeet') AND posted_at IS NOT NULL THEN posted_at ELSE excluded.posted_at END,
             -- Keep the existing description/description_chars when this
             -- upsert's own value is empty, rather than blindly overwriting.
@@ -262,7 +271,13 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             raw_json = excluded.raw_json
         """,
         (jid, domain, j.get("ats"), j.get("external_id"), j.get("title") or "",
-         j.get("location"), j.get("department"), j.get("url"), j.get("posted_at"),
+         j.get("location"), j.get("department"), j.get("url"),
+         # Comeet's own time_updated is not a creation date (see the CASE
+         # above) -- on a genuine first insert (posted_at IS NULL, so the
+         # CASE takes this branch) use this run's own timestamp instead,
+         # not the ATS's unreliable one. Every other ats keeps its real
+         # reported value.
+         ts if j.get("ats") == "comeet" else j.get("posted_at"),
          j.get("description_chars", 0), j.get("description"), j.get("seniority"), j.get("workplace_type"),
          ",".join(j.get("skills") or []), j.get("salary_text"), int(bool(j.get("salary_is_estimate"))),
          confidence, ts, ts,
