@@ -149,17 +149,30 @@ _DIGEST_INK = "#40513b"
 _DIGEST_GREEN = "#609966"
 _DIGEST_GREY = "#767b74"
 _DIGEST_LINE = "#c7d9b3"
+_DIGEST_WHITE = "#ffffff"
 
 
 def _digest_html(n: int, matches: list[dict]) -> str:
+    # One tile per job, not a continuous divider-separated list --
+    # reported live as reading like a single flat wash rather than
+    # distinct entries. Each row's own bottom padding does the spacing
+    # (a div's margin inside a table cell is exactly the kind of thing
+    # Outlook's Word rendering engine drops), so the gap survives a
+    # wider range of email clients than margin would.
     rows = []
     for j in matches:
         location = html.escape(j["location"] or "Location unknown")
         rows.append(f"""
           <tr>
-            <td style="padding:14px 0; border-bottom:1px solid {_DIGEST_LINE};">
-              <a href="{html.escape(j['url'])}" style="font-size:15px; font-weight:600; color:{_DIGEST_INK}; text-decoration:none;">{html.escape(j['title'])}</a>
-              <div style="font-size:13px; color:{_DIGEST_GREY}; margin-top:3px;">{html.escape(j['company_domain'])} &middot; {location}</div>
+            <td style="padding-bottom:12px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{_DIGEST_WHITE}; border:1px solid {_DIGEST_LINE}; border-radius:8px;">
+                <tr>
+                  <td style="padding:16px 18px;">
+                    <a href="{html.escape(j['url'])}" style="font-size:15px; font-weight:600; color:{_DIGEST_INK}; text-decoration:none;">{html.escape(j['title'])}</a>
+                    <div style="font-size:13px; color:{_DIGEST_GREY}; margin-top:3px;">{html.escape(j['company_domain'])} &middot; {location}</div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>""")
 
