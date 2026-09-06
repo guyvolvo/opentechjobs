@@ -1576,10 +1576,26 @@ footer p { color: var(--grey); margin: 0 0 8px; }
     gap: 10px;
   }
   .filters-sub.open { display: flex; }
-  /* Column flex now, not the row layout the base rule sized these for
-     (flex-basis there meant a row-axis width, meaningless as a height
-     here) -- each control just takes the full column width instead. */
-  .filters-sub > * { flex: 0 0 auto; width: 100%; }
+  /* Column flex now, not the row layout #f-keywords/.filters .ms/
+     #f-date-posted/#f-sort's own flex-basis (90/80/100px) was sized for
+     -- flex-basis there meant a row-axis *width*, so in a column flex
+     container it became a *height* instead, rendering every field as an
+     80-100px-tall box with visible empty space inside it. Reported live
+     as "filters are very spread out." A single `.filters-sub > *`
+     couldn't win that fight (one class' worth of specificity loses to
+     an ID selector like #f-keywords or #f-date-posted, gap or no gap),
+     so each one is named explicitly here to out-specificity its own
+     row-layout rule rather than just adding another lower-specificity
+     layer on top of it. */
+  .filters-sub.open #f-keywords,
+  .filters-sub.open .ms,
+  .filters-sub.open #f-date-posted,
+  .filters-sub.open #f-sort,
+  .filters-sub.open label.toggle,
+  .filters-sub.open #f-reset {
+    flex: 0 0 auto;
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
