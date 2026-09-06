@@ -13,12 +13,19 @@ so the same import line works in both.
 IL_KEYWORDS = [
     "israel", "tel aviv", "tel-aviv", "telaviv", "herzliya", "raanana", "ra'anana",
     "rehovot", "netanya", "haifa", "jerusalem", "beer sheva", "beersheva",
-    "petah tikva", "yokneam", "kfar saba", "ramat gan", "modiin", "modi'in",
-    "caesarea", "yavne", "hod hasharon", "bnei brak", "rosh haayin", "tlv",
+    "petah tikva", "petah-tikva", "yokneam", "kfar saba", "kfar-saba",
+    "ramat gan", "ramat-gan", "modiin", "modi'in",
+    "caesarea", "yavne", "hod hasharon", "hod-hasharon", "bnei brak", "bnei-brak",
+    "rosh haayin", "rosh-haayin", "tlv",
     # Added after finding these unmatched in real location strings.
     # "kiryat" ("town of") deliberately catches every Kiryat-prefixed city
     # in one entry. "Azur" was deliberately left out: too easily a false
     # match against "Azure" the technology.
+    #
+    # Every multi-word city above now has a hyphenated form too, not just
+    # Tel Aviv -- reported live: "Ramat-Gan" (Sisense's own ATS location
+    # string, hyphenated) didn't match the space-only "ramat gan" entry,
+    # so a real Israeli listing was silently excluded from israel_only.
     "givatayim", "karmiel", "kiryat", "rishon", "yehud",
 ]
 
