@@ -1,5 +1,5 @@
 ---
-name: OpenMarketIL
+name: OpenTechJobs
 description: Swiss-grid job board for the Israeli tech market — ground-truthed data, zero decoration, on an earthy sage-and-cream ground.
 colors:
   paper: "#f3f6e4"
@@ -69,7 +69,7 @@ components:
     padding: "6px 10px"
 ---
 
-# Design System: OpenMarketIL
+# Design System: OpenTechJobs
 
 ## Overview
 

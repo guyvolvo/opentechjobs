@@ -22,7 +22,7 @@ from job_filters import build_jobs_where
 
 ALERTS_TABLE = os.environ.get("ALERTS_TABLE")
 FROM_EMAIL = os.environ.get("ALERTS_FROM_EMAIL", "alerts@guyvoloshin.com")
-SITE_ORIGIN = os.environ.get("SITE_ORIGIN", "https://openmarket.guyvoloshin.com")
+SITE_ORIGIN = os.environ.get("SITE_ORIGIN", "https://opentechjobs.org")
 
 _dynamodb = boto3.resource("dynamodb")
 _ses = boto3.client("sesv2")
@@ -102,7 +102,7 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
     if not to_email:
         return
     n = len(matches)
-    lines = [f"{n} new listing{'s' if n != 1 else ''} match your OpenMarketIL alert:", ""]
+    lines = [f"{n} new listing{'s' if n != 1 else ''} match your OpenTechJobs alert:", ""]
     for j in matches:
         lines.append(f"- {j['title']} — {j['company_domain']} ({j['location'] or 'location unknown'})")
         lines.append(f"  {j['url']}")
@@ -115,7 +115,7 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
         Destination={"ToAddresses": [to_email]},
         Content={
             "Simple": {
-                "Subject": {"Data": f"{n} new job{'s' if n != 1 else ''} on OpenMarketIL"},
+                "Subject": {"Data": f"{n} new job{'s' if n != 1 else ''} on OpenTechJobs"},
                 "Body": {"Text": {"Data": body}},
             }
         },

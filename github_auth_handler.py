@@ -189,7 +189,7 @@ def _handle_callback(event: dict) -> dict:
     gh_headers = {
         "Authorization": f"Bearer {access_token}",
         "Accept": "application/vnd.github+json",
-        "User-Agent": "openmarketil-auth/1.0",
+        "User-Agent": "opentechjobs-auth/1.0",
     }
     profile = _get_json("https://api.github.com/user", gh_headers)
     gh_id = profile["id"]

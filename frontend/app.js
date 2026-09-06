@@ -1,4 +1,4 @@
-// OpenMarketIL frontend. No framework, no build step, served straight
+// OpenTechJobs frontend. No framework, no build step, served straight
 // from S3/CloudFront, runs as-shipped. Talks to the API at /api/*,
 // same-origin (CloudFront routes /api/* to the Lambda).
 //

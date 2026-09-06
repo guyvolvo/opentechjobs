@@ -104,8 +104,8 @@ the full diagram, not duplicated here):
 
 ## Brand Commitments
 
-- Name: **OpenMarketIL** (wordmark renders as "OpenMarket" + accent-color
-  "IL"). Formerly "IL/JOBS" during earlier development.
+- Name: **OpenTechJobs** (wordmark renders as "OpenTechJobs" + accent-color
+  ".org"). Formerly "IL/JOBS", then "OpenMarketIL", during earlier development.
 - Open-source, and that's load-bearing to the positioning, not incidental
   — "open" extends to the data access model (public API, no gate), not
   just the code license.

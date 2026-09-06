@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-09-04T11:35:00Z",
-  "title": "Design System: OpenMarketIL",
+  "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
       "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#f3f6e4", "tonalRamp": ["#232922", "#3d4634", "#586346", "#747f57", "#909c6b", "#adba82", "#cad79c", "#e9f5c0"] },
