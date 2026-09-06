@@ -1334,7 +1334,18 @@ table.jobs .title-cell a:hover { color: var(--green); }
 .badge.best-effort { border-color: var(--grey); color: var(--grey); }
 .title-cell .badge { margin-left: 6px; vertical-align: middle; }
 
-.age-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Reported live: left-aligned (the table default), a short "Age"
+   header sitting above widely variable-width durations ("41M" vs "3H
+   58M") reads as off-center even though the text edges genuinely do
+   line up -- the column's visual weight drifts right of the header as
+   values get longer. Centering both keeps the header sitting where the
+   eye actually expects the numbers to cluster. Reset back to left
+   inside the mobile stacked-card breakpoint below, where every other
+   field (location, salary, ...) stays left-aligned next to its own
+   label -- centering just this one there would look inconsistent, not
+   fixed. */
+table.jobs thead th[data-sort="age"] { text-align: center; }
+.age-cell { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .age-cell.fresh { color: var(--green); font-weight: 700; }
 
 .star-btn {
@@ -1518,6 +1529,10 @@ footer p { color: var(--grey); margin: 0 0 8px; }
   /* Stacked cells need a label to tell them apart. app.js's data-label
      attribute stands in for the table header that display:none removed. */
   table.jobs td[data-label] { padding: 4px 10px; }
+  /* The desktop-only centering above (see .age-cell) would put this
+     one stacked field out of step with location/salary/etc., which all
+     stay left-aligned next to their own label here. */
+  .age-cell { text-align: left; }
   /* The desktop last-column padding (clears the divider) is meaningless
      stacked full-width, just an oversized gap under one value. */
   table.jobs tbody td:last-child { padding-right: 10px; }
