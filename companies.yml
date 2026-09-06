@@ -119,6 +119,13 @@ comeet:
     source: hand-extracted
     note: domain in domains.txt was cyera.io, which 301s to cyera.com; fixed there too, not just here
 
+  - domain: dreamgroup.com
+    uid: "99.002"
+    token: "99242FE9921CB6042FE396C42FE132442FE"
+    jobs_seen: 30
+    source: hand-verified
+    note: no WP-plugin/embed-widget match on the page itself (dreamgroup.com uses a Webflow site with the Comeet apply form loaded into an iframe) -- token found via the apply iframe's own request, not the usual regex scrape
+
 # Rejected during extraction, kept as a note so nobody re-does this work:
 #   "Guideline" (comeet.com/jobs/guideline) is a US 401(k) provider,
 #   unrelated to Israel: a coincidental token match, not a company to add.
