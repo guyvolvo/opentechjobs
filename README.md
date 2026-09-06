@@ -1,4 +1,4 @@
-# OpenMarketIL
+# Opentechjobs.org
 
 Open-source Israeli tech job board. Scrapes job postings directly from ATS APIs , tracks them over time, and serves them through a small public API.
 for alerting options see `examples/` (TODO) for a Telegram alerter example.
