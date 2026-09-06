@@ -94,6 +94,13 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
     for r in data:
         domain = r["domain"]
         ats = r.get("ats")
+        # Snapshot BEFORE this run's own companies upsert below overwrites
+        # it -- a company already resolved on a prior run vs. one seen for
+        # the very first time this run needs different treatment for
+        # Comeet's unreliable time_updated, see upsert_job's own comment.
+        already_tracked = bool(
+            conn.execute("SELECT 1 FROM companies WHERE domain = ? AND ats IS NOT NULL", (domain,)).fetchone()
+        )
         # jsonld is probe.py's own best-effort tier (schema.org JobPosting
         # scraped off the company's careers page, no live API to verify
         # against, see f_embed_scrape's docstring), so it carries the
@@ -163,13 +170,13 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
             jid = job_id(domain, j.get("ats") or ats, j.get("external_id"), j.get("url"), j.get("title") or "")
             ids.add(jid)
             job_confidence = "best_effort" if j.get("ats") == "jsonld" else "verified"
-            upsert_job(conn, jid, domain, j, confidence=job_confidence, ts=ts)
+            upsert_job(conn, jid, domain, j, confidence=job_confidence, ts=ts, already_tracked_company=already_tracked)
         seen_ids_by_domain[domain] = ids
 
     close_missing_jobs(conn, seen_ids_by_domain, ts)
 
 
-def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confidence: str, ts: str) -> None:
+def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confidence: str, ts: str, already_tracked_company: bool = True) -> None:
     conn.execute(
         """
         INSERT INTO jobs (id, company_domain, ats, external_id, title, location, department,
@@ -275,9 +282,21 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
          # Comeet's own time_updated is not a creation date (see the CASE
          # above) -- on a genuine first insert (posted_at IS NULL, so the
          # CASE takes this branch) use this run's own timestamp instead,
-         # not the ATS's unreliable one. Every other ats keeps its real
-         # reported value.
-         ts if j.get("ats") == "comeet" else j.get("posted_at"),
+         # not the ATS's unreliable one.
+         #
+         # Only when the *company* was already tracked before this run,
+         # though. Reported live: onboarding Dream Security (30 jobs, all
+         # first-ever-inserted in the same run) showed every single one as
+         # "1 minute ago" -- true of a job resurfacing on a company we'd
+         # already been polling for weeks (time_updated bumped by
+         # incidental Comeet-side touches right before we happened to
+         # (re-)capture it), but wrong for a brand-new company's entire
+         # backlog: flattening 30 genuinely different real ages into one
+         # identical synthetic timestamp is a worse, more visibly fake
+         # signal than trusting Comeet's real (if individually imperfect)
+         # values would have been. A new company's jobs keep their real
+         # reported time_updated, same as every other ats.
+         ts if j.get("ats") == "comeet" and already_tracked_company else j.get("posted_at"),
          j.get("description_chars", 0), j.get("description"), j.get("seniority"), j.get("workplace_type"),
          ",".join(j.get("skills") or []), j.get("salary_text"), int(bool(j.get("salary_is_estimate"))),
          confidence, ts, ts,
