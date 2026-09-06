@@ -24,6 +24,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
 
 import requests
@@ -1116,6 +1117,29 @@ COMEET_PATHS = ["/careers", "/careers/", "/jobs", "/about-us/careers", "/company
 COMEET_TIMEOUT = 6
 
 
+def _comeet_job_url(j: dict) -> str | None:
+    """Prefer the company's own careers_page_active_url, except when it's
+    just the bare careers-page root with no job-specific path after it --
+    confirmed live on real, currently-open listings (Panorays' "Cyber
+    Security Support Engineer", team8's "DevOps Engineer" among them):
+    reported as "the listing exists but the link leads nowhere", and it's
+    genuinely Comeet's own data, not a scrape bug -- these two positions'
+    active_url really is just "https://{domain}/careers/", identical to
+    every other listing on the same board, while every other position at
+    the same company gets a real per-job path. careers_page_url (Comeet's
+    own hosted page) always embeds the position uid in its path, so it's
+    specific by construction -- worth falling back to over a same-looking
+    generic company URL that can't actually reach this one job.
+    """
+    active = _txt(j.get("careers_page_active_url"))
+    comeet = _txt(j.get("careers_page_url"))
+    if active:
+        path = urlparse(active).path.rstrip("/").lower()
+        if path not in ("", "/careers", "/career", "/jobs"):
+            return active
+    return comeet or active
+
+
 def _comeet_job(sess: requests.Session, j: dict, uid: str, token: str) -> Job:
     """Shared by f_comeet_scrape and _fetch_comeet_pin. Both hit the same
     positions endpoint via different token-discovery paths.
@@ -1144,7 +1168,7 @@ def _comeet_job(sess: requests.Session, j: dict, uid: str, token: str) -> Job:
 
     return Job("comeet", f"{uid}:{token}", _txt(j.get("position_uid")),
                _txt(j.get("name")), _txt(j.get("location")),
-               _txt(j.get("careers_page_active_url") or j.get("careers_page_url")),
+               _comeet_job_url(j),
                _normalize_date(j.get("time_updated")), _txt(j.get("department")) or None,
                description_chars, description,
                seniority=_COMEET_LEVEL_MAP.get(_txt(j.get("experience_level")).lower()) or None,
