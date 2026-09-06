@@ -467,33 +467,18 @@ button, input, select {
   color: var(--red);
 }
 
-/* A square block, not a circle, per the sharp-corners rule. Flickers in
-   irregular jump-cut steps like a torch, not a smooth pulse. OFFLINE
-   kills the animation outright: the torch went out, not still pulsing. */
+/* A square block, not a circle, per the sharp-corners rule. Reported
+   live: the flicker animation this used to have read as distracting,
+   not lively -- a flat, static color communicates the same LIVE/OFFLINE
+   state without asking for attention every 1.6s. */
 .status-dot {
   width: 8px;
   height: 8px;
   background: var(--green);
   display: inline-block;
   margin-right: 6px;
-  animation: torch-flicker 1.6s steps(1) infinite;
 }
-.status-dot.offline { background: var(--red); animation: none; }
-@keyframes torch-flicker {
-  0%, 100% { opacity: 1; }
-  6% { opacity: 0.8; }
-  11% { opacity: 1; }
-  19% { opacity: 0.55; }
-  27% { opacity: 1; }
-  33% { opacity: 0.85; }
-  41% { opacity: 1; }
-  52% { opacity: 0.7; }
-  58% { opacity: 1; }
-  69% { opacity: 0.9; }
-  74% { opacity: 1; }
-  83% { opacity: 0.6; }
-  89% { opacity: 1; }
-}
+.status-dot.offline { background: var(--red); }
 
 /* Workspace: Job Board (main) + Market Stats (a permanent right-hand
    board, not a drawer/overlay). Stacks vertically under the responsive
