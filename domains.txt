@@ -29,7 +29,6 @@ honeybook.com
 playtika.com
 pagaya.com
 salt.security
-cato.networks
 at-bay.com
 verbit.ai
 augury.com
@@ -527,3 +526,36 @@ tensorleap.ai
 watchful.ai
 zenity.io
 veev.com
+
+# 2026 Israeli-funded-startup batch (BUGS OPENMARKET.pdf), domains
+# verified live (DNS + a news/company-site hit) during triage, not just
+# guessed from the company name. AITAN, Elio, Oak, and Skapion from the
+# same list are left out -- no confidently-identified domain found for
+# any of them (Elio and Oak in particular are too generic a name to
+# isolate from same-named unrelated companies by search alone).
+guard.io
+wonderful.ai
+lyte.ai
+huskeys.io
+air.security
+alice.io
+remepy.com
+attestable.com
+corma.ai
+june.ai
+xsightlabs.com
+bloom.security
+onyx.security
+groundcover.com
+act.security
+mate.security
+harmony.io
+hush.security
+enigma.inc
+way.security
+glow.io
+hemispheric.ai
+velocity.xyz
+altahq.com
+tangos.ai
+withsable.com
