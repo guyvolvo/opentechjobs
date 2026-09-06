@@ -17,6 +17,48 @@ locals {
   api_gateway_domain = "${aws_apigatewayv2_api.api.id}.execute-api.${var.aws_region}.amazonaws.com"
 }
 
+# Sends anything arriving on the old domain straight to the new one,
+# preserving path and query string, instead of serving the same content
+# twice at two URLs indefinitely. Runs at the edge (viewer-request) so it
+# fires before any cache lookup or origin fetch -- the old host never
+# reaches S3 or the API.
+resource "aws_cloudfront_function" "legacy_domain_redirect" {
+  name    = "${var.project_name}-legacy-domain-redirect"
+  runtime = "cloudfront-js-2.0"
+  comment = "301 ${var.legacy_domain_name} -> ${var.domain_name}"
+  publish = true
+  code    = <<-EOT
+    function handler(event) {
+      var request = event.request;
+      var host = request.headers.host && request.headers.host.value;
+      if (host !== "${var.legacy_domain_name}") {
+        return request;
+      }
+      // request.querystring is a parsed object (same shape as headers),
+      // never a raw string -- has to be rebuilt param by param, including
+      // any repeated key (multiValue), or a search shared as a link would
+      // silently lose everything past the first "&" on the redirect.
+      var params = [];
+      for (var key in request.querystring) {
+        var qs = request.querystring[key];
+        if (qs.multiValue) {
+          qs.multiValue.forEach(function (v) { params.push(key + "=" + v.value); });
+        } else if (qs.value !== undefined) {
+          params.push(key + "=" + qs.value);
+        }
+      }
+      var query = params.length ? "?" + params.join("&") : "";
+      return {
+        statusCode: 301,
+        statusDescription: "Moved Permanently",
+        headers: {
+          location: { value: "https://${var.domain_name}" + request.uri + query }
+        }
+      };
+    }
+  EOT
+}
+
 # Short TTL: known companies get re-polled every 5 min (the EventBridge-
 # scheduled scrape-fast Lambda, see scrape_handler.py -- not
 # scrape-fast.yml itself, which is workflow_dispatch-only), so the edge
@@ -44,7 +86,7 @@ resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
   price_class         = "PriceClass_100" # NA+EU edge locations only, cheapest tier; fine for an IL-focused audience mostly browsing from IL/EU/US
-  aliases             = [var.domain_name]
+  aliases             = [var.domain_name, var.legacy_domain_name]
 
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
@@ -70,6 +112,11 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods         = ["GET", "HEAD"]
     cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
     compress               = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.legacy_domain_redirect.arn
+    }
   }
 
   # More specific than /api/* below, so this one wins for exactly this
@@ -102,6 +149,11 @@ resource "aws_cloudfront_distribution" "main" {
     cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
     origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
     compress                 = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.legacy_domain_redirect.arn
+    }
   }
 
   ordered_cache_behavior {
@@ -118,6 +170,11 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods  = ["GET", "HEAD"] # never cache a write response, regardless of what's allowed through
     cache_policy_id = aws_cloudfront_cache_policy.api.id
     compress        = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.legacy_domain_redirect.arn
+    }
   }
 
   restrictions {
@@ -152,7 +209,7 @@ data "aws_cloudfront_cache_policy" "caching_disabled" {
 # domain name mapped (it's addressed via its own raw execute-api
 # domain, see local.api_gateway_domain), so it only recognizes Host
 # headers matching that domain. Plain AllViewer forwards the *viewer's*
-# original Host (openmarket.guyvoloshin.com) instead of the origin's --
+# original Host (opentechjobs.org) instead of the origin's --
 # API Gateway doesn't know that domain, and likely rejected the request
 # on that mismatch before authorization even ran, not a genuine JWT
 # validation failure. This is AWS's own documented fix for exactly this

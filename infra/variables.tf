@@ -23,7 +23,7 @@ variable "frontend_bucket_name" {
 variable "github_repo" {
   type        = string
   description = "GitHub repo in \"org/name\" form. Scopes the OIDC trust policy so only this repo's Actions runs can assume the deploy roles."
-  default     = "guyvolvo/openmarketil"
+  default     = "guyvolvo/opentechjobs"
 }
 
 # GitHub appends immutable owner/repo IDs to the OIDC token's `sub` claim
@@ -78,6 +78,12 @@ variable "scrape_lambda_timeout_s" {
 variable "domain_name" {
   type        = string
   description = "Custom domain for the CloudFront distribution (site at /, API at /api/*). DNS lives in Cloudflare, not Terraform; see infra/acm.tf for the manual validation-record step."
+  default     = "opentechjobs.org"
+}
+
+variable "legacy_domain_name" {
+  type        = string
+  description = "The project's old domain. Kept as a second CloudFront alias (see cloudfront.tf's redirect Function) so old links/bookmarks land on domain_name instead of 404ing -- never used as SITE_ORIGIN/callback URLs, those all point at domain_name only."
   default     = "openmarket.guyvoloshin.com"
 }
 

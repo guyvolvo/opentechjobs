@@ -5,8 +5,12 @@
 resource "aws_acm_certificate" "site" {
   provider = aws.us_east_1
 
-  domain_name       = var.domain_name
-  validation_method = "DNS"
+  domain_name = var.domain_name
+  # The redirect-source domain (see cloudfront.tf's redirect Function)
+  # needs to be on the same distribution's cert too, or CloudFront never
+  # accepts it as an alias in the first place.
+  subject_alternative_names = [var.legacy_domain_name]
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true
