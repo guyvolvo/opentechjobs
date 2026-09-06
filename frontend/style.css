@@ -197,19 +197,15 @@ button, input, select {
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-weight: 400;
-  font-size: 15px;
-  letter-spacing: 0.02em;
   text-decoration: none;
-  color: var(--black);
 }
-.wordmark .accent { color: var(--green); }
-/* currentColor here resolves fine -- this is an inline <svg> element in
-   the DOM, not a CSS background-image data URI (see the select-arrow fix
-   in style.css's .filters select rule for why that distinction matters):
-   currentColor only inherits reliably through the former. */
-.wordmark-mark { color: var(--black); flex-shrink: 0; }
+/* The provided lockup (logo-horizontal.png) is a solid-fill rounded-rect
+   card, not a transparent mark -- same "fixed brand color regardless of
+   the page's own theme toggle" precedent as the favicon (DESIGN.md).
+   Height picked to sit comfortably inside the topbar's ~36px content
+   row (min-height:56px minus its 10px top/bottom padding) without
+   forcing it taller; width follows the source image's own aspect ratio. */
+.wordmark-logo { height: 34px; width: auto; }
 
 .topnav {
   display: flex;
