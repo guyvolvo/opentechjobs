@@ -35,7 +35,14 @@ resource "aws_iam_role_policy" "api_lambda" {
         Sid      = "ReadJobsDb"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:HeadObject"]
-        Resource = "${aws_s3_bucket.data.arn}/jobs.db"
+        Resource = [
+          "${aws_s3_bucket.data.arn}/jobs.db",
+          # status.json: the pipeline's own real-time phase (scraping/
+          # loading/idle/error), written by scrape_handler.py and
+          # scrape-discover.yml -- see route_pipeline_status. Read-only
+          # here, same as jobs.db.
+          "${aws_s3_bucket.data.arn}/status.json",
+        ]
       },
       {
         # /me/alerts only -- reached at all only via a route API Gateway's

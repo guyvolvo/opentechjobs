@@ -38,6 +38,11 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
         Resource = [
           "${aws_s3_bucket.data.arn}/jobs.db",
           "${aws_s3_bucket.data.arn}/known.json",
+          # status.json: this Lambda's own real-time phase, written at
+          # each stage (scraping/loading/sending alerts/idle/error) --
+          # see scrape_handler.py's _write_status. Best-effort, never
+          # allowed to fail the actual run, but still needs write access.
+          "${aws_s3_bucket.data.arn}/status.json",
         ]
       },
       {

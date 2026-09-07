@@ -294,6 +294,15 @@ function apiStatusFields() {
 }
 
 function nextSyncText() {
+  // A real reported phase beats a guessed countdown whenever there is
+  // one: "discovering: full domains.txt sweep" is something you can act
+  // on, "next sync: 3:47" is only ever an estimate of the next ROUTINE
+  // fast-poll cycle, and says nothing about a manually-triggered
+  // discover run (~20 min, no fixed schedule) that might be running
+  // instead right now.
+  if (pipelinePhase && pipelinePhase.phase && !["idle", "unknown"].includes(pipelinePhase.phase)) {
+    return pipelinePhase.detail ? `${pipelinePhase.phase}: ${pipelinePhase.detail}` : pipelinePhase.phase;
+  }
   if (lastCheckedAt === null) return null;
   const remainingMs = lastCheckedAt + SYNC_INTERVAL_MINUTES * 60_000 - Date.now();
   if (remainingMs <= 0) return "next sync: syncing";
@@ -1736,6 +1745,26 @@ async function refreshFreshness() {
   }
 }
 
+// Reported live: the "next sync" line just said "syncing" once the
+// countdown hit zero, with no way to tell whether that meant a normal
+// 5-min fast-poll cycle or a ~20-min discover run, or whether anything
+// was actually happening at all versus a missed/failed cycle. Read from
+// /api/pipeline-status (api/handler.py's route_pipeline_status), which
+// reflects whatever scrape_handler.py or scrape-discover.yml's own
+// status-writing steps last reported -- a real phase (scraping, loading,
+// sending alerts) and a technical detail, not a guess derived from
+// timestamps the way the countdown itself is.
+let pipelinePhase = null;
+
+async function refreshPipelineStatus() {
+  try {
+    pipelinePhase = await getJSON("/pipeline-status");
+    tickApiStatus();
+  } catch {
+    // Non-fatal: nextSyncText() falls back to the countdown when this is null.
+  }
+}
+
 // Auth. Three passwordless sign-in paths, no accounts endpoint on
 // this API beyond what a Cognito JWT authorizer will eventually protect
 // (/me/alerts). See infra/cognito.tf and github_auth_handler.py for the
@@ -2411,6 +2440,8 @@ async function boot() {
   }, STATS_POLL_MS);
   setInterval(tickApiStatus, API_STATUS_TICK_MS);
   setInterval(refreshFreshness, HEALTH_POLL_MS);
+  refreshPipelineStatus();
+  setInterval(refreshPipelineStatus, HEALTH_POLL_MS);
 }
 
 boot();

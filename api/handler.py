@@ -87,6 +87,8 @@ def lambda_handler(event, context):
             return _response(200, json.dumps(route_facets(params), default=str))
         if path == "/health":
             return _response(200, json.dumps(route_health(), default=str))
+        if path == "/pipeline-status":
+            return _response(200, json.dumps(route_pipeline_status(), default=str))
         if path == "/me/alerts":
             claims = _authenticated_claims(event)
             if method == "GET":
@@ -234,6 +236,45 @@ def route_job_detail(job_id: str) -> dict | None:
 
 
 # /health
+
+_status_s3 = boto3.client("s3")
+
+
+def route_pipeline_status() -> dict:
+    """What the scrape pipeline is actually doing right now (scraping,
+    loading, sending alerts, idle, error) -- not just "when was jobs.db
+    last updated," which says nothing about whether a run is even in
+    progress. Reported live: "syncing..." with a countdown reads as
+    "something might be happening" regardless of whether anything
+    actually is. status.json is written at each phase by both writers
+    (scrape_handler.py's _write_status, scrape-discover.yml's own
+    status-writing steps) -- this just reads whatever it last said.
+    """
+    bucket = os.environ.get("DATA_BUCKET")
+    if not bucket:
+        return {"phase": "unknown", "detail": "", "run": None, "at": None}
+    try:
+        obj = _status_s3.get_object(Bucket=bucket, Key="status.json")
+        status = json.loads(obj["Body"].read())
+    except Exception:
+        # No status.json yet (first deploy of this feature), or S3
+        # hiccuped -- "unknown" is honest here, not a fabricated phase.
+        return {"phase": "unknown", "detail": "", "run": None, "at": None}
+
+    # A non-idle, non-error phase that's been sitting for a long time is
+    # an orphaned write from a crashed/killed run, not one still actually
+    # in progress -- both real pipelines finish well under this in
+    # practice (the fast-poll in under a minute, discover in ~20).
+    stale = False
+    try:
+        age_minutes = (datetime.now(timezone.utc) - datetime.fromisoformat(status["at"])).total_seconds() / 60
+        stale = status.get("phase") not in ("idle", "error") and age_minutes > 30
+    except (KeyError, ValueError, TypeError):
+        pass
+    if stale:
+        return {**status, "phase": "unknown", "detail": "last status update is stale"}
+    return status
+
 
 def route_health() -> dict:
     """Confirms the DB is actually reachable and reports pipeline

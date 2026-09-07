@@ -196,10 +196,13 @@ resource "aws_iam_role_policy" "data_deploy" {
       Action = ["s3:GetObject", "s3:PutObject"]
       # jobs.db: both scrape workflows pull-then-push it. known.json:
       # scrape-fast.yml downloads it before probing; loader.py re-derives
-      # and re-pushes it after every load.
+      # and re-pushes it after every load. status.json: scrape-discover.yml's
+      # own real-time phase during its own run -- see the workflow's own
+      # status-writing steps.
       Resource = [
         "${aws_s3_bucket.data.arn}/jobs.db",
         "${aws_s3_bucket.data.arn}/known.json",
+        "${aws_s3_bucket.data.arn}/status.json",
       ]
     }]
   })
