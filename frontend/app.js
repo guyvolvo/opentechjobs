@@ -190,15 +190,19 @@ function companyLogoImg(domain, size, extraClass = "") {
   // on Google's end even at sz=64, and a first version of this check
   // treated "smaller than requested" as "Google has nothing," wrongly
   // sending Salesforce's real icon to the monogram too). 16x16 exactly
-  // is Google's own specific "nothing found" size, confirmed live
-  // against a real no-favicon domain at multiple requested sizes -- a
-  // real match can be small, but never exactly this one size that only
-  // the placeholder itself uses.
+  // is Google's own specific "nothing found" size -- but ONLY a
+  // meaningful signal when we actually asked for more than that: the
+  // Top Hiring Companies panel calls this with size=16 itself (a real,
+  // correctly-found 16x16 icon there is indistinguishable from the
+  // placeholder by dimensions alone), and a second version of this
+  // check missed that, wrongly monogram-ing real icons for every
+  // company on that panel. Gated on size > 16 now, not just the pixel
+  // dimensions matching.
   return `<img class="${cls}" src="${startSrc}" alt="" loading="lazy"
-    data-stage="${startStage}"
+    data-stage="${startStage}" data-size="${size}"
     data-direct-favicon="${directFavicon}" data-google-favicon="${googleFavicon}" data-monogram="${monogram}"
     onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}"
-    onload="if(this.dataset.stage==='3'&&this.naturalWidth===16&&this.naturalHeight===16){this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}" />`;
+    onload="if(this.dataset.stage==='3'&&Number(this.dataset.size)>16&&this.naturalWidth===16&&this.naturalHeight===16){this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}" />`;
 }
 
 function fmtInt(n) {
