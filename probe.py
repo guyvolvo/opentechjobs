@@ -335,6 +335,66 @@ _ATS_WORKPLACE_MAP = {
 }
 
 
+# Reported live (hibob.com): the guessed smartrecruiters:hibob token is
+# genuinely Hibob's own board, not a KNOWN_FALSE_POSITIVES-style
+# collision -- just an old one they've since abandoned for Comeet
+# instead (one posting, dated 2020), which the guess loop below never
+# finds because a real, non-empty match already stopped the search.
+# Not fixable per-company (there's no way to guess Comeet's opaque
+# uid+token from the domain at all -- that's the whole reason it needs
+# companies.yml pins in the first place), but the underlying pattern
+# is general: ANY guessed token can be a real board that's just no
+# longer the company's active one. STALE_MATCH_DAYS is the generic
+# guard -- a match every one of whose postings is older than this
+# doesn't stop the search, so a fresher candidate (a later token
+# guess, or the Comeet/embed-scrape fallback tiers) still gets a
+# chance to outrank it. Doesn't fix hibob specifically (nothing
+# guessable exists to fall through to there), but generalizes to
+# every future company shaped like it, not just this one.
+STALE_MATCH_DAYS = 180
+
+
+def _match_is_fresh(jobs: list) -> bool:
+    """A guessed match is confident enough to stop searching only when it
+    looks like an actually-maintained board: no jobs at all (many real
+    boards legitimately cycle through empty periods -- zero isn't itself
+    suspicious) or at least one job with a real posted_at newer than
+    STALE_MATCH_DAYS. Missing/unparseable dates count as fresh, not
+    stale -- withholding the benefit of the doubt only when the
+    evidence genuinely says "old," not merely "unstated."
+    """
+    dated = [j.posted_at for j in jobs if j.posted_at]
+    if not dated:
+        return True
+    try:
+        newest = max(datetime.fromisoformat(d) for d in dated)
+    except ValueError:
+        return True
+    if newest.tzinfo is None:
+        newest = newest.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - newest).days <= STALE_MATCH_DAYS
+
+
+def _match_quality(jobs: list) -> tuple[int, int]:
+    """Bigger is better, compared as a tuple (tier first, then job count
+    as the tie-break within a tier). Three tiers, not two: an empty board
+    ranks below a stale-but-real one, not above it -- confirmed live,
+    hibob.com regressed from smartrecruiters:hibob (one real, if
+    five-year-old, posting) to workable:hibob (zero jobs, no evidence
+    it's even the right company) the first time this treated "no jobs to
+    call stale" the same as "genuinely active." Zero real postings is
+    weaker evidence than one old one, whatever its freshness.
+    """
+    if not jobs:
+        return (0, 0)
+    return (2 if _match_is_fresh(jobs) else 1, len(jobs))
+
+
+def _prefer_match(candidate: list, best: tuple | None) -> bool:
+    """Whether `candidate` should replace the current best guess."""
+    return best is None or _match_quality(candidate) > _match_quality(best[2])
+
+
 def _classify_seniority(title: str | None) -> str | None:
     """Best-effort seniority from title text. Fallback for ATSes with no
     structured level field. Most titles state no level, so None is normal.
@@ -1093,6 +1153,10 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("workable", "nvidia"),       # nvidia.com: the real NVIDIA runs Workday (see companies.yml's workday
                                    # pin for it) -- a multi-trillion-dollar company does not run its global
                                    # hiring through a small-business ATS. Some unrelated tenant, empty board.
+    ("teamtailor", "salt"),       # salt.security: real board is "</salt>" (og:site_name), an unrelated
+                                   # company that happens to share the bare word "salt" -- Salt Security's
+                                   # real board is greenhouse:saltsecurity, a later token candidate this
+                                   # entry lets the search actually reach.
 }
 
 FETCHERS: dict[str, Callable] = {
@@ -1721,10 +1785,12 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
             if jobs is None:
                 continue
             # A valid board with zero open roles is still a valid board, but
-            # prefer a hit that actually has postings.
-            if best is None or len(jobs) > len(best[2]):
+            # prefer a hit that actually has postings, and (see
+            # _prefer_match) a fresh one over a stale-but-technically-real
+            # one.
+            if _prefer_match(jobs, best):
                 best = (ats, token, jobs)
-            if jobs:
+            if jobs and _match_is_fresh(jobs):
                 res.ats, res.token, res.jobs = best[0], best[1], _fill_classifications(best[2])
                 res.job_count = len(res.jobs)
                 res.tried = tried
@@ -1733,7 +1799,13 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
     # domain, only winning if nothing else found real postings. Expensive
     # (measured ~5x slower over 269 domains with it on); --no-comeet skips
     # it, companies.yml pins still apply either way.
-    if SCRAPE_COMEET and (best is None or not best[2]):
+    # Weak, not just empty: also worth trying Comeet/embed-scrape when
+    # the guess loop's best hit exists but looks stale (see
+    # _match_is_fresh) -- an old, abandoned-looking board shouldn't stop
+    # the search from finding the company's actual current one.
+    best_is_weak = best is None or not best[2] or not _match_is_fresh(best[2])
+
+    if SCRAPE_COMEET and best_is_weak:
         tried += 1
         if VERBOSE:
             print(f"    probe comeet-scrape:{domain}", file=sys.stderr)
@@ -1743,12 +1815,13 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
             comeet_result = None
         if comeet_result is not None:
             jobs, token = comeet_result
-            if best is None or len(jobs) > len(best[2]):
+            if _prefer_match(jobs, best):
                 best = ("comeet", token, jobs)
+            best_is_weak = not best[2] or not _match_is_fresh(best[2])
 
     # Last resort: scrape the company's own careers page. Same cost
     # profile as Comeet, gated the same way; --no-embed-scrape skips it.
-    if SCRAPE_EMBED and (best is None or not best[2]):
+    if SCRAPE_EMBED and best_is_weak:
         tried += 1
         if VERBOSE:
             print(f"    probe embed-scrape:{domain}", file=sys.stderr)
@@ -1759,11 +1832,13 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
         if embed_result is not None:
             ats, jobs, token = embed_result
             # jsonld is unverified: only fills a total void, never
-            # overrides an empty-but-confirmed board from a verified ATS.
+            # overrides an empty-but-confirmed board from a verified ATS
+            # (fresh or not -- an unverified guess is never worth more
+            # than a verified one, stale or not).
             if ats == "jsonld":
                 if best is None:
                     best = (ats, token, jobs)
-            elif best is None or len(jobs) > len(best[2]):
+            elif _prefer_match(jobs, best):
                 best = (ats, token, jobs)
 
     res.tried = tried
