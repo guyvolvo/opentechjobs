@@ -138,11 +138,22 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
                 _demote_alias(conn, other["domain"], domain, ats, token, ts)
 
         # Snapshot BEFORE this run's own companies upsert below overwrites
-        # it -- a company already resolved on a prior run vs. one seen for
-        # the very first time this run needs different treatment for
-        # Comeet's unreliable time_updated, see upsert_job's own comment.
+        # it -- a company already resolved to COMEET on a prior run vs.
+        # one landing on comeet for the very first time this run needs
+        # different treatment for Comeet's unreliable time_updated, see
+        # upsert_job's own comment. Specifically ats = 'comeet', not just
+        # "ats IS NOT NULL" -- reported live (gloat.com): a domain that
+        # had been resolving to something else (or nothing) every prior
+        # run and only reached its real Comeet board today read as
+        # "already tracked" under the old NOT-NULL check, so its 5
+        # genuinely different real time_updated values (spread across
+        # three separate days, confirmed against Comeet's own API) all
+        # got overwritten with this run's own capture time instead --
+        # the exact "brand new company's backlog reads as all 1-minute-
+        # old" bug this check exists to prevent, just reached a different
+        # way than the original Dream Security case.
         already_tracked = bool(
-            conn.execute("SELECT 1 FROM companies WHERE domain = ? AND ats IS NOT NULL", (domain,)).fetchone()
+            conn.execute("SELECT 1 FROM companies WHERE domain = ? AND ats = 'comeet'", (domain,)).fetchone()
         )
         # jsonld is probe.py's own best-effort tier (schema.org JobPosting
         # scraped off the company's careers page, no live API to verify

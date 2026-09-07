@@ -184,16 +184,21 @@ function companyLogoImg(domain, size, extraClass = "") {
   // one for it either -- but Google still answers 200 with an image
   // (its own generic default-globe placeholder), not a load failure, so
   // onerror alone never advances past it to the monogram. Confirmed
-  // live: that generic placeholder always comes back a fixed 16x16
-  // regardless of the requested sz, while a real per-site match is
-  // scaled to match it -- naturalWidth below the requested size is Google
-  // admitting it has nothing, same as a load failure for this cascade's
-  // purposes.
+  // live: that generic placeholder always comes back a fixed 16x16, at
+  // ANY requested sz -- but so can a real, found icon (reported live:
+  // salesforce.com's own real favicon is genuinely only cached at 32x32
+  // on Google's end even at sz=64, and a first version of this check
+  // treated "smaller than requested" as "Google has nothing," wrongly
+  // sending Salesforce's real icon to the monogram too). 16x16 exactly
+  // is Google's own specific "nothing found" size, confirmed live
+  // against a real no-favicon domain at multiple requested sizes -- a
+  // real match can be small, but never exactly this one size that only
+  // the placeholder itself uses.
   return `<img class="${cls}" src="${startSrc}" alt="" loading="lazy"
-    data-stage="${startStage}" data-size="${size}"
+    data-stage="${startStage}"
     data-direct-favicon="${directFavicon}" data-google-favicon="${googleFavicon}" data-monogram="${monogram}"
     onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}"
-    onload="if(this.dataset.stage==='3'&&this.naturalWidth<Number(this.dataset.size)){this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}" />`;
+    onload="if(this.dataset.stage==='3'&&this.naturalWidth===16&&this.naturalHeight===16){this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}" />`;
 }
 
 function fmtInt(n) {
