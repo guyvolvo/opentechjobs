@@ -1330,15 +1330,34 @@ CAREER_SCRAPE_TIMEOUT = 6  # same reasoning as COMEET_TIMEOUT: one bad host shou
 
 def _parse_workday_posted_on(s: str | None) -> str | None:
     """Workday's postedOn is a relative string ("Posted Today", "Posted 3
-    Days Ago", "Posted 30+ Days Ago"), not an absolute date. Approximated:
-    exact for small N, a floor for the open-ended "30+" bucket, still
-    useful ghost-job signal, better than dropping to None.
+    Days Ago", "Posted 30+ Days Ago"), not an absolute date. Approximated
+    as now-minus-N-days for every bucket except "Posted Today" itself --
+    exact enough for small N (off by at most the same day-granularity
+    Workday's own bucket already carries) and a reasonable floor for the
+    open-ended "30+" bucket, still a useful ghost-job signal, better than
+    dropping to None.
+
+    "Posted Today" is different in kind, not just N=0: it's the single
+    coarsest bucket Workday has (a 24-hour window, the same one "Posted
+    Yesterday" resolves to a specific PRIOR day for), yet stamping it
+    with the exact current instant displays as if we knew it was posted
+    this very minute. Reported live: several different companies'
+    "Posted Today" jobs all showing ~17-18 minutes old at once, from one
+    single discover run -- not fake data (confirmed live against the
+    real API: genuinely "Posted Today" for each), just false precision
+    on a real 24-hour-wide unknown. None here, not a guess -- and unlike
+    Comeet's unrelated already-tracked issue, this isn't reset every
+    cycle: load_to_sqlite.py's own freeze-existing-value logic only
+    protects a NON-null posted_at, so a None from today's "Posted Today"
+    read correctly upgrades to a real value the day Workday's own bucket
+    moves to "Posted Yesterday" or an exact day count -- unknown, then
+    corrected, rather than confidently wrong from the very first read.
     """
     if not s:
         return None
     s = s.strip().lower()
     if s == "posted today":
-        days = 0
+        return None
     elif s == "posted yesterday":
         days = 1
     else:
