@@ -17,6 +17,8 @@ loader/load_to_sqlite.py > upserts jobs.db + re-derives known.json
 both pushed to S3
 
 scrape_handler.py, an EventBridge-scheduled Lambda that re-polls existing job boards every 5 min (scrape-fast.yml itself is workflow_dispatch-only now, see its own header comment)
+
+scrape_workday_handler.py, a separate EventBridge-scheduled Lambda re-polling Workday-pinned companies on the same 5-min cadence -- its own connection pool, isolated from the rest of the fleet's, see its own header comment for why
 ```
 
 Auth is separate and optional -- everything above needs no login at all. The alerts feature (save a filter, get a digest email on new matches) sits behind Cognito: Google OAuth, GitHub (via a custom Lambda auth flow, GitHub has no OIDC discovery document so it can't be a plain Cognito identity provider), and anonymous email one-time-codes. See `infra/cognito.tf`, `infra/github_auth_lambda.tf`, `github_auth_handler.py`, and `alerts.py` (runs once per fast-poll cycle, matches each alert's filter against newly-seen jobs).
@@ -34,6 +36,7 @@ Since budget was the the primary limitation for this project I went with an SQLi
 | `loader/load_to_sqlite.py` | resolved.json -> jobs.db,  optional S3 push. |
 | `api/` | The serving Lambda. See `api/README.md` |
 | `alerts.py` | Saved-filter email alerts, run once per fast-poll cycle. |
+| `scrape_workday_handler.py` | Workday's own 5-min re-poll Lambda, separate from `scrape_handler.py`. |
 | `github_auth_handler.py` | GitHub/email-OTP sign-in, Cognito's custom-auth Lambda. |
 | `frontend/` | Static site: `index.html` + `style.css` + `app.js`,  backend is`/api/*`|
 | `scripts/dev_server.py` | spins up a local dev server |
