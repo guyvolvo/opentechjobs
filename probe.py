@@ -1371,24 +1371,36 @@ def _parse_workday_posted_on(s: str | None) -> str | None:
 _WORKDAY_MULTI_LOCATION_RE = re.compile(r"^\d+\s+Locations?$", re.IGNORECASE)
 
 
-def _workday_job_detail(sess: requests.Session, api_base: str, external_path: str, locations_text: str) -> tuple[str, str | None]:
-    """One GET to the per-job detail endpoint, shared by two unrelated
-    needs that happen to both live at jobPostingInfo: locationsText on
-    the list endpoint collapses to "2 Locations" / "3 Locations" once a
-    job has more than one office (the real names are at .location plus
-    .additionalLocations), and the list endpoint never has a description
-    at all (FETCH_FULL_DESCRIPTIONS wants .jobDescription). Only fetches
-    when at least one of those actually applies, and only once even when
-    both do. Falls back to the summary location text if the fetch fails;
-    description stays None on failure, same as never having tried.
+def _workday_job_detail(
+    sess: requests.Session, api_base: str, external_path: str, locations_text: str, posted_on: str | None
+) -> tuple[str, str | None, str | None]:
+    """One GET to the per-job detail endpoint, shared by three unrelated
+    needs that happen to all live at jobPostingInfo: locationsText on the
+    list endpoint collapses to "2 Locations" / "3 Locations" once a job
+    has more than one office (the real names are at .location plus
+    .additionalLocations); the list endpoint never has a description at
+    all (FETCH_FULL_DESCRIPTIONS wants .jobDescription); and "Posted
+    Today" (see _parse_workday_posted_on) is the one relative bucket
+    coarse enough (a full 24h window) to be worth a real date for.
+    startDate here is the actual posting date, not an employment start
+    date -- confirmed live: a job the list endpoint reported "Posted
+    30+ Days Ago" had startDate exactly 32 days before the request, and
+    it's simply absent from the list endpoint's own response (5 keys
+    total: title, externalPath, locationsText, postedOn, bulletFields),
+    only appearing once you fetch this same per-job detail. Only
+    fetches when at least one of the three actually applies, and only
+    once even when more than one does. Falls back to the summary
+    location text / no description / no exact date if the fetch fails,
+    same as never having tried.
 
     api_base must be the /wday/cxs/{tenant}/{site} API prefix, not the
     human-browsable URL f_workday builds job.url from. The browsable one
     returns an HTML SPA shell with no embedded data, not JSON.
     """
     needs_location = bool(_WORKDAY_MULTI_LOCATION_RE.match(locations_text))
-    if (not needs_location and not FETCH_FULL_DESCRIPTIONS) or not external_path:
-        return locations_text, None
+    needs_exact_date = (posted_on or "").strip().lower() == "posted today"
+    if (not needs_location and not needs_exact_date and not FETCH_FULL_DESCRIPTIONS) or not external_path:
+        return locations_text, None, None
 
     detail = get_json(sess, f"{api_base}{external_path}")
     info = (detail or {}).get("jobPostingInfo") or {}
@@ -1398,8 +1410,17 @@ def _workday_job_detail(sess: requests.Session, api_base: str, external_path: st
         names = [n for n in [_txt(info.get("location")), *(info.get("additionalLocations") or [])] if n]
         location = ", ".join(names) if names else locations_text
 
+    exact_posted_at = None
+    if needs_exact_date:
+        start_date = _txt(info.get("startDate"))
+        if start_date:
+            try:
+                exact_posted_at = datetime.fromisoformat(start_date).replace(tzinfo=timezone.utc).isoformat()
+            except ValueError:
+                pass
+
     description = _clean_text(info.get("jobDescription")) if FETCH_FULL_DESCRIPTIONS else None
-    return location, description
+    return location, description, exact_posted_at
 
 
 # Reported live: intel.com was only ever showing 20 jobs when Intel's own
@@ -1438,11 +1459,21 @@ WORKDAY_MAX_JOBS = 60
 def _workday_build_job(sess: requests.Session, api_base: str, base: str, tenant: str, wd: str, site: str, j: dict) -> Job:
     bullets = j.get("bulletFields") or []
     external_path = _txt(j.get("externalPath"))
-    location, description = _workday_job_detail(sess, api_base, external_path, _txt(j.get("locationsText")))
+    posted_on = j.get("postedOn")
+    location, description, exact_posted_at = _workday_job_detail(
+        sess, api_base, external_path, _txt(j.get("locationsText")), posted_on
+    )
+    # exact_posted_at (the detail endpoint's real startDate) only gets
+    # fetched at all for "Posted Today" -- every other bucket's own
+    # now-minus-N-days approximation is already accurate to within a day,
+    # not worth an extra request per job for. Falls back to that same
+    # approximation (None, for "Posted Today") if the detail fetch
+    # failed or didn't have it.
+    posted_at = exact_posted_at or _parse_workday_posted_on(posted_on)
     return Job("workday", f"{tenant}:{wd}:{site}", _txt(bullets[0] if bullets else j.get("externalPath")),
                _txt(j.get("title")), location,
                base + external_path,
-               _parse_workday_posted_on(j.get("postedOn")), None,
+               posted_at, None,
                description_chars=len(description) if description else 0,
                description=description)
 
