@@ -10,6 +10,117 @@ top-level module (`from job_filters import ...`), not `api.job_filters`,
 so the same import line works in both.
 """
 
+import re
+
+# Coarse, cross-company category -- complements the raw `department`
+# column (kept as-is; still shown in the job detail view) rather than
+# replacing it. Reported live: one company's "R&D" is another's
+# "Engineering," Comeet/Workday/SmartRecruiters postings carry a
+# structured department while JazzHR/Teamtailor carry none at all, so
+# the "Category" filter (department's actual label in the UI -- see
+# handler.py's top_departments comment) was really just "the top 20 raw
+# strings by count," not a real taxonomy -- asked for by name: Security,
+# Infrastructure, Operations, Software, none of which reliably existed
+# as a single clean department string across companies.
+#
+# Matched against department+title together (either alone is sometimes
+# missing or too specific/generic on its own), first match wins, so
+# order runs specific -> general: "Security Engineer" needs to land in
+# Security, not fall through to Software Engineering's generic
+# "engineer" catch-all further down. Computed at query time via a
+# registered SQLite function (see register_functions below), not stored
+# on the row -- works instantly against every already-scraped job, no
+# migration or backfill, and the taxonomy can still be tuned later
+# without a re-scrape.
+CATEGORIES = [
+    "Security",
+    "Data & AI",
+    "Infrastructure",
+    "QA",
+    "Software Engineering",
+    "Product & Design",
+    "Sales & Marketing",
+    "Customer Success",
+    "Operations & Business",
+]
+
+_CATEGORY_RULES: list[tuple[str, "re.Pattern[str]"]] = [
+    (label, re.compile(r"\b(?:" + "|".join(re.escape(n) for n in needles) + r")\b", re.IGNORECASE))
+    for label, needles in [
+        ("Security", [
+            "security", "cyber", "soc analyst", "threat intel", "threat research",
+            "incident response", "penetration test", "pentest", "red team", "blue team",
+            "\\bgrc\\b", "appsec", "application security", "infosec", "malware",
+        ]),
+        ("Data & AI", [
+            "data scientist", "data science", "data engineer", "machine learning",
+            "ml engineer", "ml researcher", "artificial intelligence", "ai researcher",
+            "ai engineer", "\\bai\\b", "nlp", "computer vision", "data analyst",
+            "business intelligence", "\\bbi\\b analyst",
+        ]),
+        ("Infrastructure", [
+            "devops", "\\bsre\\b", "site reliability", "platform engineer",
+            "infrastructure", "cloud engineer", "network engineer", "systems engineer",
+            "system administrator", "sysadmin", "\\bnoc\\b", "help desk", "helpdesk",
+            "it support", "it administrator",
+        ]),
+        ("QA", [
+            "quality assurance", "\\bqa\\b", "test engineer", "test automation", "\\bsdet\\b",
+        ]),
+        ("Software Engineering", [
+            "software engineer", "software development", "developer", "backend",
+            "back-end", "back end", "frontend", "front-end", "front end", "full stack",
+            "fullstack", "full-stack", "mobile engineer", "ios engineer",
+            "android engineer", "embedded", "firmware", "web developer", "engineer",
+            "engineering",
+        ]),
+        ("Product & Design", [
+            "product manager", "product owner", "\\bux\\b", "\\bui\\b",
+            "user experience", "user research", "product design", "graphic design",
+        ]),
+        ("Sales & Marketing", [
+            "sales", "account executive", "business development", "marketing",
+            "growth", "demand generation", "\\bseo\\b", "content writer", "partnerships",
+        ]),
+        ("Customer Success", [
+            "customer success", "customer support", "technical support",
+            "solutions engineer", "solution engineer", "support engineer",
+            "customer experience",
+        ]),
+        ("Operations & Business", [
+            "operations", "finance", "accounting", "human resources", "\\bhr\\b",
+            "people team", "people partner", "legal", "office manager",
+            "administrative", "procurement", "supply chain", "recruiter", "recruiting",
+            "talent acquisition",
+        ]),
+    ]
+]
+
+
+def classify_category(department: str | None, title: str | None) -> str | None:
+    """None when nothing matches -- real, not every posting fits one of
+    these buckets cleanly (an executive assistant role, say), and
+    forcing a guess would be worse than admitting it doesn't know.
+    """
+    text = f"{department or ''} {title or ''}"
+    if not text.strip():
+        return None
+    for label, pattern in _CATEGORY_RULES:
+        if pattern.search(text):
+            return label
+    return None
+
+
+def register_functions(conn) -> None:
+    """Register classify_category as SQLite's `category_of(department,
+    title)`, usable directly in SQL (WHERE/GROUP BY/SELECT), so filtering
+    and grouping by category still runs as one indexed-ish SQL query
+    instead of a fetch-everything-then-filter-in-Python pass. Call once
+    per connection -- handler.py's db.py and alerts.py's own sqlite3.connect
+    each open their own connection, so each needs its own call.
+    """
+    conn.create_function("category_of", 2, classify_category)
+
 IL_KEYWORDS = [
     "israel", "tel aviv", "tel-aviv", "telaviv", "herzliya", "raanana", "ra'anana",
     "rehovot", "netanya", "haifa", "jerusalem", "beer sheva", "beersheva",
@@ -77,7 +188,11 @@ def build_jobs_where(params: dict) -> tuple[str, list]:
 
     _add_in_filter(where, args, params, "ats", "ats")
     _add_in_filter(where, args, params, "company", "company_domain")
-    _add_in_filter(where, args, params, "department", "department")
+    # "department" is the param/UI name (see CATEGORIES above for why),
+    # but it now filters on the normalized category_of(department,
+    # title), not the raw column -- _add_in_filter just interpolates
+    # whatever column expression it's given.
+    _add_in_filter(where, args, params, "department", "category_of(department, title)")
     _add_in_filter(where, args, params, "seniority", "seniority")
     _add_in_filter(where, args, params, "location", "location")
     _add_in_filter(where, args, params, "workplace", "workplace_type")

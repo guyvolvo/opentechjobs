@@ -187,7 +187,8 @@ def route_jobs(params: dict) -> dict:
 
     rows = conn.execute(
         f"""
-        SELECT id, company_domain, ats, title, location, department, seniority, workplace_type, url,
+        SELECT id, company_domain, ats, title, location, department,
+               category_of(department, title) AS category, seniority, workplace_type, url,
                posted_at, confidence, first_seen, last_seen, closed_at,
                skills, salary_text, salary_is_estimate
         FROM jobs
@@ -220,7 +221,8 @@ def route_job_detail(job_id: str) -> dict | None:
     conn = get_connection()
     row = conn.execute(
         """
-        SELECT id, company_domain, ats, external_id, title, location, department, seniority,
+        SELECT id, company_domain, ats, external_id, title, location, department,
+               category_of(department, title) AS category, seniority,
                workplace_type, url, posted_at, description, confidence, first_seen, last_seen, closed_at
         FROM jobs WHERE id = ?
         """,
@@ -384,17 +386,23 @@ def route_stats(params: dict | None = None) -> dict:
         """
     ).fetchall()
 
-    # `department` is the raw ATS field, not a normalized taxonomy (one
-    # company's "R&D" is another's "Engineering"). Shown to users as
-    # "Category". LIMIT 20 doubles as the frontend's Category filter
-    # options, not just this panel's display, hence the higher count.
+    # Shown to users as "Category". Used to be a GROUP BY on the raw
+    # department column -- one company's "R&D" is another's
+    # "Engineering", so that was really just "the top 20 raw strings by
+    # count," not a real taxonomy. category_of() (job_filters.py,
+    # registered on this connection by db.py) normalizes department+title
+    # into a small fixed set instead (Security, Infrastructure, Software
+    # Engineering, ...), same function build_jobs_where's "department"
+    # filter now matches against, so what a user picks here is exactly
+    # what they filter by. LIMIT 20 is moot now (<=len(CATEGORIES)
+    # possible rows) but harmless to leave as a cap.
     top_departments = conn.execute(
         f"""
-        SELECT department, COUNT(*) AS n
+        SELECT category_of(department, title) AS department, COUNT(*) AS n
         FROM jobs
         WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}
-          AND department IS NOT NULL AND TRIM(department) != ''
-        GROUP BY department
+          AND category_of(department, title) IS NOT NULL
+        GROUP BY category_of(department, title)
         ORDER BY n DESC
         LIMIT 20
         """
