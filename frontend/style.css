@@ -1,6 +1,6 @@
 /* OpenMarketIL. Swiss grid, modernized. System rules, don't break them
    ad hoc elsewhere in this file:
-   1. Sage-cream page background (--white); forest-green ink is a
+   1. Warm off-white page background (--white); forest-green ink is a
       component color (buttons, rules), never on <body> directly.
    2. Green marks exactly one "this matters" element, never decoration.
    3. 4px radius on every discrete bordered box (buttons, chips, badges,
@@ -25,7 +25,7 @@
 }
 
 :root {
-  --white: #f3f6e4;
+  --white: #f2f0ef;
   --black: #40513b;
   --green: #609966;
   --green-bright: #80ad85;
@@ -1541,10 +1541,28 @@ footer p { color: var(--grey); margin: 0 0 8px; }
      to a plain wrapping flex row instead: logo+body first, then
      salary/skills wrap to their own line below, sized by their own
      content rather than a fixed track. */
-  table.jobs td.title-cell { display: flex; flex-wrap: wrap; }
-  table.jobs .job-salary-col,
+  /* Reported live ("the components are not consistent," a screenshot
+     showing the icon on top for some listings, on the side for others):
+     the old `flex-wrap: wrap` here with no basis/shrink rules on either
+     child let the icon and the text column wrap against EACH OTHER
+     depending on title length/badge count -- a short title kept them
+     side by side, a long one pushed the icon onto its own line above.
+     Icon and text now never wrap against each other (nowrap between
+     just those two, via the child rules below); only the salary badge
+     -- deliberately given a 100%-wide basis, the standard "always start
+     a new flex line" trick -- drops to its own row underneath, every
+     time, regardless of content length. */
+  table.jobs td.title-cell { display: flex; flex-wrap: wrap; align-items: center; }
+  table.jobs td.title-cell > .company-logo.listing { flex: 0 0 auto; }
+  table.jobs td.title-cell > .job-card-body { flex: 1 1 auto; min-width: 0; }
+  table.jobs .job-salary-col { flex: 1 0 100%; padding-top: 4px; }
   table.jobs .job-skills-col { flex: 0 1 auto; padding-top: 4px; }
   table.jobs tr { padding: 10px 0; }
+  /* Reported live: redundant at this width -- opening a listing's own
+     drawer has its own Save button (job-detail-star, see app.js), and
+     the column this frees up matters more on a narrow phone than a
+     second way to do the same thing. */
+  table.jobs tr > td:first-child { display: none; }
   /* Stacked cells need a label to tell them apart. app.js's data-label
      attribute stands in for the table header that display:none removed. */
   table.jobs td[data-label] { padding: 4px 10px; }
@@ -1624,4 +1642,25 @@ footer p { color: var(--grey); margin: 0 0 8px; }
   .wordmark-logo { height: 28px; }
   .ticker-rule, .ticker { display: none; } /* topbar is already tight without a marquee too */
   .topbar .container { flex-wrap: wrap; row-gap: 8px; }
+
+  /* Reported live: cut off. .auth-panel is `right: 0` relative to its
+     trigger button, at a fixed 260/320px width -- fine when the trigger
+     sits near the topbar's own right edge on desktop, but .topnav wraps
+     at this width (see .topbar .container above), so the trigger can
+     land anywhere, and a 320px-wide panel anchored to it routinely needs
+     to extend further left than the 360-390px viewport has room for.
+     Pinned to the viewport as a bottom sheet instead, same fixed-sheet
+     language the job-detail drawer already uses below 960px -- width is
+     never in question when it's the viewport's own width. */
+  .auth-panel, .auth-panel.alerts-panel {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: 75vh;
+    border-radius: 4px 4px 0 0;
+    border-width: var(--rule) var(--rule) 0 var(--rule);
+  }
 }

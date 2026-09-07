@@ -133,6 +133,24 @@ function monogramLogoSvg(domain) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+// Small, hand-verified exceptions to the guess-based cascade below, same
+// shape as probe.py's own KNOWN_FALSE_POSITIVES: the general rule (try
+// apple-touch-icon, then /favicon.ico, then Google) is sound, but a
+// specific domain's own guessable asset can be a real, valid image file
+// that just isn't a logo -- nothing in the HTTP response says so, only
+// looking at the actual pixels does. duda.co/favicon.ico: confirmed
+// live, a genuine 32x32 24-bit ICO, no alpha, every pixel solid white --
+// stage 1/2 "succeed" (200, decodes fine) so onerror never fires and the
+// cascade below never continues past it on its own. Values here are
+// which stage to jump to instead of guessing that domain's own asset at
+// all. Add to this as more turn up; there's no way to detect "loads
+// fine but is blank" automatically without pixel access, which loading
+// these cross-origin (no CORS headers on a random site's favicon.ico)
+// doesn't allow.
+const LOGO_STAGE_OVERRIDES = {
+  "duda.co": 3, // jump straight to Google's favicon service
+};
+
 // Reported live: Overwolf's real favicon.ico is a genuine 16x16 (verified
 // via a direct curl, not assumed) with no apple-touch-icon anywhere on
 // the site either -- Google's service was never the bug there, it was
@@ -159,9 +177,23 @@ function companyLogoImg(domain, size, extraClass = "") {
   const googleFavicon = escapeHtml(companyLogoUrl(domain, size));
   const monogram = escapeHtml(monogramLogoSvg(domain));
   const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
-  return `<img class="${cls}" src="${touchIcon}" alt="" loading="lazy"
-    data-stage="1" data-direct-favicon="${directFavicon}" data-google-favicon="${googleFavicon}" data-monogram="${monogram}"
-    onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.src=this.dataset.monogram;}" />`;
+  const startStage = LOGO_STAGE_OVERRIDES[domain] || 1;
+  const startSrc = { 1: touchIcon, 2: directFavicon, 3: googleFavicon, 4: monogram }[startStage];
+  // Reported live (tomorrow.io): neither its favicon.ico nor its
+  // apple-touch-icon exist, and Google's own favicon service can't find
+  // one for it either -- but Google still answers 200 with an image
+  // (its own generic default-globe placeholder), not a load failure, so
+  // onerror alone never advances past it to the monogram. Confirmed
+  // live: that generic placeholder always comes back a fixed 16x16
+  // regardless of the requested sz, while a real per-site match is
+  // scaled to match it -- naturalWidth below the requested size is Google
+  // admitting it has nothing, same as a load failure for this cascade's
+  // purposes.
+  return `<img class="${cls}" src="${startSrc}" alt="" loading="lazy"
+    data-stage="${startStage}" data-size="${size}"
+    data-direct-favicon="${directFavicon}" data-google-favicon="${googleFavicon}" data-monogram="${monogram}"
+    onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}"
+    onload="if(this.dataset.stage==='3'&&this.naturalWidth<Number(this.dataset.size)){this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}" />`;
 }
 
 function fmtInt(n) {
@@ -1011,7 +1043,8 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
 
     <div class="job-detail-meta">
       <div class="job-detail-meta-row"><span class="label">Location</span><span class="value">${escapeHtml(job.location || "-")}</span></div>
-      <div class="job-detail-meta-row"><span class="label">Category</span><span class="value">${escapeHtml(job.department || "-")}</span></div>
+      <div class="job-detail-meta-row"><span class="label">Category</span><span class="value">${escapeHtml(job.category || "-")}</span></div>
+      ${job.department ? `<div class="job-detail-meta-row"><span class="label">Department</span><span class="value">${escapeHtml(job.department)}</span></div>` : ""}
       <div class="job-detail-meta-row"><span class="label">Seniority</span><span class="value">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority || "-")}</span></div>
       <div class="job-detail-meta-row"><span class="label">Workplace</span><span class="value">${escapeHtml(WORKPLACE_LABELS[job.workplace_type] || job.workplace_type || "-")}</span></div>
       <div class="job-detail-meta-row"><span class="label">Posted</span><span class="value">${age !== null ? `${fmtAge(age)} ago` : "-"}</span></div>
@@ -1148,6 +1181,47 @@ function wireJobDetail() {
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && selectedJobId !== null) closeJobDetailAndSync();
+  });
+  wireJobDetailSwipe();
+}
+
+// Requested live: the drawer takes the whole screen on mobile, so
+// closing it should also work as a swipe, not just tapping the small X
+// in the corner. Only cares about a drag starting on the panel's own
+// header (job-detail-actions and above -- the description/skills area
+// below has its own vertical scroll to preserve, so a swipe starting
+// there would fight it), and only a downward drag by more than a
+// quarter of the panel's own height counts as "close" -- anything
+// short of that snaps back, same as any native bottom-sheet gesture.
+function wireJobDetailSwipe() {
+  const panel = document.getElementById("job-detail");
+  let startY = null;
+  let dragging = false;
+
+  panel.addEventListener("touchstart", (e) => {
+    if (!MOBILE_DRAWER_QUERY.matches || !panel.classList.contains("open")) return;
+    if (!e.target.closest(".job-detail-actions, .job-detail-meta")) return;
+    startY = e.touches[0].clientY;
+    dragging = true;
+    panel.style.transition = "none";
+  }, { passive: true });
+
+  panel.addEventListener("touchmove", (e) => {
+    if (!dragging) return;
+    const delta = e.touches[0].clientY - startY;
+    if (delta <= 0) return; // upward: not a close gesture, let it sit at rest
+    panel.style.transform = `translateY(${delta}px)`;
+  }, { passive: true });
+
+  panel.addEventListener("touchend", (e) => {
+    if (!dragging) return;
+    dragging = false;
+    panel.style.transition = "";
+    const delta = e.changedTouches[0].clientY - startY;
+    panel.style.transform = "";
+    if (delta > panel.getBoundingClientRect().height * 0.25) {
+      closeJobDetailAndSync();
+    }
   });
 }
 

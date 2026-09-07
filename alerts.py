@@ -19,7 +19,7 @@ from pathlib import Path
 import boto3
 from boto3.dynamodb.conditions import Attr
 
-from job_filters import build_jobs_where
+from job_filters import build_jobs_where, register_functions
 
 ALERTS_TABLE = os.environ.get("ALERTS_TABLE")
 FROM_EMAIL = os.environ.get("ALERTS_FROM_EMAIL", "alerts@guyvoloshin.com")
@@ -44,6 +44,7 @@ def evaluate_alerts(jobs_db_path: Path) -> dict:
     # write lock or risk racing it.
     conn = sqlite3.connect(f"file:{jobs_db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
+    register_functions(conn)
 
     sent = 0
     errors = []
@@ -103,7 +104,14 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
     if not to_email:
         return
     n = len(matches)
-    subject = f"{n} new job{'s' if n != 1 else ''} on OpenTechJobs"
+    # Requested live: a plain "N new jobs on OpenTechJobs" subject looked
+    # identical across every digest in an inbox, no way to tell them
+    # apart at a glance without opening each one. UTC, not the site's own
+    # display timezone -- there isn't one consistent "local" time for an
+    # arbitrary subscriber, and an unlabeled time is worse than an exact,
+    # honestly-labeled one.
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    subject = f"{n} new job{'s' if n != 1 else ''} on OpenTechJobs.org [{timestamp}]"
 
     _ses.send_email(
         FromEmailAddress=FROM_EMAIL,
@@ -131,7 +139,7 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
 
 
 def _digest_text(n: int, matches: list[dict]) -> str:
-    lines = [f"{n} new listing{'s' if n != 1 else ''} match your OpenTechJobs alert:", ""]
+    lines = [f"{n} new listing{'s' if n != 1 else ''} match your alert settings:", ""]
     for j in matches:
         lines.append(f"- {j['title']} — {j['company_domain']} ({j['location'] or 'location unknown'})")
         lines.append(f"  {j['url']}")
@@ -178,8 +186,8 @@ def _digest_html(n: int, matches: list[dict]) -> str:
 
     return f"""<!doctype html>
 <html>
-  <body style="margin:0; padding:0; background:#f3f6e4;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6e4;">
+  <body style="margin:0; padding:0; background:#f2f0ef;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f0ef;">
       <tr>
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
@@ -190,7 +198,7 @@ def _digest_html(n: int, matches: list[dict]) -> str:
             </tr>
             <tr>
               <td style="font-size:14px; color:{_DIGEST_INK}; padding-bottom:8px;">
-                {n} new listing{"s" if n != 1 else ""} match your alert:
+                {n} new listing{"s" if n != 1 else ""} match your alert settings:
               </td>
             </tr>
             <tr>
