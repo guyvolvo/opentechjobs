@@ -452,18 +452,75 @@ def load_deep(conn: sqlite3.Connection, deep_path: Path) -> None:
             upsert_job(conn, jid, domain, dict(j, ats="best_effort"), confidence="best_effort", ts=ts)
 
 
+def check_timestamp_clustering(conn: sqlite3.Connection) -> list[str]:
+    """Detects the exact failure signature both of today's real incidents
+    shared (gloat.com's Comeet timestamps stamped with the run's own
+    capture time; Workday's "Posted Today" bucket stamped with the exact
+    instant it happened to be checked): many jobs, across DIFFERENT
+    companies, all sharing the identical posted_at value -- the tell
+    that something got a shared "now" instead of each job's own real
+    date. One company legitimately batch-posting several roles at once
+    can share a timestamp; many DIFFERENT companies sharing the exact
+    same one, to the microsecond, essentially never happens by real
+    coincidence.
+
+    Doesn't fix anything by itself -- both incidents were permanent
+    (not self-correcting) because of the freeze-on-update logic in
+    upsert_job's own posted_at CASE, which exists on purpose to protect
+    a good value from being degraded by a worse later pass, and that
+    same protection means ANY future one-time computation bug, for any
+    ATS, gets frozen in exactly the same way. This is the safety net
+    for that next time: noticed within a day (every load calls this),
+    not sitting silently until someone happens to see it on the board.
+    """
+    rows = conn.execute(
+        """
+        SELECT posted_at, COUNT(*) AS n, COUNT(DISTINCT company_domain) AS companies
+        FROM jobs
+        WHERE closed_at IS NULL AND posted_at IS NOT NULL
+          -- Exact midnight is excluded, not suspicious: Workday's own
+          -- day-precision dates (probe.py's _workday_job_detail, the
+          -- real startDate field) are only ever known to the day, not
+          -- the instant, so every company that genuinely posted
+          -- something on the same real calendar day correctly shares
+          -- this same value -- confirmed live, immediately after
+          -- today's own Workday fix: 44 jobs across 11 real companies
+          -- all legitimately posted today. A real coincidence needs
+          -- second/microsecond precision to mean anything.
+          AND posted_at NOT LIKE '%T00:00:00%'
+        GROUP BY posted_at
+        HAVING n >= 5 AND companies >= 2
+        ORDER BY n DESC
+        """
+    ).fetchall()
+    return [
+        f"{r['posted_at']}: {r['n']} jobs across {r['companies']} different companies share this exact timestamp"
+        for r in rows
+    ]
+
+
 def update_meta(conn: sqlite3.Connection) -> None:
     counts = conn.execute(
         "SELECT confidence, COUNT(*) FROM jobs WHERE closed_at IS NULL GROUP BY confidence"
     ).fetchall()
     total_companies = conn.execute("SELECT COUNT(*) FROM companies").fetchone()[0]
     hit_companies = conn.execute("SELECT COUNT(*) FROM companies WHERE ats IS NOT NULL").fetchone()[0]
+    clustering_warnings = check_timestamp_clustering(conn)
+    if clustering_warnings:
+        print("TIMESTAMP CLUSTERING WARNING (see check_timestamp_clustering's own docstring):", file=sys.stderr)
+        for w in clustering_warnings:
+            print(f"  {w}", file=sys.stderr)
     meta = {
         "last_loaded": now_iso(),
         "open_jobs_verified": next((n for c, n in counts if c == "verified"), 0),
         "open_jobs_best_effort": next((n for c, n in counts if c == "best_effort"), 0),
         "companies_total": total_companies,
         "companies_resolved": hit_companies,
+        # Empty string, not "0" or omitted: route_health() (api/handler.py)
+        # reads this directly and a falsy-but-present value is easier to
+        # branch on there than distinguishing "never checked" from "checked,
+        # clean."
+        "timestamp_clustering_warnings": "; ".join(clustering_warnings),
     }
     for k, v in meta.items():
         conn.execute(

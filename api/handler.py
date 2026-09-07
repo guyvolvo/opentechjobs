@@ -299,6 +299,16 @@ def route_health() -> dict:
         ).fetchone()["mins"]
         if mins is not None:
             minutes_since_check = round(mins, 1)
+    # Set by load_to_sqlite.py's check_timestamp_clustering (every load,
+    # any source) -- the real signature both the gloat.com Comeet bug and
+    # the Workday "Posted Today" bug shared: many jobs across DIFFERENT
+    # companies stamped with the exact identical posted_at. Empty string
+    # (not missing) once any load has run -- "" is a real, checked-and-
+    # clean result, not "never checked."
+    clustering_row = conn.execute(
+        "SELECT value FROM meta WHERE key = 'timestamp_clustering_warnings'"
+    ).fetchone()
+    clustering_warnings = clustering_row["value"].split("; ") if clustering_row and clustering_row["value"] else []
     return {
         "ok": True,
         "db_reachable": True,
@@ -307,6 +317,7 @@ def route_health() -> dict:
         "companies_resolved": row["companies_resolved"],
         "last_checked": row["last_checked"],
         "minutes_since_check": minutes_since_check,
+        "timestamp_clustering_warnings": clustering_warnings,
     }
 
 
