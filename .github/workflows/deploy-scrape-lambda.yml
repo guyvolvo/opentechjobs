@@ -60,7 +60,13 @@ jobs:
           cp api/job_filters.py workday/
           cp loader/load_to_sqlite.py workday/loader/
           cp db/schema.sql workday/db/
-          pip install --target workday requests
+          # pyyaml, not just requests: this is the one deployment package
+          # that actually needs probe.py's companies.yml reading to work
+          # (PINS is silently empty otherwise -- probe.py's own `import
+          # yaml` falls back to None on ImportError, and load_pins()
+          # treats that the same as a genuinely missing file. Reported
+          # live: the first deploy of this Lambda did exactly that).
+          pip install --target workday requests pyyaml
           cd workday && zip -r ../scrape-workday.zip . -x "__pycache__/*" && cd ..
 
       - uses: aws-actions/configure-aws-credentials@v4
