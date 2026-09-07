@@ -865,9 +865,21 @@ def f_smartrecruiters(sess, token):
             workplace = "onsite"
         else:
             workplace = None
+        # Reported live: applyUrl/ref sent applicants to
+        # api.smartrecruiters.com/v1/companies/.../postings/{id} -- the
+        # raw API endpoint, not a page a browser can do anything with.
+        # Confirmed live: this LIST endpoint's own postings never carry
+        # an applyUrl or postingUrl field at all (only the single-posting
+        # detail endpoint does, one extra request per job, not worth it
+        # here), and `ref` is that same raw API URL, not a public page --
+        # so the old fallback always landed on `ref`. jobs.smartrecruiters
+        # .com/{company}/{id} is SmartRecruiters' own public board, and
+        # confirmed live it accepts this LIST endpoint's own `id` directly
+        # (no separate lookup needed, redirects to the fully slugged URL
+        # itself), so it's buildable from data already in hand.
         out.append(Job("smartrecruiters", token, _txt(j.get("id")), _txt(j.get("name")),
                        ", ".join(x for x in [_txt(loc.get("city")), _txt(loc.get("country"))] if x),
-                       _txt(j.get("applyUrl") or j.get("ref")),
+                       f"https://jobs.smartrecruiters.com/{token}/{_txt(j.get('id'))}",
                        _normalize_date(j.get("releasedDate")),
                        _txt(j.get("department")) or None,
                        seniority=_SMARTRECRUITERS_LEVEL_MAP.get(_txt(level.get("id")).lower()) or None,
@@ -1352,7 +1364,58 @@ def _workday_build_job(sess: requests.Session, api_base: str, base: str, tenant:
                description=description)
 
 
-def f_workday(sess: requests.Session, tenant: str, wd: str, site: str) -> list[Job] | None:
+def _find_israel_facets(facets: list) -> dict[str, list[str]]:
+    """Recursively walk a Workday /jobs response's "facets" tree (present
+    in the plain, unauthenticated response -- no browser or session
+    needed) collecting every leaf whose descriptor mentions Israel,
+    grouped by the facetParameter key each one has to be filtered under.
+
+    There's no shared "Israel" id across companies to look for: each
+    Workday tenant is a fully separate deployment (see the pins comment
+    above resolve()'s workday branch) with its own location records, so
+    the same country gets an unrelated opaque id in every tenant --
+    confirmed live, NVIDIA's Israel id silently no-ops on Cisco's tenant
+    instead of erroring. Matching stays on the human-readable label
+    ("israel" as a case-insensitive substring), not the id, and that
+    label's own shape varies by tenant too -- confirmed live across
+    three different real conventions: a plain country node ("Israel",
+    NVIDIA), "City, Country" (would be "Tel Aviv, Israel"), and
+    "Prefix - Country - City" ("Office - Israel - Tel Aviv", Palo Alto
+    Networks). A substring match catches all three without needing to
+    know which one a given tenant uses ahead of time.
+    """
+    matches: dict[str, list[str]] = {}
+    for f in facets or []:
+        sub_values = f.get("values") or []
+        # A leaf has an id (a real facet value); a branch's own values are
+        # nested groups (no id, just is themselves also facets).
+        leaves = [v for v in sub_values if "id" in v]
+        if leaves:
+            hits = [v["id"] for v in leaves if "israel" in (v.get("descriptor") or "").lower()]
+            if hits:
+                matches.setdefault(f["facetParameter"], []).extend(hits)
+        elif sub_values:
+            for param, ids in _find_israel_facets(sub_values).items():
+                matches.setdefault(param, []).extend(ids)
+    return matches
+
+
+def discover_workday_israel_facets(sess: requests.Session, tenant: str, wd: str, site: str) -> dict[str, list[str]] | None:
+    """One-time (well, once-per-tenant, cached in companies.yml -- see
+    load_pins()) discovery step: a Workday tenant's own Israel-labeled
+    location facet id(s), found by asking for the facet tree itself
+    rather than any real jobs. Returns {} (not None) for a genuine tenant
+    with no Israel presence in its facets at all right now, so callers
+    can tell "asked and got nothing" from "the request itself failed."
+    """
+    api_base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
+    d = get_json_post(sess, f"{api_base}/jobs", {"appliedFacets": {}, "limit": 1, "offset": 0, "searchText": ""})
+    if not isinstance(d, dict) or "facets" not in d:
+        return None
+    return _find_israel_facets(d["facets"])
+
+
+def f_workday(sess: requests.Session, tenant: str, wd: str, site: str, israel_facets: dict[str, list[str]] | None = None) -> list[Job] | None:
     api_base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
     # externalPath ("/job/<location>/<title>_<reqid>") omits the site slug,
     # even though the browsable URL requires it. Without /{site}, the
@@ -1361,6 +1424,17 @@ def f_workday(sess: requests.Session, tenant: str, wd: str, site: str) -> list[J
     out = []
     offset = 0
     total = None
+    # When a pin has a cached israel_facets (see companies.yml and
+    # discover_workday_israel_facets above), every page of this fetch is
+    # pre-scoped to just that company's Israel-labeled postings instead
+    # of its full global list -- the same WORKDAY_MAX_JOBS budget below
+    # then covers up to that many *relevant* jobs instead of up to that
+    # many jobs in whatever order Workday's unfiltered default happens to
+    # return, which is exactly how a real Israel posting (NVIDIA's
+    # JR2016510) went missing before this existed. Falls back to the
+    # original unfiltered fetch for any pin that hasn't been through
+    # discovery yet.
+    applied_facets = israel_facets or {}
     # Per-job detail fetches (see _workday_job_detail -- multi-location
     # postings need a second request) dominate the real cost here, not
     # the page fetches themselves. A small pool per page (this project's
@@ -1375,7 +1449,7 @@ def f_workday(sess: requests.Session, tenant: str, wd: str, site: str) -> list[J
         while True:
             d = get_json_post(
                 sess, f"{api_base}/jobs",
-                {"appliedFacets": {}, "limit": WORKDAY_PAGE_SIZE, "offset": offset, "searchText": ""},
+                {"appliedFacets": applied_facets, "limit": WORKDAY_PAGE_SIZE, "offset": offset, "searchText": ""},
             )
             if not isinstance(d, dict) or "jobPostings" not in d:
                 # A failure on page 1 means no valid board at all (existing
@@ -1621,7 +1695,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
         if VERBOSE:
             print(f"    probe workday-pin:{domain}", file=sys.stderr)
         try:
-            jobs = f_workday(sess, pin["tenant"], pin["wd"], pin["site"])
+            jobs = f_workday(sess, pin["tenant"], pin["wd"], pin["site"], israel_facets=pin.get("israel_facets"))
         except Exception:
             jobs = None
         if jobs is not None:

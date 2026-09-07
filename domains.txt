@@ -559,3 +559,4 @@ velocity.xyz
 altahq.com
 tangos.ai
 withsable.com
+salt.security

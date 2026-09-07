@@ -77,7 +77,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE jobs ADD COLUMN {name} {coltype}")
 
 
-def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
+def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
     """Upsert probe.py's --json output. Every company in this file was
     re-checked THIS run, so companies/jobs not mentioned for a given
     domain but present in the DB from a prior run are fair game to close
@@ -86,6 +86,9 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
     alone entirely: we have no fresh evidence either way, so touching its
     existing jobs would manufacture a false "closed" signal from what
     might just be a transient probe failure.
+
+    Returns every domain this run covered, hit or miss -- --prune-stale's
+    "is this domain still tracked at all" check (see prune_stale_companies).
     """
     data = json.loads(resolved_path.read_text(encoding="utf-8"))
     ts = now_iso()
@@ -94,6 +97,46 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
     for r in data:
         domain = r["domain"]
         ats = r.get("ats")
+        token = r.get("token")
+
+        # Reported live, repeatedly, and NOT fixed by removing the loser
+        # domain from domains.txt alone (Cato: cato.networks and
+        # catonetworks.com both resolved to greenhouse:catonetworks --
+        # the exact same board, fetched and stored twice under two
+        # different company_domain values, so every job on it appeared
+        # "duplicated"). That's a company-identity collision, not a job
+        # upsert bug -- job_id() is keyed on (domain, ats, external_id),
+        # so two domains sharing one real board were always going to
+        # produce two distinct ids for what's the same posting. The
+        # general, not-hardcoded-to-Cato fix: if some OTHER domain
+        # already owns this exact (ats, token) pair, this domain is an
+        # alias of it, not a second real company -- demote it to a
+        # miss-like state and close out whatever jobs it previously
+        # accumulated under its own name, rather than upserting a
+        # second copy of the same board every single run. Whichever
+        # domain the DB already recognizes as the resolved owner wins
+        # (stability across runs); if neither is resolved yet, the
+        # alphabetically-first domain wins -- arbitrary, but
+        # deterministic, so which one "wins" doesn't flap run to run.
+        if ats and token:
+            other = conn.execute(
+                "SELECT domain FROM companies WHERE ats = ? AND token = ? AND domain != ?",
+                (ats, token, domain),
+            ).fetchone()
+            if other:
+                canonical_already_resolved = bool(
+                    conn.execute(
+                        "SELECT 1 FROM companies WHERE domain = ? AND ats IS NOT NULL", (other["domain"],)
+                    ).fetchone()
+                )
+                if canonical_already_resolved or other["domain"] < domain:
+                    _demote_alias(conn, domain, other["domain"], ats, token, ts)
+                    continue
+                # This run is the first time both domains show up together
+                # and this one alphabetically precedes the other -- this
+                # domain stays canonical instead, so demote the other one.
+                _demote_alias(conn, other["domain"], domain, ats, token, ts)
+
         # Snapshot BEFORE this run's own companies upsert below overwrites
         # it -- a company already resolved on a prior run vs. one seen for
         # the very first time this run needs different treatment for
@@ -174,6 +217,7 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> None:
         seen_ids_by_domain[domain] = ids
 
     close_missing_jobs(conn, seen_ids_by_domain, ts)
+    return {r["domain"] for r in data}
 
 
 def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confidence: str, ts: str, already_tracked_company: bool = True) -> None:
@@ -304,6 +348,66 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
     )
 
 
+def _demote_alias(conn: sqlite3.Connection, domain: str, canonical_domain: str, ats: str, token: str, ts: str) -> None:
+    """`domain` resolves to the exact same (ats, token) board as
+    `canonical_domain` -- not a second real company, just a second name
+    for the same one (a legacy domain, an alternate TLD, ...). Close out
+    whatever jobs it accumulated under its own company_domain (the same
+    listings now live under canonical_domain instead) and demote its
+    companies row to a miss, same shape as a domain that never resolved
+    at all, so it stops being treated as resolved (known.json export,
+    the fast-poll's --known list, /api/companies) and stops re-fetching
+    a board someone else already owns.
+    """
+    conn.execute(
+        "UPDATE jobs SET closed_at = ? WHERE company_domain = ? AND closed_at IS NULL", (ts, domain)
+    )
+    conn.execute(
+        """
+        INSERT INTO companies (domain, ats, token, confidence, job_count, tried, error, first_seen, last_checked)
+        VALUES (?, NULL, NULL, NULL, 0, 0, ?, ?, ?)
+        ON CONFLICT(domain) DO UPDATE SET
+            ats = NULL, token = NULL, confidence = NULL, job_count = 0,
+            error = excluded.error, last_checked = excluded.last_checked
+        """,
+        (domain, f"alias of {canonical_domain} (both resolve to {ats}:{token})", ts, ts),
+    )
+
+
+def prune_stale_companies(conn: sqlite3.Connection, current_domains: set[str], ts: str) -> int:
+    """A `--batch domains.txt` run's resolved.json has one entry per
+    domain CURRENTLY in domains.txt/companies.yml -- the full universe
+    this project means to track, hit or miss, this run (see main()'s
+    --prune-stale flag, set only for that full-batch invocation, never
+    for --known's own partial re-poll). A company still marked resolved
+    here whose domain ISN'T in that set is a leftover from a domain that
+    used to be tracked and no longer is: reported live (Cato, again) --
+    removing a domain from domains.txt alone never stopped it being
+    re-fetched, because nothing ever told the fast-poll's own known.json
+    export (companies WHERE ats IS NOT NULL, every load) to drop it.
+    Same close-and-demote treatment as _demote_alias, for the same
+    reason: stop it being treated as resolved anywhere downstream
+    without losing the historical job rows.
+    """
+    stale = [
+        row["domain"] for row in conn.execute("SELECT domain FROM companies WHERE ats IS NOT NULL")
+        if row["domain"] not in current_domains
+    ]
+    for domain in stale:
+        conn.execute(
+            "UPDATE jobs SET closed_at = ? WHERE company_domain = ? AND closed_at IS NULL", (ts, domain)
+        )
+        conn.execute(
+            """
+            UPDATE companies SET ats = NULL, token = NULL, confidence = NULL, job_count = 0,
+                error = ?, last_checked = ?
+            WHERE domain = ?
+            """,
+            (f"no longer in domains.txt/companies.yml as of {ts}", ts, domain),
+        )
+    return len(stale)
+
+
 def close_missing_jobs(conn: sqlite3.Connection, seen_ids_by_domain: dict[str, set[str]], ts: str) -> None:
     """A job still open in the DB, for a domain we successfully re-probed
     this run, that didn't come back in this run's results: mark it closed.
@@ -399,6 +503,10 @@ def main() -> int:
     ap.add_argument("--bucket", help="S3 bucket to pull the existing DB from / push the result to")
     ap.add_argument("--key", default="jobs.db", help="S3 key for jobs.db (default: jobs.db)")
     ap.add_argument("--known-key", default="known.json", help="S3 key for known.json (default: known.json)")
+    ap.add_argument("--prune-stale", action="store_true",
+                     help="demote any resolved company whose domain isn't in this run's --resolved data "
+                          "(see prune_stale_companies) -- only correct for a full --batch domains.txt run, "
+                          "never for --known's own partial re-poll, so scrape-fast.yml must never pass this")
     args = ap.parse_args()
 
     if args.bucket and not args.out.exists():
@@ -407,9 +515,14 @@ def main() -> int:
 
     conn = open_db(args.out)
     with conn:
-        load_resolved(conn, args.resolved)
+        current_domains = load_resolved(conn, args.resolved)
         if args.deep:
             load_deep(conn, args.deep)
+        if args.prune_stale:
+            ts = now_iso()
+            n_pruned = prune_stale_companies(conn, current_domains, ts)
+            if n_pruned:
+                print(f"pruned {n_pruned} companies no longer in domains.txt/companies.yml", file=sys.stderr)
         update_meta(conn)
 
     known_out = args.known_out or args.out.with_name("known.json")

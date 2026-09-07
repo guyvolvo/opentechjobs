@@ -126,6 +126,13 @@ comeet:
     source: hand-verified
     note: no WP-plugin/embed-widget match on the page itself (dreamgroup.com uses a Webflow site with the Comeet apply form loaded into an iframe) -- token found via the apply iframe's own request, not the usual regex scrape
 
+  - domain: claroty.com
+    uid: "F2.004"
+    token: "2F4EC42F42F45E814AC1A945E814AC5E8"
+    jobs_seen: 24
+    source: hand-extracted
+    note: claroty.com/careers renders the board client-side (no server-rendered comeet mention at all, unlike the WP-plugin/embed-widget cases above) -- uid+token found the same search-engine-spelunking way as the rest of this file's hand-extracted entries, comeet.com/jobs/Claroty/F2.004 itself
+
 # Rejected during extraction, kept as a note so nobody re-does this work:
 #   "Guideline" (comeet.com/jobs/guideline) is a US 401(k) provider,
 #   unrelated to Israel: a coincidental token match, not a company to add.
@@ -138,6 +145,26 @@ comeet:
 # it links to, then verified live with f_workday before adding here --
 # same discipline as every domains.txt batch, just for a token instead
 # of a plain domain.
+#
+# israel_facets, where present: this tenant's own Israel-labeled
+# location facet id(s), from discover_workday_israel_facets() (probe.py)
+# -- there's no shared id across tenants (each Workday deployment is a
+# fully separate company database, confirmed live: NVIDIA's id silently
+# no-ops on Cisco's tenant instead of erroring), so this has to be
+# discovered and cached per company, same as tenant/wd/site above. Lets
+# f_workday scope every fetch to just this company's Israel postings
+# instead of its full global list, so the existing WORKDAY_MAX_JOBS cap
+# covers up to that many *relevant* jobs instead of whatever Workday's
+# unfiltered default ordering happens to return -- reported live, that
+# gap is exactly how a real NVIDIA Israel posting went missing. Verified
+# against a real query (not just "a facet with 'israel' in it exists")
+# before being added: appliedmaterials.com's own "locations" facet
+# looked like a match but returned an incomplete, wrong result --
+# "Country" is the one that's actually correct there. No entry means
+# either not yet discovered or a genuine, confirmed-empty current
+# Israel presence (ebay.com, broadcom.com, visa.com, paypal.com) -- an
+# empty facet filter is a no-op, same as not passing one at all, so
+# there's nothing useful to cache for those.
 workday:
   - domain: nvidia.com
     tenant: nvidia
@@ -145,12 +172,14 @@ workday:
     site: NVIDIAExternalCareerSite
     source: hand-verified
     note: nvidia.com itself also guesses a false-positive workable:nvidia hit (an unrelated, empty tenant) -- see KNOWN_FALSE_POSITIVES in probe.py
+    israel_facets: {locationHierarchy1: ["2fcb99c455831013ea52bbe14cf9326c"]}
 
   - domain: paloaltonetworks.com
     tenant: paloaltonetworks
     wd: wd5
     site: panwexternalcareers
     source: hand-verified
+    israel_facets: {locations: ["45eb6188f3f71001f08639efd22e0000", "45eb6188f3f71001f086499c91d00000", "bafc965434591001f0472e9b5bfa0000", "91e39ca70dc31059f344108791f2c199", "462d9b819ff31060221ce2cad22df7c3", "b3c4c0c99c0e10015b7a8c51c0490000", "d70273bbce1a1000e4f5ff6c866d0000", "5aa443c785ff10455f18842696b339e7"]}
 
   # Batch 2: went looking for more tier-1/FAANG-adjacent giants after the
   # first two above turned up real. Also checked and found NOT reachable
@@ -168,6 +197,7 @@ workday:
     wd: wd5
     site: crowdstrikecareers
     source: hand-verified
+    israel_facets: {locationCountry: ["084562884af243748dad7c84c304d89a"]}
 
   - domain: ebay.com
     tenant: ebay
@@ -180,12 +210,17 @@ workday:
     wd: wd1
     site: CorporateCareers
     source: hand-verified
+    israel_facets: {locations: ["2393568a52081000c8e16a58b8510000"]}
 
   - domain: appliedmaterials.com
     tenant: amat
     wd: wd1
     site: External
     source: hand-verified
+    # "locations" also looked like a match here (one id) but returned an
+    # incomplete, wrong result when actually queried -- "Country" is the
+    # one confirmed correct. See this file's own israel_facets note above.
+    israel_facets: {Country: ["084562884af243748dad7c84c304d89a"]}
 
   - domain: broadcom.com
     tenant: broadcom
@@ -198,12 +233,14 @@ workday:
     wd: wd5
     site: Cisco_Careers
     source: hand-verified
+    israel_facets: {locations: ["3419053a4e7d1001f4eede2208d40000", "026fa05becb01001f50b140851610000", "3419053a4e7d1001f4ead421f8370000", "3dbd26f9e73e1001f4d6754ea5640000", "3419053a4e7d1001f4ec9c9face40000"]}
 
   - domain: intel.com
     tenant: intel
     wd: wd1
     site: External
     source: hand-verified
+    israel_facets: {locations: ["1e4a4eb3adf1013563ba9174bf817fcd", "1e4a4eb3adf101cb242c9e74bf8189cd", "1e4a4eb3adf101aaeda8a474bf818ecd"]}
 
   - domain: visa.com
     tenant: visa
@@ -223,3 +260,4 @@ workday:
     site: External_Career_Site
     source: hand-verified
     note: salesforce.wd1 (the other shard search results pointed at) 404s -- wd12 is the live one
+    israel_facets: {locations: ["26e99ef44f7b1005bacbfb729a5d0000"]}

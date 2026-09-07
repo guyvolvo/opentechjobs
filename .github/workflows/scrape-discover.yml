@@ -67,7 +67,8 @@ jobs:
             --resolved resolved.json \
             --out jobs.db \
             --bucket ${{ vars.DATA_BUCKET }} \
-            --key jobs.db
+            --key jobs.db \
+            --prune-stale
 
       - name: Upload resolved.json as a build artifact
         uses: actions/upload-artifact@v4
