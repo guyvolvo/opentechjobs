@@ -472,17 +472,20 @@ def update_meta(conn: sqlite3.Connection) -> None:
         )
 
 
-def s3_pull(bucket: str, key: str, dest: Path) -> bool:
+def s3_pull(bucket: str, key: str, dest: Path) -> tuple[bool, str | None]:
+    """Returns (existed, ETag). The ETag is this function's real point --
+    see s3_push_conditional's own docstring for why."""
     import boto3
     from botocore.exceptions import ClientError
 
     s3 = boto3.client("s3")
     try:
-        s3.download_file(bucket, key, str(dest))
-        return True
+        resp = s3.get_object(Bucket=bucket, Key=key)
+        dest.write_bytes(resp["Body"].read())
+        return True, resp["ETag"]
     except ClientError as e:
         if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
-            return False
+            return False, None
         raise
 
 
@@ -490,6 +493,47 @@ def s3_push(bucket: str, key: str, src: Path) -> None:
     import boto3
 
     boto3.client("s3").upload_file(str(src), bucket, key)
+
+
+def s3_push_conditional(bucket: str, key: str, src: Path, etag: str | None) -> bool:
+    """Same upload as s3_push, except it fails cleanly (returns False)
+    instead of overwriting anything if `key` has changed in S3 since the
+    ETag this call was given was pulled -- If-Match (or If-None-Match,
+    when etag is None, meaning the object didn't exist yet) turns S3's
+    default "whoever PUTs last wins, silently" into a detected conflict.
+
+    THE actual fix for a whole family of bugs this project kept hitting
+    (Cato's duplicate reappearing after being fixed by hand, gloat.com's
+    real Comeet timestamps reverting back to a fake capture-time value):
+    jobs.db is one shared ~100MB file, read-modify-written whole by two
+    genuinely-independent writers (the 5-min fast-poll and the once-daily
+    discover run, or two overlapping fast-poll invocations if one runs
+    long) with no coordination between them at all. Whichever one
+    finished uploading LAST always won outright before this existed --
+    manually pausing the fast-poll's EventBridge schedule around a
+    one-off hand fix (the approach used earlier this same day) reduces
+    that window but doesn't close it: re-enabling the schedule can itself
+    trigger a new invocation that starts downloading before the paused
+    fix's own upload finishes, still racing it. See main()'s retry loop
+    for the other half of this: on a conflict, redo the whole attempt
+    against a fresh pull, don't just retry the upload with stale data.
+    """
+    import boto3
+    from botocore.exceptions import ClientError
+
+    s3 = boto3.client("s3")
+    kwargs: dict = {"Bucket": bucket, "Key": key, "Body": src.read_bytes()}
+    if etag is not None:
+        kwargs["IfMatch"] = etag
+    else:
+        kwargs["IfNoneMatch"] = "*"
+    try:
+        s3.put_object(**kwargs)
+        return True
+    except ClientError as e:
+        if e.response["Error"]["Code"] in ("PreconditionFailed", "412"):
+            return False
+        raise
 
 
 def export_known(conn: sqlite3.Connection, path: Path) -> int:
@@ -520,35 +564,65 @@ def main() -> int:
                           "never for --known's own partial re-poll, so scrape-fast.yml must never pass this")
     args = ap.parse_args()
 
-    if args.bucket and not args.out.exists():
-        pulled = s3_pull(args.bucket, args.key, args.out)
-        print(f"pulled existing jobs.db from s3://{args.bucket}/{args.key}: {pulled}", file=sys.stderr)
+    # See s3_push_conditional's own docstring for why this is a retry
+    # loop and not a single pull-modify-push. Each attempt re-pulls from
+    # scratch (no "reuse the local file if it already exists" shortcut
+    # the single-shot version used to have) specifically so the ETag it
+    # conditions its push on is never stale -- a warm Lambda container
+    # reusing a leftover /tmp/jobs.db from a previous invocation would
+    # otherwise condition on an ETag from before ITS OWN last write,
+    # guaranteeing every push after the first one fails the check.
+    attempts = 5
+    for attempt in range(1, attempts + 1):
+        if attempt > 1:
+            print(f"jobs.db changed in S3 since it was pulled -- retrying (attempt {attempt}/{attempts})",
+                  file=sys.stderr)
 
-    conn = open_db(args.out)
-    with conn:
-        current_domains = load_resolved(conn, args.resolved)
-        if args.deep:
-            load_deep(conn, args.deep)
-        if args.prune_stale:
-            ts = now_iso()
-            n_pruned = prune_stale_companies(conn, current_domains, ts)
-            if n_pruned:
-                print(f"pruned {n_pruned} companies no longer in domains.txt/companies.yml", file=sys.stderr)
-        update_meta(conn)
+        etag = None
+        if args.bucket:
+            if args.out.exists():
+                args.out.unlink()
+            existed, etag = s3_pull(args.bucket, args.key, args.out)
+            print(f"pulled existing jobs.db from s3://{args.bucket}/{args.key}: {existed}", file=sys.stderr)
 
-    known_out = args.known_out or args.out.with_name("known.json")
-    n_known = export_known(conn, known_out)
-    conn.execute("VACUUM")
-    conn.close()
+        conn = open_db(args.out)
+        with conn:
+            current_domains = load_resolved(conn, args.resolved)
+            if args.deep:
+                load_deep(conn, args.deep)
+            if args.prune_stale:
+                ts = now_iso()
+                n_pruned = prune_stale_companies(conn, current_domains, ts)
+                if n_pruned:
+                    print(f"pruned {n_pruned} companies no longer in domains.txt/companies.yml", file=sys.stderr)
+            update_meta(conn)
 
-    if args.bucket:
-        s3_push(args.bucket, args.key, args.out)
+        known_out = args.known_out or args.out.with_name("known.json")
+        n_known = export_known(conn, known_out)
+        conn.execute("VACUUM")
+        conn.close()
+
+        print(f"wrote {args.out} ({args.out.stat().st_size} bytes)", file=sys.stderr)
+
+        if not args.bucket:
+            return 0
+
+        if not s3_push_conditional(args.bucket, args.key, args.out, etag):
+            continue  # someone else won this round -- redo the whole attempt against a fresh pull
         print(f"pushed jobs.db to s3://{args.bucket}/{args.key}", file=sys.stderr)
+
+        # known.json has no reader that needs it pinned to one exact
+        # jobs.db version (the fast-poll just wants "the latest resolved
+        # companies," not a specific snapshot), so a plain overwrite here
+        # is fine even though jobs.db's own push just went through the
+        # conditional path -- no need to re-run the whole cycle over a
+        # conflict on this file alone.
         s3_push(args.bucket, args.known_key, known_out)
         print(f"pushed known.json ({n_known} companies) to s3://{args.bucket}/{args.known_key}", file=sys.stderr)
+        return 0
 
-    print(f"wrote {args.out} ({args.out.stat().st_size} bytes)", file=sys.stderr)
-    return 0
+    print(f"gave up after {attempts} attempts, jobs.db kept changing underneath us", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":
