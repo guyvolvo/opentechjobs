@@ -83,6 +83,8 @@ def lambda_handler(event, context):
             return _response(200, json.dumps(route_companies(params), default=str))
         if path == "/stats":
             return _response(200, json.dumps(route_stats(params), default=str))
+        if path == "/facets":
+            return _response(200, json.dumps(route_facets(params), default=str))
         if path == "/health":
             return _response(200, json.dumps(route_health(), default=str))
         if path == "/me/alerts":
@@ -296,6 +298,47 @@ def route_companies(params: dict) -> dict:
 
 
 # /stats
+
+# /facets: per-option counts for the board's own filter dropdowns
+# (Category, Location, Company), scoped to whatever ELSE is currently
+# selected. Reported live: picking "Security" showed 369 (every open
+# Security role anywhere), and picking Israel-only on top of it still
+# showed 369 in the dropdown even though the board itself dropped to 98
+# -- the dropdown counts came from /stats' top_departments/top_locations,
+# which are deliberately global (that endpoint's own docstring: "every
+# other field stays global," true for the Market Stats dashboard, wrong
+# for a filter option's own count). Standard faceted-search convention:
+# an option's count answers "how many would I see if I ALSO picked
+# this," so it's computed with every OTHER currently active filter
+# applied but that option's OWN filter key excluded -- picking Security
+# doesn't need to already be selected to see its current count, and
+# selecting it shouldn't make its own count self-referential.
+def route_facets(params: dict) -> dict:
+    conn = get_connection()
+
+    def counts_by(column_expr: str, exclude_param: str, limit: int) -> list[dict]:
+        scoped = dict(params)
+        scoped.pop(exclude_param, None)
+        where_sql, args = build_jobs_where(scoped)
+        rows = conn.execute(
+            f"""
+            SELECT {column_expr} AS value, COUNT(*) AS n
+            FROM jobs
+            WHERE {where_sql} AND {column_expr} IS NOT NULL AND TRIM({column_expr}) != ''
+            GROUP BY {column_expr}
+            ORDER BY n DESC
+            LIMIT ?
+            """,
+            [*args, limit],
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    return {
+        "categories": counts_by("category_of(department, title)", "department", 20),
+        "locations": counts_by("location", "location", 40),
+        "companies": counts_by("company_domain", "company", 500),
+    }
+
 
 def route_stats(params: dict | None = None) -> dict:
     """Everything the homepage dashboard needs, as a handful of cheap SQL

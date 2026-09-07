@@ -49,7 +49,7 @@ const state = {
   offset: 0,
 };
 
-// Assigned once in wireFilters(); referenced by loadFilterOptions() and
+// Assigned once in wireFilters(); referenced by refreshFacetOptions() and
 // the market panels' "click a company" handler.
 let msDepartment, msSeniority, msCompany, msLocation, msWorkplace;
 
@@ -712,6 +712,11 @@ async function loadJobs() {
 
   document.getElementById("jobs-error").style.display = "none";
   document.getElementById("jobs-empty").style.display = "none";
+
+  // Not awaited: the dropdown counts are secondary to the job list
+  // itself, and refreshFacetOptions() has its own non-fatal fallback if
+  // it's slow or fails.
+  refreshFacetOptions();
 
   const params = qs({
     ...currentFilterParams(),
@@ -1426,7 +1431,6 @@ function wireFilters() {
       onChange: (checked) => {
         state.israel_only = checked;
         state.offset = 0;
-        refreshLocationOptions();
         loadJobs();
         loadTicker();
       },
@@ -1572,43 +1576,60 @@ function setActiveSortHeader(key, dir) {
 
 // boot
 
-// Cached so the alert-creation form (populateAlertFilterOptions, wired
-// independently of the board) can reuse whatever the board's own
-// filters last fetched instead of issuing its own duplicate requests.
+// Board-scoped (see refreshFacetOptions) -- narrows with the board's own
+// active filters, same as msDepartment/msLocation. NOT what the
+// alert-creation form uses (see globalCompanyOptions below): an alert
+// you're setting up for the future shouldn't be limited to whatever
+// company filter happens to be active on the board right now.
 let latestCompanyOptions = null;
 
-async function loadFilterOptions(stats) {
-  // Reuse /api/stats' curated top_departments rather than every distinct
-  // string in the DB, which would be a hundreds-long noisy dropdown.
-  msDepartment.setOptions(
-    stats.top_departments.map((r) => ({ value: r.department, label: `${r.department} (${r.n})` }))
-  );
-
-  // Location comes from refreshLocationOptions() instead, since it needs
-  // to be re-scoped to the IL-only toggle's current value.
-  refreshLocationOptions();
-
+// The alert-creation form's own company list: every resolved company,
+// unscoped, fetched once and reused (populateAlertFilterOptions runs on
+// every refreshStats() tick, but there's no reason to re-fetch the same
+// global list that often -- companies.length changes maybe once a day).
+let globalCompanyOptions = null;
+async function loadGlobalCompanyOptions() {
+  if (globalCompanyOptions) return globalCompanyOptions;
   try {
     const companies = await getJSON("/companies?resolved_only=1");
-    const sorted = [...companies.companies].sort((a, b) => a.domain.localeCompare(b.domain));
-    latestCompanyOptions = sorted.map((c) => ({ value: c.domain, label: c.domain }));
+    globalCompanyOptions = [...companies.companies]
+      .sort((a, b) => a.domain.localeCompare(b.domain))
+      .map((c) => ({ value: c.domain, label: c.domain }));
+  } catch {
+    // Non-fatal: the alert form's company picker just stays empty/stale.
+  }
+  return globalCompanyOptions;
+}
+
+// Category/Location/Company dropdown counts, scoped to whatever ELSE is
+// currently selected -- reported live: picking Security then Israel-only
+// still showed Security's GLOBAL count (369) in the dropdown, not the 98
+// that combination actually returns, because these used to come from
+// /api/stats' top_departments/top_locations, which are deliberately
+// global (that's right for the Market Stats dashboard and the
+// alert-creation form -- see populateAlertFilterOptions, which still
+// reads latestStats directly for exactly that reason -- but wrong for a
+// live filter's own option counts). /api/facets computes each facet
+// with every OTHER active filter applied but that facet's own key
+// excluded (server-side, see handler.py's route_facets), so this is one
+// query per call, not a client-side recount. Called from loadJobs() on
+// every filter change, and from refreshStats()'s periodic tick so counts
+// still track new postings without waiting for the next filter click.
+async function refreshFacetOptions() {
+  try {
+    const facets = await getJSON(`/facets?${qs(currentFilterParams())}`);
+    msDepartment.setOptions(facets.categories.map((r) => ({ value: r.value, label: `${r.value} (${r.n})` })));
+    msLocation.setOptions(facets.locations.map((r) => ({ value: r.value, label: `${r.value} (${r.n})` })));
+    // Alphabetical, not by count: this list is searchable/typed-into, not
+    // browsed top-down like Category/Location, so a stable, scannable
+    // order matters more here than leading with the biggest hirers.
+    latestCompanyOptions = [...facets.companies]
+      .sort((a, b) => a.value.localeCompare(b.value))
+      .map((r) => ({ value: r.value, label: `${r.value} (${r.n})` }));
     msCompany.setOptions(latestCompanyOptions);
     populateAlertFilterOptions();
   } catch {
-    // Non-fatal: the board itself doesn't depend on this list, and
-    // clicking a company in the market panels still works either way.
-  }
-}
-
-// Re-fetches the Location dropdown's options scoped to IL-only or not,
-// whenever that toggle flips. Doesn't touch the Market Stats dashboard,
-// which stays a global view independent of the board's local filters.
-async function refreshLocationOptions() {
-  try {
-    const stats = await getJSON(`/stats${state.israel_only ? "?israel_only=1" : ""}`);
-    msLocation.setOptions(stats.top_locations.map((r) => ({ value: r.location, label: `${r.location} (${r.n})` })));
-  } catch {
-    // Non-fatal: worst case the dropdown keeps its previous option set.
+    // Non-fatal: worst case the dropdowns keep their previous option set.
   }
 }
 
@@ -1680,7 +1701,7 @@ async function refreshStats() {
     latestStats = stats;
     renderMetrics(stats);
     renderPanels(stats);
-    loadFilterOptions(stats);
+    refreshFacetOptions();
     populateAlertFilterOptions();
   } catch (err) {
     const msg = `<div class="error-state" style="grid-column:1/-1">Could not load /api/stats: ${escapeHtml(err.message)}</div>`;
@@ -2236,14 +2257,12 @@ function resetAlertForm() {
   alertMsWorkplace.reset();
 }
 
-// Options come from whatever /api/stats and /api/companies last
-// returned for the board's own filters (see refreshStats/
-// loadFilterOptions, which cache into latestStats/latestCompanyOptions
-// and call this again on every refresh) -- no separate fetch just for
-// this form. Location uses the unscoped, global top_locations (the
-// refreshStats() call, not the board's IL-only-rescoped one), so it
-// doesn't need its own re-fetch when the form's own Israel-only
-// checkbox is toggled.
+// Deliberately global, not board-scoped: an alert is a standing filter
+// for FUTURE postings, not a snapshot of whatever the board's own
+// filters happen to show right now, so this reads latestStats'
+// unscoped top_departments/top_locations (same ones the Market Stats
+// panel uses) and its own globalCompanyOptions, never
+// latestCompanyOptions/msDepartment/msLocation's board-scoped values.
 function populateAlertFilterOptions() {
   if (!alertMsDepartment) return; // signed out, or panel not built yet
   if (latestStats) {
@@ -2254,7 +2273,9 @@ function populateAlertFilterOptions() {
       latestStats.top_locations.map((r) => ({ value: r.location, label: `${r.location} (${r.n})` }))
     );
   }
-  if (latestCompanyOptions) alertMsCompany.setOptions(latestCompanyOptions);
+  loadGlobalCompanyOptions().then((opts) => {
+    if (opts) alertMsCompany.setOptions(opts);
+  });
 }
 
 function wireAlertCreateForm() {
