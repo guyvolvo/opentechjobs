@@ -1,14 +1,29 @@
 name: deploy-scrape-lambda
 
-# Ships probe.py + loader/ + scrape_handler.py + alerts.py to the
-# scrape-fast Lambda without a full Terraform apply, mirroring
-# deploy-api.yml. Terraform owns the function's existence/config, this
-# workflow owns its code.
+# Ships probe.py + loader/ to both scrape Lambdas without a full
+# Terraform apply, mirroring deploy-api.yml. Terraform owns each
+# function's existence/config, this workflow owns their code.
+#
+# Two separate packages, not one shared zip: scrape-fast needs
+# scrape_handler.py + alerts.py (DynamoDB/SES access, the fast-poll's
+# own known.json-driven --known path); scrape-workday needs
+# scrape_workday_handler.py + companies.yml (its own company list comes
+# from probe.py's PINS, not S3's known.json -- see that handler's own
+# docstring for why it's a separate function at all). Both share
+# probe.py/loader/job_filters.py/schema.sql/requests underneath.
 
 on:
   push:
     branches: [main]
-    paths: ["probe.py", "loader/**", "db/schema.sql", "scrape_handler.py", "alerts.py", "api/job_filters.py"]
+    paths:
+      - "probe.py"
+      - "loader/**"
+      - "db/schema.sql"
+      - "scrape_handler.py"
+      - "scrape_workday_handler.py"
+      - "alerts.py"
+      - "api/job_filters.py"
+      - "companies.yml"
   workflow_dispatch: {}
 
 permissions:
@@ -28,28 +43,43 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Build deployment package
+      - name: Build scrape-fast package
         run: |
-          mkdir -p build/loader build/db
-          cp probe.py scrape_handler.py alerts.py build/
-          cp api/job_filters.py build/
-          cp loader/load_to_sqlite.py build/loader/
-          cp db/schema.sql build/db/
-          pip install --target build requests
-          cd build && zip -r ../scrape-lambda.zip . -x "__pycache__/*" && cd ..
+          mkdir -p fast/loader fast/db
+          cp probe.py scrape_handler.py alerts.py fast/
+          cp api/job_filters.py fast/
+          cp loader/load_to_sqlite.py fast/loader/
+          cp db/schema.sql fast/db/
+          pip install --target fast requests
+          cd fast && zip -r ../scrape-fast.zip . -x "__pycache__/*" && cd ..
+
+      - name: Build scrape-workday package
+        run: |
+          mkdir -p workday/loader workday/db
+          cp probe.py scrape_workday_handler.py companies.yml workday/
+          cp api/job_filters.py workday/
+          cp loader/load_to_sqlite.py workday/loader/
+          cp db/schema.sql workday/db/
+          pip install --target workday requests
+          cd workday && zip -r ../scrape-workday.zip . -x "__pycache__/*" && cd ..
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.SCRAPE_LAMBDA_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Update Lambda code
+      - name: Update scrape-fast Lambda code
         run: |
           aws lambda update-function-code \
             --function-name ${{ vars.SCRAPE_LAMBDA_FUNCTION_NAME }} \
-            --zip-file fileb://scrape-lambda.zip
-
-      - name: Wait for update to finish
-        run: |
+            --zip-file fileb://scrape-fast.zip
           aws lambda wait function-updated \
             --function-name ${{ vars.SCRAPE_LAMBDA_FUNCTION_NAME }}
+
+      - name: Update scrape-workday Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ vars.SCRAPE_WORKDAY_LAMBDA_FUNCTION_NAME }} \
+            --zip-file fileb://scrape-workday.zip
+          aws lambda wait function-updated \
+            --function-name ${{ vars.SCRAPE_WORKDAY_LAMBDA_FUNCTION_NAME }}

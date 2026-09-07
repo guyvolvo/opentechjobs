@@ -35,6 +35,10 @@ output "scrape_lambda_function_name" {
   value = aws_lambda_function.scrape_fast.function_name
 }
 
+output "scrape_workday_lambda_function_name" {
+  value = aws_lambda_function.scrape_workday.function_name
+}
+
 output "github_auth_lambda_function_name" {
   value = aws_lambda_function.github_auth.function_name
 }

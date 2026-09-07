@@ -1,0 +1,108 @@
+# Workday's own fast re-poll cycle, on its own EventBridge schedule --
+# see scrape_workday_handler.py's own docstring for why this is a
+# separate function from scrape_fast rather than just removing that
+# Lambda's own exclusion of Workday. Mirrors scrape_lambda.tf's own
+# resource shapes throughout; kept in a separate file since Workday's
+# reasons for existing here are genuinely distinct from the rest of the
+# fleet's, not because the pattern itself differs.
+
+data "archive_file" "scrape_workday" {
+  type        = "zip"
+  source_file = "${path.module}/../scrape_workday_handler.py"
+  output_path = "${path.module}/build/scrape-workday.zip"
+}
+
+resource "aws_iam_role" "scrape_workday_lambda" {
+  name = "${var.project_name}-scrape-workday-lambda"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "scrape_workday_lambda" {
+  name = "${var.project_name}-scrape-workday-lambda-policy"
+  role = aws_iam_role.scrape_workday_lambda.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # jobs.db/known.json: same conditional-write-safe read-modify-
+        # write cycle scrape_fast_lambda's own policy grants -- see
+        # load_to_sqlite.py's s3_push_conditional. status.json: this
+        # Lambda's own real-time phase (scrape_workday_handler.py's
+        # _write_status), same file scrape_fast_lambda writes too.
+        Sid    = "JobsDbAndKnownReadWrite"
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:PutObject"]
+        Resource = [
+          "${aws_s3_bucket.data.arn}/jobs.db",
+          "${aws_s3_bucket.data.arn}/known.json",
+          "${aws_s3_bucket.data.arn}/status.json",
+        ]
+      },
+      {
+        Sid      = "Logs"
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${var.project_name}-scrape-workday*"
+      }
+    ]
+  })
+}
+
+resource "aws_lambda_function" "scrape_workday" {
+  function_name    = "${var.project_name}-scrape-workday"
+  role             = aws_iam_role.scrape_workday_lambda.arn
+  handler          = "scrape_workday_handler.lambda_handler"
+  runtime          = "python3.13"
+  filename         = data.archive_file.scrape_workday.output_path
+  source_code_hash = data.archive_file.scrape_workday.output_base64sha256
+  memory_size      = var.scrape_lambda_memory_mb
+  timeout          = var.scrape_lambda_timeout_s
+
+  environment {
+    variables = {
+      DATA_BUCKET = aws_s3_bucket.data.bucket
+    }
+  }
+
+  # Same reasoning as scrape_fast's own placeholder -- this archive_file
+  # is just scrape_workday_handler.py alone, no probe.py/companies.yml/
+  # loader/requests (Terraform's archive_file can't run pip or bundle a
+  # multi-file package the way deploy-scrape-lambda.yml does). Without
+  # this, a later `terraform apply` would silently overwrite the real
+  # deployed code with a build missing everything probe.py needs,
+  # breaking every scheduled run until the next code push.
+  lifecycle {
+    ignore_changes = [filename, source_code_hash]
+  }
+}
+
+resource "aws_cloudwatch_log_group" "scrape_workday_lambda" {
+  name              = "/aws/lambda/${aws_lambda_function.scrape_workday.function_name}"
+  retention_in_days = 14
+}
+
+resource "aws_cloudwatch_event_rule" "scrape_workday_schedule" {
+  name                = "${var.project_name}-scrape-workday-schedule"
+  description         = "Fires the Workday-only fast re-poll Lambda every 5 minutes"
+  schedule_expression = "rate(5 minutes)"
+}
+
+resource "aws_cloudwatch_event_target" "scrape_workday_schedule" {
+  rule = aws_cloudwatch_event_rule.scrape_workday_schedule.name
+  arn  = aws_lambda_function.scrape_workday.arn
+}
+
+resource "aws_lambda_permission" "allow_eventbridge_workday" {
+  statement_id  = "AllowEventBridgeInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.scrape_workday.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.scrape_workday_schedule.arn
+}
