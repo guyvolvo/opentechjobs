@@ -1931,7 +1931,8 @@ def main() -> int:
     sys.stderr.reconfigure(encoding="utf-8")
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--domain")
+    ap.add_argument("--domain", help="one domain, or several comma/space-separated -- a targeted "
+                                      "re-resolve, not the full --batch domains.txt sweep")
     ap.add_argument("--batch")
     ap.add_argument("--known", help="JSON array of {domain,ats,token} (a prior --json output works as-is), "
                                      "re-poll known boards directly, no guessing. Fast path, meant to run often.")
@@ -2027,7 +2028,11 @@ def main() -> int:
     else:
         domains = []
         if args.domain:
-            domains.append(args.domain)
+            # Comma/whitespace-separated, same split rule as --batch below,
+            # so a targeted re-resolve of a few specific companies (see
+            # scrape-discover.yml's own `domains` dispatch input) doesn't
+            # need a throwaway file just to pass more than one domain.
+            domains += [t for t in re.split(r"[\s,]+", args.domain) if t]
         if args.batch:
             with open(args.batch, encoding="utf-8-sig") as fh:
                 lines = fh.readlines()

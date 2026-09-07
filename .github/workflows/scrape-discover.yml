@@ -10,13 +10,30 @@ name: scrape-discover
 # then on (see loader.py's export_known(), which re-derives known.json
 # every load so the next fast-poll run picks up new discoveries immediately).
 #
+# workflow_dispatch's `domains` input: a targeted re-resolve of one or a
+# few specific companies (comma/space-separated), instead of the full
+# ~450-domain sweep. Reported live, repeatedly: fixing/onboarding one
+# company (a new pin, a resolver bugfix) had no way to verify or land
+# without waiting for tomorrow's cron or running the entire batch by
+# hand -- for one domain that's a ~20-minute, 450-company-wide operation
+# to check a single line. Safe to run anytime now, even overlapping the
+# full sweep or scrape-fast (see s3_push_conditional in load_to_sqlite.py)
+# -- no more risk of one write silently clobbering the other. Skips
+# --prune-stale: that flag's whole premise is "this run's domain list is
+# the complete set to compare against," which a handful of domains isn't.
+#
 # Finding NEW company domains to ADD to domains.txt is a separate,
 # still-manual process, not built yet.
 
 on:
   schedule:
     - cron: "17 3 * * *" # once/day, offset from midnight UTC
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: "Optional: comma/space-separated domain(s) to re-resolve, instead of the full domains.txt sweep"
+        required: false
+        type: string
 
 permissions:
   id-token: write
@@ -38,8 +55,41 @@ jobs:
       - name: Install dependencies
         run: pip install requests pyyaml boto3
 
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Moved ahead of the probe step (it used to run after) specifically
+      # so status.json can report "discovering" for the ~20-minute full
+      # sweep, not just "idle" the whole time it's actually running --
+      # see api/handler.py's route_pipeline_status and this file's other
+      # status-writing steps below. Python + boto3, not raw `aws s3 cp`
+      # with a shell-quoted JSON body -- already installed for this
+      # workflow's other steps, and not worth the quoting fragility.
+      - name: "Report status: discovering"
+        env:
+          DOMAINS_INPUT: ${{ github.event.inputs.domains }}
+        run: |
+          python -c "
+          import json, os, boto3
+          from datetime import datetime, timezone
+          domains = os.environ.get('DOMAINS_INPUT') or ''
+          detail = f'targeted re-resolve: {domains}' if domains else 'full domains.txt sweep'
+          boto3.client('s3').put_object(
+              Bucket='${{ vars.DATA_BUCKET }}', Key='status.json', ContentType='application/json',
+              Body=json.dumps({'phase': 'discovering', 'run': 'discover', 'detail': detail,
+                                'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}).encode(),
+          )
+          "
+
       - name: Full probe, guess, Comeet scrape, embed/JSON-LD fallback
+        if: ${{ github.event.inputs.domains == '' }}
         run: python probe.py --batch domains.txt --fetch-descriptions --json > resolved.json
+
+      - name: Targeted probe (workflow_dispatch domains input)
+        if: ${{ github.event.inputs.domains != '' }}
+        run: python probe.py --domain "${{ github.event.inputs.domains }}" --fetch-descriptions --json > resolved.json
 
       - name: Report hit rate
         run: |
@@ -56,10 +106,17 @@ jobs:
           print(f'  total jobs      {sum(r[\"job_count\"] for r in hits)}')
           "
 
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+      - name: "Report status: loading"
+        run: |
+          python -c "
+          import json, boto3
+          from datetime import datetime, timezone
+          boto3.client('s3').put_object(
+              Bucket='${{ vars.DATA_BUCKET }}', Key='status.json', ContentType='application/json',
+              Body=json.dumps({'phase': 'loading', 'run': 'discover', 'detail': 'writing to jobs.db',
+                                'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}).encode(),
+          )
+          "
 
       - name: Load into jobs.db, re-derive known.json, push both to S3
         run: |
@@ -68,7 +125,36 @@ jobs:
             --out jobs.db \
             --bucket ${{ vars.DATA_BUCKET }} \
             --key jobs.db \
-            --prune-stale
+            ${{ github.event.inputs.domains == '' && '--prune-stale' || '' }}
+
+      - name: "Report status: idle"
+        run: |
+          python -c "
+          import json, boto3
+          from datetime import datetime, timezone
+          boto3.client('s3').put_object(
+              Bucket='${{ vars.DATA_BUCKET }}', Key='status.json', ContentType='application/json',
+              Body=json.dumps({'phase': 'idle', 'run': 'discover', 'detail': 'discover run finished',
+                                'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}).encode(),
+          )
+          "
+
+      # Only runs if an earlier step actually failed (default step
+      # behavior skips on failure) -- without this, a failed run would
+      # leave status.json stuck reporting "loading"/"discovering"
+      # forever, reading as "still running" long after it's dead.
+      - name: "Report status: error"
+        if: failure()
+        run: |
+          python -c "
+          import json, boto3
+          from datetime import datetime, timezone
+          boto3.client('s3').put_object(
+              Bucket='${{ vars.DATA_BUCKET }}', Key='status.json', ContentType='application/json',
+              Body=json.dumps({'phase': 'error', 'run': 'discover', 'detail': 'discover run failed, see the Actions log',
+                                'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}).encode(),
+          )
+          "
 
       - name: Upload resolved.json as a build artifact
         uses: actions/upload-artifact@v4
