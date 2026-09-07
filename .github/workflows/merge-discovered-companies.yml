@@ -1,0 +1,66 @@
+name: merge-discovered-companies
+
+# Slowly merges discover_companies.py's Common-Crawl-found candidates
+# (pending-discovery-candidates.json, 640 real companies as of
+# 2026-09-07 -- see that file's own origin in discover_companies.py's
+# commit) into domains.txt over a full night instead of all at once.
+#
+# Why staged, not a single bulk merge: adding 640 companies roughly
+# doubles/triples what the fast-poll Lambda checks every 5 minutes --
+# the exact kind of growth that made Workday need its own dedicated
+# Lambda after it quietly ran the shared connection pool out of budget.
+# Every run checks the fast-poll's own most recent real CloudWatch
+# Duration first (merge_discovered_batch.py) and skips the batch
+# entirely, queue untouched, if it's already using more than 70% of its
+# 300s timeout -- a real measurement each time, not a one-off guess
+# trusted for the whole night.
+#
+# 40 companies every 30 minutes, safety check permitting -- 640 / 40 = 16
+# batches, 16 * 30min = 8 hours. Safe to leave the schedule running past
+# that: an empty queue makes every subsequent run a no-op (see the
+# script's own early exit), not an error, so there's no need to
+# separately remember to disable this.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: write
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  merge-batch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install requests pyyaml boto3
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Merge one batch
+        env:
+          DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+        run: python merge_discovered_batch.py
+
+      - name: Commit domains.txt + queue changes, if any
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add domains.txt pending-discovery-candidates.json
+          git diff --cached --quiet && echo "nothing changed this run" && exit 0
+          git commit -m "Merge one overnight batch of Common-Crawl-discovered companies"
+          git push

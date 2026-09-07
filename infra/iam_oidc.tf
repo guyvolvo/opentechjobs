@@ -190,21 +190,35 @@ resource "aws_iam_role_policy" "data_deploy" {
   role = aws_iam_role.data_deploy.id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Sid    = "JobsDbAndKnownReadWrite"
-      Effect = "Allow"
-      Action = ["s3:GetObject", "s3:PutObject"]
-      # jobs.db: both scrape workflows pull-then-push it. known.json:
-      # scrape-fast.yml downloads it before probing; loader.py re-derives
-      # and re-pushes it after every load. status.json: scrape-discover.yml's
-      # own real-time phase during its own run -- see the workflow's own
-      # status-writing steps.
-      Resource = [
-        "${aws_s3_bucket.data.arn}/jobs.db",
-        "${aws_s3_bucket.data.arn}/known.json",
-        "${aws_s3_bucket.data.arn}/status.json",
-      ]
-    }]
+    Statement = [
+      {
+        Sid    = "JobsDbAndKnownReadWrite"
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:PutObject"]
+        # jobs.db: both scrape workflows pull-then-push it. known.json:
+        # scrape-fast.yml downloads it before probing; loader.py re-derives
+        # and re-pushes it after every load. status.json: scrape-discover.yml's
+        # own real-time phase during its own run -- see the workflow's own
+        # status-writing steps.
+        Resource = [
+          "${aws_s3_bucket.data.arn}/jobs.db",
+          "${aws_s3_bucket.data.arn}/known.json",
+          "${aws_s3_bucket.data.arn}/status.json",
+        ]
+      },
+      {
+        # merge-discovered-companies.yml's own safety check: read-only,
+        # scoped to just the fast-poll Lambda's own log group, before
+        # merging each overnight batch -- confirms its most recent real
+        # Duration still has margin before adding more companies to what
+        # it checks every 5 minutes, rather than finding out live that a
+        # batch pushed it over budget.
+        Sid      = "ReadScrapeFastLogs"
+        Effect   = "Allow"
+        Action   = ["logs:FilterLogEvents", "logs:DescribeLogStreams"]
+        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda/${var.project_name}-scrape-fast*"
+      }
+    ]
   })
 }
 
