@@ -133,6 +133,13 @@ comeet:
     source: hand-extracted
     note: claroty.com/careers renders the board client-side (no server-rendered comeet mention at all, unlike the WP-plugin/embed-widget cases above) -- uid+token found the same search-engine-spelunking way as the rest of this file's hand-extracted entries, comeet.com/jobs/Claroty/F2.004 itself
 
+  - domain: island.io
+    uid: "09.00A"
+    token: "90A363C515A03F4601B1E2D32515A2D32"
+    jobs_seen: 49
+    source: hand-extracted
+    note: reported live as missing entirely. island.io/careers is just a listing page with links out to each job -- the comeetInit/token embed only lives on the individual island.io/positions/{slug} pages, never on /careers itself or any of COMEET_PATHS' other generic guesses, so f_comeet_scrape had no page to find it on (and EMBED_ATS_PATTERNS has no Comeet entry for f_embed_scrape to fall back to either). The guess loop's own workable:island hit (a same-named but unrelated, zero-job Workable account) is what the live board resolved to instead, silently. uid/token found via one position page's own comeetInit script, verified live against the real API before adding here.
+
 # Rejected during extraction, kept as a note so nobody re-does this work:
 #   "Guideline" (comeet.com/jobs/guideline) is a US 401(k) provider,
 #   unrelated to Israel: a coincidental token match, not a company to add.
