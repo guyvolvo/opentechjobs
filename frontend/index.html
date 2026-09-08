@@ -5,6 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OpenTechJobs: Tech Job Board</title>
   <meta name="description" content="OpenTechJobs.org: the open-source job board that makes hunting for your next opportunity easy, fast, and transparent." />
+  <!-- A link shared without these falls back to whatever a platform's own
+       crawler screenshots live -- reported live (2026-09-08): that's a
+       JS-rendered page mid-fetch, so the preview showed the loading
+       skeleton ("Loading market panels...") instead of anything real.
+       og-image.png is a static, purpose-built card (the horizontal logo
+       centered on its own flat background, no live render involved), so
+       every platform shows the same correct thing regardless of whether
+       or how well its crawler executes JS. Absolute URLs throughout --
+       a relative image path doesn't resolve for an external crawler. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentechjobs.org/" />
+  <meta property="og:title" content="OpenTechJobs.org" />
+  <meta property="og:description" content="The open-source job board that makes hunting for your next opportunity easy, fast, and transparent." />
+  <meta property="og:image" content="https://opentechjobs.org/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="OpenTechJobs.org" />
+  <meta name="twitter:description" content="The open-source job board that makes hunting for your next opportunity easy, fast, and transparent." />
+  <meta name="twitter:image" content="https://opentechjobs.org/og-image.png" />
   <!-- SVG first (crisp at any size, modern browsers use it over the .ico
        below); .ico stays for older browsers that don't support rel="icon"
        type="image/svg+xml" at all. apple-touch-icon is PNG-only -- iOS
