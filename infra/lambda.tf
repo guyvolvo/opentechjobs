@@ -47,9 +47,13 @@ resource "aws_iam_role_policy" "api_lambda" {
           "${aws_s3_bucket.data.arn}/jobs-read.db",
           # status.json: the pipeline's own real-time phase (scraping/
           # loading/idle/error), written by scrape_handler.py and
-          # scrape-discover.yml -- see route_pipeline_status. Read-only
-          # here, same as jobs.db.
+          # scrape-discover.yml -- see route_pipeline_status. merge-
+          # status.json: scrape_maintenance_handler.py's own equivalent,
+          # a separate key so a merge in progress doesn't get overwritten
+          # by the next fast-poll cycle within seconds -- see that
+          # handler's own docstring. Both read-only here, same as jobs.db.
           "${aws_s3_bucket.data.arn}/status.json",
+          "${aws_s3_bucket.data.arn}/merge-status.json",
         ]
       },
       {

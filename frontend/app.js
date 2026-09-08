@@ -446,13 +446,18 @@ function apiStatusFields() {
 
 function nextSyncText() {
   // A real reported phase beats a guessed countdown whenever there is
-  // one: "discovering: full domains.txt sweep" is something you can act
-  // on, "next sync: 3:47" is only ever an estimate of the next ROUTINE
-  // merge cycle, and says nothing about a manually-triggered discover
-  // run (~20 min, no fixed schedule) that might be running instead
-  // right now.
-  if (pipelinePhase && pipelinePhase.phase && !["idle", "unknown"].includes(pipelinePhase.phase)) {
-    return pipelinePhase.detail ? `${pipelinePhase.phase}: ${pipelinePhase.detail}` : pipelinePhase.phase;
+  // one: "merging: combining 41 partitions" is something concrete,
+  // "next sync: 34:07" is only ever an estimate of the next ROUTINE
+  // cycle. pipelinePhase.merge specifically (see route_pipeline_status's
+  // own docstring for the scrape/merge split) -- this card is about
+  // DATA freshness, which only ever moves on the merge, not about
+  // whether anything in the pipeline is doing something at all: the
+  // fast-poll/workday side is active on its own much faster 5-10 minute
+  // cadence essentially all the time, so surfacing IT here wouldn't
+  // actually answer "when does the site next update."
+  const merge = pipelinePhase && pipelinePhase.merge;
+  if (merge && merge.phase && !["idle", "unknown"].includes(merge.phase)) {
+    return merge.detail ? `${merge.phase}: ${merge.detail}` : merge.phase;
   }
   // lastLoadedAt (meta.last_loaded), not lastCheckedAt: this predicts the
   // next jobs-read.db REBUILD, which only happens on the hourly merge --
@@ -1902,14 +1907,15 @@ async function refreshFreshness() {
 }
 
 // Reported live: the "next sync" line just said "syncing" once the
-// countdown hit zero, with no way to tell whether that meant a normal
-// 5-min fast-poll cycle or a ~20-min discover run, or whether anything
-// was actually happening at all versus a missed/failed cycle. Read from
-// /api/pipeline-status (api/handler.py's route_pipeline_status), which
-// reflects whatever scrape_handler.py or scrape-discover.yml's own
-// status-writing steps last reported -- a real phase (scraping, loading,
-// sending alerts) and a technical detail, not a guess derived from
-// timestamps the way the countdown itself is.
+// countdown hit zero, with no way to tell whether anything was actually
+// happening versus a missed/failed cycle. Read from /api/pipeline-status
+// (api/handler.py's route_pipeline_status), which now reports BOTH
+// halves of the pipeline separately -- {scrape: {...}, merge: {...}} --
+// since they run on genuinely different schedules (fast-poll/workday
+// every 5-10 min, the merge hourly). nextSyncText() above only reads
+// .merge: see its own comment for why the scrape half, active almost
+// continuously, wouldn't actually answer "when does the site next
+// update."
 let pipelinePhase = null;
 
 async function refreshPipelineStatus() {

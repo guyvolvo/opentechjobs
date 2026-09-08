@@ -255,40 +255,65 @@ def route_job_detail(job_id: str) -> dict | None:
 _status_s3 = boto3.client("s3")
 
 
-def route_pipeline_status() -> dict:
-    """What the scrape pipeline is actually doing right now (scraping,
-    loading, sending alerts, idle, error) -- not just "when was jobs.db
-    last updated," which says nothing about whether a run is even in
-    progress. Reported live: "syncing..." with a countdown reads as
-    "something might be happening" regardless of whether anything
-    actually is. status.json is written at each phase by both writers
-    (scrape_handler.py's _write_status, scrape-discover.yml's own
-    status-writing steps) -- this just reads whatever it last said.
+def _read_status(bucket: str, key: str, stale_minutes: float) -> dict:
+    """Shared logic for reading a status.json-shaped file (phase/detail/at,
+    written by _write_status in scrape_handler.py, scrape_workday_handler.py,
+    or scrape_maintenance_handler.py) and flagging a stuck/orphaned
+    non-idle write as stale rather than trusting it forever.
     """
-    bucket = os.environ.get("DATA_BUCKET")
-    if not bucket:
-        return {"phase": "unknown", "detail": "", "run": None, "at": None}
     try:
-        obj = _status_s3.get_object(Bucket=bucket, Key="status.json")
+        obj = _status_s3.get_object(Bucket=bucket, Key=key)
         status = json.loads(obj["Body"].read())
     except Exception:
-        # No status.json yet (first deploy of this feature), or S3
+        # No such file yet (first deploy of this feature), or S3
         # hiccuped -- "unknown" is honest here, not a fabricated phase.
-        return {"phase": "unknown", "detail": "", "run": None, "at": None}
+        return {"phase": "unknown", "detail": "", "at": None}
 
     # A non-idle, non-error phase that's been sitting for a long time is
     # an orphaned write from a crashed/killed run, not one still actually
-    # in progress -- both real pipelines finish well under this in
-    # practice (the fast-poll in under a minute, discover in ~20).
+    # in progress.
     stale = False
     try:
         age_minutes = (datetime.now(timezone.utc) - datetime.fromisoformat(status["at"])).total_seconds() / 60
-        stale = status.get("phase") not in ("idle", "error") and age_minutes > 30
+        stale = status.get("phase") not in ("idle", "error") and age_minutes > stale_minutes
     except (KeyError, ValueError, TypeError):
         pass
     if stale:
         return {**status, "phase": "unknown", "detail": "last status update is stale"}
     return status
+
+
+def route_pipeline_status() -> dict:
+    """What the scrape pipeline is actually doing right now -- both the
+    scrape side (scraping/loading/sending alerts/idle/error, status.json,
+    written by scrape_handler.py and scrape_workday_handler.py) and the
+    merge side (merging/idle/error, merge-status.json, written by
+    scrape_maintenance_handler.py) -- not just "when was jobs-read.db
+    last updated," which says nothing about whether a run is even in
+    progress. Reported live: "syncing..." with a countdown reads as
+    "something might be happening" regardless of whether anything
+    actually is.
+
+    Two separate keys/staleness thresholds, not one shared file: the
+    scrape side runs every 5-10 minutes; the merge side runs hourly.
+    Sharing one file would mean the merge's own "merging" phase gets
+    overwritten by the very next fast-poll write within seconds -- the
+    exact scenario the staleness check below exists to catch for a
+    genuinely crashed run, just happening on nearly every real merge
+    instead of only on a crash.
+    """
+    bucket = os.environ.get("DATA_BUCKET")
+    if not bucket:
+        empty = {"phase": "unknown", "detail": "", "at": None}
+        return {"scrape": {**empty, "run": None}, "merge": empty}
+    return {
+        # Both pipelines finish well under this in practice (the
+        # fast-poll in under a minute, discover in ~20).
+        "scrape": _read_status(bucket, "status.json", stale_minutes=30),
+        # A real merge finishes in well under 2 minutes -- 15 is generous
+        # headroom, not a guess at the actual duration.
+        "merge": _read_status(bucket, "merge-status.json", stale_minutes=15),
+    }
 
 
 def route_health() -> dict:

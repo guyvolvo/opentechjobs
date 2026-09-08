@@ -57,6 +57,8 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         # partition's-eye view would be incomplete; known.json stays the
         # full discovery batch's job alone). jobs-read.db: the merged
         # snapshot this Lambda produces, api/db.py's DATA_KEY.
+        # merge-status.json: this Lambda's own real-time phase -- see
+        # scrape_maintenance_handler.py's own _write_status.
         Sid    = "PartitionsReadKnownReadWriteSnapshot"
         Effect = "Allow"
         Action = ["s3:GetObject", "s3:PutObject"]
@@ -64,6 +66,7 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           "${aws_s3_bucket.data.arn}/jobs-partition-*",
           "${aws_s3_bucket.data.arn}/known.json",
           "${aws_s3_bucket.data.arn}/jobs-read.db",
+          "${aws_s3_bucket.data.arn}/merge-status.json",
         ]
       },
       {
