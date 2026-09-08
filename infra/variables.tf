@@ -66,14 +66,14 @@ variable "lambda_timeout_s" {
 
 variable "scrape_fast_memory_mb" {
   type        = number
-  default     = 1024
-  description = "Re-sharded 2026-09-08 (see scrape_handler.py's own docstring): this Lambda used to re-poll ALL known companies every 5 minutes, and its memory (512->1024->2048->3008MB over one incident) kept chasing that growing full-DB footprint, on a trajectory toward $30-50+/month as the now-continuously-refilling discovery pipeline kept adding companies -- a real user budget ceiling (<$5/month, all AWS services combined) made 'keep raising the ceiling' unworkable. Sharding into fixed ~50-company batches (SHARD_SIZE) and moving VACUUM out to scrape_maintenance_handler.py decouples this Lambda's per-invocation cost from total company count, so 1024MB is real headroom above what a single small shard needs, not a number chasing yesterday's OOM. Verify against real CloudWatch Max Memory Used after the first few live shard cycles rather than trusting this blind."
+  default     = 3008
+  description = "Re-sharded 2026-09-08 to decouple probe.py's own workload from total company count -- that part worked (a shard's own ATS-fetching stays cheap and fast regardless of how many companies exist overall). Missed at the time: load_to_sqlite.py's pull-modify-push cycle downloads and opens the FULL jobs.db on every single invocation no matter how small the shard is, so sharding never touched THIS Lambda's real growth exposure at all. Confirmed live the same day: jobs.db passed 795MB and every single scrape_fast invocation started failing outright (Runtime.OutOfMemory or a straight timeout) at the 1024MB/120s this had been sized to -- a live, total-pipeline outage, not a slow degradation. Bumped to 3008MB (this account's real Lambda memory ceiling) alongside the timeout bump below. This Lambda has the exact same unaddressed growth exposure as scrape_workday now -- watch both as jobs.db keeps growing; sharding was only ever half the fix."
 }
 
 variable "scrape_fast_timeout_s" {
   type        = number
-  default     = 120
-  description = "Ceiling for probe.py --known against ONE shard (~50 companies, see SHARD_SIZE) plus the no-vacuum SQLite upsert -- comfortably more than a shard this size needs (a 358-company full run measured well under 90s before sharding even existed), left generous because the real cost driver is memory x duration, not this ceiling."
+  default     = 200
+  description = "Was 120: confirmed live (2026-09-08) a full pull-modify-push cycle against a 795MB jobs.db was landing at 100-120s even before accounting for OOM, so a shard's own probe.py work (a few seconds) was a rounding error next to the loader's own file I/O time. 200 is real margin above that measured range, not a guess -- watch actual Duration again as jobs.db keeps growing past 795MB, same as every other number in this file tonight."
 }
 
 variable "scrape_workday_memory_mb" {

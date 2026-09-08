@@ -93,15 +93,14 @@ resource "aws_lambda_function" "scrape_fast" {
   memory_size      = var.scrape_fast_memory_mb
   timeout          = var.scrape_fast_timeout_s
 
-  # 1024, not the 3008 this used to need: that sizing was for VACUUM's
-  # ~2x-DB-size scratch space requirement, which no longer happens here
-  # at all (see load_to_sqlite.py's --skip-vacuum, passed by
-  # scrape_handler.py since 2026-09-08). Without VACUUM this Lambda only
-  # ever needs to hold the downloaded jobs.db plus a modest journal/WAL
-  # overhead during a shard's own small upsert -- 1024MB is real margin
-  # above today's ~197MB DB, not a number chasing a disk-full error.
+  # Was 1024 the same day: true that VACUUM's own ~2x-DB-size scratch
+  # need doesn't apply anymore (see load_to_sqlite.py's --skip-vacuum),
+  # but jobs.db still has to be downloaded in full regardless of shard
+  # size, and it passed 795MB a few hours later -- barely 230MB of
+  # margin left for everything else in /tmp. Bumped to 3008MB, same
+  # number and same reasoning as scrape_workday's own same-day fix.
   ephemeral_storage {
-    size = 1024
+    size = 3008
   }
 
   # Tried reserved_concurrent_executions = 1 here (a run pulls jobs.db
