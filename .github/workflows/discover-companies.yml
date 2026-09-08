@@ -21,6 +21,14 @@ name: discover-companies
 on:
   workflow_dispatch: {}
 
+# Same reasoning as merge-discovered-companies.yml's own concurrency
+# block -- this one's daily cadence makes an overlap far less likely,
+# but a manual test trigger landing near the scheduled one is exactly
+# the shape of thing that already happened to the other workflow.
+concurrency:
+  group: discover-companies
+  cancel-in-progress: false
+
 permissions:
   contents: write
 

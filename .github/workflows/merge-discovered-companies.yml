@@ -27,9 +27,24 @@ name: merge-discovered-companies
 # real proven headroom -- this doesn't merge any faster than the budget
 # check above allows, it just lets a healthy fast-poll drain the queue
 # sooner instead of waiting out a smaller batch it didn't need to.
+#
+# concurrency below: confirmed live the same day -- the EventBridge
+# dispatcher firing every 10 minutes plus a manual test trigger 18
+# seconds apart produced two overlapping runs that both read the same
+# 80 candidates off the front of the queue before either could write
+# its own pop back. Harmless that time only because both happened to
+# fail on the same widened-but-still-too-short probe.py timeout before
+# reaching the commit step -- a faster success on one side would have
+# let both push conflicting queue states. Queue instead of cancel: a
+# genuinely-in-progress batch's real work shouldn't be thrown away for
+# a newer trigger that can just wait its turn.
 
 on:
   workflow_dispatch: {}
+
+concurrency:
+  group: merge-discovered-companies
+  cancel-in-progress: false
 
 permissions:
   id-token: write

@@ -158,9 +158,16 @@ def main() -> int:
               file=sys.stderr)
 
     resolved_path = ROOT / "resolved-discovery-batch.json"
+    # 400, not the original 180: confirmed live (2026-09-08) that
+    # doubling BATCH_SIZE 40->80 without touching this let two
+    # overlapping runs both hit TimeoutExpired at 180s resolving 80
+    # domains with --fetch-descriptions -- the exact same "grew one
+    # side without the other" pattern as every other timeout wall
+    # tonight. Matches infra/variables.tf's own scrape_fast pattern of
+    # generous headroom rather than a number chasing today's batch size.
     probe = subprocess.run(
         [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(domains), "--fetch-descriptions", "--json"],
-        capture_output=True, text=True, timeout=180,
+        capture_output=True, text=True, timeout=400,
     )
     if probe.stderr:
         print(probe.stderr, file=sys.stderr)
