@@ -110,16 +110,21 @@ def lambda_handler(event, context):
     resolved_path.write_text(json.dumps(results), encoding="utf-8")
 
     _write_status(s3, "loading", f"writing {n_jobs} Workday jobs to jobs.db")
-    # 60, matching scrape_handler.py's own loader timeout -- see that
-    # file's comment on why 25 wasn't enough headroom for a real
-    # conditional-write retry. --skip-vacuum for the same reason
-    # scrape_handler.py's own shard cycle passes it now:
-    # scrape_maintenance_handler.py owns VACUUM once a day instead.
+    # Was 60, matching scrape_handler.py's own (also-since-fixed) loader
+    # timeout. Confirmed live (2026-09-08) this exact call hit
+    # TimeoutExpired outright once jobs.db passed 1GB -- the probe+
+    # description-fetch phase above alone measured ~72s in that same
+    # failed run, so this needed real margin on top of that, not just a
+    # bigger number in isolation (see scrape_workday_timeout_s's own
+    # comment for the function-level timeout this has to fit inside).
+    # --skip-vacuum for the same reason scrape_handler.py's own shard
+    # cycle passes it: scrape_maintenance_handler.py owns VACUUM once a
+    # day instead.
     load = subprocess.run(
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
          "--resolved", str(resolved_path), "--out", str(TMP / "jobs.db"),
          "--bucket", BUCKET, "--key", "jobs.db", "--skip-vacuum"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, timeout=300,
     )
     if load.stderr:
         print(load.stderr)

@@ -72,8 +72,8 @@ variable "scrape_fast_memory_mb" {
 
 variable "scrape_fast_timeout_s" {
   type        = number
-  default     = 200
-  description = "Was 120: confirmed live (2026-09-08) a full pull-modify-push cycle against a 795MB jobs.db was landing at 100-120s even before accounting for OOM, so a shard's own probe.py work (a few seconds) was a rounding error next to the loader's own file I/O time. 200 is real margin above that measured range, not a guess -- watch actual Duration again as jobs.db keeps growing past 795MB, same as every other number in this file tonight."
+  default     = 600
+  description = "Was 120, then 200: confirmed live (2026-09-08) a full pull-modify-push cycle against jobs.db was landing at 100-120s even before accounting for OOM, so a shard's own probe.py work (a few seconds) was a rounding error next to the loader's own file I/O time. Bumped again to 600 the same day: this function's own probe.py subprocess timeout (200s) plus its loader subprocess timeout (300s, bumped after the identical 60s version hit TimeoutExpired on scrape_workday_handler.py's own equivalent call once jobs.db passed 1GB) sum to 500s worst-case -- a function timeout at or near that sum leaves no room for either subprocess to actually use its own margin. 600 is real headroom above that sum, not just above either piece alone. Timeout ceilings cost nothing by themselves (only actual Duration drives GB-second cost), so there's no reason to cut this close -- watch actual Duration in CloudWatch as jobs.db keeps growing, same as every other number in this file tonight."
 }
 
 variable "scrape_workday_memory_mb" {
@@ -84,8 +84,8 @@ variable "scrape_workday_memory_mb" {
 
 variable "scrape_workday_timeout_s" {
   type        = number
-  default     = 300
-  description = "Was 120 (a real run measured 51-55s with VACUUM included). Bumped ahead of a real measurement, not chasing one: this handler now sets probe.FETCH_FULL_DESCRIPTIONS=True unconditionally (fixing 'most Workday listings have no description'), meaning every job across up to WORKDAY_MAX_JOBS=60 per pinned company now pays a per-job detail fetch that used to be conditional -- real cost even with the existing 4-way inner pool, across the ~12-18 pinned companies this Lambda processes sequentially. Watch actual CloudWatch Duration after this ships and tighten if the real number lands well under this."
+  default     = 600
+  description = "Was 120 (a real run measured 51-55s with VACUUM included), then 300 the same day after turning on probe.FETCH_FULL_DESCRIPTIONS unconditionally (fixing 'most Workday listings have no description', at the cost of a per-job detail fetch that used to be conditional across up to WORKDAY_MAX_JOBS=60 per pinned company). Bumped again to 600, confirmed live: a real run's probe+description phase alone measured ~72s, and its own loader subprocess call needed its timeout raised 60->300s after hitting TimeoutExpired outright against a jobs.db that had crossed 1GB -- 300 (function) was too close to that same 300 (loader alone), leaving no room for the probe phase on top. Timeout ceilings are free by themselves; watch actual CloudWatch Duration after this ships and tighten once jobs.db's growth curve is better understood, not before."
 }
 
 variable "scrape_maintenance_memory_mb" {

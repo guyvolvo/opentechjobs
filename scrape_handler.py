@@ -157,12 +157,20 @@ def lambda_handler(event, context):
     # load_to_sqlite.py's --skip-vacuum docstring for why VACUUM moved
     # to scrape_maintenance_handler.py's own daily run instead of
     # happening on every ~5-minute shard cycle.
+    #
+    # 300, not 60: confirmed live (2026-09-08) the SAME 60s timeout on
+    # scrape_workday_handler.py's own equivalent call hit
+    # TimeoutExpired outright once jobs.db passed 1GB -- this call does
+    # the identical pull-modify-conditional-push cycle against the same
+    # file, sharding or not, and had simply never happened to fail yet.
+    # Matches merge_discovered_batch.py's own already-fixed value for
+    # the same operation.
     _write_status(s3, "loading", f"writing {n_jobs} jobs to jobs.db")
     load = subprocess.run(
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
          "--resolved", str(resolved_path), "--out", str(TMP / "jobs.db"),
          "--bucket", BUCKET, "--key", "jobs.db", "--skip-vacuum"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, timeout=300,
     )
     # load_to_sqlite.py logs its own progress to stderr, not stdout.
     if load.stderr:
