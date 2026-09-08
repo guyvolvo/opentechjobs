@@ -9,18 +9,33 @@ own S3 I/O cost scales with their own slice of work, not jobs.db's
 ever-growing total size. This script is the once-daily step that combines
 those partitions back into the single file api/db.py actually reads.
 
-Two kinds of partition, told apart by name:
-  - Numbered (jobs-partition-{shard_index}.db): scrape_handler.py's own
-    sharded fast-poll. A company's shard assignment is recomputed here
-    from the CURRENT known.json via sharding.py -- the same math
-    scrape_handler.py itself uses to decide where to WRITE a company, so
-    the two never disagree. A company that's since moved shards (NUM_SHARDS
-    grew) or been pruned entirely (gone from known.json) has its stale row
-    in this partition dropped here instead of merged in a second time.
-  - Named (jobs-partition-{name}.db, name not a plain integer -- e.g.
-    "workday"): a pinned-company Lambda's own partition. No shard
-    reassignment concept applies there -- companies.yml, not known.json,
-    decides membership -- so every row is trusted as-is.
+A company can legitimately appear in more than one partition at once --
+scrape_handler.py's own shard assignment (sort every known domain, slice
+into fixed-size chunks) shifts for a large fraction of ALL companies
+every time NUM_SHARDS grows by one, which -- confirmed live, 2026-09-08,
+the day this shipped -- happens roughly every 50 newly-discovered
+companies, i.e. every several minutes given this project's own discovery
+pace, far more often than a full shard rotation completes. An earlier
+version of this function tried to resolve that by recomputing each
+company's "current" shard from a freshly-downloaded known.json and
+dropping any partition's row that didn't match -- correct in spirit
+(tombstone a company's stale copy in a partition it's moved away from),
+but the "current" shard number itself turned out to be too volatile to
+trust: it live-dropped 1,476 of 2,482 companies (59%) on this feature's
+very first real merge, because most companies hadn't yet been rewritten
+under their newest, still-shifting assignment by the time this ran.
+
+Fixed the same day by dropping the formula entirely: when a domain
+appears in multiple partitions, this now just keeps whichever copy has
+the more recent companies.last_checked (every writer already stamps this
+on every upsert). That's a strictly more robust way to reach the exact
+same goal -- a company's freshest write always wins, regardless of which
+partition physically holds it, with no formula to drift out from under
+itself. It also subsumes what used to be special pinned-partition
+handling (jobs-partition-workday.db beating a numbered shard on a
+collision): a pinned Lambda's own re-poll keeps last_checked genuinely
+current, so it wins on its own merits, not because its partition name
+was hardcoded to win.
 
 merge_partitions() itself takes local file paths and touches no network at
 all, so it's directly unit-testable; main() owns the actual S3
@@ -34,7 +49,6 @@ Dependencies: boto3 (S3), same as load_to_sqlite.py's own --bucket mode.
 
 import argparse
 import json
-import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -46,10 +60,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from load_to_sqlite import SCHEMA_VERSION, open_db, s3_pull, s3_push, update_meta  # noqa: E402
-from sharding import build_shard_map  # noqa: E402
 
 PARTITION_PREFIX = "jobs-partition-"
-_NUMBERED = re.compile(r"^\d+$")
 
 
 def list_partitions(bucket: str, prefix: str = PARTITION_PREFIX) -> list[str]:
@@ -72,57 +84,57 @@ def _table_columns(conn: sqlite3.Connection, table: str) -> list[str]:
     return [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]
 
 
-def merge_partitions(known: list[dict], partition_paths: dict[str, Path], out_path: Path) -> dict:
+def merge_partitions(partition_paths: dict[str, Path], out_path: Path) -> dict:
     """partition_paths maps each partition's own name (e.g. "0", "1",
     "workday" -- not the S3 key or local filename) to its already-
     downloaded local file. Builds a fresh DB at out_path and returns a
     summary dict for logging.
     """
-    shard_map = build_shard_map(known)
-
     if out_path.exists():
         out_path.unlink()
     merged = open_db(out_path)
 
-    summary: dict = {"partitions": [], "companies_merged": 0, "companies_dropped_stale": 0,
+    summary: dict = {"partitions": [], "companies_merged": 0, "companies_superseded": 0,
                       "skipped_version_mismatch": []}
 
-    # Numbered (shard) partitions first, named (pinned) partitions last:
-    # a pinned Lambda's own dedicated re-poll (Workday's, say) is the more
-    # authoritative source for a domain that happens to appear in both
-    # known.json and companies.yml, so it should win the INSERT OR REPLACE
-    # collision, not lose to whichever partition merged first.
-    def sort_key(name: str):
-        return (0, int(name)) if _NUMBERED.match(name) else (1, name)
-
-    for name in sorted(partition_paths, key=sort_key):
-        local_path = partition_paths[name]
-        part_conn = sqlite3.connect(local_path)
-        version = part_conn.execute("PRAGMA user_version").fetchone()[0]
+    # Pass 1: for every schema-current partition, find each domain's own
+    # last_checked, and track which partition holds the most recent one.
+    # A read-only inspection pass -- these connections close before the
+    # ATTACH-based copy below opens its own handle onto the same files.
+    valid_names: list[str] = []
+    total_rows_by_partition: dict[str, int] = {}
+    winner_of: dict[str, tuple[str, str]] = {}  # domain -> (partition_name, last_checked)
+    for name, local_path in partition_paths.items():
+        conn = sqlite3.connect(local_path)
+        version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version != SCHEMA_VERSION:
-            part_conn.close()
+            conn.close()
             print(f"SCHEMA MISMATCH: partition {name!r} is user_version={version}, expected "
                   f"{SCHEMA_VERSION} -- skipping it entirely this run, not merging its rows",
                   file=sys.stderr)
             summary["skipped_version_mismatch"].append(name)
             continue
+        valid_names.append(name)
+        rows = conn.execute("SELECT domain, last_checked FROM companies").fetchall()
+        total_rows_by_partition[name] = len(rows)
+        for domain, last_checked in rows:
+            current = winner_of.get(domain)
+            if current is None or last_checked > current[1]:
+                winner_of[domain] = (name, last_checked)
+        conn.close()
 
-        all_domains = [r[0] for r in part_conn.execute("SELECT domain FROM companies")]
-        if _NUMBERED.match(name):
-            shard_index = int(name)
-            # A domain not in shard_map at all (pruned from known.json
-            # since this partition last wrote) is dropped the same way as
-            # one that's moved to a different shard -- .get() returns
-            # None either way, which never equals a real shard_index.
-            keep_domains = [d for d in all_domains if shard_map.get(d) == shard_index]
-        else:
-            keep_domains = all_domains  # pinned partition, no reassignment concept
-        part_conn.close()
+    # Pass 2: for each partition, keep only the domains it actually won.
+    keep_by_partition: dict[str, list[str]] = {}
+    for domain, (winner_name, _) in winner_of.items():
+        keep_by_partition.setdefault(winner_name, []).append(domain)
 
-        dropped = len(all_domains) - len(keep_domains)
-        summary["companies_dropped_stale"] += dropped
+    for name in valid_names:
+        local_path = partition_paths[name]
+        keep_domains = keep_by_partition.get(name, [])
+        superseded = total_rows_by_partition[name] - len(keep_domains)
         summary["companies_merged"] += len(keep_domains)
-        summary["partitions"].append({"name": name, "kept": len(keep_domains), "dropped": dropped})
+        summary["companies_superseded"] += superseded
+        summary["partitions"].append({"name": name, "kept": len(keep_domains), "superseded": superseded})
 
         if not keep_domains:
             continue
@@ -176,26 +188,13 @@ def merge_partitions(known: list[dict], partition_paths: dict[str, Path], out_pa
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--bucket", required=True, help="S3 bucket holding the partitions and known.json")
+    ap.add_argument("--bucket", required=True, help="S3 bucket holding the partitions")
     ap.add_argument("--out", required=True, type=Path, help="local path to build jobs-read.db at")
     ap.add_argument("--key", default="jobs-read.db", help="S3 key to push the merged DB to (default: jobs-read.db)")
     ap.add_argument("--prefix", default=PARTITION_PREFIX,
                      help=f"S3 key prefix identifying a partition file (default: {PARTITION_PREFIX})")
     ap.add_argument("--tmp-dir", type=Path, default=Path("/tmp"), help="scratch dir for downloaded partitions")
     args = ap.parse_args()
-
-    known_path = args.tmp_dir / "known-for-merge.json"
-    existed, _ = s3_pull(args.bucket, "known.json", known_path)
-    known = json.loads(known_path.read_text(encoding="utf-8")) if existed else []
-    if not known:
-        # Refuse rather than merge: build_shard_map([]) would map every
-        # domain to nothing, so every numbered-shard partition's rows
-        # would look stale and get dropped -- a transient known.json pull
-        # failure would silently gut jobs-read.db instead of just
-        # skipping this run and leaving the last good snapshot in place.
-        print("known.json is empty or missing -- refusing to merge, leaving the existing "
-              f"s3://{args.bucket}/{args.key} untouched", file=sys.stderr)
-        return 1
 
     keys = list_partitions(args.bucket, args.prefix)
     if not keys:
@@ -213,7 +212,7 @@ def main() -> int:
             print(f"{key} was listed but gone on pull (another process's own cleanup?) -- skipping",
                   file=sys.stderr)
 
-    summary = merge_partitions(known, partition_paths, args.out)
+    summary = merge_partitions(partition_paths, args.out)
     print(json.dumps(summary), file=sys.stderr)
     if summary["skipped_version_mismatch"]:
         print(f"ALERT: {len(summary['skipped_version_mismatch'])} partition(s) skipped for schema "

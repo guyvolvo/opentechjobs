@@ -142,7 +142,7 @@ def main() -> int:
     partition_paths = split_into_partitions(args.jobs_db, known, workday_pins, args.out_dir)
 
     out_path = args.out_dir / "jobs-read.db"
-    summary = merge_partitions(known, partition_paths, out_path)
+    summary = merge_partitions(partition_paths, out_path)
     print(f"jobs-read.db: {json.dumps(summary)}", file=sys.stderr)
     print(f"jobs-read.db: {out_path.stat().st_size / 1_048_576:.1f}MB", file=sys.stderr)
 
