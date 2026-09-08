@@ -184,10 +184,25 @@ def main() -> int:
     load_cmd = [
         sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
         "--resolved", str(resolved_path), "--out", "/tmp/jobs.db",
+        # --skip-vacuum: same reasoning as scrape_handler.py's own fix --
+        # VACUUM rewrites the WHOLE db file regardless of how few rows
+        # this batch touched, and scrape_maintenance_handler.py's daily
+        # run already owns it. This is a separate, standing writer, not
+        # a one-time thing -- it shouldn't pay that cost either.
+        "--skip-vacuum",
     ]
     if bucket:
         load_cmd += ["--bucket", bucket, "--key", "jobs.db"]
-    load = subprocess.run(load_cmd, capture_output=True, text=True, timeout=60)
+    # 300, not the original 60: confirmed live (2026-09-08) every merge
+    # cycle for ~40 minutes straight failed here with TimeoutExpired --
+    # jobs.db passed 40-50MB and kept growing every few minutes from
+    # this exact pipeline's own merges, and a single pull+upsert+
+    # conditional-push cycle (up to 5 retry attempts on a write
+    # conflict, each a full re-pull) no longer fit in 60s. The SAME
+    # "doubled BATCH_SIZE but only bumped the OTHER timeout in this
+    # file" mistake as the probe.py fix above -- this is a second,
+    # separate subprocess call with its own ceiling.
+    load = subprocess.run(load_cmd, capture_output=True, text=True, timeout=300)
     if load.stderr:
         print(load.stderr, file=sys.stderr)
     if load.returncode != 0:
