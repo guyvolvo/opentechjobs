@@ -432,7 +432,7 @@ function renderMetrics(stats) {
 
   const cards = [
     {
-      label: "Open Jobs",
+      label: "Global Open Jobs",
       value: fmtInt(stats.totals.open_jobs),
       sub: `${fmtInt(stats.meta.open_jobs_best_effort)} more unverified`,
       hl: true,
@@ -644,7 +644,6 @@ function renderPanels(stats) {
       )}
     </div>
     <div class="panel">
-      <div class="panel-title">Dormant Listings</div>
       ${renderGhostStat(stats.ghost, stats.totals.open_jobs)}
     </div>`;
 
