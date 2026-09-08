@@ -1406,16 +1406,18 @@ _WORKDAY_MULTI_LOCATION_RE = re.compile(r"^\d+\s+Locations?$", re.IGNORECASE)
 
 
 def _workday_job_detail(
-    sess: requests.Session, api_base: str, external_path: str, locations_text: str, posted_on: str | None
+    sess: requests.Session, api_base: str, external_path: str, locations_text: str, posted_on: str | None,
+    wants_description: bool = True,
 ) -> tuple[str, str | None, str | None]:
     """One GET to the per-job detail endpoint, shared by three unrelated
     needs that happen to all live at jobPostingInfo: locationsText on the
     list endpoint collapses to "2 Locations" / "3 Locations" once a job
     has more than one office (the real names are at .location plus
     .additionalLocations); the list endpoint never has a description at
-    all (FETCH_FULL_DESCRIPTIONS wants .jobDescription); and "Posted
-    Today" (see _parse_workday_posted_on) is the one relative bucket
-    coarse enough (a full 24h window) to be worth a real date for.
+    all (FETCH_FULL_DESCRIPTIONS wants .jobDescription, gated further by
+    wants_description -- see f_workday's own known_external_ids); and
+    "Posted Today" (see _parse_workday_posted_on) is the one relative
+    bucket coarse enough (a full 24h window) to be worth a real date for.
     startDate here is the actual posting date, not an employment start
     date -- confirmed live: a job the list endpoint reported "Posted
     30+ Days Ago" had startDate exactly 32 days before the request, and
@@ -1433,7 +1435,8 @@ def _workday_job_detail(
     """
     needs_location = bool(_WORKDAY_MULTI_LOCATION_RE.match(locations_text))
     needs_exact_date = (posted_on or "").strip().lower() == "posted today"
-    if (not needs_location and not needs_exact_date and not FETCH_FULL_DESCRIPTIONS) or not external_path:
+    needs_description = FETCH_FULL_DESCRIPTIONS and wants_description
+    if (not needs_location and not needs_exact_date and not needs_description) or not external_path:
         return locations_text, None, None
 
     detail = get_json(sess, f"{api_base}{external_path}")
@@ -1503,12 +1506,22 @@ WORKDAY_PAGE_SIZE = 20
 WORKDAY_MAX_JOBS = 60
 
 
-def _workday_build_job(sess: requests.Session, api_base: str, base: str, tenant: str, wd: str, site: str, j: dict) -> Job:
+def _workday_build_job(
+    sess: requests.Session, api_base: str, base: str, tenant: str, wd: str, site: str, j: dict,
+    known_external_ids: set[str] | None = None,
+) -> Job:
     bullets = j.get("bulletFields") or []
     external_path = _txt(j.get("externalPath"))
     posted_on = j.get("postedOn")
+    external_id = _txt(bullets[0] if bullets else j.get("externalPath"))
+    # known_external_ids -- see f_workday's own docstring: a job whose id
+    # we already have (closed_at IS NULL in our own last-known state)
+    # skips the description half of this fetch. Location/exact-date needs
+    # still apply regardless -- those are cheap, narrow conditions, not
+    # the cost driver this exists to cut.
+    wants_description = known_external_ids is None or external_id not in known_external_ids
     location, description, exact_posted_at = _workday_job_detail(
-        sess, api_base, external_path, _txt(j.get("locationsText")), posted_on
+        sess, api_base, external_path, _txt(j.get("locationsText")), posted_on, wants_description=wants_description
     )
     # exact_posted_at (the detail endpoint's real startDate) only gets
     # fetched at all for "Posted Today" -- every other bucket's own
@@ -1517,7 +1530,7 @@ def _workday_build_job(sess: requests.Session, api_base: str, base: str, tenant:
     # approximation (None, for "Posted Today") if the detail fetch
     # failed or didn't have it.
     posted_at = exact_posted_at or _parse_workday_posted_on(posted_on)
-    return Job("workday", f"{tenant}:{wd}:{site}", _txt(bullets[0] if bullets else j.get("externalPath")),
+    return Job("workday", f"{tenant}:{wd}:{site}", external_id,
                _txt(j.get("title")), location,
                base + external_path,
                posted_at, None,
@@ -1576,7 +1589,21 @@ def discover_workday_israel_facets(sess: requests.Session, tenant: str, wd: str,
     return _find_israel_facets(d["facets"])
 
 
-def f_workday(sess: requests.Session, tenant: str, wd: str, site: str, israel_facets: dict[str, list[str]] | None = None) -> list[Job] | None:
+def f_workday(
+    sess: requests.Session, tenant: str, wd: str, site: str, israel_facets: dict[str, list[str]] | None = None,
+    known_external_ids: set[str] | None = None,
+) -> list[Job] | None:
+    """known_external_ids, when given, is this company's own set of
+    currently-open job ids from our last-known state (see
+    scrape_workday_handler.py's own docstring for where that comes from).
+    A job whose id is already in that set skips the description half of
+    its detail fetch -- see _workday_build_job/_workday_job_detail. None
+    (the default) means "no known state, describe everything," the same
+    unconditional behavior this had before known_external_ids existed --
+    every other caller (the generic resolve()/re-poll path, which doesn't
+    track per-company known state the way the dedicated Lambda now does)
+    is unaffected.
+    """
     api_base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
     # externalPath ("/job/<location>/<title>_<reqid>") omits the site slug,
     # even though the browsable URL requires it. Without /{site}, the
@@ -1623,7 +1650,7 @@ def f_workday(sess: requests.Session, tenant: str, wd: str, site: str, israel_fa
             if not postings:
                 break
             out.extend(pool.map(
-                lambda j: _workday_build_job(sess, api_base, base, tenant, wd, site, j), postings
+                lambda j: _workday_build_job(sess, api_base, base, tenant, wd, site, j, known_external_ids), postings
             ))
             offset += WORKDAY_PAGE_SIZE
             if offset >= total or offset >= WORKDAY_MAX_JOBS:

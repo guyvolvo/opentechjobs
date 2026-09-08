@@ -108,20 +108,23 @@ resource "aws_cloudwatch_log_group" "scrape_workday_lambda" {
 resource "aws_cloudwatch_event_rule" "scrape_workday_schedule" {
   name        = "${var.project_name}-scrape-workday-schedule"
   description = "Fires the Workday-only fast re-poll Lambda"
-  # Was 5, then 20, then 120 minutes the same day. Loosened again to
-  # 240 alongside turning on FETCH_FULL_DESCRIPTIONS unconditionally
-  # (see scrape_workday_handler.py's own comment -- fixes "most Workday
-  # listings have no description," at the cost of a per-job detail
-  # fetch that used to be conditional). That fix alone would have grown
-  # this Lambda's own monthly cost by roughly 2x at the old 120-minute
-  # cadence; halving the cadence again keeps the total near where it
-  # already was; the multiplicative math here (memory x duration x
-  # frequency) means a real feature fix and a real budget ceiling
-  # aren't actually in tension if frequency absorbs the difference. 4
-  # hours still catches a "posted today" transition to a real date
-  # same-day for any normal working hours, an acceptable trade for a
-  # company set this small and non-time-critical.
-  schedule_expression = "rate(240 minutes)"
+  # Was 5, then 20, then 120, then 240 minutes, all the same day
+  # (2026-09-08) -- 240 alongside turning on FETCH_FULL_DESCRIPTIONS
+  # unconditionally (fixes "most Workday listings have no description,"
+  # at the cost of a per-job detail fetch that used to be conditional).
+  # Tightened back to 10 the same day, once known_external_ids-gated
+  # descriptions (see scrape_workday_handler.py's own docstring) made
+  # the real cost driver "new/changed jobs only," not "every open job,
+  # every cycle": confirmed live against nvidia.com (60 jobs, an
+  # unusually high 40% multi-location share) that a steady-state cycle
+  # (nothing new) ran 3.7x faster than a from-scratch one -- 6.3s vs
+  # 23.2s for that one company alone. 10, not the low end of the 5-10
+  # target range: only nvidia.com got real per-company timing measured
+  # before this shipped, not all 12 pins together under real Lambda
+  # concurrency -- watch actual CloudWatch Duration across a few real
+  # cycles before tightening to 5, same discipline as scrape-fast's own
+  # cadence restoration.
+  schedule_expression = "rate(10 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_workday_schedule" {

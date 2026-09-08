@@ -29,10 +29,26 @@ writer. scrape_maintenance_handler.py's hourly merge treats this
 partition as pinned, not shard-numbered: every row here is trusted as-is,
 no reassignment concept applies to a hand-maintained company list -- see
 loader/merge_partitions.py's own docstring.
+
+Known-state-gated descriptions (2026-09-08, same day, once partitioning
+made this cadence affordable to shrink): Workday's own search endpoint
+sends Cache-Control: no-store, no-cache and no ETag at all (confirmed
+live) -- unlike Greenhouse/Lever/Ashby/SmartRecruiters, there's no
+protocol-level "has this changed" to condition on. _known_external_ids_
+by_domain() reads this same partition's own last-known open job ids
+before probing, and probe.f_workday's own known_external_ids parameter
+uses that to skip the (real cost driver) per-job description fetch for
+jobs we already have -- see probe.py's own docstring for why the
+description gets skipped, not the whole job. A job whose description
+isn't refetched keeps whatever's already in jobs-read.db: load_to_
+sqlite.py's own upsert_job() already only overwrites description when
+the new value is non-empty, so an unfetched (None) description is a
+correct no-op there, not a silent wipe.
 """
 
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 from dataclasses import asdict
@@ -43,19 +59,21 @@ import boto3
 
 import probe
 
+ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT / "loader"))
+from load_to_sqlite import s3_pull  # noqa: E402
+
 # Reported live: "most Workday listings have no description." Workday's
 # own list endpoint never has one at all -- _workday_job_detail() only
 # fills it in on a per-job detail fetch, previously gated on this same
 # flag being globally on (only scrape-discover.yml's once-daily full
-# batch sets it). This Lambda is now the exception: at 694 total open
-# Workday jobs (a real measured number, small next to SmartRecruiters'
-# 16,921) and a 120-minute schedule (see scrape_workday_lambda.tf), the
-# added per-job detail cost is affordable here specifically -- see the
-# timeout bump in infra/variables.tf's scrape_workday_timeout_s for the
-# real margin this needs.
+# batch sets it). This Lambda is now the exception: the master switch
+# stays on, but known_external_ids (see this module's own docstring)
+# gates it per job now, not per run -- a job we already have skips the
+# description fetch regardless of this flag, so the real cost is roughly
+# "new/changed jobs only" rather than "every open job, every cycle."
 probe.FETCH_FULL_DESCRIPTIONS = True
 
-ROOT = Path(__file__).parent
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 
@@ -77,6 +95,40 @@ def _write_status(s3, phase: str, detail: str = "") -> None:
         print(f"status.json write failed (non-fatal): {e!r}")
 
 
+def _known_external_ids_by_domain() -> dict[str, set[str]]:
+    """This partition's own currently-open jobs, per company, from
+    whatever load_to_sqlite.py's own pull-modify-push cycle last wrote --
+    see probe.f_workday's own known_external_ids docstring for what this
+    feeds. A read-only peek, entirely separate from that cycle's own pull
+    a few lines down in lambda_handler: reusing it directly would mean
+    holding one sqlite3 connection open across the whole probe phase for
+    no real benefit, versus just pulling this same small (pinned, ~a
+    dozen companies) file twice.
+
+    Empty dict on any failure (partition doesn't exist yet, corrupt,
+    whatever) -- same fail-open posture as a missing known.json
+    elsewhere: nothing here already trusted becomes wrong, everything
+    just gets treated as new this one cycle (full description fetches,
+    like today), which is exactly what SHOULD happen the very first time
+    this ever runs, before any partition exists at all.
+    """
+    path = TMP / "known-workday-state.db"
+    try:
+        existed, _ = s3_pull(BUCKET, "jobs-partition-workday.db", path)
+        if not existed:
+            return {}
+        conn = sqlite3.connect(path)
+        rows = conn.execute("SELECT company_domain, external_id FROM jobs WHERE closed_at IS NULL").fetchall()
+        conn.close()
+    except Exception as e:
+        print(f"couldn't read known Workday state (non-fatal, treating everything as new this cycle): {e!r}")
+        return {}
+    by_domain: dict[str, set[str]] = {}
+    for domain, external_id in rows:
+        by_domain.setdefault(domain, set()).add(external_id)
+    return by_domain
+
+
 def lambda_handler(event, context):
     s3 = boto3.client("s3")
     pins = probe.PINS.get("workday", {})
@@ -84,13 +136,18 @@ def lambda_handler(event, context):
         print("no workday pins in companies.yml, skipping")
         return {"skipped": True}
 
+    known_ids = _known_external_ids_by_domain()
+    print(f"known state: {sum(len(v) for v in known_ids.values())} open jobs across "
+          f"{len(known_ids)} companies from the last partition")
+
     _write_status(s3, "scraping", f"re-checking {len(pins)} Workday companies")
 
     sess = probe.session()
     results = []
     for domain, pin in pins.items():
         try:
-            jobs = probe.f_workday(sess, pin["tenant"], pin["wd"], pin["site"], israel_facets=pin.get("israel_facets"))
+            jobs = probe.f_workday(sess, pin["tenant"], pin["wd"], pin["site"], israel_facets=pin.get("israel_facets"),
+                                    known_external_ids=known_ids.get(domain))
         except Exception as e:
             jobs, err = None, repr(e)
         else:
