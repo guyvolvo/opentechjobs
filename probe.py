@@ -77,13 +77,16 @@ class Job:
     description_chars: int = 0
     # Cleaned plain text via _clean_text(). None when the ATS's list
     # endpoint doesn't include a description (SmartRecruiters, Comeet,
-    # Workday). For Comeet and Workday, an extra per-job detail request
-    # can fill this in -- see FETCH_FULL_DESCRIPTIONS -- but only during
+    # Workday). All three fill this in via an extra per-job detail
+    # request gated on FETCH_FULL_DESCRIPTIONS -- but only during
     # scrape-discover.yml's slower, less-frequent pass; doing this on
-    # every 5-min fast-poll, for every known listing on either ATS,
-    # would be both too slow and needlessly hard on their APIs for
-    # content that rarely changes. SmartRecruiters has the same
-    # list-endpoint gap, not yet given the same treatment.
+    # every 5-min fast-poll, for every known listing on any of the
+    # three, would be both too slow and needlessly hard on their APIs
+    # for content that rarely changes. Workday's own dedicated Lambda
+    # is the one exception: it fills this in whenever it already fetches
+    # a job's detail page for another reason (an exact posted-today date,
+    # a collapsed multi-location string), since the field is sitting
+    # right there in a response already paid for either way.
     description: str | None = None
     # intern/junior/mid/senior/staff/principal/lead/manager/director/exec,
     # or None if the posting doesn't state a level. Some ATSes provide a
@@ -944,6 +947,37 @@ def f_smartrecruiters(sess, token):
                        _txt(j.get("department")) or None,
                        seniority=_SMARTRECRUITERS_LEVEL_MAP.get(_txt(level.get("id")).lower()) or None,
                        workplace_type=workplace))
+
+    # Reported live: no description was ever fetched at all, not
+    # conditionally skipped like Comeet/Workday -- this LIST endpoint's
+    # own postings never carry one (defaultJobAd is a bare boolean flag,
+    # not content); only the single-posting detail endpoint has it,
+    # under jobAd.sections.{companyDescription,jobDescription,
+    # qualifications}, each an HTML {title, text} pair. Same
+    # FETCH_FULL_DESCRIPTIONS gate as Comeet's own extra per-job
+    # request -- only paid on the once-daily full batch, never the
+    # frequent fast-poll paths. A small per-company pool (4, matching
+    # _workday_paginated's own reasoning), not WORKERS: probe.py's own
+    # outer loop already runs multiple companies concurrently, and one
+    # company here found with 16,921 open postings on its own (a real
+    # measured number, not hypothetical) makes sequential fetches
+    # impractical at any batch size.
+    if FETCH_FULL_DESCRIPTIONS and out:
+        def _fill_description(job: Job) -> None:
+            detail = get_json(sess, f"https://api.smartrecruiters.com/v1/companies/{token}/postings/{job.external_id}")
+            sections = ((detail or {}).get("jobAd") or {}).get("sections") or {} if isinstance(detail, dict) else {}
+            parts = [
+                _txt((sections.get(key) or {}).get("text"))
+                for key in ("companyDescription", "jobDescription", "qualifications")
+            ]
+            raw = "\n\n".join(p for p in parts if p)
+            if raw:
+                job.description = _clean_text(raw)
+                job.description_chars = len(job.description)
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            list(pool.map(_fill_description, out))
+
     return out
 
 

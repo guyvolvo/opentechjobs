@@ -142,6 +142,11 @@ def load_already_tracked(ats: str) -> set[str]:
 
 _TRAILING_NUM_RE = re.compile(r"-?\d+$")
 _BARE_CORP_SUFFIX_RE = re.compile(r"-?(?:inc|llc|ltd)$", re.IGNORECASE)
+# TLDs common enough in company branding that a token's own trailing
+# "-ai"/"-io"/etc. is plausibly standing in for "the dot", not a literal
+# part of the name -- confirmed live: "reindeer-ai" (a Greenhouse token)
+# is really "reindeer.ai", not "reindeer-ai.com".
+_HYPHEN_TLD_RE = re.compile(r"-(ai|io|co|app|dev)$", re.IGNORECASE)
 
 # In rough order of how often a real company actually lands on one:
 # .com overwhelmingly first, then the handful of TLDs that turned up
@@ -194,8 +199,32 @@ def _candidate_stems(token: str):
     return stems
 
 
+# A resolving domain with a 200 isn't proof anyone owns it -- confirmed
+# live (2026-09-08): "wix2.com" and "redwoodmaterials.co" (both wrong
+# guesses for a real company's real .com/token) resolve to the exact
+# same IP and return the exact same 114-byte body: a parking-page
+# redirect stub. Text markers for the handful of parking services real
+# enough to matter here; the size floor alone would have caught both
+# of these specific cases without needing to recognize either brand.
+_PARKING_MARKERS = (
+    "sedoparking", "parkingcrew", "hugedomains", "afternic", "dan.com",
+    "bodis.com", "namebright", "domain is for sale", "buy this domain",
+    "this domain may be for sale", "parked domain",
+)
+
+
+def _looks_parked(text: str) -> bool:
+    stripped = text.strip()
+    if len(stripped) < 200:
+        # A real company's homepage essentially never renders this
+        # little markup -- a parking service's redirect stub does.
+        return True
+    lowered = stripped.lower()
+    return any(marker in lowered for marker in _PARKING_MARKERS)
+
+
 def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
-    """Best real domain for `token`, verified via a live HEAD request,
+    """Best real domain for `token`, verified via a live GET request,
     not just assumed. Confirmed live (2026-09-08): plain "{token}.com"
     alone was wrong for 39 of 160 companies merged in one batch --
     mostly enterprise ATS tenant slugs (Workday/Greenhouse disambiguate
@@ -203,21 +232,36 @@ def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
     legal-entity suffix, e.g. "deloitte6", "tenableinc", neither ever
     meant to be read as a domain). Tries an ordered list of name guesses
     (see _candidate_stems) against a short list of common TLDs, stopping
-    at the first one that actually resolves. Falls back to the plain
-    unverified "{token}.com" guess if nothing else works, same as before
-    this existed -- a genuinely new/small company's board should still
-    get queued for a human glance rather than dropped outright just
-    because none of these guesses landed.
+    at the first one that actually resolves AND doesn't look like a
+    parking page (see _looks_parked -- a HEAD request alone can't tell
+    a parked domain from a real one, both return 200; this needs the
+    body). Falls back to the plain unverified "{token}.com" guess if
+    nothing else works, same as before this existed -- a genuinely
+    new/small company's board should still get queued for a human
+    glance rather than dropped outright just because none of these
+    guesses landed.
     """
+    def _try(candidate: str) -> bool:
+        try:
+            r = sess.get(f"https://{candidate}", timeout=5, allow_redirects=True)
+            return r.status_code < 400 and not _looks_parked(r.text)
+        except requests.RequestException:
+            return False
+
+    # Tried before the general stem x tld cross-product below: a strong,
+    # specific signal (the token's own trailing segment looks like a TLD)
+    # beats blindly trying every TLD against every stem.
+    tld_match = _HYPHEN_TLD_RE.search(token)
+    if tld_match:
+        candidate = f"{token[:tld_match.start()]}.{tld_match.group(1).lower()}"
+        if _try(candidate):
+            return candidate, True
+
     for stem in _candidate_stems(token):
         for tld in _DOMAIN_GUESS_TLDS:
             candidate = f"{stem}.{tld}"
-            try:
-                r = sess.head(f"https://{candidate}", timeout=5, allow_redirects=True)
-                if r.status_code < 400:
-                    return candidate, True
-            except requests.RequestException:
-                continue
+            if _try(candidate):
+                return candidate, True
     return f"{token}.com", False
 
 

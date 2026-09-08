@@ -149,6 +149,12 @@ function monogramLogoSvg(domain) {
 // doesn't allow.
 const LOGO_STAGE_OVERRIDES = {
   "duda.co": 3, // jump straight to Google's favicon service
+  // unframe.com: apple-touch-icon.png and favicon.ico both confirmed
+  // dead (soft-404s), and Google's own favicon service returns a raw
+  // "301 Moved" HTML error page for this domain, not an image or even
+  // its usual 16x16 placeholder -- unreliable enough to skip rather
+  // than keep retrying an inconsistent signal. Straight to the monogram.
+  "unframe.com": 4,
 };
 
 // Companies whose stored domain is a wrong guess from discover_companies.py's
@@ -208,6 +214,19 @@ const LOGO_DOMAIN_OVERRIDES = {
   // the wrong domain anyway. discover_companies.py's own _guess_domain
   // now strips this exact "inc" shape going forward (see its docstring).
   "tenableinc.com": "tenable.com",
+  // wix2.com / redwoodmaterials.co: both resolve to 200 OK, but both
+  // are domain-parking pages (confirmed live: identical IP, identical
+  // 114-byte "window.location.href" redirect stub) -- a HEAD-only check
+  // can't tell that from a real site. discover_companies.py's own
+  // _guess_domain now inspects response bodies for exactly this going
+  // forward (see _looks_parked).
+  "wix2.com": "wix.com",
+  "redwoodmaterials.co": "redwoodmaterials.com",
+  // reindeer-ai.com doesn't exist at all (confirmed: DNS NXDOMAIN) --
+  // the real domain is reindeer.ai, the token's own trailing "-ai"
+  // standing in for the TLD dot, not part of the name. Same pattern
+  // now tried automatically going forward (see _HYPHEN_TLD_RE).
+  "reindeer-ai.com": "reindeer.ai",
   // cermaticom.com: no real domain found -- keeps the monogram fallback.
 };
 
