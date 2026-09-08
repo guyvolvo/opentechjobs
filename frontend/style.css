@@ -864,12 +864,18 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 
 /* Flex, not a fixed-column grid, so #f-q/#f-keywords/.ms can each take a
    different share of the row. Stays on one line (nowrap) down to 640px
-   of #board's own width, then wraps -- see the @container rule below. */
+   of #board's own width, then wraps -- see the @container rule below.
+   width/margin-right: same bleed table.jobs below does (see its own
+   comment) -- without it the filter row stops at the normal content
+   edge while the table bleeds --gutter past it, leaving the row
+   looking short of the table's own right edge, reported live. */
 .filters {
   display: flex;
   flex-wrap: nowrap;
   gap: 10px;
   margin-bottom: 20px;
+  width: calc(100% + var(--gutter));
+  margin-right: calc(-1 * var(--gutter));
 }
 .filters > *, .filters-sub > * { min-width: 0; } /* form controls have a real intrinsic width too */
 #f-q { flex: 2 1 120px; }
@@ -1593,7 +1599,11 @@ footer p { color: var(--grey); margin: 0 0 8px; }
    810-860px with the current field count, so 640px left a real overflow
    gap between 640px and ~860px of #board width. */
 @container (max-width: 900px) {
-  .filters { flex-wrap: wrap; }
+  /* The table-matching bleed above is a single-line-row alignment
+     trick -- meaningless once .filters wraps to full-width stacked
+     rows below, and left uncanceled would bleed every wrapped row
+     --gutter past the edge too, an overflow, not an alignment. */
+  .filters { flex-wrap: wrap; width: 100%; margin-right: 0; }
   .filters > * { flex-basis: 100%; } /* #f-q and .filters-toggle each get their own full-width row */
 
   /* Reported live ("atrocious" on mobile): every sub-filter wrapping

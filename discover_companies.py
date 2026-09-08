@@ -141,6 +141,7 @@ def load_already_tracked(ats: str) -> set[str]:
 
 
 _TRAILING_NUM_RE = re.compile(r"-?\d+$")
+_BARE_CORP_SUFFIX_RE = re.compile(r"-?(?:inc|llc|ltd)$", re.IGNORECASE)
 
 # In rough order of how often a real company actually lands on one:
 # .com overwhelmingly first, then the handful of TLDs that turned up
@@ -148,22 +149,67 @@ _TRAILING_NUM_RE = re.compile(r"-?\d+$")
 _DOMAIN_GUESS_TLDS = ["com", "io", "ai", "co", "net", "org", "de", "fr"]
 
 
+def _candidate_stems(token: str):
+    """Ordered, most-conservative-first list of name guesses to try for
+    `token`, each later verified live via _guess_domain -- generating a
+    stem here is never itself proof it's right, just a candidate worth
+    a real HEAD request.
+
+    Extended 2026-09-08 for two more shapes the original trailing-digit
+    strip alone missed, both found live in the same batch:
+    - Bare concatenated corporate suffix, no separator ("tenableinc",
+      "couchbaseinc") -- real domain is "tenable.com"/"couchbase.com".
+      Limited to inc/llc/ltd specifically: rare to be part of a genuine
+      brand's own stem, unlike "group"/"co"/"corp" (real counterexample
+      in the same batch: "beumergroup1" strips to "beumergroup", and
+      the real domain is beumergroup.com -- "group" stays, stripping it
+      too would have been wrong).
+    - Progressive hyphen-segment truncation ("avamere-skilled-advisors-llc"
+      -> try the whole thing, then drop one trailing hyphenated segment
+      at a time: "avamere-skilled-advisors", "avamere-skilled",
+      "avamere") -- an ATS tenant slug is often a full legal name where
+      the real domain is just the first word or two. Tried shortest-cut
+      last, since a short, common word is the likeliest to coincidentally
+      resolve to an unrelated site rather than the actual company.
+    """
+    seen = set()
+    stems = []
+
+    def add(s: str):
+        if s and s not in seen:
+            seen.add(s)
+            stems.append(s)
+
+    add(token)
+    add(_TRAILING_NUM_RE.sub("", token))
+    add(_BARE_CORP_SUFFIX_RE.sub("", token))
+    parts = token.split("-")
+    for cut in range(len(parts) - 1, 0, -1):
+        add("-".join(parts[:cut]))
+    # No-hyphen-at-all variant: "activate-interactive-pte-ltd"'s real
+    # domain is "activateinteractive.com", concatenated, not hyphenated
+    # -- a shape none of the hyphen-preserving stems above produce.
+    if len(parts) > 1:
+        add(_BARE_CORP_SUFFIX_RE.sub("", "".join(parts)))
+    return stems
+
+
 def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
     """Best real domain for `token`, verified via a live HEAD request,
     not just assumed. Confirmed live (2026-09-08): plain "{token}.com"
     alone was wrong for 39 of 160 companies merged in one batch --
     mostly enterprise ATS tenant slugs (Workday/Greenhouse disambiguate
-    multiple business units under one company with a trailing number,
-    e.g. "deloitte6", "aecom2", neither ever meant to be read as a
-    domain). Strips a trailing -N/N suffix and tries a short list of
-    common TLDs, stopping at the first one that actually resolves.
-    Falls back to the plain unverified "{token}.com" guess if nothing
-    else works, same as before this existed -- a genuinely new/small
-    company's board should still get queued for a human glance rather
-    than dropped outright just because none of these guesses landed.
+    multiple business units under one company with a trailing number or
+    legal-entity suffix, e.g. "deloitte6", "tenableinc", neither ever
+    meant to be read as a domain). Tries an ordered list of name guesses
+    (see _candidate_stems) against a short list of common TLDs, stopping
+    at the first one that actually resolves. Falls back to the plain
+    unverified "{token}.com" guess if nothing else works, same as before
+    this existed -- a genuinely new/small company's board should still
+    get queued for a human glance rather than dropped outright just
+    because none of these guesses landed.
     """
-    stems = dict.fromkeys([token, _TRAILING_NUM_RE.sub("", token)])
-    for stem in stems:
+    for stem in _candidate_stems(token):
         for tld in _DOMAIN_GUESS_TLDS:
             candidate = f"{stem}.{tld}"
             try:

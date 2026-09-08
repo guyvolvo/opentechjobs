@@ -203,6 +203,11 @@ const LOGO_DOMAIN_OVERRIDES = {
   "deloitte6.com": "deloitte.com",
   "deutschetelekomitsolutionsslovakia.com": "t-systems.com",
   "deutschetelekomitsolutions.com": "t-systems.com",
+  // tenableinc.com's own apple-touch-icon.png is a soft-404 (HTTP 200,
+  // Content-Type: text/html, not an image) -- reported live, and it's
+  // the wrong domain anyway. discover_companies.py's own _guess_domain
+  // now strips this exact "inc" shape going forward (see its docstring).
+  "tenableinc.com": "tenable.com",
   // cermaticom.com: no real domain found -- keeps the monogram fallback.
 };
 

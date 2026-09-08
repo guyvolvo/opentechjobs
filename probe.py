@@ -1419,7 +1419,20 @@ def _workday_job_detail(
             except ValueError:
                 pass
 
-    description = _clean_text(info.get("jobDescription")) if FETCH_FULL_DESCRIPTIONS else None
+    # Not gated on FETCH_FULL_DESCRIPTIONS -- confirmed live (2026-09-08)
+    # this was throwing away a description whenever the detail fetch
+    # already happened for a DIFFERENT reason (needs_location or
+    # needs_exact_date), which is most of the time: scrape_workday_handler.py
+    # never sets FETCH_FULL_DESCRIPTIONS at all, so a newly-posted
+    # ("posted today") job -- the one case this detail fetch always
+    # runs for regardless -- got its description discarded even though
+    # jobDescription was sitting right there in the same response
+    # already paid for. Real cost is zero: no request skipped or added,
+    # just no longer throwing away a field already in hand. A job whose
+    # detail never gets fetched at all (single location, not posted
+    # today, FETCH_FULL_DESCRIPTIONS off) still has no description --
+    # honest, since nothing was ever fetched for it.
+    description = _clean_text(info.get("jobDescription"))
     return location, description, exact_posted_at
 
 
