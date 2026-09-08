@@ -147,8 +147,19 @@ resource "aws_cloudwatch_log_group" "scrape_fast_lambda" {
 
 resource "aws_cloudwatch_event_rule" "scrape_fast_schedule" {
   name        = "${var.project_name}-scrape-fast-schedule"
-  description = "Fires the fast re-poll Lambda every 5 minutes -- each invocation only handles one shard (see scrape_handler.py), not a full re-poll, so this stays a 5-minute cadence even as the company list grows: NUM_SHARDS grows instead, not this schedule."
-  schedule_expression = "rate(5 minutes)"
+  description = "Fires the fast re-poll Lambda -- each invocation only handles one shard (see scrape_handler.py), not a full re-poll."
+  # Was 5 minutes. Sharding decoupled the PROBE cost from company count,
+  # but not load_to_sqlite.py's own pull-modify-push cycle, which
+  # downloads and uploads the FULL jobs.db on every single invocation
+  # regardless of shard size -- confirmed live (2026-09-08) that cost
+  # scales with total DB size (795MB and growing), not company count,
+  # and this project has a hard <$5/month ceiling with no budget to
+  # exceed it even temporarily. 20 minutes cuts invocation count (and
+  # therefore this cost) 4x versus 5 minutes -- an interim tradeoff
+  # (full-rotation freshness goes from ~90min to ~6 hours at current
+  # NUM_SHARDS) until the real fix -- not re-downloading/re-uploading
+  # the whole file on every write -- gets built.
+  schedule_expression = "rate(20 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_fast_schedule" {
