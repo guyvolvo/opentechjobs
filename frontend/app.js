@@ -832,6 +832,51 @@ function applyStateFromUrl(search) {
   }
 }
 
+// Filters persisting across browser sessions -- requested directly: the
+// URL round-trip above only reproduces a filter set that's actually IN
+// the address bar (a shared/bookmarked link), so a plain revisit to "/"
+// after closing the tab landed back on hardcoded defaults regardless of
+// what was last picked. Same offset/job exclusions as buildShareParams,
+// for the same reason (a fresh visit shouldn't resume on page 3, or with
+// a job drawer open) -- everything else that's a real filter choice
+// round-trips, sort/dir included.
+const FILTERS_KEY = "iljobs_filters";
+const PERSISTED_FILTER_KEYS = [
+  "q", "keywords", "department", "seniority", "company", "location",
+  "workplace", "confidence", "israel_only", "max_age_days", "starred_only",
+  "sort", "dir",
+];
+
+function saveFiltersToStorage() {
+  try {
+    const saved = {};
+    for (const key of PERSISTED_FILTER_KEYS) saved[key] = state[key];
+    localStorage.setItem(FILTERS_KEY, JSON.stringify(saved));
+  } catch {
+    // Full quota or unavailable (private browsing) -- same as
+    // setCachedJobs below, a pure UX nicety, not worth failing over.
+  }
+}
+
+// Loaded as the new BASELINE before applyStateFromUrl runs, not after --
+// that function only ever overrides keys actually present in the query
+// string (see its own comment), so calling it second means an explicit
+// URL param always wins over whatever's saved locally, never the other
+// way around. Unknown/malformed storage (an older shape, a hand-edited
+// value) is ignored key-by-key rather than rejecting the whole thing.
+function applyStoredFilters() {
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem(FILTERS_KEY) || "null");
+  } catch {
+    return;
+  }
+  if (!saved || typeof saved !== "object") return;
+  for (const key of PERSISTED_FILTER_KEYS) {
+    if (key in saved) state[key] = saved[key];
+  }
+}
+
 // Reflects `state` (just populated by applyStateFromUrl) into the actual
 // filter controls. setSelected()/a direct .value assignment don't fire
 // onChange, so this never double-triggers loadJobs() on its own -- the
@@ -889,6 +934,7 @@ async function loadJobs() {
   // after, so state is already final for this transition -- one call
   // here covers all of them instead of one at each call site.
   syncUrl();
+  saveFiltersToStorage();
   updateFiltersToggleLabel();
 
   const tbody = document.getElementById("jobs-body");
@@ -2559,12 +2605,16 @@ const STATS_POLL_MS = 120_000;
 async function boot() {
   await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render; also before applyStateFromUrl below, since a code-exchange redirect strips the URL down to location.pathname first
 
-  // Restore filters/sort/page from the URL before wireFilters() creates
-  // the actual controls -- state.israel_only (read at creation time by
-  // ms-location's pinned "Israel (only)" checkbox) needs to already be
-  // right by then. applyStateToFilterUI() below handles the rest (the
-  // multi-selects/#f-q/#f-keywords/#f-starred), which all need
-  // wireFilters() to have already assigned msDepartment etc. first.
+  // localStorage first, as the new baseline, THEN the URL on top -- an
+  // explicit query param always overrides a saved filter, never the
+  // other way around (see applyStoredFilters' own comment). Both need to
+  // run before wireFilters() creates the actual controls -- state.israel_only
+  // (read at creation time by ms-location's pinned "Israel (only)"
+  // checkbox) needs to already be right by then. applyStateToFilterUI()
+  // below handles the rest (the multi-selects/#f-q/#f-keywords/#f-starred),
+  // which all need wireFilters() to have already assigned msDepartment
+  // etc. first.
+  applyStoredFilters();
   applyStateFromUrl(location.search);
 
   wireAuth();

@@ -1686,9 +1686,13 @@ footer {
   /* Dropping the wordmark graphic outright, not just shrinking it
      further (already tried above) -- reported live (2026-09-08): the
      topbar was still wrapping to two lines on a phone, and the logo is
-     the one item on this row wide enough to matter. Status dot + nav
-     alone fit on one line without it. */
+     the one item on this row wide enough to matter. Nav alone fits on
+     one line without it and the status indicator (see below). */
   .wordmark { display: none; }
+  /* LIVE/OFFLINE + dot: real information on desktop, but on a phone's
+     topbar it's spending width without earning it -- reported live
+     (2026-09-08), same visit as the wordmark above. */
+  .status-indicator { display: none; }
   .topbar .container { flex-wrap: nowrap; }
 
   /* Reported live: cut off. .auth-panel is `right: 0` relative to its
