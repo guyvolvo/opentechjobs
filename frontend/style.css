@@ -1434,12 +1434,6 @@ table.jobs thead th[data-sort="age"] { text-align: center; }
 footer {
   padding: 40px 0 60px;
 }
-footer h3 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 0 0 16px;
-}
 /* min-width:0. A curl command or long param row is an unbreakable-width
    child that would otherwise force the whole footer wider than the
    viewport instead of scrolling locally. */
@@ -1493,9 +1487,20 @@ footer h3 {
   font-weight: bold;
   color: var(--black);
 }
+/* API reference page (api/help_page.py, served at /api/help by the
+   Lambda itself -- moved off this footer 2026-09-08, see index.html's
+   own footer-meta link) reuses .api-endpoint/.api-params/.api-method
+   above plus these three, its only page-specific rules. */
+.api-help h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+}
+.api-help-intro { font-size: 12.5px; color: var(--grey); max-width: 720px; margin: 0 0 28px; }
 /* Deliberately fixed, not var(--black)/var(--white). A terminal/code
    block stays dark regardless of the page's own light/dark state. */
-footer code {
+.api-help code {
   display: block;
   background: #0a0a0a;
   color: #2fae60;
@@ -1506,7 +1511,7 @@ footer code {
   overflow-x: auto;
   white-space: pre;
 }
-footer p { color: var(--grey); margin: 0 0 8px; }
+.api-help p { color: var(--grey); margin: 0 0 8px; }
 .footer-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1677,9 +1682,14 @@ footer p { color: var(--grey); margin: 0 0 8px; }
   /* Wordmark + 4 nav items don't fit a 360-390px phone at full size.
      Tighten rather than let the topbar force wider than the viewport. */
   .topnav { gap: 14px; font-size: 10.5px; }
-  .wordmark-logo { height: 28px; }
   .ticker-rule, .ticker { display: none; } /* topbar is already tight without a marquee too */
-  .topbar .container { flex-wrap: wrap; row-gap: 8px; }
+  /* Dropping the wordmark graphic outright, not just shrinking it
+     further (already tried above) -- reported live (2026-09-08): the
+     topbar was still wrapping to two lines on a phone, and the logo is
+     the one item on this row wide enough to matter. Status dot + nav
+     alone fit on one line without it. */
+  .wordmark { display: none; }
+  .topbar .container { flex-wrap: nowrap; }
 
   /* Reported live: cut off. .auth-panel is `right: 0` relative to its
      trigger button, at a fixed 260/320px width -- fine when the trigger

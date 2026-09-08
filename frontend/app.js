@@ -41,7 +41,14 @@ const state = {
   location: [], // curated top raw location strings, not a geocoded facet
   workplace: [], // remote|hybrid|onsite
   confidence: "all", // no confidence filter in the UI; shown inline via badge instead
-  israel_only: true,
+  // Default global, not Israel-only (2026-09-08, flipped on request --
+  // was true, silently narrowing every first-time visit's board to a
+  // fraction of the real listing count). "Israel (only)" is now an
+  // opt-in pick, same as any other location -- see the pinned option on
+  // msLocation below, and buildShareParams/applyStateFromUrl for the
+  // matching URL-param flip (israel_only=1 now means the filter is ON,
+  // not off).
+  israel_only: false,
   max_age_days: "", // "" = any time; else days-since-posting cutoff, straight into the API param of the same name
   starred_only: false,
   sort: "age",
@@ -776,7 +783,10 @@ function buildShareParams() {
   if (state.location.length) p.set("location", state.location.join(","));
   if (state.workplace.length) p.set("workplace", state.workplace.join(","));
   if (state.confidence !== "all") p.set("confidence", state.confidence);
-  if (!state.israel_only) p.set("israel_only", "0");
+  // Global is the default now, so the filter only needs to appear in the
+  // URL when it's ON, as israel_only=1 -- not the old inverted scheme
+  // (default Israel-only, israel_only=0 to opt out).
+  if (state.israel_only) p.set("israel_only", "1");
   if (state.max_age_days) p.set("max_age_days", state.max_age_days);
   if (state.starred_only) p.set("starred", "1");
   if (state.sort !== "age") p.set("sort", state.sort);
@@ -811,7 +821,7 @@ function applyStateFromUrl(search) {
     if (p.has(key)) state[key] = p.get(key).split(",").filter(Boolean);
   }
   if (p.has("confidence")) state.confidence = p.get("confidence");
-  if (p.has("israel_only")) state.israel_only = p.get("israel_only") !== "0";
+  if (p.has("israel_only")) state.israel_only = p.get("israel_only") === "1";
   if (p.has("max_age_days")) state.max_age_days = p.get("max_age_days");
   if (p.has("starred")) state.starred_only = p.get("starred") === "1";
   if (p.has("sort")) state.sort = p.get("sort");
@@ -837,6 +847,11 @@ function applyStateToFilterUI() {
   msCompany.setSelected(state.company);
   msLocation.setSelected(state.location);
   msWorkplace.setSelected(state.workplace);
+  // The pinned "Israel (only)" checkbox isn't one of msLocation's own
+  // selected values (createMultiSelect only set its initial checked
+  // state once, at wireFilters() time) -- without this a Back/Forward
+  // navigation could leave it visually out of sync with state.israel_only.
+  document.getElementById("f-israel").checked = state.israel_only;
   setActiveSortHeader(state.sort, state.dir);
 }
 
@@ -1601,7 +1616,7 @@ function wireFilters() {
     searchable: true,
     pinnedOption: {
       id: "f-israel",
-      label: "IL Only",
+      label: "Israel (only)",
       checked: state.israel_only,
       onChange: (checked) => {
         state.israel_only = checked;
@@ -1665,7 +1680,7 @@ function wireFilters() {
     state.company = [];
     state.location = [];
     state.workplace = [];
-    state.israel_only = true;
+    state.israel_only = false;
     state.max_age_days = "";
     state.starred_only = false;
     state.sort = "age";
@@ -1679,7 +1694,7 @@ function wireFilters() {
     msCompany.reset();
     msLocation.reset();
     msWorkplace.reset();
-    document.getElementById("f-israel").checked = true;
+    document.getElementById("f-israel").checked = false;
     document.getElementById("f-starred").checked = false;
     setActiveSortHeader("age", "asc");
     loadJobs();
@@ -1725,7 +1740,7 @@ function updateFiltersToggleLabel() {
   if (state.company.length) n++;
   if (state.location.length) n++;
   if (state.workplace.length) n++;
-  if (!state.israel_only) n++; // the location dropdown's own pinned "IL Only" checkbox
+  if (state.israel_only) n++; // the location dropdown's own pinned "Israel (only)" checkbox
   if (state.max_age_days) n++;
   if (state.starred_only) n++;
   if (state.sort !== "age" || state.dir !== "asc") n++;
@@ -2195,7 +2210,7 @@ function renderAuthState() {
           <div class="ms" id="alert-ms-company"></div>
           <div class="ms" id="alert-ms-location"></div>
           <div class="ms" id="alert-ms-workplace"></div>
-          <label class="toggle"><input type="checkbox" id="alert-f-israel" checked /> Israel only</label>
+          <label class="toggle"><input type="checkbox" id="alert-f-israel" /> Israel only</label>
         </div>
         <button class="btn" id="create-alert-btn" type="button">Create Alert</button>
         <p class="create-alert-feedback" id="create-alert-feedback" hidden></p>
@@ -2433,7 +2448,10 @@ const alertFormState = {
   company: [],
   location: [],
   workplace: [],
-  israel_only: true,
+  // Default global, matching the board's own default (see state.israel_only
+  // above) -- was true, silently scoping every new alert to Israel-only
+  // unless a user noticed and unchecked it first.
+  israel_only: false,
 };
 
 function resetAlertForm() {
@@ -2443,9 +2461,9 @@ function resetAlertForm() {
   alertFormState.company = [];
   alertFormState.location = [];
   alertFormState.workplace = [];
-  alertFormState.israel_only = true;
+  alertFormState.israel_only = false;
   document.getElementById("alert-f-q").value = "";
-  document.getElementById("alert-f-israel").checked = true;
+  document.getElementById("alert-f-israel").checked = false;
   alertMsDepartment.reset();
   alertMsSeniority.reset();
   alertMsCompany.reset();
@@ -2543,8 +2561,8 @@ async function boot() {
 
   // Restore filters/sort/page from the URL before wireFilters() creates
   // the actual controls -- state.israel_only (read at creation time by
-  // ms-location's pinned "IL Only" checkbox) needs to already be right
-  // by then. applyStateToFilterUI() below handles the rest (the
+  // ms-location's pinned "Israel (only)" checkbox) needs to already be
+  // right by then. applyStateToFilterUI() below handles the rest (the
   // multi-selects/#f-q/#f-keywords/#f-starred), which all need
   // wireFilters() to have already assigned msDepartment etc. first.
   applyStateFromUrl(location.search);

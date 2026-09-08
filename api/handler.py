@@ -28,6 +28,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 
 from db import get_connection
+from help_page import HELP_HTML
 from job_filters import FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where
 
 _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
@@ -72,6 +73,12 @@ def lambda_handler(event, context):
     params = _query_params(event)
 
     try:
+        if path == "/help":
+            # The one non-JSON route this Lambda serves -- see
+            # help_page.py's own docstring for why it lives here instead
+            # of as a static frontend page. 3600s: this content only
+            # changes on a deploy, not with the data underneath it.
+            return _html_response(200, HELP_HTML, cache_seconds=3600)
         if path == "/jobs":
             return _response(200, json.dumps(route_jobs(params), default=str), cache_seconds=60)
         if path.startswith("/jobs/") and len(path) > len("/jobs/"):
@@ -155,6 +162,20 @@ def _response(status: int, body: str, cache_seconds: int | None = None):
     # specifically to show whether a sync is happening RIGHT NOW, and the
     # /me/* alert routes are per-user and must never be shared/cached.
     headers = {"Content-Type": "application/json", **CORS_HEADERS}
+    if cache_seconds is not None:
+        headers["Cache-Control"] = f"public, max-age={cache_seconds}"
+    return {
+        "statusCode": status,
+        "headers": headers,
+        "body": body,
+    }
+
+
+def _html_response(status: int, body: str, cache_seconds: int | None = None):
+    """Same shape as _response, just text/html -- only /help needs this;
+    every other route on this Lambda answers JSON.
+    """
+    headers = {"Content-Type": "text/html; charset=utf-8", **CORS_HEADERS}
     if cache_seconds is not None:
         headers["Cache-Control"] = f"public, max-age={cache_seconds}"
     return {
