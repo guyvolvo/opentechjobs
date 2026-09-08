@@ -626,6 +626,14 @@ def main() -> int:
                           "sharding exists to avoid. scrape_maintenance_handler.py's own daily, --resolved-less "
                           "run is where VACUUM actually happens now; every other caller (scrape-discover.yml's "
                           "full batch, merge_discovered_batch.py) keeps vacuuming every run, unchanged.")
+    ap.add_argument("--skip-known", action="store_true",
+                     help="a --key pointed at a partition file (jobs-partition-{name}.db, see the Partition & "
+                          "Merge design doc) only ever holds ITS OWN shard's companies -- export_known() run "
+                          "against a partition would produce a known.json missing every company outside that "
+                          "one shard, and pushing it would clobber the real, global known.json that "
+                          "_pick_shard() and the fast-poll's own re-check depend on. Partition-writing callers "
+                          "pass this; known.json stays the merge step's job instead, once it exists, since "
+                          "that's the only place with a full, current view of every company again.")
     args = ap.parse_args()
 
     # See s3_push_conditional's own docstring for why this is a retry
@@ -662,7 +670,7 @@ def main() -> int:
             update_meta(conn)
 
         known_out = args.known_out or args.out.with_name("known.json")
-        n_known = export_known(conn, known_out)
+        n_known = None if args.skip_known else export_known(conn, known_out)
         if not args.skip_vacuum:
             conn.execute("VACUUM")
         conn.close()
@@ -675,6 +683,9 @@ def main() -> int:
         if not s3_push_conditional(args.bucket, args.key, args.out, etag):
             continue  # someone else won this round -- redo the whole attempt against a fresh pull
         print(f"pushed jobs.db to s3://{args.bucket}/{args.key}", file=sys.stderr)
+
+        if args.skip_known:
+            return 0
 
         # known.json has no reader that needs it pinned to one exact
         # jobs.db version (the fast-poll just wants "the latest resolved
