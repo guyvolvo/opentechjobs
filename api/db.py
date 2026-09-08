@@ -75,8 +75,26 @@ def get_connection() -> sqlite3.Connection:
         return _conn  # S3 hiccup: keep serving what we have rather than fail the request
 
     if current_etag != _etag:
+        # Confirmed live (2026-09-08): the old order (close, then
+        # download+reopen) left _conn permanently closed with no
+        # fallback if anything went wrong in between -- a _download()
+        # exception, or even just the whole Lambda invocation getting
+        # killed by its own timeout mid-download (increasingly likely
+        # once jobs.db passed ~40MB and kept growing every few minutes
+        # from the discovery pipeline's own merges). Every request on
+        # that warm container then failed with "Cannot operate on a
+        # closed database" until the container recycled, since
+        # _last_checked was already updated and skips the next N
+        # seconds of rechecks. Preparing the new connection FIRST and
+        # only closing the old one once it's confirmed ready means a
+        # failed or interrupted refresh just falls back to serving the
+        # still-valid old connection, staler but never broken.
+        try:
+            new_etag = _download()
+            new_conn = _open_readonly()
+        except Exception:
+            return _conn  # refresh failed -- old connection is still open and valid
         _conn.close()
-        _etag = _download()
-        _conn = _open_readonly()
+        _etag, _conn = new_etag, new_conn
 
     return _conn
