@@ -73,20 +73,20 @@ def lambda_handler(event, context):
 
     try:
         if path == "/jobs":
-            return _response(200, json.dumps(route_jobs(params), default=str))
+            return _response(200, json.dumps(route_jobs(params), default=str), cache_seconds=60)
         if path.startswith("/jobs/") and len(path) > len("/jobs/"):
             job = route_job_detail(path[len("/jobs/"):])
             if job is None:
                 return _response(404, json.dumps({"error": "no job with that id"}))
-            return _response(200, json.dumps(job, default=str))
+            return _response(200, json.dumps(job, default=str), cache_seconds=60)
         if path == "/companies":
-            return _response(200, json.dumps(route_companies(params), default=str))
+            return _response(200, json.dumps(route_companies(params), default=str), cache_seconds=60)
         if path == "/stats":
-            return _response(200, json.dumps(route_stats(params), default=str))
+            return _response(200, json.dumps(route_stats(params), default=str), cache_seconds=60)
         if path == "/facets":
-            return _response(200, json.dumps(route_facets(params), default=str))
+            return _response(200, json.dumps(route_facets(params), default=str), cache_seconds=60)
         if path == "/health":
-            return _response(200, json.dumps(route_health(), default=str))
+            return _response(200, json.dumps(route_health(), default=str), cache_seconds=60)
         if path == "/pipeline-status":
             return _response(200, json.dumps(route_pipeline_status(), default=str))
         if path == "/me/alerts":
@@ -141,10 +141,25 @@ def _query_params(event) -> dict:
     return {k: v[-1] for k, v in parsed.items()}
 
 
-def _response(status: int, body: str):
+def _response(status: int, body: str, cache_seconds: int | None = None):
+    # cache_seconds reaches the actual BROWSER's own HTTP cache -- CloudFront
+    # already caches these paths for 120s at the edge (infra/cloudfront.tf's
+    # own cache policy) regardless of this header, but confirmed live
+    # (2026-09-08) that policy never forwarded a Cache-Control to the
+    # client, so every page load meant a fresh network round-trip even
+    # within CloudFront's own freshness window. 60s (matching db.py's own
+    # S3_RECHECK_SECONDS, so the browser's cache window tracks how fresh
+    # the underlying data actually could be) turns a revisit inside that
+    # window into an instant from-disk response, no network at all.
+    # Explicitly opt-in, not a blanket default: /pipeline-status exists
+    # specifically to show whether a sync is happening RIGHT NOW, and the
+    # /me/* alert routes are per-user and must never be shared/cached.
+    headers = {"Content-Type": "application/json", **CORS_HEADERS}
+    if cache_seconds is not None:
+        headers["Cache-Control"] = f"public, max-age={cache_seconds}"
     return {
         "statusCode": status,
-        "headers": {"Content-Type": "application/json", **CORS_HEADERS},
+        "headers": headers,
         "body": body,
     }
 

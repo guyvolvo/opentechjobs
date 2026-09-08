@@ -226,6 +226,39 @@ const LOGO_DOMAIN_OVERRIDES = {
 // square. A soft, real mark beats a generic initial for a company this
 // recognizable, so stage 2 now renders whatever it gets, same as stage 3
 // always has.
+// Once ONE <img> for a domain settles on a final stage (a real icon
+// found, or every stage exhausted down to the monogram), remember it --
+// so the next occurrence of the same domain skips straight to the
+// known-good stage instead of re-running the whole apple-touch-icon ->
+// favicon.ico -> Google fallback from scratch. Reported live: a
+// company-filtered search with 50 rows of the same domain made up to
+// 150 redundant network requests (a failed stage's own 404 isn't
+// cached by the browser by default), serialized by the browser's
+// per-host connection limit -- visibly slow for exactly that shape of
+// page, and for the Fastest Growing Companies panel + that same
+// company's own rows both resolving the same domain independently.
+// Stores only the STAGE, not a fully-built src -- callers ask for
+// different sizes (the Top Hiring panel uses 16px, job rows something
+// larger), and a cached src would freeze whichever size resolved it
+// first. Persisted to localStorage too, not just this page's in-memory
+// session, so a repeat VISIT benefits, not just repeated occurrences on
+// one page -- wrapped in try/catch since localStorage can throw
+// (private browsing, blocked site data), same as every other
+// try/catch around it in this file.
+const LOGO_RESOLVED_KEY = "iljobs-logo-resolved-v1";
+let logoResolvedCache = new Map();
+try {
+  logoResolvedCache = new Map(Object.entries(JSON.parse(localStorage.getItem(LOGO_RESOLVED_KEY) || "{}")));
+} catch { /* private browsing or blocked storage -- fall back to in-memory only */ }
+
+function rememberLogoStage(domain, stage) {
+  logoResolvedCache.set(domain, stage);
+  try {
+    localStorage.setItem(LOGO_RESOLVED_KEY, JSON.stringify(Object.fromEntries(logoResolvedCache)));
+  } catch { /* same as above */ }
+}
+window.rememberLogoStage = rememberLogoStage;
+
 function companyLogoImg(domain, size, extraClass = "") {
   // LOGO_DOMAIN_OVERRIDES only affects where the icon itself is fetched
   // from -- domain (used below for the monogram initial, and by every
@@ -236,7 +269,7 @@ function companyLogoImg(domain, size, extraClass = "") {
   const googleFavicon = escapeHtml(companyLogoUrl(logoDomain, size));
   const monogram = escapeHtml(monogramLogoSvg(domain));
   const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
-  const startStage = LOGO_STAGE_OVERRIDES[logoDomain] || 1;
+  const startStage = logoResolvedCache.get(domain) || LOGO_STAGE_OVERRIDES[logoDomain] || 1;
   const startSrc = { 1: touchIcon, 2: directFavicon, 3: googleFavicon, 4: monogram }[startStage];
   // Reported live (tomorrow.io): neither its favicon.ico nor its
   // apple-touch-icon exist, and Google's own favicon service can't find
@@ -257,11 +290,15 @@ function companyLogoImg(domain, size, extraClass = "") {
   // check missed that, wrongly monogram-ing real icons for every
   // company on that panel. Gated on size > 16 now, not just the pixel
   // dimensions matching.
+  // rememberLogoStage calls below are what make logoResolvedCache above
+  // actually useful: the FIRST <img> for a domain to settle (success or
+  // exhausted to the monogram) is what every later occurrence on this
+  // page, or a future visit, gets to skip straight to.
   return `<img class="${cls}" src="${startSrc}" alt="" loading="lazy"
-    data-stage="${startStage}" data-size="${size}"
+    data-domain="${escapeHtml(domain)}" data-stage="${startStage}" data-size="${size}"
     data-direct-favicon="${directFavicon}" data-google-favicon="${googleFavicon}" data-monogram="${monogram}"
-    onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}"
-    onload="if(this.dataset.stage==='3'&&Number(this.dataset.size)>16&&this.naturalWidth===16&&this.naturalHeight===16){this.onerror=null;this.onload=null;this.src=this.dataset.monogram;}" />`;
+    onerror="if(this.dataset.stage==='1'){this.dataset.stage='2';this.src=this.dataset.directFavicon;}else if(this.dataset.stage==='2'){this.dataset.stage='3';this.src=this.dataset.googleFavicon;}else{this.onerror=null;this.onload=null;this.src=this.dataset.monogram;rememberLogoStage(this.dataset.domain,4);}"
+    onload="if(this.dataset.stage==='3'&&Number(this.dataset.size)>16&&this.naturalWidth===16&&this.naturalHeight===16){this.onerror=null;this.onload=null;this.src=this.dataset.monogram;rememberLogoStage(this.dataset.domain,4);}else{rememberLogoStage(this.dataset.domain,Number(this.dataset.stage));}" />`;
 }
 
 function fmtInt(n) {

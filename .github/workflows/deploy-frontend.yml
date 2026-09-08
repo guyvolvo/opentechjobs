@@ -31,7 +31,21 @@ jobs:
 
       - name: Sync frontend/ to S3
         run: |
-          aws s3 sync frontend/ "s3://${{ vars.FRONTEND_BUCKET }}/" --delete
+          # --cache-control "no-cache": NOT no-store -- browsers still
+          # keep a local copy, they just always send a conditional
+          # request (If-None-Match, using S3's own ETag) before using
+          # it. Confirmed live (2026-09-08): every asset here was being
+          # served with no Cache-Control at all, so a repeat visit's
+          # caching behavior was left to each browser's own unreliable
+          # heuristic (roughly 10% of the file's Last-Modified age --
+          # near-zero right after a deploy, meaning a full re-download
+          # anyway). A real max-age can't be used instead: nothing here
+          # has a content hash in its filename, so a stale cached app.js
+          # would silently keep running after a deploy until it expired.
+          # no-cache gets the actual win (a 200-byte 304 instead of the
+          # full file on an unchanged asset) without that risk.
+          aws s3 sync frontend/ "s3://${{ vars.FRONTEND_BUCKET }}/" --delete \
+            --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache
         run: |
