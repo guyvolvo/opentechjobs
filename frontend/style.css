@@ -873,6 +873,12 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   display: flex;
   flex-wrap: nowrap;
   gap: 10px;
+  /* 12px, matching .stats-board's own top padding -- reported live:
+     removing the "Job Board" heading pulled this column's top flush
+     with #board's own container (which has none), while the
+     Statistics column on the right still starts 12px down into its
+     own padding, so the two columns' content no longer lined up. */
+  margin-top: 12px;
   margin-bottom: 20px;
   width: calc(100% + var(--gutter));
   margin-right: calc(-1 * var(--gutter));
