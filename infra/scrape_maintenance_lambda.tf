@@ -86,12 +86,21 @@ resource "aws_lambda_function" "scrape_maintenance" {
   memory_size      = var.scrape_maintenance_memory_mb
   timeout          = var.scrape_maintenance_timeout_s
 
-  # VACUUM needs roughly the DB's own size again as scratch space to
-  # rebuild it, on top of the already-downloaded original copy -- same
-  # reasoning as scrape_fast's pre-sharding ephemeral_storage, kept
-  # generous here since this is the one place that cost still applies.
+  # Confirmed live (2026-09-08): this Lambda's own real first run hit
+  # "database or disk is full" (sqlite3.OperationalError) during VACUUM
+  # at 3008MB. Unlike Lambda MEMORY (this account's real ceiling is
+  # 3008MB, confirmed live elsewhere in this file's history), ephemeral
+  # storage isn't subject to that same cap -- up to 10240MB is normally
+  # available regardless. Needs all THREE at once, simultaneously, not
+  # just one DB's worth: every downloaded jobs-partition-*.db (summing to
+  # roughly jobs.db's old total size, ~1.2GB), PLUS the merged jobs-
+  # read.db being built (another ~1.2GB), PLUS VACUUM's own scratch copy
+  # to rebuild THAT (a third ~1.2GB) -- around 3.6GB total against the
+  # 3008MB (2.94GB) this was set to. 8192MB gives real margin above that,
+  # not just enough to clear today's number, since partition count and
+  # total size only grow from here.
   ephemeral_storage {
-    size = 3008
+    size = 8192
   }
 
   environment {
