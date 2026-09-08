@@ -520,14 +520,36 @@ button, input, select {
   top: 57px; /* topbar height + its 2px bottom rule */
   max-height: calc(100vh - 57px);
   overflow-y: auto;
-  /* Right padding is half the left gutter, not zero. Without it the
-     scrollbar (inside this box's own right edge) sits flush against the
-     panel content with no breathing room. */
-  padding: 12px calc(var(--gutter) / 2) 40px var(--gutter);
+  /* container-type: this panel's real width is clamp(360px, 28vw, 460px)
+     (see .workspace), decoupled from the viewport the same way #board's
+     own width is -- a plain viewport media query for the single-column
+     fallback below would get the breakpoint wrong for the same reason
+     the filter-wrap one originally did (see #board's own comment). */
+  container-type: inline-size;
+  /* Right padding is half the left gutter, floored at 16px -- not zero.
+     Reported live: at --gutter's own 20px floor, half of that (10px) is
+     narrower than the actual scrollbar (12px, see *::-webkit-scrollbar
+     above), so the scrollbar overlapped the last couple pixels of
+     content -- and because overflow-y:auto alone forces overflow-x to
+     auto too (the CSS spec computes a bare "visible" as "auto" once the
+     other axis isn't visible), that overlap clipped text at the box's
+     right edge instead of just sitting flush against it.
+  */
+  padding: 12px max(calc(var(--gutter) / 2), 16px) 40px var(--gutter);
 }
 
 .stats-board .metrics-grid { grid-template-columns: repeat(2, 1fr); }
 .stats-board .panel-grid { grid-template-columns: 1fr; }
+
+/* Same root cause as the padding fix above, one layer up: two columns
+   of metric tiles need real width each for their own label/value text,
+   and this panel's width can get narrow enough (a smaller window, not
+   just a phone) that two columns starts squeezing tile content into
+   the same clipped-not-wrapped failure mode. Drop to one column before
+   that happens rather than after. */
+@container (max-width: 300px) {
+  .stats-board .metrics-grid { grid-template-columns: 1fr; }
+}
 
 /* Metrics grid */
 
