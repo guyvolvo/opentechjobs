@@ -92,6 +92,20 @@ resource "aws_lambda_function" "scrape_fast" {
   source_code_hash = data.archive_file.scrape_fast.output_base64sha256
   memory_size      = var.scrape_lambda_memory_mb
   timeout          = var.scrape_lambda_timeout_s
+
+  # Default (512MB) was never enough headroom, just never noticed until
+  # jobs.db grew past it: confirmed live (2026-09-08) load_to_sqlite.py's
+  # own VACUUM step failed with "database or disk is full" against a
+  # ~188MB jobs.db -- VACUUM needs roughly the DB's own size again as
+  # scratch space to rebuild it, on top of the already-downloaded
+  # original copy sitting in the same /tmp. 3008MB, not just enough to
+  # clear today's size: the overnight merge queue can still add ~500
+  # more companies, growing jobs.db well past where 512MB (or even a
+  # smaller bump) would just repeat this same incident again.
+  ephemeral_storage {
+    size = 3008
+  }
+
   # Tried reserved_concurrent_executions = 1 here (a run pulls jobs.db
   # from S3, upserts, pushes it back -- not atomic, so two overlapping
   # invocations could race and silently drop one's updates). Rejected

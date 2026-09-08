@@ -65,6 +65,16 @@ resource "aws_lambda_function" "scrape_workday" {
   memory_size      = var.scrape_lambda_memory_mb
   timeout          = var.scrape_lambda_timeout_s
 
+  # Same fix, same reason as scrape_fast's own ephemeral_storage block --
+  # this Lambda runs the exact same loader/load_to_sqlite.py against the
+  # exact same, exact-same-size jobs.db, so it would hit the identical
+  # VACUUM-out-of-disk-space failure the day it happened to run while
+  # /tmp was tight, just less often (12 companies vs. the fast-poll's
+  # 300+, so proportionally rarer, not impossible).
+  ephemeral_storage {
+    size = 3008
+  }
+
   environment {
     variables = {
       DATA_BUCKET = aws_s3_bucket.data.bucket
