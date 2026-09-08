@@ -44,6 +44,17 @@ LOG_GROUP = "/aws/lambda/iljobs-scrape-fast"
 def latest_fast_poll_duration_ms() -> float | None:
     """Most recent real Duration the fast-poll Lambda reported, parsed
     straight from its own REPORT log line -- not an estimate.
+
+    Reported live (2026-09-08): this alone wasn't the safety check it
+    looked like. When probe.py's own subprocess.run(timeout=...) fires,
+    the Lambda's own Duration comes back short (~90s -- exactly the
+    subprocess timeout, then it raises) even though the real underlying
+    work needs longer -- a hard-capped-then-failed run reads as
+    "comfortably under budget" to a pure duration check, not as the
+    genuine overload it is. Every single fast-poll cycle failed this way
+    for 5.5 hours while this check kept reporting the duration as fine
+    and let three more batches merge on top of an already-broken cycle.
+    See recent_fast_poll_had_errors below, now checked alongside this.
     """
     logs = boto3.client("logs")
     try:
@@ -70,6 +81,31 @@ def latest_fast_poll_duration_ms() -> float | None:
     return None
 
 
+def recent_fast_poll_had_errors(lookback_minutes: int = 40) -> bool | None:
+    """Whether the fast-poll Lambda logged an [ERROR] (a timed-out
+    subprocess, an unhandled exception, anything) in roughly the last
+    few cycles. lookback_minutes covers ~8 cycles at the normal 5-min
+    cadence -- long enough that one transient blip doesn't block a whole
+    night's merge, short enough to catch a cycle that's now consistently
+    failing, the actual 2026-09-08 incident this exists to catch.
+    Returns None (treated as "unsafe, skip") if CloudWatch can't be read
+    at all, same fail-safe posture as the duration check.
+    """
+    import time
+
+    logs = boto3.client("logs")
+    try:
+        resp = logs.filter_log_events(
+            logGroupName=LOG_GROUP,
+            filterPattern="ERROR",
+            startTime=int((time.time() - lookback_minutes * 60) * 1000),
+        )
+    except Exception as e:
+        print(f"couldn't read {LOG_GROUP} for errors ({e!r}) -- skipping this batch to be safe", file=sys.stderr)
+        return None
+    return len(resp.get("events", [])) > 0
+
+
 def main() -> int:
     if not QUEUE_PATH.exists():
         print("no pending-discovery-candidates.json -- nothing to do", file=sys.stderr)
@@ -78,6 +114,18 @@ def main() -> int:
     queue = json.loads(QUEUE_PATH.read_text(encoding="utf-8"))
     if not queue:
         print("queue is empty -- overnight merge is done", file=sys.stderr)
+        return 0
+
+    # Errors checked FIRST and independently of duration -- see
+    # recent_fast_poll_had_errors' own docstring for why a duration
+    # check alone missed 5.5 hours of the fast-poll failing outright on
+    # 2026-09-08: a subprocess-timeout-then-raise reads as a short,
+    # comfortably-under-budget Duration, not the overload it actually is.
+    had_errors = recent_fast_poll_had_errors()
+    if had_errors is None or had_errors:
+        reason = "couldn't check" if had_errors is None else "logged an error recently"
+        print(f"fast-poll {reason} -- skipping this batch, queue left untouched ({len(queue)} remaining)",
+              file=sys.stderr)
         return 0
 
     duration_ms = latest_fast_poll_duration_ms()

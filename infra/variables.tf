@@ -65,8 +65,8 @@ variable "lambda_timeout_s" {
 
 variable "scrape_lambda_memory_mb" {
   type        = number
-  default     = 1024
-  description = "The scrape-fast Lambda re-polls every known board and upserts into a growing SQLite DB, heavier than the read-only API Lambda's workload. Bumped from 512 the same day a run was measured at 510/512MB used (Comeet's re-poll upserting a 100MB+ jobs.db) -- real OOM risk, not headroom. Lambda's network throughput scales with memory too, so this also helps the timeout margin below, not just safety."
+  default     = 2048
+  description = "The scrape-fast Lambda re-polls every known board and upserts into a growing SQLite DB, heavier than the read-only API Lambda's workload. Bumped 512->1024 once already (a run measured 510/512MB used, Comeet's re-poll upserting a 100MB+ jobs.db); bumped again 1024->2048 on 2026-09-08 after the same overnight company-count growth that forced the timeout variable's own increase pushed a real run to Runtime.OutOfMemory at the full 1024MB -- fixing the timeout alone just moved the failure to this wall instead. The merge queue can still add ~500 more companies, so this needs real headroom for that growth, not just enough to clear the OOM that already happened. Lambda's network throughput scales with memory too, so this also helps the timeout margin below, not just safety. Shared with scrape_workday_lambda.tf's own function -- that one only handles 12 companies and was nowhere near either wall, so this is more headroom than it strictly needs, but not worth a second variable just to avoid over-provisioning a Lambda this cheap to run either way."
 }
 
 variable "scrape_lambda_timeout_s" {
