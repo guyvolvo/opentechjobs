@@ -72,11 +72,16 @@ jobs:
               print(f'{len(errors)} known boards failed to re-poll: {errors}')
           "
 
-      - name: Upsert into jobs.db, re-derive known.json, push both to S3
+      # jobs-full-discover.db, not jobs.db: same reasoning as
+      # scrape-discover.yml's own identical rename (Partition & Merge,
+      # 2026-09-08) -- this re-polls the FULL known.json, not one shard
+      # or a pinned list, so it shares that workflow's dedicated
+      # never-merged snapshot key rather than needing its own.
+      - name: Upsert into jobs-full-discover.db, re-derive known.json, push both to S3
         if: steps.known.outputs.exists == 'true'
         run: |
           python loader/load_to_sqlite.py \
             --resolved resolved.json \
-            --out jobs.db \
+            --out jobs-full-discover.db \
             --bucket ${{ vars.DATA_BUCKET }} \
-            --key jobs.db
+            --key jobs-full-discover.db

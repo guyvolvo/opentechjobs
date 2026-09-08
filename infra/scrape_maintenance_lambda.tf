@@ -1,10 +1,15 @@
-# Once-daily VACUUM pass, split out of both frequent re-poll cycles on
-# 2026-09-08 to get this project's whole AWS bill under a hard
-# <$5/month ceiling -- see scrape_maintenance_handler.py's own docstring
-# for why VACUUM doesn't belong in a 5-20 minute cycle at all. Mirrors
-# scrape_lambda.tf's own resource shapes; kept in its own file for the
-# same reason scrape_workday_lambda.tf is: this function's reason for
-# existing is genuinely distinct from the rest of the fleet's.
+# Was once-daily VACUUM-only, split out of both frequent re-poll cycles
+# on 2026-09-08 to get this project's whole AWS bill under a hard
+# <$5/month ceiling. Same day, later: this became the Partition & Merge
+# design's own merge step (loader/merge_partitions.py) -- see
+# scrape_maintenance_handler.py's own docstring for the full picture.
+# Runs hourly now, not daily: jobs-read.db (api/db.py's DATA_KEY) only
+# gets fresher when this runs, so its cadence is now the real ceiling on
+# how stale the live site's listings can be, not a free-standing
+# maintenance detail. Mirrors scrape_lambda.tf's own resource shapes;
+# kept in its own file for the same reason scrape_workday_lambda.tf is:
+# this function's reason for existing is genuinely distinct from the
+# rest of the fleet's.
 
 data "archive_file" "scrape_maintenance" {
   type        = "zip"
@@ -31,12 +36,34 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "JobsDbAndKnownReadWrite"
+        # merge_partitions.py's own list_partitions() -- s3:ListBucket is
+        # a bucket-level permission, not an object one, so it's separate
+        # from the GetObject/PutObject grant below. No other Lambda in
+        # this project has ever needed to list objects before this;
+        # scoped by prefix so it can't enumerate the rest of the bucket
+        # (frontend assets live in a different bucket entirely, but
+        # status.json/companies data share this one).
+        Sid      = "ListPartitions"
         Effect   = "Allow"
-        Action   = ["s3:GetObject", "s3:PutObject"]
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.data.arn
+        Condition = {
+          StringLike = { "s3:prefix" = ["jobs-partition-*"] }
+        }
+      },
+      {
+        # known.json: read-only here -- see merge_partitions.py's own
+        # docstring for why the merge step must never write it (a
+        # partition's-eye view would be incomplete; known.json stays the
+        # full discovery batch's job alone). jobs-read.db: the merged
+        # snapshot this Lambda produces, api/db.py's DATA_KEY.
+        Sid    = "PartitionsReadKnownReadWriteSnapshot"
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:PutObject"]
         Resource = [
-          "${aws_s3_bucket.data.arn}/jobs.db",
+          "${aws_s3_bucket.data.arn}/jobs-partition-*",
           "${aws_s3_bucket.data.arn}/known.json",
+          "${aws_s3_bucket.data.arn}/jobs-read.db",
         ]
       },
       {
@@ -87,9 +114,13 @@ resource "aws_cloudwatch_log_group" "scrape_maintenance_lambda" {
 }
 
 resource "aws_cloudwatch_event_rule" "scrape_maintenance_schedule" {
-  name                = "${var.project_name}-scrape-maintenance-schedule"
-  description         = "Fires the once-daily jobs.db VACUUM pass"
-  schedule_expression = "rate(1 day)"
+  name        = "${var.project_name}-scrape-maintenance-schedule"
+  description = "Fires the partition merge -- see this file's own header comment for why hourly, not daily, now"
+  # 60 minutes: the design doc's own approved target (partition-merge.html
+  # §05/§07). Projected at ~190,000 GB-s/mo at this cadence, folded into
+  # the overall ~$3.65/mo estimate alongside scrape-fast back at its full
+  # 5-minute cadence -- see scrape_lambda.tf's own schedule for that half.
+  schedule_expression = "rate(60 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_maintenance_schedule" {

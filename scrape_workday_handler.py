@@ -18,6 +18,17 @@ conditional-write retry loop (see s3_push_conditional's docstring).
 Reads its company list from companies.yml (bundled in this Lambda's own
 deployment package -- see deploy-scrape-lambda.yml -- same as probe.py's
 own PINS), not S3's known.json, which doesn't carry israel_facets.
+
+Partition & Merge (2026-09-08): writes its own jobs-partition-workday.db
+instead of the shared jobs.db -- scrape_handler.py's own docstring has
+the full "why" (jobs.db's total size, not company count, was what
+actually caused the 2026-09-08 outage). Never touches known.json at all
+(never did -- companies.yml/PINS drives this Lambda instead), so
+--skip-known here is a no-op in effect, just consistent with the other
+writer. scrape_maintenance_handler.py's hourly merge treats this
+partition as pinned, not shard-numbered: every row here is trusted as-is,
+no reassignment concept applies to a hand-maintained company list -- see
+loader/merge_partitions.py's own docstring.
 """
 
 import json
@@ -109,21 +120,20 @@ def lambda_handler(event, context):
     resolved_path = TMP / "resolved-workday.json"
     resolved_path.write_text(json.dumps(results), encoding="utf-8")
 
-    _write_status(s3, "loading", f"writing {n_jobs} Workday jobs to jobs.db")
+    _write_status(s3, "loading", f"writing {n_jobs} Workday jobs to jobs-partition-workday.db")
     # Was 60, matching scrape_handler.py's own (also-since-fixed) loader
     # timeout. Confirmed live (2026-09-08) this exact call hit
-    # TimeoutExpired outright once jobs.db passed 1GB -- the probe+
-    # description-fetch phase above alone measured ~72s in that same
-    # failed run, so this needed real margin on top of that, not just a
-    # bigger number in isolation (see scrape_workday_timeout_s's own
-    # comment for the function-level timeout this has to fit inside).
-    # --skip-vacuum for the same reason scrape_handler.py's own shard
-    # cycle passes it: scrape_maintenance_handler.py owns VACUUM once a
-    # day instead.
+    # TimeoutExpired outright once jobs.db passed 1GB -- kept at 300 for
+    # real margin even though this now writes a small pinned partition,
+    # not the full db (see this module's own docstring). --skip-vacuum
+    # for the same reason scrape_handler.py's own shard cycle passes it:
+    # scrape_maintenance_handler.py owns VACUUM as part of its hourly
+    # merge instead. --skip-known: see load_to_sqlite.py's own docstring
+    # for that flag.
     load = subprocess.run(
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
-         "--resolved", str(resolved_path), "--out", str(TMP / "jobs.db"),
-         "--bucket", BUCKET, "--key", "jobs.db", "--skip-vacuum"],
+         "--resolved", str(resolved_path), "--out", str(TMP / "jobs-partition-workday.db"),
+         "--bucket", BUCKET, "--key", "jobs-partition-workday.db", "--skip-vacuum", "--skip-known"],
         capture_output=True, text=True, timeout=300,
     )
     if load.stderr:

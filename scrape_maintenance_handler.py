@@ -1,22 +1,27 @@
-"""EventBridge-triggered Lambda for the once-daily jobs.db maintenance
-pass -- currently just VACUUM, split out of the frequent re-poll cycle.
+"""EventBridge-triggered Lambda for the Partition & Merge design's merge
+step -- combines every writer's own small jobs-partition-{name}.db back
+into jobs-read.db, the one file api/db.py actually reads.
 
-Reported live (2026-09-08): VACUUM rewrites the WHOLE database file
-regardless of how many rows a given run actually touched, so running it
-on every ~5-minute shard cycle (see scrape_handler.py) meant that cost
-scaled with jobs.db's TOTAL size, not with the shard's own small slice
-of work -- the same "cost grows forever with company count" problem
-sharding exists to remove, just moved into the loader step instead of
-the probe step. VACUUM doesn't need to run anywhere near that often:
-it's reclaiming space from closed/updated rows, not a correctness
-requirement for reads or writes in between.
+Started life (2026-09-08, earlier the same day) as a once-daily VACUUM-only
+pass, split out of the frequent re-poll cycles after VACUUM's own
+whole-file-rewrite cost was found to scale with jobs.db's TOTAL size, not
+with how much any given run touched. Became this, the same day, once it
+was clear sharding alone hadn't fixed the real problem: scrape_handler.py
+and scrape_workday_handler.py's own pull-modify-push cycles were STILL
+downloading and uploading the FULL jobs.db every invocation regardless of
+shard size, which is what actually caused that day's Runtime.OutOfMemory
+outage. Partition & Merge's fix: each writer now touches only its own
+small partition file (see scrape_handler.py's own docstring), and this
+Lambda is the once-an-hour step that turns those back into one coherent
+read snapshot -- see loader/merge_partitions.py's own docstring for the
+merge logic itself, including how a company's stale row in a partition it
+no longer belongs to gets dropped instead of merged.
 
-Reuses load_to_sqlite.py's own tested pull-modify-push cycle rather than
-writing a second VACUUM implementation: passing it an EMPTY resolved.json
-(no rows to upsert) still gets the free parts of that cycle for free --
-export_known(), update_meta() (including the timestamp-clustering
-canary), and the conditional S3 push -- with VACUUM running by default
-since this is the one caller that does NOT pass --skip-vacuum.
+Runs hourly, not once a day: jobs-read.db only gets fresher when this
+runs, so its cadence is now the real ceiling on how stale the live site's
+listings can be (see scrape_maintenance_lambda.tf's own schedule
+comment), not a free-standing maintenance detail the way daily VACUUM
+was.
 """
 
 import json
@@ -31,24 +36,29 @@ BUCKET = os.environ["DATA_BUCKET"]
 
 
 def lambda_handler(event, context):
-    empty_resolved = TMP / "resolved-empty.json"
-    empty_resolved.write_text("[]", encoding="utf-8")
-
-    # Generous timeout/no --skip-vacuum here on purpose: this is the one
-    # place VACUUM is allowed to take real time against the full DB size,
-    # and it only runs once a day, so being generous costs almost nothing
-    # (see infra/variables.tf's scrape_maintenance_* variables for the
-    # actual GB-second math).
-    load = subprocess.run(
-        [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
-         "--resolved", str(empty_resolved), "--out", str(TMP / "jobs.db"),
-         "--bucket", BUCKET, "--key", "jobs.db"],
-        capture_output=True, text=True, timeout=180,
+    merge = subprocess.run(
+        [sys.executable, str(ROOT / "loader" / "merge_partitions.py"),
+         "--bucket", BUCKET, "--out", str(TMP / "jobs-read.db"), "--key", "jobs-read.db"],
+        capture_output=True, text=True, timeout=550,
     )
-    if load.stderr:
-        print(load.stderr)
-    if load.returncode != 0:
-        raise RuntimeError(f"load_to_sqlite.py exited {load.returncode}")
+    # merge_partitions.py logs its own progress (including the per-run
+    # summary dict and any schema-mismatch alert) to stderr, not stdout.
+    if merge.stderr:
+        print(merge.stderr)
+    if merge.returncode != 0:
+        raise RuntimeError(f"merge_partitions.py exited {merge.returncode}")
 
-    print("daily maintenance (VACUUM) complete")
-    return {"ok": True}
+    # The summary dict is the last stderr line merge_partitions.py prints
+    # -- surfaced in this Lambda's own return value so a manual invoke
+    # (or a CloudWatch Logs Insights query) can see it without digging
+    # through the full log stream.
+    summary = {}
+    for line in reversed(merge.stderr.splitlines()):
+        try:
+            summary = json.loads(line)
+            break
+        except json.JSONDecodeError:
+            continue
+
+    print(f"merge complete: {json.dumps(summary)}")
+    return {"ok": True, "summary": summary}

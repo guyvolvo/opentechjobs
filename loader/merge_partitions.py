@@ -68,6 +68,10 @@ def _partition_name(key: str, prefix: str) -> str:
     return key[len(prefix):-len(".db")]
 
 
+def _table_columns(conn: sqlite3.Connection, table: str) -> list[str]:
+    return [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]
+
+
 def merge_partitions(known: list[dict], partition_paths: dict[str, Path], out_path: Path) -> dict:
     """partition_paths maps each partition's own name (e.g. "0", "1",
     "workday" -- not the S3 key or local filename) to its already-
@@ -125,16 +129,31 @@ def merge_partitions(known: list[dict], partition_paths: dict[str, Path], out_pa
 
         placeholders = ",".join("?" for _ in keep_domains)
         merged.execute("ATTACH DATABASE ? AS src", (str(local_path),))
+        # Named column lists, not SELECT * -- confirmed live testing this
+        # against a real (if stale) jobs.db: production's own jobs table
+        # carries a legacy description_snippet column (see load_to_sqlite.
+        # py's own _migrate() docstring) that predates the current
+        # schema.sql and that an ADD-COLUMN-only migration strategy can
+        # never retroactively drop from an already-existing file. SELECT *
+        # against a partition built from that history returns one column
+        # too many for this connection's own (current-schema) INSERT to
+        # accept. Column lists come from THIS connection's own live
+        # schema, so they track schema.sql automatically -- a partition's
+        # extra legacy columns are just ignored, not propagated forward.
+        company_cols = _table_columns(merged, "companies")
+        job_cols = _table_columns(merged, "jobs")
         # DETACH has to come after the transaction that touched src
         # commits -- see the design doc's "Considered and declined" note
         # on the same mistake in an earlier reviewed SQL snippet.
         with merged:
             merged.execute(
-                f"INSERT OR REPLACE INTO companies SELECT * FROM src.companies WHERE domain IN ({placeholders})",
+                f"INSERT OR REPLACE INTO companies ({','.join(company_cols)}) "
+                f"SELECT {','.join(company_cols)} FROM src.companies WHERE domain IN ({placeholders})",
                 keep_domains,
             )
             merged.execute(
-                f"INSERT OR REPLACE INTO jobs SELECT * FROM src.jobs WHERE company_domain IN ({placeholders})",
+                f"INSERT OR REPLACE INTO jobs ({','.join(job_cols)}) "
+                f"SELECT {','.join(job_cols)} FROM src.jobs WHERE company_domain IN ({placeholders})",
                 keep_domains,
             )
         merged.execute("DETACH DATABASE src")

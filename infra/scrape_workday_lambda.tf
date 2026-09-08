@@ -31,17 +31,22 @@ resource "aws_iam_role_policy" "scrape_workday_lambda" {
     Version = "2012-10-17"
     Statement = [
       {
-        # jobs.db/known.json: same conditional-write-safe read-modify-
-        # write cycle scrape_fast_lambda's own policy grants -- see
-        # load_to_sqlite.py's s3_push_conditional. status.json: this
-        # Lambda's own real-time phase (scrape_workday_handler.py's
-        # _write_status), same file scrape_fast_lambda writes too.
-        Sid    = "JobsDbAndKnownReadWrite"
+        # Partition & Merge (2026-09-08): writes its own pinned
+        # jobs-partition-workday.db instead of the shared jobs.db -- see
+        # load_to_sqlite.py's --key and --skip-known. Never actually read
+        # known.json (companies.yml/PINS drives this Lambda instead), so
+        # that grant is dropped here, not just left unused. jobs.db is
+        # left in the grant, unused, as a rollback path during the
+        # cutover -- drop once jobs-read.db has been live and verified.
+        # status.json: this Lambda's own real-time phase
+        # (scrape_workday_handler.py's _write_status), same file
+        # scrape_fast_lambda writes too.
+        Sid    = "PartitionsAndStatusReadWrite"
         Effect = "Allow"
         Action = ["s3:GetObject", "s3:PutObject"]
         Resource = [
           "${aws_s3_bucket.data.arn}/jobs.db",
-          "${aws_s3_bucket.data.arn}/known.json",
+          "${aws_s3_bucket.data.arn}/jobs-partition-*",
           "${aws_s3_bucket.data.arn}/status.json",
         ]
       },

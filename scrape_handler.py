@@ -32,7 +32,21 @@ VACUUM is NOT run here -- see load_to_sqlite.py's own --skip-vacuum
 docstring for why: it rewrites the whole DB file regardless of shard
 size, which would silently reintroduce the exact per-company-count cost
 scaling this sharding exists to remove. scrape_maintenance_handler.py's
-own daily run owns VACUUM now.
+own hourly run owns VACUUM now, as part of merging every shard's own
+partition into one file (see below).
+
+Partition & Merge (2026-09-08): this Lambda writes its own shard's
+jobs-partition-{shard_index}.db instead of the shared jobs.db --
+sharding alone decoupled the PROBE cost from company count, but
+load_to_sqlite.py's own pull-modify-push cycle still downloaded and
+uploaded the FULL jobs.db every invocation regardless of shard size,
+which is what actually caused the 2026-09-08 outage (jobs.db passed
+795MB, both scrape Lambdas started hitting Runtime.OutOfMemory). Writing
+only this shard's own partition means that cost -- and the OOM risk --
+scale with SHARD_SIZE, not total company count, for real this time.
+scrape_maintenance_handler.py's own hourly run merges every partition
+back into jobs-read.db, which is what api/db.py actually reads; see
+loader/merge_partitions.py's own docstring for that half.
 
 Runs probe.py --known and loader/load_to_sqlite.py as subprocesses
 against /tmp, exactly the same two commands scrape-fast.yml already ran
@@ -57,9 +71,14 @@ ROOT = Path(__file__).parent
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 
-# Matches the EventBridge schedule below (rate(5 minutes)) -- used only
-# to pick a shard from wall-clock time, not to enforce timing itself.
-SCHEDULE_INTERVAL_S = 300
+# Must match the EventBridge schedule's own real interval in seconds --
+# see scrape_lambda.tf's own environment block for why this is passed in
+# rather than hardcoded: during the 2026-09-08 interim cost cut, this
+# constant stayed at 300 while the actual schedule moved to 1200s,
+# silently skipping some shards' rotation entirely rather than just
+# slowing it down (see current_shard_index's own docstring). Defaults to
+# 300 only for a bare local run outside the Lambda environment.
+SCHEDULE_INTERVAL_S = int(os.environ.get("SCHEDULE_INTERVAL_S", "300"))
 
 
 def _write_status(s3, phase: str, detail: str = "") -> None:
@@ -147,23 +166,27 @@ def lambda_handler(event, context):
     if errors:
         print(f"{len(errors)} known boards failed to re-poll: {errors}")
 
-    # --skip-vacuum: see this module's own docstring and
-    # load_to_sqlite.py's --skip-vacuum docstring for why VACUUM moved
-    # to scrape_maintenance_handler.py's own daily run instead of
-    # happening on every ~5-minute shard cycle.
+    # --key jobs-partition-{shard_index}.db, not jobs.db: this shard's
+    # write now only ever moves its own ~50-company slice, not the full
+    # (ever-growing) database -- see this module's own docstring.
+    # --skip-known: a partition only ever holds this shard's own
+    # companies, so export_known() run against it would produce a
+    # known.json missing every other shard's companies -- see
+    # load_to_sqlite.py's --skip-known docstring. known.json stays the
+    # full discovery batch's job alone.
     #
     # 300, not 60: confirmed live (2026-09-08) the SAME 60s timeout on
     # scrape_workday_handler.py's own equivalent call hit
-    # TimeoutExpired outright once jobs.db passed 1GB -- this call does
-    # the identical pull-modify-conditional-push cycle against the same
-    # file, sharding or not, and had simply never happened to fail yet.
-    # Matches merge_discovered_batch.py's own already-fixed value for
-    # the same operation.
-    _write_status(s3, "loading", f"writing {n_jobs} jobs to jobs.db")
+    # TimeoutExpired outright once jobs.db passed 1GB, before partitioning
+    # existed -- kept at 300 here for real margin even though a single
+    # partition's own pull-modify-push is now far smaller and faster.
+    partition_key = f"jobs-partition-{shard_index}.db"
+    partition_path = TMP / partition_key
+    _write_status(s3, "loading", f"writing {n_jobs} jobs to {partition_key}")
     load = subprocess.run(
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
-         "--resolved", str(resolved_path), "--out", str(TMP / "jobs.db"),
-         "--bucket", BUCKET, "--key", "jobs.db", "--skip-vacuum"],
+         "--resolved", str(resolved_path), "--out", str(partition_path),
+         "--bucket", BUCKET, "--key", partition_key, "--skip-vacuum", "--skip-known"],
         capture_output=True, text=True, timeout=300,
     )
     # load_to_sqlite.py logs its own progress to stderr, not stdout.
@@ -173,18 +196,21 @@ def lambda_handler(event, context):
         _write_status(s3, "error", f"load_to_sqlite.py exited {load.returncode}")
         raise RuntimeError(f"load_to_sqlite.py exited {load.returncode}")
 
-    # jobs.db is already fresh on /tmp from the loader step just above --
-    # evaluate_alerts() reads it directly, no separate download. Alert
-    # failures are caught and reported inside evaluate_alerts() itself
-    # (one bad alert shouldn't stop the others), so nothing here needs to
-    # guard the fast-poll's own success on this step succeeding. Runs
-    # against the FULL db every shard cycle, not just this shard's
-    # companies -- it's a cheap DynamoDB scan + watermark check, not a
-    # network-bound re-poll, so it isn't part of the cost problem
-    # sharding exists to solve, and alert timeliness matters more than
-    # the small saving from also sharding it.
+    # This shard's own partition is already fresh on /tmp from the loader
+    # step just above -- evaluate_alerts() reads it directly, no separate
+    # download. Scoped to just this shard's companies now, not the full
+    # db -- correct, not a regression: a company's alerts only need
+    # checking when ITS OWN data was just refreshed, which is exactly
+    # when its own shard runs. Every company still gets checked once per
+    # full rotation, same cadence job data itself gets, rather than
+    # waiting on jobs-read.db's own hourly merge (which would delay alert
+    # delivery to whenever that runs next, instead of the moment a new
+    # listing is actually found). Alert failures are caught and reported
+    # inside evaluate_alerts() itself (one bad alert shouldn't stop the
+    # others), so nothing here needs to guard the fast-poll's own success
+    # on this step succeeding.
     _write_status(s3, "sending alerts", "matching new listings against saved filters")
-    alerts_result = evaluate_alerts(TMP / "jobs.db")
+    alerts_result = evaluate_alerts(partition_path)
     if alerts_result.get("errors"):
         print(f"alert evaluation errors: {alerts_result['errors']}")
 

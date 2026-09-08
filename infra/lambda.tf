@@ -32,9 +32,9 @@ resource "aws_iam_role_policy" "api_lambda" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "ReadJobsDb"
-        Effect   = "Allow"
-        Action   = ["s3:GetObject", "s3:HeadObject"]
+        Sid    = "ReadJobsDb"
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:HeadObject"]
         Resource = [
           "${aws_s3_bucket.data.arn}/jobs.db",
           # status.json: the pipeline's own real-time phase (scraping/
@@ -98,7 +98,7 @@ resource "aws_lambda_function" "api" {
   environment {
     variables = {
       DATA_BUCKET  = aws_s3_bucket.data.bucket
-      DATA_KEY     = "jobs.db"
+      DATA_KEY     = "jobs-read.db"
       ALERTS_TABLE = aws_dynamodb_table.alerts.name
     }
   }

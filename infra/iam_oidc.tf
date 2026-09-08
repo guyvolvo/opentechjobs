@@ -195,13 +195,21 @@ resource "aws_iam_role_policy" "data_deploy" {
         Sid    = "JobsDbAndKnownReadWrite"
         Effect = "Allow"
         Action = ["s3:GetObject", "s3:PutObject"]
-        # jobs.db: both scrape workflows pull-then-push it. known.json:
-        # scrape-fast.yml downloads it before probing; loader.py re-derives
-        # and re-pushes it after every load. status.json: scrape-discover.yml's
-        # own real-time phase during its own run -- see the workflow's own
+        # jobs-full-discover.db: both scrape-discover.yml and
+        # scrape-fast.yml's manual-dispatch path pull-then-push it --
+        # renamed from jobs.db (Partition & Merge, 2026-09-08): a
+        # dedicated, never-merged working snapshot for these two full-set
+        # workflows, since neither fits the numbered-shard or pinned-
+        # partition shape the Lambdas use -- see scrape-discover.yml's own
+        # comment on that rename. jobs.db is left in the grant, unused, as
+        # a rollback path during the cutover. known.json: scrape-fast.yml
+        # downloads it before probing; loader.py re-derives and re-pushes
+        # it after every load. status.json: scrape-discover.yml's own
+        # real-time phase during its own run -- see the workflow's own
         # status-writing steps.
         Resource = [
           "${aws_s3_bucket.data.arn}/jobs.db",
+          "${aws_s3_bucket.data.arn}/jobs-full-discover.db",
           "${aws_s3_bucket.data.arn}/known.json",
           "${aws_s3_bucket.data.arn}/status.json",
         ]

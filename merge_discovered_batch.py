@@ -15,12 +15,34 @@ once), and per invocation:
   2. Pops BATCH_SIZE candidates off the front of the queue, appends
      their guessed domains to domains.txt, resolves them for real via
      probe.py (not just trusting the earlier discovery-time guess), and
-     loads the result the normal way (loader/load_to_sqlite.py, no
-     --prune-stale -- this is a partial batch, not the full domain set).
+     merges the ones that resolved straight into known.json (see below
+     -- Partition & Merge retired this script's own jobs.db write).
   3. Writes back whatever's left in the queue.
 
 Leaves the actual git commit to the calling workflow -- this script
 only touches local files.
+
+Partition & Merge (2026-09-08): used to load this batch's resolved jobs
+straight into the shared jobs.db, same as every other writer -- but under
+partitioning, jobs.db is retired, and this batch doesn't cleanly fit
+either partition shape scrape_handler.py/scrape_workday_handler.py use
+(it isn't one fixed shard, and it isn't a stable pinned company list --
+see loader/merge_partitions.py's own docstring for why a third shape here
+risked a stale one-off batch permanently overriding fresher numbered-
+shard data on every future merge). What this script actually needs isn't
+"write these jobs somewhere," though -- it's "make sure the fast-poll
+learns about these companies," and that only ever needed known.json, not
+jobs.db itself: export_known() query (SELECT domain, ats, token FROM
+companies WHERE ats IS NOT NULL) was always company-only, this script's
+own resolved jobs never fed anything else downstream. So this batch's
+newly-resolved companies now get upserted directly into known.json
+instead of round-tripping through a jobs.db write just to export the
+same rows back out. Their actual job listings reach the site on their
+own next fast-poll shard rotation instead of immediately -- a real,
+bounded freshness delay for brand-new companies specifically (up to one
+full rotation, same latency every OTHER company's re-poll already has),
+traded for not inventing a third partition shape under this same day's
+already-large redesign.
 """
 
 import json
@@ -32,6 +54,8 @@ from pathlib import Path
 import boto3
 
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT / "loader"))
+from load_to_sqlite import s3_pull, s3_push  # noqa: E402
 QUEUE_PATH = ROOT / "pending-discovery-candidates.json"
 DOMAINS_PATH = ROOT / "domains.txt"
 
@@ -165,8 +189,15 @@ def main() -> int:
     # side without the other" pattern as every other timeout wall
     # tonight. Matches infra/variables.tf's own scrape_fast pattern of
     # generous headroom rather than a number chasing today's batch size.
+    # No --fetch-descriptions: this batch's own job listings are never
+    # used downstream anymore (see this module's own docstring) -- only
+    # domain/ats/token survive, into known.json. The regular fast-poll
+    # re-resolves the real job data (without descriptions either, same
+    # as any other company) on this company's own next shard rotation.
+    # Paying for Comeet/Workday's extra per-job detail fetch here would
+    # be pure waste now.
     probe = subprocess.run(
-        [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(domains), "--fetch-descriptions", "--json"],
+        [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(domains), "--json"],
         capture_output=True, text=True, timeout=400,
     )
     if probe.stderr:
@@ -181,36 +212,25 @@ def main() -> int:
     print(f"{len(hits)}/{len(data)} resolved for real", file=sys.stderr)
 
     bucket = os.environ.get("DATA_BUCKET")
-    load_cmd = [
-        sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
-        "--resolved", str(resolved_path), "--out", "/tmp/jobs.db",
-        # --skip-vacuum: same reasoning as scrape_handler.py's own fix --
-        # VACUUM rewrites the WHOLE db file regardless of how few rows
-        # this batch touched, and scrape_maintenance_handler.py's daily
-        # run already owns it. This is a separate, standing writer, not
-        # a one-time thing -- it shouldn't pay that cost either.
-        "--skip-vacuum",
-    ]
-    if bucket:
-        load_cmd += ["--bucket", bucket, "--key", "jobs.db"]
-    # 300, not the original 60: confirmed live (2026-09-08) every merge
-    # cycle for ~40 minutes straight failed here with TimeoutExpired --
-    # jobs.db passed 40-50MB and kept growing every few minutes from
-    # this exact pipeline's own merges, and a single pull+upsert+
-    # conditional-push cycle (up to 5 retry attempts on a write
-    # conflict, each a full re-pull) no longer fit in 60s. The SAME
-    # "doubled BATCH_SIZE but only bumped the OTHER timeout in this
-    # file" mistake as the probe.py fix above -- this is a second,
-    # separate subprocess call with its own ceiling.
-    load = subprocess.run(load_cmd, capture_output=True, text=True, timeout=300)
-    if load.stderr:
-        print(load.stderr, file=sys.stderr)
-    if load.returncode != 0:
-        print(f"load_to_sqlite.py exited {load.returncode} -- domains.txt already has this batch, "
-              f"but jobs.db doesn't -- next scheduled discover run will pick it up instead", file=sys.stderr)
-        # Still drain the queue: domains.txt already has these, no reason
-        # to retry the exact same batch forever if the loader step itself
-        # is what's failing.
+    if bucket and hits:
+        # Upsert, not export_known()'s wholesale replace: this batch only
+        # ever sees its own ~80 companies, never the full set, so a
+        # replace here would wipe out every other company known.json
+        # already had. See this module's own docstring for why this
+        # replaced a jobs.db write entirely rather than becoming a third
+        # partition shape.
+        known_path = ROOT / "known-for-discovery-merge.json"
+        existed, _ = s3_pull(bucket, "known.json", known_path)
+        known = json.loads(known_path.read_text(encoding="utf-8")) if existed else []
+        by_domain = {e["domain"]: e for e in known}
+        for r in hits:
+            by_domain[r["domain"]] = {"domain": r["domain"], "ats": r["ats"], "token": r.get("token")}
+        known_path.write_text(json.dumps(list(by_domain.values()), ensure_ascii=False), encoding="utf-8")
+        s3_push(bucket, "known.json", known_path)
+        print(f"merged {len(hits)} newly-resolved companies into known.json ({len(by_domain)} total)",
+              file=sys.stderr)
+    elif not bucket:
+        print("DATA_BUCKET not set -- skipping known.json update (local/test run)", file=sys.stderr)
 
     QUEUE_PATH.write_text(json.dumps(remaining, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"batch complete, {len(remaining)} candidates remain queued", file=sys.stderr)

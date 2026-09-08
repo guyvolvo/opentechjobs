@@ -91,13 +91,13 @@ variable "scrape_workday_timeout_s" {
 variable "scrape_maintenance_memory_mb" {
   type        = number
   default     = 3008
-  description = "Once-daily VACUUM pass (scrape_maintenance_handler.py) against the full jobs.db -- the one place VACUUM still runs at all, after 2026-09-08 moved it out of both frequent re-poll cycles to stop paying its whole-file-rewrite cost on every 5-20 minute cycle. Generous on purpose: at 30 invocations/month this is a rounding error in the monthly GB-second budget regardless of how high this number is, so there's no reason to right-size it as tightly as the frequent Lambdas above -- better to have real headroom for a growing jobs.db than to relearn the OOM/disk-full lessons from earlier the same day."
+  description = "Was the once-daily VACUUM pass against the full jobs.db; became the Partition & Merge design's own merge step the same day (loader/merge_partitions.py), now running hourly -- see scrape_maintenance_lambda.tf's own schedule comment. Still generous at the account's real ceiling: downloading every jobs-partition-*.db plus building+VACUUMing jobs-read.db needs real headroom, same OOM lesson as scrape_fast/scrape_workday earlier the same day, and at 3008MB regardless of invocation count this is memory-bound, not a place to right-size against frequency."
 }
 
 variable "scrape_maintenance_timeout_s" {
   type        = number
-  default     = 240
-  description = "Generous for the same reason as the memory variable above -- once a day, cost-negligible regardless, no benefit to cutting this close."
+  default     = 600
+  description = "Was 240 (fine at once/day, cost-negligible regardless of ceiling). Bumped to 600 alongside the move to an hourly merge: this function now sequentially downloads every jobs-partition-*.db (not concurrently -- see merge_partitions.py's own docstring on that simplification) before building jobs-read.db, so real margin matters more here than it did for a once-daily VACUUM-only run. Timeout ceilings are still free by themselves (only actual Duration drives GB-second cost) -- watch real CloudWatch Duration once this is live and tighten if partition count grows enough to make sequential downloads the real bottleneck."
 }
 
 variable "domain_name" {

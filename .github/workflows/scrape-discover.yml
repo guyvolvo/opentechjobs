@@ -113,18 +113,32 @@ jobs:
           from datetime import datetime, timezone
           boto3.client('s3').put_object(
               Bucket='${{ vars.DATA_BUCKET }}', Key='status.json', ContentType='application/json',
-              Body=json.dumps({'phase': 'loading', 'run': 'discover', 'detail': 'writing to jobs.db',
+              Body=json.dumps({'phase': 'loading', 'run': 'discover', 'detail': 'writing to jobs-full-discover.db',
                                 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}).encode(),
           )
           "
 
-      - name: Load into jobs.db, re-derive known.json, push both to S3
+      # jobs-full-discover.db, not jobs.db: Partition & Merge (2026-09-08)
+      # retired the shared jobs.db -- see scrape_handler.py's own
+      # docstring. This run's own working DB doesn't fit either partition
+      # shape (not one fixed shard, not a stable pinned list) and, unlike
+      # merge_discovered_batch.py's own partial batches, doesn't need to:
+      # it re-probes the WHOLE of domains.txt every time, so export_known()
+      # and --prune-stale here are already wholesale-correct against
+      # whatever this run just resolved, regardless of what the previous
+      # snapshot under this key looked like. This key is never listed by
+      # loader/merge_partitions.py (only jobs-partition-* is), so it can
+      # never end up in jobs-read.db or collide with a shard's own data --
+      # its only job is giving --prune-stale/export_known a working copy
+      # to run against, same role jobs.db used to serve for this one
+      # workflow specifically.
+      - name: Load into jobs-full-discover.db, re-derive known.json, push both to S3
         run: |
           python loader/load_to_sqlite.py \
             --resolved resolved.json \
-            --out jobs.db \
+            --out jobs-full-discover.db \
             --bucket ${{ vars.DATA_BUCKET }} \
-            --key jobs.db \
+            --key jobs-full-discover.db \
             ${{ github.event.inputs.domains == '' && '--prune-stale' || '' }}
 
       - name: "Report status: idle"

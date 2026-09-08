@@ -32,11 +32,20 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "JobsDbAndKnownReadWrite"
+        # Partition & Merge (2026-09-08): this Lambda now writes its own
+        # shard's jobs-partition-{N}.db instead of the shared jobs.db --
+        # see load_to_sqlite.py's --key and --skip-known, scrape_handler.py's
+        # own docstring. known.json stays read-only here (this Lambda still
+        # downloads it directly to pick a shard; --skip-known means it never
+        # writes it back). jobs.db itself is left in the grant, unused, as
+        # a rollback path during the cutover -- drop once jobs-read.db has
+        # been live and verified for a while.
+        Sid    = "PartitionsAndKnownReadWrite"
         Effect = "Allow"
         Action = ["s3:GetObject", "s3:PutObject"]
         Resource = [
           "${aws_s3_bucket.data.arn}/jobs.db",
+          "${aws_s3_bucket.data.arn}/jobs-partition-*",
           "${aws_s3_bucket.data.arn}/known.json",
           # status.json: this Lambda's own real-time phase, written at
           # each stage (scraping/loading/sending alerts/idle/error) --
@@ -121,6 +130,16 @@ resource "aws_lambda_function" "scrape_fast" {
       ALERTS_TABLE      = aws_dynamodb_table.alerts.name
       ALERTS_FROM_EMAIL = var.alerts_from_email
       SITE_ORIGIN       = "https://${var.domain_name}"
+      # Must match schedule_expression below in real seconds. Confirmed
+      # live (2026-09-08): during the interim 20-minute cut, this was
+      # left hardcoded at 300 in scrape_handler.py while the actual
+      # EventBridge rate was 1200s -- current_shard_index() then advanced
+      # 4 shards per real invocation instead of 1, and depending on
+      # gcd(4, NUM_SHARDS), some shards could go unpolled indefinitely
+      # rather than just less often. Passed in from here now so the two
+      # can't drift apart silently again the next time this schedule
+      # changes.
+      SCHEDULE_INTERVAL_S = "300"
     }
   }
 
@@ -148,18 +167,19 @@ resource "aws_cloudwatch_log_group" "scrape_fast_lambda" {
 resource "aws_cloudwatch_event_rule" "scrape_fast_schedule" {
   name        = "${var.project_name}-scrape-fast-schedule"
   description = "Fires the fast re-poll Lambda -- each invocation only handles one shard (see scrape_handler.py), not a full re-poll."
-  # Was 5 minutes. Sharding decoupled the PROBE cost from company count,
-  # but not load_to_sqlite.py's own pull-modify-push cycle, which
-  # downloads and uploads the FULL jobs.db on every single invocation
-  # regardless of shard size -- confirmed live (2026-09-08) that cost
-  # scales with total DB size (795MB and growing), not company count,
-  # and this project has a hard <$5/month ceiling with no budget to
-  # exceed it even temporarily. 20 minutes cuts invocation count (and
-  # therefore this cost) 4x versus 5 minutes -- an interim tradeoff
-  # (full-rotation freshness goes from ~90min to ~6 hours at current
-  # NUM_SHARDS) until the real fix -- not re-downloading/re-uploading
-  # the whole file on every write -- gets built.
-  schedule_expression = "rate(20 minutes)"
+  # Was 5 minutes, cut to 20 the same day (2026-09-08) as an interim
+  # tradeoff: sharding decoupled the PROBE cost from company count, but
+  # not load_to_sqlite.py's own pull-modify-push cycle, which downloaded
+  # and uploaded the FULL jobs.db on every invocation regardless of shard
+  # size, and this project has a hard <$5/month ceiling with no room to
+  # exceed it even temporarily. Restored to 5 minutes the same day, once
+  # Partition & Merge shipped: this Lambda now writes its own small
+  # jobs-partition-{N}.db (see scrape_handler.py, load_to_sqlite.py's
+  # --key/--skip-known), so cost no longer scales with jobs.db's total
+  # size at all -- back to 5 minutes is projected CHEAPER than the 20-
+  # minute interim cut was (partition-merge.html §03: 156,000 vs 286,000
+  # GB-s/mo), not a tradeoff this time.
+  schedule_expression = "rate(5 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_fast_schedule" {
