@@ -32,11 +32,19 @@ resource "aws_iam_role_policy" "api_lambda" {
     Version = "2012-10-17"
     Statement = [
       {
+        # jobs-read.db, not jobs.db: Partition & Merge (2026-09-08) --
+        # DATA_KEY below moved to jobs-read.db, but this grant was missed
+        # in the same change, so the API Lambda's own HeadObject/GetObject
+        # against its new DATA_KEY got a real 403 the moment this deployed
+        # -- caught live immediately after deploy, not by review. jobs.db
+        # is left in the grant, unused, as a rollback path during the
+        # cutover -- drop once jobs-read.db has been live and verified.
         Sid    = "ReadJobsDb"
         Effect = "Allow"
         Action = ["s3:GetObject", "s3:HeadObject"]
         Resource = [
           "${aws_s3_bucket.data.arn}/jobs.db",
+          "${aws_s3_bucket.data.arn}/jobs-read.db",
           # status.json: the pipeline's own real-time phase (scraping/
           # loading/idle/error), written by scrape_handler.py and
           # scrape-discover.yml -- see route_pipeline_status. Read-only
