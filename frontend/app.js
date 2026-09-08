@@ -391,21 +391,48 @@ function setLastCheckedAt(iso) {
   if (lastCheckedAt === null || t > lastCheckedAt) lastCheckedAt = t;
 }
 
-// EventBridge fires the scrape-fast Lambda on a flat rate(5 minutes)
-// schedule (infra/scrape_lambda.tf), and each run's start time is what
-// gets written to companies.last_checked -- so lastCheckedAt + 5m is a
-// close read on when the next run should land. Not a guarantee: a run
-// that takes longer than usual, or a rare failed invocation, pushes the
-// real next update later than this estimate says.
-const SYNC_INTERVAL_MINUTES = 5;
+// Partition & Merge (2026-09-08): stats.meta.last_loaded -- when
+// jobs-read.db was last actually rebuilt (scrape-maintenance's hourly
+// merge, see loader/merge_partitions.py), NOT when any one company was
+// last re-polled. Used for the sync countdown specifically (see
+// nextSyncText below); lastCheckedAt above stays what it was for the
+// LIVE/OFFLINE freshness read itself. Only set from /stats -- /health
+// doesn't carry this field, and the 60-minute cycle this predicts
+// doesn't need better than the existing 2-min /stats poll's own
+// resolution to stay meaningful (unlike the old 5-minute cycle, where a
+// stale /health sample was a real fraction of the whole interval).
+let lastLoadedAt = null;
+function setLastLoadedAt(iso) {
+  if (!iso) return;
+  const t = new Date(iso).getTime();
+  if (lastLoadedAt === null || t > lastLoadedAt) lastLoadedAt = t;
+}
+
+// Partition & Merge (2026-09-08): jobs-read.db, what the API actually
+// reads, is now rebuilt by an hourly merge (scrape-maintenance-schedule,
+// infra/scrape_maintenance_lambda.tf) instead of being written directly
+// by the 5-minute fast-poll -- see loader/merge_partitions.py's own
+// docstring for the full "why." lastLoadedAt + 60m is a close read on
+// when the next merge should land. Not a guarantee, same caveat as
+// before: a slow or skipped cycle pushes the real next update later.
+const SYNC_INTERVAL_MINUTES = 60;
 
 // Shared by the topbar status dot/text and the API Status card: past
-// this, both flip from LIVE (green) to OFFLINE (red) together. Same
-// ~1.6x-the-cycle margin as before the schedule tightened from 10 to 5
-// minutes (was 16/10) -- enough slack for one slow or skipped cycle plus
-// the /health and /stats CloudFront cache TTLs (up to 120s each) without
-// staying "LIVE" long enough to stop meaning anything.
-const FRESH_THRESHOLD_MINUTES = 8;
+// this, both flip from LIVE (green) to OFFLINE (red) together.
+//
+// Was 8 (1.6x a 5-minute cycle), calibrated for when the fast-poll wrote
+// jobs.db directly and lastCheckedAt tracked that same cadence. Reported
+// live (2026-09-08), the same day Partition & Merge shipped: lastCheckedAt
+// is now a snapshot frozen at the last hourly merge, not a live-updating
+// value, so it grows toward ~60 minutes stale between merges under
+// completely healthy operation -- the old 8-minute threshold meant this
+// showed OFFLINE for roughly 50 of every 60 minutes, looking broken to
+// every real visitor regardless of actual system health. 75 (1.25x the
+// new 60-minute cycle -- less slack than the old 1.6x multiplier, since
+// the merge itself only takes ~40-50s: real generous margin for one
+// slow/skipped cycle without also hiding a genuinely stuck pipeline for
+// almost two full cycles).
+const FRESH_THRESHOLD_MINUTES = 75;
 
 function apiStatusFields() {
   const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
@@ -421,14 +448,19 @@ function nextSyncText() {
   // A real reported phase beats a guessed countdown whenever there is
   // one: "discovering: full domains.txt sweep" is something you can act
   // on, "next sync: 3:47" is only ever an estimate of the next ROUTINE
-  // fast-poll cycle, and says nothing about a manually-triggered
-  // discover run (~20 min, no fixed schedule) that might be running
-  // instead right now.
+  // merge cycle, and says nothing about a manually-triggered discover
+  // run (~20 min, no fixed schedule) that might be running instead
+  // right now.
   if (pipelinePhase && pipelinePhase.phase && !["idle", "unknown"].includes(pipelinePhase.phase)) {
     return pipelinePhase.detail ? `${pipelinePhase.phase}: ${pipelinePhase.detail}` : pipelinePhase.phase;
   }
-  if (lastCheckedAt === null) return null;
-  const remainingMs = lastCheckedAt + SYNC_INTERVAL_MINUTES * 60_000 - Date.now();
+  // lastLoadedAt (meta.last_loaded), not lastCheckedAt: this predicts the
+  // next jobs-read.db REBUILD, which only happens on the hourly merge --
+  // see lastLoadedAt's own comment above for why lastCheckedAt (frozen
+  // at whatever company was freshest AS OF that same last merge) isn't
+  // the right anchor for this specific countdown anymore.
+  if (lastLoadedAt === null) return null;
+  const remainingMs = lastLoadedAt + SYNC_INTERVAL_MINUTES * 60_000 - Date.now();
   if (remainingMs <= 0) return "next sync: syncing";
   const totalSeconds = Math.floor(remainingMs / 1000);
   const m = Math.floor(totalSeconds / 60);
@@ -452,6 +484,7 @@ function tickApiStatus() {
 function renderMetrics(stats) {
   const el = document.getElementById("metrics-grid");
   setLastCheckedAt(stats.freshness.last_checked);
+  setLastLoadedAt(stats.meta.last_loaded);
   const { fresh } = apiStatusFields();
 
   const cards = [
