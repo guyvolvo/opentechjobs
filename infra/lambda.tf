@@ -73,6 +73,21 @@ resource "aws_lambda_function" "api" {
   memory_size      = var.lambda_memory_mb
   timeout          = var.lambda_timeout_s
 
+  # Confirmed live (2026-09-08): this Lambda never had an explicit
+  # ephemeral_storage block at all, leaving it stuck at AWS's 512MB
+  # default -- jobs.db grew to 639MB in one large discovery-pipeline
+  # batch (several Fortune-500-scale companies landing in the same
+  # merge), and every refresh attempt since has failed outright
+  # (disk-full downloading a 639MB file into 512MB of /tmp), silently
+  # thanks to db.py's own fail-safe -- no outage, but the site was
+  # frozen on stale data with nothing in CloudWatch to explain why until
+  # that same fix added logging. 3008MB was already proven safe on the
+  # scrape Lambdas; sized well above the 639MB that just happened, not
+  # just enough to clear it, since one batch already grew this fast once.
+  ephemeral_storage {
+    size = 3008
+  }
+
   # Reserved concurrency would be a second free cost cap alongside the API
   # Gateway throttle, but this account's total il-central-1 Lambda
   # concurrency limit is only 10 (AWS's default floor for this region),

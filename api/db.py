@@ -92,7 +92,15 @@ def get_connection() -> sqlite3.Connection:
         try:
             new_etag = _download()
             new_conn = _open_readonly()
-        except Exception:
+        except Exception as e:
+            # Silent before 2026-09-08's same-day follow-up: confirmed
+            # live that a persistently-failing refresh (jobs.db passed
+            # 600MB+ from one large discovery-pipeline batch) left the
+            # site stuck serving stale data with NOTHING in CloudWatch
+            # to explain why -- the fail-safe worked (no outage) but was
+            # undiagnosable. A failed refresh is real signal, not a
+            # hiccup to swallow quietly.
+            print(f"jobs.db refresh failed, staying on the previous version (etag {_etag}): {e!r}")
             return _conn  # refresh failed -- old connection is still open and valid
         _conn.close()
         _etag, _conn = new_etag, new_conn
