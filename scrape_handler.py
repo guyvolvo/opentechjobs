@@ -70,9 +70,17 @@ def lambda_handler(event, context):
     known_count = len(json.loads(known_path.read_text(encoding="utf-8")))
     _write_status(s3, "scraping", f"re-checking {known_count} known companies")
 
+    # 200, not the original 90: known.json grew from 260 to 358+
+    # companies via the overnight Common-Crawl merge (2026-09-08), and
+    # every cycle started hitting the old 90s ceiling and erroring
+    # outright for 5.5 hours before anyone noticed. Paired with
+    # infra/variables.tf's own scrape_lambda_timeout_s bump (120->280) --
+    # see that variable's own comment for the full incident. Widening
+    # just one of the two would still leave the other as the real
+    # ceiling, so both moved together.
     probe = subprocess.run(
         [sys.executable, str(ROOT / "probe.py"), "--known", str(known_path), "--json"],
-        capture_output=True, text=True, timeout=90,
+        capture_output=True, text=True, timeout=200,
     )
     if probe.stderr:
         print(probe.stderr)

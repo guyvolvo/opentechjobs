@@ -71,8 +71,8 @@ variable "scrape_lambda_memory_mb" {
 
 variable "scrape_lambda_timeout_s" {
   type        = number
-  default     = 120
-  description = "Ceiling for probe.py --known (all boards, in parallel) plus the SQLite upsert. Reported live (2026-09-05): this was NOT true -- a full run measured 103.85s of this 120s budget even after excluding Workday entirely (see probe.py's --known filter), and repeated runs before that fix were hitting the ceiling and erroring outright for over an hour straight. Comment corrected, not removed, so the next person doesn't repeat the same false assumption -- watch actual Duration in CloudWatch before trusting any number here again."
+  default     = 280
+  description = "Ceiling for probe.py --known (all boards, in parallel) plus the SQLite upsert. Was 120 until 2026-09-08: the overnight Common-Crawl merge (merge-discovered-companies.yml) grew known.json from 260 to 358+ companies, and every fast-poll cycle started hitting probe.py's own 90s subprocess timeout and erroring outright for 5.5 hours straight before anyone noticed -- the SAME failure shape as the 2026-09-05 incident this comment already used to warn about, just from company-count growth instead of Workday's per-job detail fetches. 280, not just enough to clear today's count: the merge queue can still add up to ~520 more companies, and this needs real headroom for that, not another repeat of the same lesson. Watch actual Duration in CloudWatch before trusting any number here again -- this project has now hit this exact wall twice."
 }
 
 variable "domain_name" {
