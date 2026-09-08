@@ -14,19 +14,21 @@ name: merge-discovered-companies
 # untouched, if it's already using more than 70% of its 400s timeout --
 # a real measurement each time, not a one-off guess trusted indefinitely.
 #
-# Tightened from */30 to */10 on 2026-09-08 now that the fast-poll has
-# real proven headroom (2048->4096MB, 280->400s -- see
-# infra/variables.tf's scrape_lambda_memory_mb/scrape_lambda_timeout_s)
-# and BATCH_SIZE doubled 40->80: this doesn't merge any faster than the
-# budget check above allows, it just checks more often, so a healthy
-# fast-poll drains the queue sooner instead of waiting out an idle 30
-# minutes it didn't need. Safe to run indefinitely, queue never dry for
-# long: discover-companies.yml refills it daily, and an empty queue
-# makes every run a no-op (see the script's own early exit), not an error.
+# No schedule: trigger here -- confirmed live 2026-09-08 that GitHub's
+# own cron scheduler doesn't reliably fire on this repo (this workflow's
+# cron sat stale for ~5 hours despite being set to */10; scrape-fast.yml
+# hit the exact same thing earlier, see scrape_handler.py's own
+# docstring). infra/dispatch_workflow_lambda.tf's EventBridge rule now
+# calls workflow_dispatch below every 10 minutes instead, the same way a
+# manual `gh workflow run` already did -- something with a real SLA
+# triggering the work, not GitHub's own unreliable scheduler.
+#
+# BATCH_SIZE doubled 40->80 the same day, now that the fast-poll has
+# real proven headroom -- this doesn't merge any faster than the budget
+# check above allows, it just lets a healthy fast-poll drain the queue
+# sooner instead of waiting out a smaller batch it didn't need to.
 
 on:
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch: {}
 
 permissions:

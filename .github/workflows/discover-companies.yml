@@ -11,10 +11,14 @@ name: discover-companies
 # more than running it daily -- it would just re-check the same
 # snapshot and find nothing new most of the time. Daily is enough to
 # pick up a new snapshot promptly without wasting runs.
+#
+# No schedule: trigger -- GitHub's own cron scheduler doesn't reliably
+# fire on this repo (confirmed live 2026-09-08 for
+# merge-discovered-companies.yml's own cron; see that workflow's own
+# comment). infra/dispatch_workflow_lambda.tf's EventBridge rule calls
+# workflow_dispatch below once a day instead.
 
 on:
-  schedule:
-    - cron: "0 3 * * *"
   workflow_dispatch: {}
 
 permissions:
