@@ -22,59 +22,10 @@
   },
   {
     "ats": "greenhouse",
-    "token": "similarweb",
-    "domain": "similarweb.fr",
-    "job_count": 64,
-    "israel_job_count": 28
-  },
-  {
-    "ats": "greenhouse",
-    "token": "taboola",
-    "domain": "taboola.com",
-    "job_count": 86,
-    "israel_job_count": 24
-  },
-  {
-    "ats": "greenhouse",
-    "token": "wizinc",
-    "domain": "wizinc.com",
-    "job_count": 127,
-    "israel_job_count": 23
-  },
-  {
-    "ats": "greenhouse",
-    "token": "payoneer",
-    "domain": "payoneer.com",
-    "job_count": 124,
-    "israel_job_count": 21
-  },
-  {
-    "ats": "greenhouse",
-    "token": "connecteam",
-    "domain": "connecteam.com",
-    "job_count": 57,
-    "israel_job_count": 19
-  },
-  {
-    "ats": "greenhouse",
-    "token": "appsflyer",
-    "domain": "appsflyer.com",
-    "job_count": 48,
-    "israel_job_count": 17
-  },
-  {
-    "ats": "greenhouse",
     "token": "sentinellabs",
     "domain": "sentinellabs.io",
     "job_count": 220,
     "israel_job_count": 14
-  },
-  {
-    "ats": "greenhouse",
-    "token": "via",
-    "domain": "via.com",
-    "job_count": 154,
-    "israel_job_count": 13
   },
   {
     "ats": "greenhouse",
@@ -85,31 +36,10 @@
   },
   {
     "ats": "greenhouse",
-    "token": "fireblocks",
-    "domain": "fireblocks.com",
-    "job_count": 73,
-    "israel_job_count": 12
-  },
-  {
-    "ats": "greenhouse",
-    "token": "forter",
-    "domain": "forter.com",
-    "job_count": 37,
-    "israel_job_count": 11
-  },
-  {
-    "ats": "greenhouse",
     "token": "pagayais",
     "domain": "pagayais.com",
     "job_count": 11,
     "israel_job_count": 11
-  },
-  {
-    "ats": "ashby",
-    "token": "chainalysis-careers",
-    "domain": "chainalysis-careers.com",
-    "job_count": 47,
-    "israel_job_count": 10
   },
   {
     "ats": "greenhouse",
@@ -123,13 +53,6 @@
     "token": "unframe",
     "domain": "unframe.com",
     "job_count": 32,
-    "israel_job_count": 10
-  },
-  {
-    "ats": "ashby",
-    "token": "semperis",
-    "domain": "semperis.com",
-    "job_count": 29,
     "israel_job_count": 10
   },
   {
@@ -147,25 +70,11 @@
     "israel_job_count": 9
   },
   {
-    "ats": "greenhouse",
-    "token": "axonius",
-    "domain": "axonius.fr",
-    "job_count": 22,
-    "israel_job_count": 9
-  },
-  {
     "ats": "ashby",
     "token": "tavily",
     "domain": "tavily.com",
     "job_count": 18,
     "israel_job_count": 9
-  },
-  {
-    "ats": "ashby",
-    "token": "airwallex",
-    "domain": "airwallex.com",
-    "job_count": 585,
-    "israel_job_count": 8
   },
   {
     "ats": "greenhouse",
@@ -179,20 +88,6 @@
     "token": "doitintl",
     "domain": "doitintl.com",
     "job_count": 84,
-    "israel_job_count": 8
-  },
-  {
-    "ats": "greenhouse",
-    "token": "torq",
-    "domain": "torq.com",
-    "job_count": 32,
-    "israel_job_count": 8
-  },
-  {
-    "ats": "greenhouse",
-    "token": "melio",
-    "domain": "melio.com",
-    "job_count": 24,
     "israel_job_count": 8
   },
   {
@@ -245,13 +140,6 @@
     "israel_job_count": 5
   },
   {
-    "ats": "greenhouse",
-    "token": "datarails",
-    "domain": "datarails.com",
-    "job_count": 11,
-    "israel_job_count": 5
-  },
-  {
     "ats": "ashby",
     "token": "reindeer-ai",
     "domain": "reindeer-ai.com",
@@ -263,13 +151,6 @@
     "token": "stripe",
     "domain": "stripe.com",
     "job_count": 620,
-    "israel_job_count": 4
-  },
-  {
-    "ats": "greenhouse",
-    "token": "zscaler",
-    "domain": "zscaler.com",
-    "job_count": 364,
     "israel_job_count": 4
   },
   {
@@ -287,48 +168,6 @@
     "israel_job_count": 4
   },
   {
-    "ats": "ashby",
-    "token": "april",
-    "domain": "april.com",
-    "job_count": 17,
-    "israel_job_count": 4
-  },
-  {
-    "ats": "greenhouse",
-    "token": "yotpo",
-    "domain": "yotpo.com",
-    "job_count": 16,
-    "israel_job_count": 4
-  },
-  {
-    "ats": "greenhouse",
-    "token": "optimove",
-    "domain": "optimove.com",
-    "job_count": 15,
-    "israel_job_count": 4
-  },
-  {
-    "ats": "greenhouse",
-    "token": "residenthome",
-    "domain": "residenthome.com",
-    "job_count": 14,
-    "israel_job_count": 4
-  },
-  {
-    "ats": "ashby",
-    "token": "finout",
-    "domain": "finout.com",
-    "job_count": 13,
-    "israel_job_count": 4
-  },
-  {
-    "ats": "greenhouse",
-    "token": "armissecurity",
-    "domain": "armissecurity.com",
-    "job_count": 11,
-    "israel_job_count": 4
-  },
-  {
     "ats": "greenhouse",
     "token": "cyluscybersecurity",
     "domain": "cyluscybersecurity.com",
@@ -337,30 +176,9 @@
   },
   {
     "ats": "ashby",
-    "token": "chamelio",
-    "domain": "chamelio.ai",
-    "job_count": 7,
-    "israel_job_count": 4
-  },
-  {
-    "ats": "greenhouse",
-    "token": "beamup",
-    "domain": "beamup.ai",
-    "job_count": 4,
-    "israel_job_count": 4
-  },
-  {
-    "ats": "ashby",
     "token": "wayve",
     "domain": "wayve.ai",
     "job_count": 163,
-    "israel_job_count": 3
-  },
-  {
-    "ats": "greenhouse",
-    "token": "tripledotstudios",
-    "domain": "tripledotstudios.com",
-    "job_count": 79,
     "israel_job_count": 3
   },
   {
@@ -379,20 +197,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "augury",
-    "domain": "augury.com",
-    "job_count": 18,
-    "israel_job_count": 3
-  },
-  {
-    "ats": "ashby",
-    "token": "singular",
-    "domain": "singular.com",
-    "job_count": 18,
-    "israel_job_count": 3
-  },
-  {
-    "ats": "greenhouse",
     "token": "placerlabs",
     "domain": "placerlabs.com",
     "job_count": 14,
@@ -407,31 +211,10 @@
   },
   {
     "ats": "greenhouse",
-    "token": "nanit",
-    "domain": "nanit.com",
-    "job_count": 10,
-    "israel_job_count": 3
-  },
-  {
-    "ats": "ashby",
-    "token": "pointfive",
-    "domain": "pointfive.co",
-    "job_count": 9,
-    "israel_job_count": 3
-  },
-  {
-    "ats": "greenhouse",
     "token": "oasissecurity",
     "domain": "oasissecurity.com",
     "job_count": 3,
     "israel_job_count": 3
-  },
-  {
-    "ats": "greenhouse",
-    "token": "axon",
-    "domain": "axon.com",
-    "job_count": 515,
-    "israel_job_count": 2
   },
   {
     "ats": "greenhouse",
@@ -484,13 +267,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "tomorrow",
-    "domain": "tomorrow.io",
-    "job_count": 21,
-    "israel_job_count": 2
-  },
-  {
-    "ats": "greenhouse",
     "token": "vulncheck",
     "domain": "vulncheck.com",
     "job_count": 14,
@@ -525,52 +301,10 @@
     "israel_job_count": 2
   },
   {
-    "ats": "ashby",
-    "token": "snappy",
-    "domain": "snappy.com",
-    "job_count": 5,
-    "israel_job_count": 2
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bringg",
-    "domain": "bringg.com",
-    "job_count": 4,
-    "israel_job_count": 2
-  },
-  {
-    "ats": "ashby",
-    "token": "unit",
-    "domain": "unit.com",
-    "job_count": 4,
-    "israel_job_count": 2
-  },
-  {
-    "ats": "ashby",
-    "token": "tzafon",
-    "domain": "tzafon.ai",
-    "job_count": 3,
-    "israel_job_count": 2
-  },
-  {
     "ats": "greenhouse",
     "token": "databricks",
     "domain": "databricks.com",
     "job_count": 870,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "ashby",
-    "token": "snowflake",
-    "domain": "snowflake.com",
-    "job_count": 371,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "greenhouse",
-    "token": "coinbase",
-    "domain": "coinbase.com",
-    "job_count": 192,
     "israel_job_count": 1
   },
   {
@@ -585,13 +319,6 @@
     "token": "zip",
     "domain": "zip.com",
     "job_count": 122,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "greenhouse",
-    "token": "2k",
-    "domain": "2k.ai",
-    "job_count": 119,
     "israel_job_count": 1
   },
   {
@@ -644,41 +371,6 @@
     "israel_job_count": 1
   },
   {
-    "ats": "greenhouse",
-    "token": "atbayjobs",
-    "domain": "atbayjobs.com",
-    "job_count": 32,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "greenhouse",
-    "token": "couchbaseinc",
-    "domain": "couchbaseinc.com",
-    "job_count": 23,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "greenhouse",
-    "token": "pendo",
-    "domain": "pendo.com",
-    "job_count": 22,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "greenhouse",
-    "token": "triplewhale",
-    "domain": "triplewhale.com",
-    "job_count": 11,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bigid",
-    "domain": "bigid.com",
-    "job_count": 7,
-    "israel_job_count": 1
-  },
-  {
     "ats": "workable",
     "token": "cloudshare",
     "domain": "cloudshare.com",
@@ -690,20 +382,6 @@
     "token": "LevHaolam",
     "domain": "levhaolam.com",
     "job_count": 4,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "greenhouse",
-    "token": "comet",
-    "domain": "comet.com",
-    "job_count": 3,
-    "israel_job_count": 1
-  },
-  {
-    "ats": "greenhouse",
-    "token": "lightricks",
-    "domain": "lightricks.com",
-    "job_count": 1,
     "israel_job_count": 1
   },
   {
@@ -729,23 +407,9 @@
   },
   {
     "ats": "greenhouse",
-    "token": "andurilindustries",
-    "domain": "andurilindustries.com",
-    "job_count": 2212,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "veterinaryemergencygroupst",
     "domain": "veterinaryemergencygroupst.com",
     "job_count": 1140,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "aloyoga",
-    "domain": "aloyoga.com",
-    "job_count": 1095,
     "israel_job_count": 0
   },
   {
@@ -757,30 +421,9 @@
   },
   {
     "ats": "greenhouse",
-    "token": "coupang",
-    "domain": "coupang.ai",
-    "job_count": 696,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "accenturefederalservices",
-    "domain": "accenturefederalservices.com",
-    "job_count": 639,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "feverup",
     "domain": "feverup.com",
     "job_count": 613,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "anthropic",
-    "domain": "anthropic.com",
-    "job_count": 587,
     "israel_job_count": 0
   },
   {
@@ -788,13 +431,6 @@
     "token": "citywide",
     "domain": "citywide.io",
     "job_count": 582,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "airapps",
-    "domain": "airapps.com",
-    "job_count": 498,
     "israel_job_count": 0
   },
   {
@@ -833,13 +469,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "ashby",
-    "token": "alpacahealth",
-    "domain": "alpacahealth.com",
-    "job_count": 399,
-    "israel_job_count": 0
-  },
-  {
     "ats": "workable",
     "token": "capgemini-insurance",
     "domain": "capgemini-insurance.com",
@@ -868,13 +497,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "greenhouse",
-    "token": "cloudflare",
-    "domain": "cloudflare.com",
-    "job_count": 334,
-    "israel_job_count": 0
-  },
-  {
     "ats": "workable",
     "token": "cheer-home-care",
     "domain": "cheer-home-care.com",
@@ -890,13 +512,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "toast",
-    "domain": "toast.com",
-    "job_count": 313,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "onrunning",
     "domain": "onrunning.net",
     "job_count": 304,
@@ -907,13 +522,6 @@
     "token": "powerdigitalmarketing",
     "domain": "powerdigitalmarketing.com",
     "job_count": 303,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "canonical",
-    "domain": "canonical.com",
-    "job_count": 301,
     "israel_job_count": 0
   },
   {
@@ -932,30 +540,9 @@
   },
   {
     "ats": "greenhouse",
-    "token": "coreweave",
-    "domain": "coreweave.com",
-    "job_count": 287,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "veterinarypracticepartners",
     "domain": "veterinarypracticepartners.com",
     "job_count": 286,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "braze",
-    "domain": "braze.com",
-    "job_count": 283,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "brex",
-    "domain": "brex.com",
-    "job_count": 282,
     "israel_job_count": 0
   },
   {
@@ -977,13 +564,6 @@
     "token": "charlotte-tilbury",
     "domain": "charlotte-tilbury.fr",
     "job_count": 281,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "celonis",
-    "domain": "celonis.com",
-    "job_count": 280,
     "israel_job_count": 0
   },
   {
@@ -1026,20 +606,6 @@
     "token": "janestreet",
     "domain": "janestreet.com",
     "job_count": 230,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "adyen",
-    "domain": "adyen.com",
-    "job_count": 226,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "alphasense",
-    "domain": "alphasense.com",
-    "job_count": 226,
     "israel_job_count": 0
   },
   {
@@ -1120,38 +686,10 @@
     "israel_job_count": 0
   },
   {
-    "ats": "greenhouse",
-    "token": "affirm",
-    "domain": "affirm.com",
-    "job_count": 205,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "allarahealth",
-    "domain": "allarahealth.com",
-    "job_count": 205,
-    "israel_job_count": 0
-  },
-  {
     "ats": "workable",
     "token": "blue-united-sourcing",
     "domain": "blue-united-sourcing.com",
     "job_count": 205,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "block",
-    "domain": "block.co",
-    "job_count": 204,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "formlabs",
-    "domain": "formlabs.com",
-    "job_count": 203,
     "israel_job_count": 0
   },
   {
@@ -1246,13 +784,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "ashby",
-    "token": "base-power",
-    "domain": "base-power.com",
-    "job_count": 174,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "platacard",
     "domain": "platacard.com",
@@ -1264,13 +795,6 @@
     "token": "xometry",
     "domain": "xometry.com",
     "job_count": 169,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "airbnb",
-    "domain": "airbnb.com",
-    "job_count": 167,
     "israel_job_count": 0
   },
   {
@@ -1302,13 +826,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "greenhouse",
-    "token": "cookunity",
-    "domain": "cookunity.com",
-    "job_count": 160,
-    "israel_job_count": 0
-  },
-  {
     "ats": "ashby",
     "token": "enpal",
     "domain": "enpal.com",
@@ -1320,13 +837,6 @@
     "token": "whoop",
     "domain": "whoop.co",
     "job_count": 160,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "archer56",
-    "domain": "archer.com",
-    "job_count": 157,
     "israel_job_count": 0
   },
   {
@@ -1390,13 +900,6 @@
     "token": "biffa",
     "domain": "biffa.com",
     "job_count": 143,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "chaosindustries",
-    "domain": "chaosindustries.com",
-    "job_count": 142,
     "israel_job_count": 0
   },
   {
@@ -1499,13 +1002,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "clara",
-    "domain": "clara.com",
-    "job_count": 129,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "quince",
     "domain": "quince.com",
     "job_count": 129,
@@ -1604,20 +1100,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "addepar1",
-    "domain": "addepar.com",
-    "job_count": 116,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "compasspathways",
-    "domain": "compasspathways.com",
-    "job_count": 116,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "gleanwork",
     "domain": "gleanwork.com",
     "job_count": 116,
@@ -1628,13 +1110,6 @@
     "token": "lilasciences",
     "domain": "lilasciences.com",
     "job_count": 116,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "asana",
-    "domain": "asana.com",
-    "job_count": 115,
     "israel_job_count": 0
   },
   {
@@ -1659,13 +1134,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "ashby",
-    "token": "alan",
-    "domain": "alan.com",
-    "job_count": 113,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "figureai",
     "domain": "figureai.com",
@@ -1677,13 +1145,6 @@
     "token": "xero",
     "domain": "xero.com",
     "job_count": 112,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "captiveaire",
-    "domain": "captiveaire.com",
-    "job_count": 111,
     "israel_job_count": 0
   },
   {
@@ -1785,13 +1246,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "greenhouse",
-    "token": "betatechnologiesinc",
-    "domain": "betatechnologiesinc.com",
-    "job_count": 105,
-    "israel_job_count": 0
-  },
-  {
     "ats": "ashby",
     "token": "apex-technology-inc",
     "domain": "apex-technology-inc.com",
@@ -1841,13 +1295,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "lever",
-    "token": "idt",
-    "domain": "idt.net",
-    "job_count": 101,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "isaraerospace",
     "domain": "isaraerospace.com",
@@ -1858,13 +1305,6 @@
     "ats": "greenhouse",
     "token": "ursamajor",
     "domain": "ursamajor.com",
-    "job_count": 101,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "42dot",
-    "domain": "42dot.com",
     "job_count": 101,
     "israel_job_count": 0
   },
@@ -2443,13 +1883,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "greenhouse",
-    "token": "cottinghambutlerinsuranceservicesinc",
-    "domain": "cottinghambutlerinsuranceservicesinc.com",
-    "job_count": 99,
-    "israel_job_count": 0
-  },
-  {
     "ats": "workable",
     "token": "charger-logistics-inc",
     "domain": "charger-logistics-inc.com",
@@ -2542,30 +1975,9 @@
   },
   {
     "ats": "greenhouse",
-    "token": "gusto",
-    "domain": "gusto.com",
-    "job_count": 95,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "ifoodcarreiras",
     "domain": "ifoodcarreiras.com",
     "job_count": 95,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "cresta",
-    "domain": "cresta.com",
-    "job_count": 94,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "barnes",
-    "domain": "barnes.com",
-    "job_count": 94,
     "israel_job_count": 0
   },
   {
@@ -2675,13 +2087,6 @@
   },
   {
     "ats": "ashby",
-    "token": "baseten",
-    "domain": "baseten.com",
-    "job_count": 88,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
     "token": "cowboyspace",
     "domain": "cowboyspace.com",
     "job_count": 88,
@@ -2696,22 +2101,8 @@
   },
   {
     "ats": "greenhouse",
-    "token": "blackbirdhealth",
-    "domain": "blackbirdhealth.com",
-    "job_count": 87,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "dianahealth94",
     "domain": "dianahealth94.com",
-    "job_count": 87,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "1x",
-    "domain": "1x.com",
     "job_count": 87,
     "israel_job_count": 0
   },
@@ -2759,20 +2150,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "astranis",
-    "domain": "astranis.com",
-    "job_count": 84,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "billiontoone",
-    "domain": "billiontoone.com",
-    "job_count": 84,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "tide",
     "domain": "tide.io",
     "job_count": 84,
@@ -2815,13 +2192,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "apptronik",
-    "domain": "apptronik.com",
-    "job_count": 83,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "impact",
     "domain": "impact.com",
     "job_count": 83,
@@ -2835,23 +2205,9 @@
     "israel_job_count": 0
   },
   {
-    "ats": "greenhouse",
-    "token": "chainguard",
-    "domain": "chainguard.com",
-    "job_count": 82,
-    "israel_job_count": 0
-  },
-  {
     "ats": "ashby",
     "token": "rehire",
     "domain": "rehire.io",
-    "job_count": 82,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "spoton",
-    "domain": "spoton.com",
     "job_count": 82,
     "israel_job_count": 0
   },
@@ -2867,13 +2223,6 @@
     "token": "berryvirtual",
     "domain": "berryvirtual.com",
     "job_count": 82,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "coherehealth",
-    "domain": "coherehealth.com",
-    "job_count": 81,
     "israel_job_count": 0
   },
   {
@@ -2951,20 +2300,6 @@
     "token": "ccres",
     "domain": "ccres.com",
     "job_count": 78,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "blankstreet",
-    "domain": "blankstreet.com",
-    "job_count": 77,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "chowbus",
-    "domain": "chowbus.com",
-    "job_count": 77,
     "israel_job_count": 0
   },
   {
@@ -3077,13 +2412,6 @@
     "token": "trading212",
     "domain": "trading.ai",
     "job_count": 75,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bloomreach",
-    "domain": "bloomreach.com",
-    "job_count": 74,
     "israel_job_count": 0
   },
   {
@@ -3228,13 +2556,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "agilityrobotics",
-    "domain": "agilityrobotics.com",
-    "job_count": 70,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "myriad360",
     "domain": "myriad360.com",
     "job_count": 70,
@@ -3305,13 +2626,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "allencontrolsystems",
-    "domain": "allencontrolsystems.com",
-    "job_count": 68,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "digicert",
     "domain": "digicert.com",
     "job_count": 67,
@@ -3375,20 +2689,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "appdirect",
-    "domain": "appdirect.com",
-    "job_count": 66,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "blinkhealth",
-    "domain": "blinkhealth.com",
-    "job_count": 66,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "keepersecurity",
     "domain": "keepersecurity.com",
     "job_count": 66,
@@ -3406,27 +2706,6 @@
     "token": "civica-uk-ltd-1",
     "domain": "civica-uk-ltd-1.com",
     "job_count": 66,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "abnormalsecurity",
-    "domain": "abnormalsecurity.com",
-    "job_count": 65,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "chime",
-    "domain": "chime.io",
-    "job_count": 65,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "crunchyroll",
-    "domain": "crunchyroll.com",
-    "job_count": 65,
     "israel_job_count": 0
   },
   {
@@ -3455,20 +2734,6 @@
     "token": "williamoslerhealthsystem1",
     "domain": "williamoslerhealthsystem1.com",
     "job_count": 65,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "cabify",
-    "domain": "cabify.com",
-    "job_count": 64,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "cloverhealth",
-    "domain": "cloverhealth.com",
-    "job_count": 64,
     "israel_job_count": 0
   },
   {
@@ -3521,13 +2786,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "smartrecruiters",
-    "token": "intuitivehealth1",
-    "domain": "intuitivehealth1.com",
-    "job_count": 62,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "knowbe4",
     "domain": "knowbe4.com",
@@ -3538,13 +2796,6 @@
     "ats": "greenhouse",
     "token": "skildai-careers",
     "domain": "skildai-careers.com",
-    "job_count": 62,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "1password",
-    "domain": "1password.com",
     "job_count": 62,
     "israel_job_count": 0
   },
@@ -3571,13 +2822,6 @@
   },
   {
     "ats": "ashby",
-    "token": "veho-tech-inc",
-    "domain": "veho-tech-inc.com",
-    "job_count": 62,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
     "token": "volta",
     "domain": "volta.com",
     "job_count": 62,
@@ -3588,34 +2832,6 @@
     "token": "alaro-city",
     "domain": "alaro-city.com",
     "job_count": 62,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "carta",
-    "domain": "carta.com",
-    "job_count": 61,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "acclaro",
-    "domain": "acclaro.com",
-    "job_count": 61,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "firevanderrwthaachen",
-    "domain": "firevanderrwthaachen.com",
-    "job_count": 61,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "krombacher",
-    "domain": "krombacher.com",
-    "job_count": 61,
     "israel_job_count": 0
   },
   {
@@ -3655,23 +2871,9 @@
   },
   {
     "ats": "ashby",
-    "token": "antares",
-    "domain": "antares.com",
-    "job_count": 61,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
     "token": "plaud",
     "domain": "plaud.com",
     "job_count": 61,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "austroholding",
-    "domain": "austroholding.com",
-    "job_count": 60,
     "israel_job_count": 0
   },
   {
@@ -3721,48 +2923,6 @@
     "token": "upeducation",
     "domain": "upeducation.com",
     "job_count": 60,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "abinbev",
-    "domain": "abinbev.com",
-    "job_count": 59,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "altruist",
-    "domain": "altruist.com",
-    "job_count": 59,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "cribl",
-    "domain": "cribl.com",
-    "job_count": 59,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "ascendis-pharma",
-    "domain": "ascendis-pharma.com",
-    "job_count": 59,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "carousellgroup",
-    "domain": "carousellgroup.com",
-    "job_count": 59,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "alpaca",
-    "domain": "alpaca.com",
-    "job_count": 59,
     "israel_job_count": 0
   },
   {
@@ -3857,13 +3017,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "smartrecruiters",
-    "token": "cityofphiladelphia",
-    "domain": "cityofphiladelphia.com",
-    "job_count": 57,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "hut8",
     "domain": "hut8.com",
@@ -3913,27 +3066,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "smartrecruiters",
-    "token": "deltaelectronics",
-    "domain": "deltaelectronics.com",
-    "job_count": 56,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "bassett-healthcare-network",
-    "domain": "bassett-healthcare-network.com",
-    "job_count": 56,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "armada",
-    "domain": "armada.com",
-    "job_count": 56,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "neo4j",
     "domain": "neo4j.com",
@@ -3952,20 +3084,6 @@
     "token": "colibrix-one",
     "domain": "colibrix-one.com",
     "job_count": 56,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "qadinc",
-    "domain": "qadinc.com",
-    "job_count": 55,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "cern",
-    "domain": "cern.com",
-    "job_count": 55,
     "israel_job_count": 0
   },
   {
@@ -4008,20 +3126,6 @@
     "token": "variosystemsag",
     "domain": "variosystemsag.com",
     "job_count": 55,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "cortica",
-    "domain": "cortica.com",
-    "job_count": 54,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "australian-christian-college",
-    "domain": "australian-christian-college.com",
-    "job_count": 54,
     "israel_job_count": 0
   },
   {
@@ -4116,13 +3220,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "ashby",
-    "token": "blockstream",
-    "domain": "blockstream.com",
-    "job_count": 53,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "parloa",
     "domain": "parloa.com",
@@ -4162,13 +3259,6 @@
     "token": "clarkston-consulting",
     "domain": "clarkston-consulting.com",
     "job_count": 53,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "charliesproduce1",
-    "domain": "charliesproduce1.com",
-    "job_count": 52,
     "israel_job_count": 0
   },
   {
@@ -4257,20 +3347,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "arxroboticsgmbh",
-    "domain": "arxroboticsgmbh.com",
-    "job_count": 50,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "billcom",
-    "domain": "billcom.com",
-    "job_count": 50,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "defenseunicorns",
     "domain": "defenseunicorns.com",
     "job_count": 50,
@@ -4309,41 +3385,6 @@
     "token": "vynca",
     "domain": "vynca.com",
     "job_count": 50,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "benchling",
-    "domain": "benchling.com",
-    "job_count": 49,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "asifr",
-    "domain": "asifr.com",
-    "job_count": 49,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "archglobalservicesphilippinesinc",
-    "domain": "archglobalservicesphilippinesinc.com",
-    "job_count": 49,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "griffithuniversity",
-    "domain": "griffithuniversity.com",
-    "job_count": 49,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "behavox",
-    "domain": "behavox.com",
-    "job_count": 49,
     "israel_job_count": 0
   },
   {
@@ -4386,20 +3427,6 @@
     "token": "relayfi",
     "domain": "relayfi.com",
     "job_count": 49,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "astera",
-    "domain": "astera.com",
-    "job_count": 48,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "attio",
-    "domain": "attio.com",
-    "job_count": 48,
     "israel_job_count": 0
   },
   {
@@ -4501,13 +3528,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "workable",
-    "token": "azumo",
-    "domain": "azumo.com",
-    "job_count": 47,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "hillhousehome",
     "domain": "hillhousehome.com",
@@ -4544,13 +3564,6 @@
   },
   {
     "ats": "ashby",
-    "token": "prompt",
-    "domain": "prompt.io",
-    "job_count": 47,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
     "token": "proxima-fusion",
     "domain": "proxima-fusion.com",
     "job_count": 47,
@@ -4561,41 +3574,6 @@
     "token": "wealthsimple",
     "domain": "wealthsimple.com",
     "job_count": 47,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "cognite",
-    "domain": "cognite.com",
-    "job_count": 46,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "cityoffortworth",
-    "domain": "cityoffortworth.com",
-    "job_count": 46,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "albert-bartlett",
-    "domain": "albert-bartlett.com",
-    "job_count": 46,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "archimed",
-    "domain": "archimed.com",
-    "job_count": 46,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "babylist",
-    "domain": "babylist.com",
-    "job_count": 46,
     "israel_job_count": 0
   },
   {
@@ -4645,41 +3623,6 @@
     "token": "ukatomicenergyauthority",
     "domain": "ukatomicenergyauthority.com",
     "job_count": 46,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "checkr",
-    "domain": "checkr.com",
-    "job_count": 45,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "accellor",
-    "domain": "accellor.com",
-    "job_count": 45,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "banksvaluation",
-    "domain": "banksvaluation.com",
-    "job_count": 45,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "augsburguniversity-minneapolismn",
-    "domain": "augsburguniversity-minneapolismn.com",
-    "job_count": 45,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "ipsoftinc1",
-    "domain": "ipsoftinc1.com",
-    "job_count": 45,
     "israel_job_count": 0
   },
   {
@@ -4739,48 +3682,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "workable",
-    "token": "ahsproperties",
-    "domain": "ahsproperties.com",
-    "job_count": 44,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "cdprojektred",
-    "domain": "cdprojektred.com",
-    "job_count": 44,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "altom-transport",
-    "domain": "altom-transport.com",
-    "job_count": 44,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "aptus-health-care",
-    "domain": "aptus-health-care.com",
-    "job_count": 44,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bdainc",
-    "domain": "bdainc.com",
-    "job_count": 44,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "blockchain",
-    "domain": "blockchain.com",
-    "job_count": 44,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "habitathealth",
     "domain": "habitathealth.com",
@@ -4834,55 +3735,6 @@
     "token": "chain-reaction-1",
     "domain": "chain-reaction.io",
     "job_count": 44,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "aerones",
-    "domain": "aerones.com",
-    "job_count": 43,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "gameloft",
-    "domain": "gameloft.com",
-    "job_count": 43,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "pslogistics",
-    "domain": "pslogistics.com",
-    "job_count": 43,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "awin",
-    "domain": "awin.com",
-    "job_count": 43,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "ai-robot-association",
-    "domain": "ai-robot-association.com",
-    "job_count": 43,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "bank-of-jordan",
-    "domain": "bank-of-jordan.com",
-    "job_count": 43,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "bayutdubizzle",
-    "domain": "bayutdubizzle.com",
-    "job_count": 43,
     "israel_job_count": 0
   },
   {
@@ -4953,34 +3805,6 @@
     "token": "calvary-hospital",
     "domain": "calvary-hospital.com",
     "job_count": 43,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bgeinccampus",
-    "domain": "bgeinccampus.com",
-    "job_count": 42,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "amax-1",
-    "domain": "amax-1.com",
-    "job_count": 42,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "hug",
-    "domain": "hug.com",
-    "job_count": 42,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "ingrambargecompany",
-    "domain": "ingrambargecompany.com",
-    "job_count": 42,
     "israel_job_count": 0
   },
   {
@@ -5062,34 +3886,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "collibra",
-    "domain": "collibra.com",
-    "job_count": 41,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "allucent",
-    "domain": "allucent.com",
-    "job_count": 41,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "assurity-trusted-solutions",
-    "domain": "assurity-trusted-solutions.com",
-    "job_count": 41,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "christianlivingcommunities",
-    "domain": "christianlivingcommunities.com",
-    "job_count": 41,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "epirus",
     "domain": "epirus.io",
     "job_count": 41,
@@ -5156,48 +3952,6 @@
     "token": "c9staff",
     "domain": "c9staff.com",
     "job_count": 41,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "abridge",
-    "domain": "abridge.com",
-    "job_count": 40,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "aerovect",
-    "domain": "aerovect.com",
-    "job_count": 40,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "priviahealth",
-    "domain": "priviahealth.com",
-    "job_count": 40,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "convene",
-    "domain": "convene.com",
-    "job_count": 40,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "coalition",
-    "domain": "coalition.com",
-    "job_count": 40,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bitgo",
-    "domain": "bitgo.com",
-    "job_count": 40,
     "israel_job_count": 0
   },
   {
@@ -5299,55 +4053,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "workable",
-    "token": "a2mac1",
-    "domain": "a2mac1.com",
-    "job_count": 39,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "epsog",
-    "domain": "epsog.com",
-    "job_count": 39,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "pactgroup",
-    "domain": "pactgroup.com",
-    "job_count": 39,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "access-services-3",
-    "domain": "access-services-3.com",
-    "job_count": 39,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "advansys-esc-1",
-    "domain": "advansys-esc-1.com",
-    "job_count": 39,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "ayahealthcare",
-    "domain": "ayahealthcare.com",
-    "job_count": 39,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "brandtechplus",
-    "domain": "brandtechplus.com",
-    "job_count": 39,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "disco",
     "domain": "disco.ai",
@@ -5429,34 +4134,6 @@
     "token": "signode",
     "domain": "signode.com",
     "job_count": 39,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "assured",
-    "domain": "assured.com",
-    "job_count": 38,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "blitzy",
-    "domain": "blitzy.com",
-    "job_count": 38,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "broccoli",
-    "domain": "broccoli.com",
-    "job_count": 38,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "apolloio",
-    "domain": "apolloio.com",
-    "job_count": 38,
     "israel_job_count": 0
   },
   {
@@ -5551,27 +4228,6 @@
     "israel_job_count": 0
   },
   {
-    "ats": "ashby",
-    "token": "candidhealth",
-    "domain": "candidhealth.com",
-    "job_count": 37,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "workable",
-    "token": "access-bank",
-    "domain": "access-bank.com",
-    "job_count": 37,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "attentive",
-    "domain": "attentive.com",
-    "job_count": 37,
-    "israel_job_count": 0
-  },
-  {
     "ats": "greenhouse",
     "token": "kikoff",
     "domain": "kikoff.com",
@@ -5625,55 +4281,6 @@
     "token": "conradathens",
     "domain": "conradathens.com",
     "job_count": 37,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "9fin",
-    "domain": "9fin.com",
-    "job_count": 36,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "act-on",
-    "domain": "act-on.com",
-    "job_count": 36,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "forrestjohnson",
-    "domain": "forrestjohnson.com",
-    "job_count": 36,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "enthuse-marketing",
-    "domain": "enthuse-marketing.com",
-    "job_count": 36,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "air",
-    "domain": "air.com",
-    "job_count": 36,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "antora",
-    "domain": "antora.com",
-    "job_count": 36,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bitwarden",
-    "domain": "bitwarden.com",
-    "job_count": 36,
     "israel_job_count": 0
   },
   {
@@ -5772,34 +4379,6 @@
     "token": "unit44",
     "domain": "unit44.com",
     "job_count": 36,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "amplify",
-    "domain": "amplify.com",
-    "job_count": 35,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "andercore",
-    "domain": "andercore.com",
-    "job_count": 35,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "blp-digital",
-    "domain": "blp-digital.com",
-    "job_count": 35,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "smartrecruiters",
-    "token": "bluescope",
-    "domain": "bluescope.com",
-    "job_count": 35,
     "israel_job_count": 0
   },
   {
@@ -6154,20 +4733,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "bpcs",
-    "domain": "bpcs.com",
-    "job_count": 33,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "capitalontap",
-    "domain": "capitalontap.com",
-    "job_count": 33,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "datacamp",
     "domain": "datacamp.com",
     "job_count": 33,
@@ -6317,20 +4882,6 @@
     "ats": "workable",
     "token": "bauermediaoutdoor",
     "domain": "bauermediaoutdoor.com",
-    "job_count": 32,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "amaehealth",
-    "domain": "amaehealth.com",
-    "job_count": 32,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bird",
-    "domain": "bird.com",
     "job_count": 32,
     "israel_job_count": 0
   },
@@ -6653,20 +5204,6 @@
     "ats": "workable",
     "token": "ace-it-careers-1",
     "domain": "ace-it-careers-1.com",
-    "job_count": 30,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "algolia",
-    "domain": "algolia.com",
-    "job_count": 30,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "avimedical",
-    "domain": "avimedical.com",
     "job_count": 30,
     "israel_job_count": 0
   },
@@ -7211,20 +5748,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "assetwatch",
-    "domain": "assetwatch.com",
-    "job_count": 27,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "betterment",
-    "domain": "betterment.com",
-    "job_count": 27,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "eonio",
     "domain": "eonio.com",
     "job_count": 27,
@@ -7577,13 +6100,6 @@
     "ats": "ashby",
     "token": "avoca",
     "domain": "avoca.com",
-    "job_count": 25,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "alloy",
-    "domain": "alloy.com",
     "job_count": 25,
     "israel_job_count": 0
   },
@@ -7988,20 +6504,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "bitpanda",
-    "domain": "bitpanda.com",
-    "job_count": 23,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "brkz",
-    "domain": "brkz.com",
-    "job_count": 23,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "dataiku",
     "domain": "dataiku.com",
     "job_count": 23,
@@ -8261,13 +6763,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "blacksky",
-    "domain": "blacksky.com",
-    "job_count": 22,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "formaaiinc",
     "domain": "formaaiinc.com",
     "job_count": 22,
@@ -8513,20 +7008,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "boulevard",
-    "domain": "boulevard.com",
-    "job_count": 21,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "buildops",
-    "domain": "buildops.com",
-    "job_count": 21,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "gitai",
     "domain": "gitai.com",
     "job_count": 21,
@@ -8627,13 +7108,6 @@
     "ats": "ashby",
     "token": "radai",
     "domain": "radai.com",
-    "job_count": 21,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
-    "token": "redis",
-    "domain": "redis.com",
     "job_count": 21,
     "israel_job_count": 0
   },
@@ -8823,13 +7297,6 @@
     "ats": "workable",
     "token": "arbor-education-3",
     "domain": "arbor-education-3.com",
-    "job_count": 20,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "aclu",
-    "domain": "aclu.com",
     "job_count": 20,
     "israel_job_count": 0
   },
@@ -9206,20 +7673,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "alayacare",
-    "domain": "alayacare.com",
-    "job_count": 19,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "aninebing",
-    "domain": "aninebing.com",
-    "job_count": 19,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "eh2",
     "domain": "eh2.com",
     "job_count": 19,
@@ -9577,27 +8030,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "assemblyai",
-    "domain": "assemblyai.com",
-    "job_count": 18,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bluecurrent",
-    "domain": "bluecurrent.com",
-    "job_count": 18,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bouldercare",
-    "domain": "bouldercare.com",
-    "job_count": 18,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "dealpath",
     "domain": "dealpath.com",
     "job_count": 18,
@@ -9887,20 +8319,6 @@
     "ats": "smartrecruiters",
     "token": "aspect2",
     "domain": "aspect2.com",
-    "job_count": 17,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "alertmedia",
-    "domain": "alertmedia.com",
-    "job_count": 17,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "avetta",
-    "domain": "avetta.com",
     "job_count": 17,
     "israel_job_count": 0
   },
@@ -10286,55 +8704,6 @@
     "ats": "smartrecruiters",
     "token": "beckersgroup",
     "domain": "beckersgroup.com",
-    "job_count": 16,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "afresh",
-    "domain": "afresh.com",
-    "job_count": 16,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "airtable",
-    "domain": "airtable.com",
-    "job_count": 16,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "altoslabs",
-    "domain": "altoslabs.com",
-    "job_count": 16,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "amplemarket",
-    "domain": "amplemarket.com",
-    "job_count": 16,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "brave",
-    "domain": "brave.com",
-    "job_count": 16,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "brandwatch",
-    "domain": "brandwatch.com",
-    "job_count": 16,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "carbonrobotics",
-    "domain": "carbonrobotics.com",
     "job_count": 16,
     "israel_job_count": 0
   },
@@ -10769,34 +9138,6 @@
     "ats": "smartrecruiters",
     "token": "eurofiber1",
     "domain": "eurofiber1.com",
-    "job_count": 15,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "alku",
-    "domain": "alku.com",
-    "job_count": 15,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "ampsortation",
-    "domain": "ampsortation.com",
-    "job_count": 15,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "array",
-    "domain": "array.com",
-    "job_count": 15,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "britive",
-    "domain": "britive.com",
     "job_count": 15,
     "israel_job_count": 0
   },
@@ -11273,20 +9614,6 @@
     "ats": "smartrecruiters",
     "token": "houseofcommonscanadachambredescommunescanada",
     "domain": "houseofcommonscanadachambredescommunescanada.com",
-    "job_count": 14,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "airspace",
-    "domain": "airspace.com",
-    "job_count": 14,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bugcrowd",
-    "domain": "bugcrowd.com",
     "job_count": 14,
     "israel_job_count": 0
   },
@@ -11782,27 +10109,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "baselayer",
-    "domain": "baselayer.com",
-    "job_count": 13,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "aviatrix",
-    "domain": "aviatrix.com",
-    "job_count": 13,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bluerivertech",
-    "domain": "bluerivertech.com",
-    "job_count": 13,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "galileo",
     "domain": "galileo.io",
     "job_count": 13,
@@ -12209,20 +10515,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "abacusinsights",
-    "domain": "abacusinsights.com",
-    "job_count": 12,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "ardentmc",
-    "domain": "ardentmc.com",
-    "job_count": 12,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "educate",
     "domain": "educate.io",
     "job_count": 12,
@@ -12316,20 +10608,6 @@
     "ats": "greenhouse",
     "token": "openteams",
     "domain": "openteams.com",
-    "job_count": 12,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "pagaya",
-    "domain": "pagaya.com",
-    "job_count": 12,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "phasev",
-    "domain": "phasev.com",
     "job_count": 12,
     "israel_job_count": 0
   },
@@ -12792,41 +11070,6 @@
     "ats": "workable",
     "token": "avis-greece",
     "domain": "avis-greece.com",
-    "job_count": 11,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "acquia",
-    "domain": "acquia.com",
-    "job_count": 11,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "airship",
-    "domain": "airship.com",
-    "job_count": 11,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "breezeway",
-    "domain": "breezeway.com",
-    "job_count": 11,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "buzzsolutions",
-    "domain": "buzzsolutions.com",
-    "job_count": 11,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "capitaltg",
-    "domain": "capitaltg.com",
     "job_count": 11,
     "israel_job_count": 0
   },
@@ -13506,34 +11749,6 @@
     "ats": "smartrecruiters",
     "token": "enterprisecallcenter",
     "domain": "enterprisecallcenter.com",
-    "job_count": 10,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "albedo",
-    "domain": "albedo.com",
-    "job_count": 10,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "amwell",
-    "domain": "amwell.com",
-    "job_count": 10,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "buildkite",
-    "domain": "buildkite.com",
-    "job_count": 10,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "calendly",
-    "domain": "calendly.com",
     "job_count": 10,
     "israel_job_count": 0
   },
@@ -14267,48 +12482,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "acryldata",
-    "domain": "acryldata.com",
-    "job_count": 9,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "acuitymd",
-    "domain": "acuitymd.com",
-    "job_count": 9,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "blend",
-    "domain": "blend.com",
-    "job_count": 9,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bluecrestcapitalmanagement",
-    "domain": "bluecrestcapitalmanagement.com",
-    "job_count": 9,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bruntworkwear",
-    "domain": "bruntworkwear.com",
-    "job_count": 9,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "canopytax",
-    "domain": "canopytax.com",
-    "job_count": 9,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "farmersmutualhailinsurancecompany",
     "domain": "farmersmutualhailinsurancecompany.com",
     "job_count": 9,
@@ -15023,13 +13196,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "allwebleads",
-    "domain": "allwebleads.com",
-    "job_count": 8,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "earnest",
     "domain": "earnest.ai",
     "job_count": 8,
@@ -15555,13 +13721,6 @@
   },
   {
     "ats": "ashby",
-    "token": "velocity",
-    "domain": "velocity.com",
-    "job_count": 8,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "ashby",
     "token": "top-hat",
     "domain": "top-hat.net",
     "job_count": 8,
@@ -15942,34 +14101,6 @@
     "ats": "smartrecruiters",
     "token": "insightslearningdevelopmentltd",
     "domain": "insightslearningdevelopmentltd.com",
-    "job_count": 7,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "aptoslabs",
-    "domain": "aptoslabs.com",
-    "job_count": 7,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "berlinrosen",
-    "domain": "berlinrosen.com",
-    "job_count": 7,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bishopfox",
-    "domain": "bishopfox.com",
-    "job_count": 7,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "blenheimchalcot",
-    "domain": "blenheimchalcot.com",
     "job_count": 7,
     "israel_job_count": 0
   },
@@ -16976,48 +15107,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "aircompany",
-    "domain": "aircompany.com",
-    "job_count": 6,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "antenna",
-    "domain": "antenna.com",
-    "job_count": 6,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "attn",
-    "domain": "attn.com",
-    "job_count": 6,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bitso",
-    "domain": "bitso.com",
-    "job_count": 6,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "baublebar",
-    "domain": "baublebar.com",
-    "job_count": 6,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "buzzfeed",
-    "domain": "buzzfeed.com",
-    "job_count": 6,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "datagrail",
     "domain": "datagrail.io",
     "job_count": 6,
@@ -17963,43 +16052,8 @@
   },
   {
     "ats": "greenhouse",
-    "token": "aclunc",
-    "domain": "aclunc.com",
-    "job_count": 5,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "agebold",
-    "domain": "agebold.com",
-    "job_count": 5,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "airia",
-    "domain": "airia.com",
-    "job_count": 5,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "brighthire",
-    "domain": "brighthire.com",
-    "job_count": 5,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "digitalextremes",
     "domain": "digitalextremes.com",
-    "job_count": 5,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "dremio",
-    "domain": "dremio.com",
     "job_count": 5,
     "israel_job_count": 0
   },
@@ -19071,20 +17125,6 @@
     "ats": "smartrecruiters",
     "token": "galileolearning",
     "domain": "galileolearning.com",
-    "job_count": 4,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "arkoselabs",
-    "domain": "arkoselabs.com",
-    "job_count": 4,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "armorcode",
-    "domain": "armorcode.com",
     "job_count": 4,
     "israel_job_count": 0
   },
@@ -20268,55 +18308,6 @@
     "ats": "smartrecruiters",
     "token": "dontnod",
     "domain": "dontnod.com",
-    "job_count": 3,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "aircapture",
-    "domain": "aircapture.com",
-    "job_count": 3,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "activate",
-    "domain": "activate.com",
-    "job_count": 3,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "aippublishing",
-    "domain": "aippublishing.com",
-    "job_count": 3,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "alethea",
-    "domain": "alethea.com",
-    "job_count": 3,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "axuall",
-    "domain": "axuall.com",
-    "job_count": 3,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "byheart",
-    "domain": "byheart.com",
-    "job_count": 3,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bungie",
-    "domain": "bungie.com",
     "job_count": 3,
     "israel_job_count": 0
   },
@@ -21729,20 +19720,6 @@
   },
   {
     "ats": "greenhouse",
-    "token": "boostlingo",
-    "domain": "boostlingo.com",
-    "job_count": 2,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "bobtail",
-    "domain": "bobtail.com",
-    "job_count": 2,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
     "token": "energyandenvironmentlab",
     "domain": "energyandenvironmentlab.com",
     "job_count": 2,
@@ -22858,34 +20835,6 @@
     "ats": "smartrecruiters",
     "token": "joyfuljobs",
     "domain": "joyfuljobs.com",
-    "job_count": 1,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "avnos",
-    "domain": "avnos.com",
-    "job_count": 1,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "boostedai",
-    "domain": "boostedai.com",
-    "job_count": 1,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "burrislogistics",
-    "domain": "burrislogistics.com",
-    "job_count": 1,
-    "israel_job_count": 0
-  },
-  {
-    "ats": "greenhouse",
-    "token": "carbonchain",
-    "domain": "carbonchain.com",
     "job_count": 1,
     "israel_job_count": 0
   },

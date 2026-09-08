@@ -121,15 +121,23 @@ def load_already_tracked(ats: str) -> set[str]:
     the tokens they resolve to) -- so discovery only surfaces genuinely
     NEW candidates, not ones already tracked under some other domain
     spelling.
+
+    Raises rather than returning an empty set on failure -- confirmed
+    live (2026-09-08): the old fail-open behavior meant a transient
+    /api/companies outage (unrelated to this script, a real bug in
+    api/db.py's own connection lifecycle) silently produced a whole
+    batch of "new" candidates that were actually already-tracked
+    companies (Wiz among them). Merging still didn't corrupt anything
+    -- load_to_sqlite.py's own alias-collision check demotes an exact
+    (ats,token) duplicate rather than double-tracking it -- but it
+    wasted merge batch slots and inflated the queue with no-ops. main()
+    now skips this ats's run entirely on failure instead, same
+    fail-safe-not-fail-open shape as merge_discovered_batch.py's own
+    recent_fast_poll_had_errors.
     """
-    try:
-        resp = requests.get(f"{SITE_ORIGIN}/api/companies", params={"resolved_only": "1", "ats": ats}, timeout=15)
-        resp.raise_for_status()
-        return {c["token"].split(":")[0].lower() for c in resp.json()["companies"] if c.get("token")}
-    except requests.RequestException as e:
-        print(f"couldn't load already-tracked tokens from the live API ({e!r}) -- "
-              f"proceeding without exclusion, results may include known companies", file=sys.stderr)
-        return set()
+    resp = requests.get(f"{SITE_ORIGIN}/api/companies", params={"resolved_only": "1", "ats": ats}, timeout=15)
+    resp.raise_for_status()
+    return {c["token"].split(":")[0].lower() for c in resp.json()["companies"] if c.get("token")}
 
 
 _TRAILING_NUM_RE = re.compile(r"-?\d+$")
@@ -220,7 +228,15 @@ def main() -> int:
     tokens = extract_tokens(args.ats, urls)
     print(f"  {len(tokens)} unique candidate slugs extracted", file=sys.stderr)
 
-    known = load_already_tracked(args.ats)
+    try:
+        known = load_already_tracked(args.ats)
+    except requests.RequestException as e:
+        print(f"couldn't load already-tracked tokens from the live API ({e!r}) -- "
+              f"stopping here rather than risk re-surfacing already-tracked companies as \"new\"",
+              file=sys.stderr)
+        if args.json:
+            print("[]")
+        return 1
     print(f"  {len(known)} already tracked for {args.ats}", file=sys.stderr)
     new_tokens = sorted(tokens - known)
     print(f"  {len(new_tokens)} genuinely new candidates to verify", file=sys.stderr)
