@@ -1,16 +1,19 @@
 name: deploy-scrape-lambda
 
-# Ships probe.py + loader/ to both scrape Lambdas without a full
+# Ships probe.py + loader/ to all three scrape Lambdas without a full
 # Terraform apply, mirroring deploy-api.yml. Terraform owns each
 # function's existence/config, this workflow owns their code.
 #
-# Two separate packages, not one shared zip: scrape-fast needs
+# Three separate packages, not one shared zip: scrape-fast needs
 # scrape_handler.py + alerts.py (DynamoDB/SES access, the fast-poll's
-# own known.json-driven --known path); scrape-workday needs
-# scrape_workday_handler.py + companies.yml (its own company list comes
-# from probe.py's PINS, not S3's known.json -- see that handler's own
-# docstring for why it's a separate function at all). Both share
-# probe.py/loader/job_filters.py/schema.sql/requests underneath.
+# own known.json-driven --known path, sharded -- see that handler's own
+# docstring); scrape-workday needs scrape_workday_handler.py +
+# companies.yml (its own company list comes from probe.py's PINS, not
+# S3's known.json -- see that handler's own docstring for why it's a
+# separate function at all); scrape-maintenance needs only
+# scrape_maintenance_handler.py + loader (no probe.py, no companies.yml
+# -- it never resolves anything, just VACUUMs). All three share
+# loader/job_filters.py/schema.sql/requests underneath.
 
 on:
   push:
@@ -21,6 +24,7 @@ on:
       - "db/schema.sql"
       - "scrape_handler.py"
       - "scrape_workday_handler.py"
+      - "scrape_maintenance_handler.py"
       - "alerts.py"
       - "api/job_filters.py"
       - "companies.yml"
@@ -69,6 +73,15 @@ jobs:
           pip install --target workday requests pyyaml
           cd workday && zip -r ../scrape-workday.zip . -x "__pycache__/*" && cd ..
 
+      - name: Build scrape-maintenance package
+        run: |
+          mkdir -p maintenance/loader maintenance/db
+          cp scrape_maintenance_handler.py maintenance/
+          cp loader/load_to_sqlite.py maintenance/loader/
+          cp db/schema.sql maintenance/db/
+          pip install --target maintenance requests
+          cd maintenance && zip -r ../scrape-maintenance.zip . -x "__pycache__/*" && cd ..
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.SCRAPE_LAMBDA_DEPLOY_ROLE_ARN }}
@@ -89,3 +102,11 @@ jobs:
             --zip-file fileb://scrape-workday.zip
           aws lambda wait function-updated \
             --function-name ${{ vars.SCRAPE_WORKDAY_LAMBDA_FUNCTION_NAME }}
+
+      - name: Update scrape-maintenance Lambda code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ vars.SCRAPE_MAINTENANCE_LAMBDA_FUNCTION_NAME }} \
+            --zip-file fileb://scrape-maintenance.zip
+          aws lambda wait function-updated \
+            --function-name ${{ vars.SCRAPE_MAINTENANCE_LAMBDA_FUNCTION_NAME }}

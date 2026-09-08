@@ -90,20 +90,18 @@ resource "aws_lambda_function" "scrape_fast" {
   runtime          = "python3.13"
   filename         = data.archive_file.scrape_fast.output_path
   source_code_hash = data.archive_file.scrape_fast.output_base64sha256
-  memory_size      = var.scrape_lambda_memory_mb
-  timeout          = var.scrape_lambda_timeout_s
+  memory_size      = var.scrape_fast_memory_mb
+  timeout          = var.scrape_fast_timeout_s
 
-  # Default (512MB) was never enough headroom, just never noticed until
-  # jobs.db grew past it: confirmed live (2026-09-08) load_to_sqlite.py's
-  # own VACUUM step failed with "database or disk is full" against a
-  # ~188MB jobs.db -- VACUUM needs roughly the DB's own size again as
-  # scratch space to rebuild it, on top of the already-downloaded
-  # original copy sitting in the same /tmp. 3008MB, not just enough to
-  # clear today's size: the overnight merge queue can still add ~500
-  # more companies, growing jobs.db well past where 512MB (or even a
-  # smaller bump) would just repeat this same incident again.
+  # 1024, not the 3008 this used to need: that sizing was for VACUUM's
+  # ~2x-DB-size scratch space requirement, which no longer happens here
+  # at all (see load_to_sqlite.py's --skip-vacuum, passed by
+  # scrape_handler.py since 2026-09-08). Without VACUUM this Lambda only
+  # ever needs to hold the downloaded jobs.db plus a modest journal/WAL
+  # overhead during a shard's own small upsert -- 1024MB is real margin
+  # above today's ~197MB DB, not a number chasing a disk-full error.
   ephemeral_storage {
-    size = 3008
+    size = 1024
   }
 
   # Tried reserved_concurrent_executions = 1 here (a run pulls jobs.db
@@ -150,14 +148,7 @@ resource "aws_cloudwatch_log_group" "scrape_fast_lambda" {
 
 resource "aws_cloudwatch_event_rule" "scrape_fast_schedule" {
   name        = "${var.project_name}-scrape-fast-schedule"
-  description = "Fires the fast re-poll Lambda every 5 minutes"
-  # Was 10 minutes. Tightened once, not blindly: a full run (Workday
-  # excluded, WORKERS still 8) measured 103.85s live -- comfortably under
-  # this 300s window even before the memory bump and WORKERS increase
-  # above. No reserved-concurrency guard against two runs overlapping
-  # (see the function resource's own comment on why not), so this margin
-  # is what's actually keeping runs from ever colliding -- not a hard
-  # guarantee, revisit if real Duration ever creeps close to 300s.
+  description = "Fires the fast re-poll Lambda every 5 minutes -- each invocation only handles one shard (see scrape_handler.py), not a full re-poll, so this stays a 5-minute cadence even as the company list grows: NUM_SHARDS grows instead, not this schedule."
   schedule_expression = "rate(5 minutes)"
 }
 

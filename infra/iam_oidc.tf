@@ -257,7 +257,8 @@ resource "aws_iam_role_policy" "api_deploy" {
 }
 
 # scrape-lambda-deploy: used by deploy-scrape-lambda.yml. Update the
-# scrape-fast and scrape-workday Lambdas' code, nothing else.
+# scrape-fast, scrape-workday, and scrape-maintenance Lambdas' code,
+# nothing else.
 
 resource "aws_iam_role" "scrape_lambda_deploy" {
   name = "${var.project_name}-scrape-lambda-deploy"
@@ -284,7 +285,7 @@ resource "aws_iam_role_policy" "scrape_lambda_deploy" {
       Sid      = "UpdateScrapeLambdaCode"
       Effect   = "Allow"
       Action   = ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:PublishVersion"]
-      Resource = [aws_lambda_function.scrape_fast.arn, aws_lambda_function.scrape_workday.arn]
+      Resource = [aws_lambda_function.scrape_fast.arn, aws_lambda_function.scrape_workday.arn, aws_lambda_function.scrape_maintenance.arn]
     }]
   })
 }

@@ -8,16 +8,43 @@ see https://github.com/orgs/community/discussions/147369. EventBridge has
 an actual SLA, so this Lambda now owns the recurring cadence entirely;
 scrape-fast.yml keeps workflow_dispatch only, for manual/on-demand runs.
 
-Runs probe.py --known and loader/load_to_sqlite.py as subprocesses against
-/tmp, exactly the same two commands scrape-fast.yml already ran -- reusing
-those already-proven CLI entry points rather than re-implementing their
-logic here.
+Sharded, not a full re-poll every cycle. Reported live (2026-09-08): once
+company discovery became a standing, continuously-refilling pipeline
+(discover-companies.yml + merge-discovered-companies.yml) instead of a
+one-time batch, re-polling the ENTIRE known.json every 5 minutes meant
+this Lambda's cost grows forever, linearly, with total company count --
+a real run at 358 companies was already projected past $30/month on its
+own before the queue even finished draining. There's no ceiling on how
+many companies discovery eventually finds, so a design whose cost scales
+with that number can't have a stable budget.
+
+Splitting known.json into fixed-size shards and only re-polling ONE
+shard per invocation decouples cost from total company count: shard size
+stays constant as the company list grows, so per-invocation cost (and
+the monthly total, at a fixed schedule) stays roughly flat too. What
+grows instead is the full-rotation latency (every company gets re-polled
+once per NUM_SHARDS invocations) -- a graceful degradation instead of a
+runaway bill. Which shard runs is computed from wall-clock time, not
+carried in the EventBridge event, so no scheduler config needs to change
+as the company count (and therefore NUM_SHARDS) grows.
+
+VACUUM is NOT run here -- see load_to_sqlite.py's own --skip-vacuum
+docstring for why: it rewrites the whole DB file regardless of shard
+size, which would silently reintroduce the exact per-company-count cost
+scaling this sharding exists to remove. scrape_maintenance_handler.py's
+own daily run owns VACUUM now.
+
+Runs probe.py --known and loader/load_to_sqlite.py as subprocesses
+against /tmp, exactly the same two commands scrape-fast.yml already ran
+-- reusing those already-proven CLI entry points rather than
+re-implementing their logic here.
 """
 
 import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,6 +56,16 @@ from alerts import evaluate_alerts
 ROOT = Path(__file__).parent
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
+
+# ~50 companies/shard measured comfortably under a minute per invocation
+# with real network I/O to each board's own API -- see this module's own
+# docstring for why a fixed shard size (not a fixed shard COUNT) is what
+# keeps per-invocation cost flat as the company list grows.
+SHARD_SIZE = 50
+
+# Matches the EventBridge schedule below (rate(5 minutes)) -- used only
+# to pick a shard from wall-clock time, not to enforce timing itself.
+SCHEDULE_INTERVAL_S = 300
 
 
 def _write_status(s3, phase: str, detail: str = "") -> None:
@@ -53,6 +90,22 @@ def _write_status(s3, phase: str, detail: str = "") -> None:
         print(f"status.json write failed (non-fatal): {e!r}")
 
 
+def _pick_shard(known: list) -> tuple[list, int, int]:
+    """Deterministic partition (sorted by domain, sliced into fixed-size
+    chunks) so which companies land in which shard doesn't shuffle
+    between invocations just because dict/JSON ordering changed -- only
+    NUM_SHARDS growing (as known.json grows) should ever move a company
+    to a different shard. Which shard runs THIS invocation comes from
+    wall-clock time, not the event payload, so scaling NUM_SHARDS up as
+    the company list grows needs no scheduler change.
+    """
+    ordered = sorted(known, key=lambda e: e.get("domain", ""))
+    num_shards = max(1, -(-len(ordered) // SHARD_SIZE))  # ceil division
+    shard_index = int(time.time() // SCHEDULE_INTERVAL_S) % num_shards
+    shard = ordered[shard_index * SHARD_SIZE: (shard_index + 1) * SHARD_SIZE]
+    return shard, shard_index, num_shards
+
+
 def lambda_handler(event, context):
     s3 = boto3.client("s3")
     known_path = TMP / "known.json"
@@ -67,19 +120,20 @@ def lambda_handler(event, context):
             return {"skipped": True}
         raise
 
-    known_count = len(json.loads(known_path.read_text(encoding="utf-8")))
-    _write_status(s3, "scraping", f"re-checking {known_count} known companies")
+    known = json.loads(known_path.read_text(encoding="utf-8"))
+    shard, shard_index, num_shards = _pick_shard(known)
+    shard_path = TMP / "known-shard.json"
+    shard_path.write_text(json.dumps(shard, ensure_ascii=False), encoding="utf-8")
 
-    # 200, not the original 90: known.json grew from 260 to 358+
-    # companies via the overnight Common-Crawl merge (2026-09-08), and
-    # every cycle started hitting the old 90s ceiling and erroring
-    # outright for 5.5 hours before anyone noticed. Paired with
-    # infra/variables.tf's own scrape_lambda_timeout_s bump (120->280) --
-    # see that variable's own comment for the full incident. Widening
-    # just one of the two would still leave the other as the real
-    # ceiling, so both moved together.
+    _write_status(s3, "scraping", f"re-checking shard {shard_index + 1}/{num_shards} "
+                                   f"({len(shard)} of {len(known)} known companies)")
+
+    # 200s ceiling carried over from the pre-sharding design (see git
+    # history) -- comfortably more than a ~50-company shard needs, but
+    # harmless to leave generous here since the real cost driver is
+    # memory x duration, not the ceiling itself.
     probe = subprocess.run(
-        [sys.executable, str(ROOT / "probe.py"), "--known", str(known_path), "--json"],
+        [sys.executable, str(ROOT / "probe.py"), "--known", str(shard_path), "--json"],
         capture_output=True, text=True, timeout=200,
     )
     if probe.stderr:
@@ -95,24 +149,19 @@ def lambda_handler(event, context):
     hits = [r for r in data if r.get("ats")]
     errors = [r["domain"] for r in data if r.get("error")]
     n_jobs = sum(r["job_count"] for r in hits)
-    print(f"{len(hits)}/{len(data)} re-verified, {n_jobs} jobs")
+    print(f"shard {shard_index + 1}/{num_shards}: {len(hits)}/{len(data)} re-verified, {n_jobs} jobs")
     if errors:
         print(f"{len(errors)} known boards failed to re-poll: {errors}")
 
-    # 60, not the original 25: load_to_sqlite.py now retries its whole
-    # pull-modify-push cycle on a conflicting concurrent write (see its
-    # own s3_push_conditional docstring) instead of one writer silently
-    # clobbering the other -- each full cycle measured ~6s in practice,
-    # so 25s left room for barely more than one retry. A
-    # subprocess.TimeoutExpired here isn't caught anywhere below --
-    # exactly the failure mode that caused the original Workday outage
-    # (see WORKDAY_MAX_JOBS's own comment in probe.py) -- so this needs
-    # real headroom for a legitimate retry, not just the happy path.
+    # --skip-vacuum: see this module's own docstring and
+    # load_to_sqlite.py's --skip-vacuum docstring for why VACUUM moved
+    # to scrape_maintenance_handler.py's own daily run instead of
+    # happening on every ~5-minute shard cycle.
     _write_status(s3, "loading", f"writing {n_jobs} jobs to jobs.db")
     load = subprocess.run(
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
          "--resolved", str(resolved_path), "--out", str(TMP / "jobs.db"),
-         "--bucket", BUCKET, "--key", "jobs.db"],
+         "--bucket", BUCKET, "--key", "jobs.db", "--skip-vacuum"],
         capture_output=True, text=True, timeout=60,
     )
     # load_to_sqlite.py logs its own progress to stderr, not stdout.
@@ -126,11 +175,18 @@ def lambda_handler(event, context):
     # evaluate_alerts() reads it directly, no separate download. Alert
     # failures are caught and reported inside evaluate_alerts() itself
     # (one bad alert shouldn't stop the others), so nothing here needs to
-    # guard the fast-poll's own success on this step succeeding.
+    # guard the fast-poll's own success on this step succeeding. Runs
+    # against the FULL db every shard cycle, not just this shard's
+    # companies -- it's a cheap DynamoDB scan + watermark check, not a
+    # network-bound re-poll, so it isn't part of the cost problem
+    # sharding exists to solve, and alert timeliness matters more than
+    # the small saving from also sharding it.
     _write_status(s3, "sending alerts", "matching new listings against saved filters")
     alerts_result = evaluate_alerts(TMP / "jobs.db")
     if alerts_result.get("errors"):
         print(f"alert evaluation errors: {alerts_result['errors']}")
 
-    _write_status(s3, "idle", f"last run: {len(hits)}/{len(hits) + len(errors)} companies, {n_jobs} jobs")
-    return {"hits": len(hits), "errors": len(errors), "jobs": n_jobs, "alerts": alerts_result}
+    _write_status(s3, "idle", f"last run: shard {shard_index + 1}/{num_shards}, "
+                              f"{len(hits)}/{len(hits) + len(errors)} companies, {n_jobs} jobs")
+    return {"shard": shard_index, "num_shards": num_shards, "hits": len(hits),
+            "errors": len(errors), "jobs": n_jobs, "alerts": alerts_result}

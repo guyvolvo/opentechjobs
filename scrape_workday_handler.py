@@ -100,11 +100,13 @@ def lambda_handler(event, context):
     _write_status(s3, "loading", f"writing {n_jobs} Workday jobs to jobs.db")
     # 60, matching scrape_handler.py's own loader timeout -- see that
     # file's comment on why 25 wasn't enough headroom for a real
-    # conditional-write retry.
+    # conditional-write retry. --skip-vacuum for the same reason
+    # scrape_handler.py's own shard cycle passes it now:
+    # scrape_maintenance_handler.py owns VACUUM once a day instead.
     load = subprocess.run(
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
          "--resolved", str(resolved_path), "--out", str(TMP / "jobs.db"),
-         "--bucket", BUCKET, "--key", "jobs.db"],
+         "--bucket", BUCKET, "--key", "jobs.db", "--skip-vacuum"],
         capture_output=True, text=True, timeout=60,
     )
     if load.stderr:

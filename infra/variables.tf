@@ -64,16 +64,40 @@ variable "lambda_timeout_s" {
   description = "Was 10. Bumped to 25, not higher: API Gateway v2 (HTTP API, see infra/apigateway.tf) has a hard 29-30s integration timeout that Terraform can't raise -- a Lambda timeout past that ceiling would just mean API Gateway itself cuts the request instead, no better outcome. If real query duration keeps growing past this as the merge queue keeps landing, the fix is making /api/stats' own aggregates cheaper (pre-computed, not live on every request), not another timeout bump into a wall that doesn't move."
 }
 
-variable "scrape_lambda_memory_mb" {
+variable "scrape_fast_memory_mb" {
   type        = number
-  default     = 3008
-  description = "The scrape-fast Lambda re-polls every known board and upserts into a growing SQLite DB, heavier than the read-only API Lambda's workload. Bumped 512->1024 once already (a run measured 510/512MB used, Comeet's re-poll upserting a 100MB+ jobs.db); 1024->2048 on 2026-09-08 after the same overnight company-count growth pushed a real run to Runtime.OutOfMemory at 1024MB. Tried 2048->4096 the same day given a real run at 358 known companies already measured 1367-1384MB (67% of 2048) with the discovery pipeline (discover-companies.yml + merge-discovered-companies.yml, now running continuously rather than a one-time batch) projected to more than double that count -- rejected live: il-central-1 (or this account) caps Lambda MemorySize at 3008MB regardless of the usual 10,240MB ceiling (confirmed via a real UpdateFunctionConfiguration ValidationException, not documentation), so 3008 is the actual ceiling available, not a choice. If real Duration/memory usage climbs close to this as the queue keeps draining, the next lever is a Service Quotas increase request for this limit, not another number here. Lambda's network throughput scales with memory too, so this also helps the timeout margin below, not just safety. Shared with scrape_workday_lambda.tf's own function -- that one only handles a dozen companies and was nowhere near either wall, so this is more headroom than it strictly needs, but not worth a second variable just to avoid over-provisioning a Lambda this cheap to run either way."
+  default     = 1024
+  description = "Re-sharded 2026-09-08 (see scrape_handler.py's own docstring): this Lambda used to re-poll ALL known companies every 5 minutes, and its memory (512->1024->2048->3008MB over one incident) kept chasing that growing full-DB footprint, on a trajectory toward $30-50+/month as the now-continuously-refilling discovery pipeline kept adding companies -- a real user budget ceiling (<$5/month, all AWS services combined) made 'keep raising the ceiling' unworkable. Sharding into fixed ~50-company batches (SHARD_SIZE) and moving VACUUM out to scrape_maintenance_handler.py decouples this Lambda's per-invocation cost from total company count, so 1024MB is real headroom above what a single small shard needs, not a number chasing yesterday's OOM. Verify against real CloudWatch Max Memory Used after the first few live shard cycles rather than trusting this blind."
 }
 
-variable "scrape_lambda_timeout_s" {
+variable "scrape_fast_timeout_s" {
   type        = number
-  default     = 400
-  description = "Ceiling for probe.py --known (all boards, in parallel) plus the SQLite upsert. Was 120 until 2026-09-08: the overnight Common-Crawl merge grew known.json from 260 to 358+ companies, and every fast-poll cycle started hitting probe.py's own 90s subprocess timeout and erroring outright for 5.5 hours straight before anyone noticed -- the SAME failure shape as the 2026-09-05 incident this comment already used to warn about, just from company-count growth instead of Workday's per-job detail fetches. Bumped 280->400 the same day alongside the memory variable above: company discovery is now a standing, continuously-running pipeline (discover-companies.yml refills the queue daily, merge-discovered-companies.yml drains it every 10 minutes) rather than a one-time overnight batch, so the company count keeps climbing indefinitely rather than leveling off at some known final number -- watch actual Duration in CloudWatch periodically rather than treating any fixed number here as permanent. This project has now hit this exact wall twice already from undersizing for growth that was already in motion."
+  default     = 120
+  description = "Ceiling for probe.py --known against ONE shard (~50 companies, see SHARD_SIZE) plus the no-vacuum SQLite upsert -- comfortably more than a shard this size needs (a 358-company full run measured well under 90s before sharding even existed), left generous because the real cost driver is memory x duration, not this ceiling."
+}
+
+variable "scrape_workday_memory_mb" {
+  type        = number
+  default     = 1024
+  description = "Workday's dedicated Lambda (see scrape_workday_lambda.tf) handles a small, hand-pinned company set (companies.yml), not the general discovery-fed list, so its size doesn't grow with the same driver scrape_fast's sharding exists to tame. A real run measured 760-764MB used with VACUUM included; --skip-vacuum (2026-09-08, moved to scrape_maintenance_handler.py) should only lower that further, so 1024MB is real margin above a number that was already comfortable."
+}
+
+variable "scrape_workday_timeout_s" {
+  type        = number
+  default     = 120
+  description = "A real run measured 51-55s with VACUUM included; --skip-vacuum should only shorten that. 120s is margin, not a number chasing a measured failure."
+}
+
+variable "scrape_maintenance_memory_mb" {
+  type        = number
+  default     = 3008
+  description = "Once-daily VACUUM pass (scrape_maintenance_handler.py) against the full jobs.db -- the one place VACUUM still runs at all, after 2026-09-08 moved it out of both frequent re-poll cycles to stop paying its whole-file-rewrite cost on every 5-20 minute cycle. Generous on purpose: at 30 invocations/month this is a rounding error in the monthly GB-second budget regardless of how high this number is, so there's no reason to right-size it as tightly as the frequent Lambdas above -- better to have real headroom for a growing jobs.db than to relearn the OOM/disk-full lessons from earlier the same day."
+}
+
+variable "scrape_maintenance_timeout_s" {
+  type        = number
+  default     = 240
+  description = "Generous for the same reason as the memory variable above -- once a day, cost-negligible regardless, no benefit to cutting this close."
 }
 
 variable "domain_name" {

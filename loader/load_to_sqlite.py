@@ -619,6 +619,13 @@ def main() -> int:
                      help="demote any resolved company whose domain isn't in this run's --resolved data "
                           "(see prune_stale_companies) -- only correct for a full --batch domains.txt run, "
                           "never for --known's own partial re-poll, so scrape-fast.yml must never pass this")
+    ap.add_argument("--skip-vacuum", action="store_true",
+                     help="scrape_handler.py's sharded re-poll passes this: VACUUM rewrites the WHOLE DB file "
+                          "regardless of how few rows this run touched, so paying that cost on every ~5-minute "
+                          "shard cycle scales with total jobs.db size, not shard size -- the exact growth this "
+                          "sharding exists to avoid. scrape_maintenance_handler.py's own daily, --resolved-less "
+                          "run is where VACUUM actually happens now; every other caller (scrape-discover.yml's "
+                          "full batch, merge_discovered_batch.py) keeps vacuuming every run, unchanged.")
     args = ap.parse_args()
 
     # See s3_push_conditional's own docstring for why this is a retry
@@ -656,7 +663,8 @@ def main() -> int:
 
         known_out = args.known_out or args.out.with_name("known.json")
         n_known = export_known(conn, known_out)
-        conn.execute("VACUUM")
+        if not args.skip_vacuum:
+            conn.execute("VACUUM")
         conn.close()
 
         print(f"wrote {args.out} ({args.out.stat().st_size} bytes)", file=sys.stderr)

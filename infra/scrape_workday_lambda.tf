@@ -62,17 +62,17 @@ resource "aws_lambda_function" "scrape_workday" {
   runtime          = "python3.13"
   filename         = data.archive_file.scrape_workday.output_path
   source_code_hash = data.archive_file.scrape_workday.output_base64sha256
-  memory_size      = var.scrape_lambda_memory_mb
-  timeout          = var.scrape_lambda_timeout_s
+  memory_size      = var.scrape_workday_memory_mb
+  timeout          = var.scrape_workday_timeout_s
 
-  # Same fix, same reason as scrape_fast's own ephemeral_storage block --
-  # this Lambda runs the exact same loader/load_to_sqlite.py against the
-  # exact same, exact-same-size jobs.db, so it would hit the identical
-  # VACUUM-out-of-disk-space failure the day it happened to run while
-  # /tmp was tight, just less often (12 companies vs. the fast-poll's
-  # 300+, so proportionally rarer, not impossible).
+  # 1024, not 3008: this Lambda's own loader call passes --skip-vacuum
+  # since 2026-09-08 (same reasoning as scrape_fast's own ephemeral
+  # storage comment -- VACUUM's ~2x-DB-size scratch need doesn't apply
+  # here anymore, scrape_maintenance_handler.py owns it now), so this
+  # only ever needs to hold the downloaded jobs.db plus a modest
+  # journal/WAL overhead for a dozen companies' worth of upserts.
   ephemeral_storage {
-    size = 3008
+    size = 1024
   }
 
   environment {
@@ -99,9 +99,17 @@ resource "aws_cloudwatch_log_group" "scrape_workday_lambda" {
 }
 
 resource "aws_cloudwatch_event_rule" "scrape_workday_schedule" {
-  name                = "${var.project_name}-scrape-workday-schedule"
-  description         = "Fires the Workday-only fast re-poll Lambda every 5 minutes"
-  schedule_expression = "rate(5 minutes)"
+  name        = "${var.project_name}-scrape-workday-schedule"
+  description = "Fires the Workday-only fast re-poll Lambda"
+  # Was 5 minutes. Loosened to 20 on 2026-09-08 as part of getting this
+  # project's whole AWS bill under a hard <$5/month ceiling -- unlike
+  # scrape_fast, this function isn't sharded (its company set is small
+  # and hand-pinned, not the thing driving unbounded growth), so its
+  # only cost lever is frequency. 20 minutes still catches a "posted
+  # today" transition to a real date same-day, just not within minutes
+  # of it happening -- an acceptable trade for a company set this small
+  # and non-time-critical.
+  schedule_expression = "rate(20 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_workday_schedule" {
