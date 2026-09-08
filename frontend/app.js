@@ -642,7 +642,7 @@ function renderPanels(stats) {
       ${renderBarList(stats.top_departments, "department")}
     </div>
     <div class="panel">
-      <div class="panel-title">Seniority (of Postings That State One)</div>
+      <div class="panel-title">Seniority Spread</div>
       ${renderBarList(
         stats.seniority_breakdown.map((r) => ({ seniority: SENIORITY_LABELS[r.seniority] || r.seniority, n: r.n })),
         "seniority"
