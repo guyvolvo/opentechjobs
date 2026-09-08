@@ -46,6 +46,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -131,6 +132,41 @@ def load_already_tracked(ats: str) -> set[str]:
         return set()
 
 
+_TRAILING_NUM_RE = re.compile(r"-?\d+$")
+
+# In rough order of how often a real company actually lands on one:
+# .com overwhelmingly first, then the handful of TLDs that turned up
+# repeatedly researching the ones plain .com got wrong (2026-09-08).
+_DOMAIN_GUESS_TLDS = ["com", "io", "ai", "co", "net", "org", "de", "fr"]
+
+
+def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
+    """Best real domain for `token`, verified via a live HEAD request,
+    not just assumed. Confirmed live (2026-09-08): plain "{token}.com"
+    alone was wrong for 39 of 160 companies merged in one batch --
+    mostly enterprise ATS tenant slugs (Workday/Greenhouse disambiguate
+    multiple business units under one company with a trailing number,
+    e.g. "deloitte6", "aecom2", neither ever meant to be read as a
+    domain). Strips a trailing -N/N suffix and tries a short list of
+    common TLDs, stopping at the first one that actually resolves.
+    Falls back to the plain unverified "{token}.com" guess if nothing
+    else works, same as before this existed -- a genuinely new/small
+    company's board should still get queued for a human glance rather
+    than dropped outright just because none of these guesses landed.
+    """
+    stems = dict.fromkeys([token, _TRAILING_NUM_RE.sub("", token)])
+    for stem in stems:
+        for tld in _DOMAIN_GUESS_TLDS:
+            candidate = f"{stem}.{tld}"
+            try:
+                r = sess.head(f"https://{candidate}", timeout=5, allow_redirects=True)
+                if r.status_code < 400:
+                    return candidate, True
+            except requests.RequestException:
+                continue
+    return f"{token}.com", False
+
+
 def verify_candidate(sess: requests.Session, ats: str, token: str) -> dict | None:
     if (ats, token) in KNOWN_FALSE_POSITIVES:
         return None
@@ -140,13 +176,7 @@ def verify_candidate(sess: requests.Session, ats: str, token: str) -> dict | Non
         return None
     if not jobs:
         return None
-    guessed_domain = f"{token}.com"
-    domain_verified = False
-    try:
-        r = sess.head(f"https://{guessed_domain}", timeout=5, allow_redirects=True)
-        domain_verified = r.status_code < 400
-    except requests.RequestException:
-        pass
+    guessed_domain, domain_verified = _guess_domain(token, sess)
     # Free: `jobs` is already the full list this call just fetched to
     # confirm the board is real. Counting Israel-matching locations here
     # costs nothing extra and is what lets main() rank the whole batch by

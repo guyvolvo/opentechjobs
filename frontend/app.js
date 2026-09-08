@@ -151,6 +151,61 @@ const LOGO_STAGE_OVERRIDES = {
   "duda.co": 3, // jump straight to Google's favicon service
 };
 
+// Companies whose stored domain is a wrong guess from discover_companies.py's
+// {token}.com heuristic (confirmed live 2026-09-08: 39 of the 160 companies
+// merged that night had a company_domain that doesn't resolve at all --
+// mostly enterprise ATS tenant slugs like "deloitte6" or "aecom2" that were
+// never meant to be read as a domain). Fixing the icon here rather than
+// renaming company_domain itself: several of these real domains (e.g.
+// deloitte.com) are plausibly ALREADY a separately-tracked company under
+// their own real token, so rewriting jobs.db's own domain key risks
+// conflating two genuinely different job sets under one identity. This map
+// only changes which domain the icon cascade below fetches from -- the
+// underlying company identity, apply links, and everything else stay on the
+// original (wrong) domain, same as before. See discover_companies.py's own
+// verify_candidate() for the matching pipeline-side fix that stops new
+// wrong guesses like these from being accepted in the first place.
+const LOGO_DOMAIN_OVERRIDES = {
+  "chainalysis-careers.com": "chainalysis.com",
+  "zafran-security.com": "zafran.io",
+  "chamelio.com": "chamelio.io",
+  "pointfive.com": "pointfive.ai",
+  "atbayjobs.com": "at-bay.com",
+  "couchbaseinc.com": "couchbase.com",
+  "accenturefederalservices.com": "accenturefederal.com",
+  "alten-mexico-1.com": "alten.com",
+  "avamere-skilled-advisors-llc.com": "avamere.com",
+  "abm-careers.com": "abm.com",
+  "archer56.com": "archer.com",
+  "activate-interactive-pte-ltd.com": "activateinteractive.com",
+  "addepar1.com": "addepar.com",
+  "betatechnologiesinc.com": "beta.team",
+  "asco-equipment.com": "ascoequipment.com",
+  "aecom2.com": "aecom.com",
+  "aboutyougmbh.com": "aboutyou.de",
+  "americanironandmetal.com": "aimetals.com",
+  "apf-entreprises.com": "apf-entreprises.fr",
+  "applusidiada1.com": "applusidiada.com",
+  "artemedse.com": "artemed.de",
+  "asburycommunities.com": "asbury.org",
+  "avaloq1.com": "avaloq.com",
+  "baywaag.com": "baywa.com",
+  "bertelsmann-jobs.com": "bertelsmann.com",
+  "beumergroup1.com": "beumergroup.com",
+  "cityandcountyofsanfrancisco1.com": "sf.gov",
+  "collabera2.com": "collabera.com",
+  "colliers1.com": "colliers.com",
+  "colliersinternationalemea.com": "colliers.com",
+  "contilia1.com": "contilia.com",
+  "culinagroup1.com": "culinagroup.com",
+  "deloitteat.com": "deloitte.com",
+  "deloittenordic.com": "deloitte.com",
+  "deloitte6.com": "deloitte.com",
+  "deutschetelekomitsolutionsslovakia.com": "t-systems.com",
+  "deutschetelekomitsolutions.com": "t-systems.com",
+  // cermaticom.com: no real domain found -- keeps the monogram fallback.
+};
+
 // Reported live: Overwolf's real favicon.ico is a genuine 16x16 (verified
 // via a direct curl, not assumed) with no apple-touch-icon anywhere on
 // the site either -- Google's service was never the bug there, it was
@@ -172,12 +227,16 @@ const LOGO_STAGE_OVERRIDES = {
 // recognizable, so stage 2 now renders whatever it gets, same as stage 3
 // always has.
 function companyLogoImg(domain, size, extraClass = "") {
-  const touchIcon = escapeHtml(`https://${domain}/apple-touch-icon.png`);
-  const directFavicon = escapeHtml(`https://${domain}/favicon.ico`);
-  const googleFavicon = escapeHtml(companyLogoUrl(domain, size));
+  // LOGO_DOMAIN_OVERRIDES only affects where the icon itself is fetched
+  // from -- domain (used below for the monogram initial, and by every
+  // caller for the actual company identity/apply link) stays as-is.
+  const logoDomain = LOGO_DOMAIN_OVERRIDES[domain] || domain;
+  const touchIcon = escapeHtml(`https://${logoDomain}/apple-touch-icon.png`);
+  const directFavicon = escapeHtml(`https://${logoDomain}/favicon.ico`);
+  const googleFavicon = escapeHtml(companyLogoUrl(logoDomain, size));
   const monogram = escapeHtml(monogramLogoSvg(domain));
   const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
-  const startStage = LOGO_STAGE_OVERRIDES[domain] || 1;
+  const startStage = LOGO_STAGE_OVERRIDES[logoDomain] || 1;
   const startSrc = { 1: touchIcon, 2: directFavicon, 3: googleFavicon, 4: monogram }[startStage];
   // Reported live (tomorrow.io): neither its favicon.ico nor its
   // apple-touch-icon exist, and Google's own favicon service can't find
