@@ -103,19 +103,20 @@ resource "aws_cloudwatch_log_group" "scrape_workday_lambda" {
 resource "aws_cloudwatch_event_rule" "scrape_workday_schedule" {
   name        = "${var.project_name}-scrape-workday-schedule"
   description = "Fires the Workday-only fast re-poll Lambda"
-  # Was 5, then 20 minutes the same day. Loosened again to 120: this
-  # function isn't sharded (its company set is small and hand-pinned,
-  # not the thing driving unbounded growth) and pays the SAME full
-  # jobs.db download/upload cost as scrape_fast on every invocation --
-  # confirmed live that cost scales with total DB size (795MB and
-  # growing), not this Lambda's own small workload, and this project
-  # has a hard <$5/month ceiling with no budget to exceed it even
-  # temporarily. 2 hours still catches a "posted today" transition to a
-  # real date same-day, just not within the hour of it happening -- an
-  # acceptable trade for a company set this small and non-time-critical,
-  # interim until the real fix (not re-downloading/re-uploading the
-  # whole file on every write) gets built.
-  schedule_expression = "rate(120 minutes)"
+  # Was 5, then 20, then 120 minutes the same day. Loosened again to
+  # 240 alongside turning on FETCH_FULL_DESCRIPTIONS unconditionally
+  # (see scrape_workday_handler.py's own comment -- fixes "most Workday
+  # listings have no description," at the cost of a per-job detail
+  # fetch that used to be conditional). That fix alone would have grown
+  # this Lambda's own monthly cost by roughly 2x at the old 120-minute
+  # cadence; halving the cadence again keeps the total near where it
+  # already was; the multiplicative math here (memory x duration x
+  # frequency) means a real feature fix and a real budget ceiling
+  # aren't actually in tension if frequency absorbs the difference. 4
+  # hours still catches a "posted today" transition to a real date
+  # same-day for any normal working hours, an acceptable trade for a
+  # company set this small and non-time-critical.
+  schedule_expression = "rate(240 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_workday_schedule" {

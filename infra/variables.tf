@@ -84,8 +84,8 @@ variable "scrape_workday_memory_mb" {
 
 variable "scrape_workday_timeout_s" {
   type        = number
-  default     = 120
-  description = "A real run measured 51-55s with VACUUM included; --skip-vacuum should only shorten that. 120s is margin, not a number chasing a measured failure."
+  default     = 300
+  description = "Was 120 (a real run measured 51-55s with VACUUM included). Bumped ahead of a real measurement, not chasing one: this handler now sets probe.FETCH_FULL_DESCRIPTIONS=True unconditionally (fixing 'most Workday listings have no description'), meaning every job across up to WORKDAY_MAX_JOBS=60 per pinned company now pays a per-job detail fetch that used to be conditional -- real cost even with the existing 4-way inner pool, across the ~12-18 pinned companies this Lambda processes sequentially. Watch actual CloudWatch Duration after this ships and tighten if the real number lands well under this."
 }
 
 variable "scrape_maintenance_memory_mb" {

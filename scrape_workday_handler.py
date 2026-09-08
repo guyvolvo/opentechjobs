@@ -32,6 +32,18 @@ import boto3
 
 import probe
 
+# Reported live: "most Workday listings have no description." Workday's
+# own list endpoint never has one at all -- _workday_job_detail() only
+# fills it in on a per-job detail fetch, previously gated on this same
+# flag being globally on (only scrape-discover.yml's once-daily full
+# batch sets it). This Lambda is now the exception: at 694 total open
+# Workday jobs (a real measured number, small next to SmartRecruiters'
+# 16,921) and a 120-minute schedule (see scrape_workday_lambda.tf), the
+# added per-job detail cost is affordable here specifically -- see the
+# timeout bump in infra/variables.tf's scrape_workday_timeout_s for the
+# real margin this needs.
+probe.FETCH_FULL_DESCRIPTIONS = True
+
 ROOT = Path(__file__).parent
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
