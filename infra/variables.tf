@@ -54,13 +54,14 @@ variable "github_deploy_branch" {
 
 variable "lambda_memory_mb" {
   type        = number
-  default     = 256
-  description = "SQLite reads on a ~2MB DB are light; 256MB keeps cold starts fast without paying for headroom this workload doesn't use."
+  default     = 1024
+  description = "Was 256 (\"SQLite reads on a ~2MB DB are light\") until 2026-09-08: jobs.db grew to ~197MB via the overnight Common-Crawl merge, and /api/stats' own heavy aggregates (median age, ghost-job rate, 14-day daily history) started timing out outright at 10s against a DB nearly 100x the size this Lambda was sized for. More memory also means more CPU/network allocation in Lambda, directly helping the query speed itself, not just headroom."
 }
 
 variable "lambda_timeout_s" {
-  type    = number
-  default = 10
+  type        = number
+  default     = 25
+  description = "Was 10. Bumped to 25, not higher: API Gateway v2 (HTTP API, see infra/apigateway.tf) has a hard 29-30s integration timeout that Terraform can't raise -- a Lambda timeout past that ceiling would just mean API Gateway itself cuts the request instead, no better outcome. If real query duration keeps growing past this as the merge queue keeps landing, the fix is making /api/stats' own aggregates cheaper (pre-computed, not live on every request), not another timeout bump into a wall that doesn't move."
 }
 
 variable "scrape_lambda_memory_mb" {
