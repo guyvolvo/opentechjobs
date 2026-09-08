@@ -1,0 +1,46 @@
+name: discover-companies
+
+# Keeps pending-discovery-candidates.json topped up on its own -- see
+# refresh_discovery_queue.py's own docstring for why this exists:
+# discover_companies.py originally only ever ran once, by hand
+# (2026-09-07); once that one-time batch drained, discovery would stop
+# for good with nothing left to feed merge-discovered-companies.yml.
+#
+# Daily, not more often: Common Crawl publishes a new crawl snapshot
+# roughly monthly, so running this hourly wouldn't find meaningfully
+# more than running it daily -- it would just re-check the same
+# snapshot and find nothing new most of the time. Daily is enough to
+# pick up a new snapshot promptly without wasting runs.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install requests pyyaml
+
+      - name: Refresh the discovery queue
+        run: python refresh_discovery_queue.py
+
+      - name: Commit queue changes, if any
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pending-discovery-candidates.json
+          git diff --cached --quiet && echo "nothing changed this run" && exit 0
+          git commit -m "Refresh discovery queue with newly found companies"
+          git push

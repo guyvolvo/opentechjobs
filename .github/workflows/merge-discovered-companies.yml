@@ -1,29 +1,32 @@
 name: merge-discovered-companies
 
-# Slowly merges discover_companies.py's Common-Crawl-found candidates
-# (pending-discovery-candidates.json, 640 real companies as of
-# 2026-09-07 -- see that file's own origin in discover_companies.py's
-# commit) into domains.txt over a full night instead of all at once.
+# Continuously drains pending-discovery-candidates.json (populated and
+# kept topped up by discover-companies.yml / refresh_discovery_queue.py,
+# not a one-time snapshot) into domains.txt, staged instead of all at
+# once.
 #
-# Why staged, not a single bulk merge: adding 640 companies roughly
-# doubles/triples what the fast-poll Lambda checks every 5 minutes --
-# the exact kind of growth that made Workday need its own dedicated
-# Lambda after it quietly ran the shared connection pool out of budget.
-# Every run checks the fast-poll's own most recent real CloudWatch
-# Duration first (merge_discovered_batch.py) and skips the batch
-# entirely, queue untouched, if it's already using more than 70% of its
-# 300s timeout -- a real measurement each time, not a one-off guess
-# trusted for the whole night.
+# Why staged, not a single bulk merge: adding companies wholesale grows
+# what the fast-poll Lambda checks every 5 minutes -- the exact kind of
+# growth that made Workday need its own dedicated Lambda after it
+# quietly ran the shared connection pool out of budget. Every run checks
+# the fast-poll's own most recent real CloudWatch Duration first
+# (merge_discovered_batch.py) and skips the batch entirely, queue
+# untouched, if it's already using more than 70% of its 400s timeout --
+# a real measurement each time, not a one-off guess trusted indefinitely.
 #
-# 40 companies every 30 minutes, safety check permitting -- 640 / 40 = 16
-# batches, 16 * 30min = 8 hours. Safe to leave the schedule running past
-# that: an empty queue makes every subsequent run a no-op (see the
-# script's own early exit), not an error, so there's no need to
-# separately remember to disable this.
+# Tightened from */30 to */10 on 2026-09-08 now that the fast-poll has
+# real proven headroom (2048->4096MB, 280->400s -- see
+# infra/variables.tf's scrape_lambda_memory_mb/scrape_lambda_timeout_s)
+# and BATCH_SIZE doubled 40->80: this doesn't merge any faster than the
+# budget check above allows, it just checks more often, so a healthy
+# fast-poll drains the queue sooner instead of waiting out an idle 30
+# minutes it didn't need. Safe to run indefinitely, queue never dry for
+# long: discover-companies.yml refills it daily, and an empty queue
+# makes every run a no-op (see the script's own early exit), not an error.
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -62,5 +65,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add domains.txt pending-discovery-candidates.json
           git diff --cached --quiet && echo "nothing changed this run" && exit 0
-          git commit -m "Merge one overnight batch of Common-Crawl-discovered companies"
+          git commit -m "Merge one batch of discovered companies"
           git push

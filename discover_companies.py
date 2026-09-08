@@ -16,6 +16,23 @@ ones -- Snowflake, Elastic -- aren't Israel-exclusive either); Israel
 relevance stays a filter on the BOARD (israel_only=1), same as today,
 not a gate on which companies get added in the first place.
 
+Does, however, RANK candidates by it. Reported live (2026-09-08): after
+one night's worth of batches merged, the Israel-only view had barely
+moved (1,174 -> still ~1,174) even though the DB's total open-job count
+had grown by thousands -- Common Crawl finds real boards anywhere on
+the open web, with no location signal in the URL pattern itself, so a
+FIFO queue of "whatever Common Crawl happened to return" merges mostly
+non-Israeli companies first purely by chance. verify_candidate() already
+fetches each candidate's full job list to confirm it's real; counting
+how many of those jobs carry an Israel-matching location (IL_KEYWORDS,
+the exact list api/job_filters.py's israel_only filter already uses,
+imported rather than duplicated so the two never drift apart) costs
+nothing extra -- no new API calls, no location-targeted search step, no
+manual work. Sorting the output by that count means every future batch
+merge_discovered_batch.py pops off the front of the queue is
+Israel-heaviest first, entirely inside the existing unattended cron --
+not a parallel manual process to keep running by hand.
+
 Never auto-merges into domains.txt -- outputs verified candidates for
 review, same discipline as every hand-verified companies.yml pin in
 this project. A guessed domain ({token}.com) resolving to a real
@@ -30,13 +47,15 @@ Usage:
 import argparse
 import json
 import sys
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import requests
 
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent / "api"))
 from probe import EMBED_ATS_PATTERNS, FETCHERS, KNOWN_FALSE_POSITIVES, UA
+from job_filters import IL_KEYWORDS
 
 CC_INDEX = "https://index.commoncrawl.org/CC-MAIN-2026-34-index"
 
@@ -128,10 +147,19 @@ def verify_candidate(sess: requests.Session, ats: str, token: str) -> dict | Non
         domain_verified = r.status_code < 400
     except requests.RequestException:
         pass
+    # Free: `jobs` is already the full list this call just fetched to
+    # confirm the board is real. Counting Israel-matching locations here
+    # costs nothing extra and is what lets main() rank the whole batch by
+    # Israel relevance instead of merging in whatever order Common Crawl
+    # happened to return.
+    israel_job_count = sum(
+        1 for j in jobs if j.location and any(kw in j.location.lower() for kw in IL_KEYWORDS)
+    )
     return {
         "ats": ats,
         "token": token,
         "job_count": len(jobs),
+        "israel_job_count": israel_job_count,
         "guessed_domain": guessed_domain,
         "domain_verified": domain_verified,
         "sample_titles": [j.title for j in jobs[:3]],
@@ -139,6 +167,15 @@ def verify_candidate(sess: requests.Session, ats: str, token: str) -> dict | Non
 
 
 def main() -> int:
+    # Same reconfigure probe.py's own main() does -- a job title can
+    # carry any real unicode (an em-dash, a curly quote, a non-Latin
+    # name), and Windows' default console codec isn't UTF-8. Reported
+    # live: a full 400-candidate run completed all its real work, then
+    # crashed on the final print, losing every result to a
+    # UnicodeEncodeError that had nothing to do with the data itself.
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ats", required=True, choices=sorted(CC_URL_PATTERNS), help="which ATS to search")
     ap.add_argument("--max-pages", type=int, default=3, help="Common Crawl CDX pages to fetch")
@@ -158,25 +195,42 @@ def main() -> int:
     new_tokens = sorted(tokens - known)
     print(f"  {len(new_tokens)} genuinely new candidates to verify", file=sys.stderr)
 
-    sess = requests.Session()
-    sess.headers.update({"User-Agent": UA})
+    # I/O-bound (waiting on each candidate's own ATS API + a domain HEAD
+    # check), same reasoning as probe.py's own WORKERS -- concurrency
+    # buys real wall-clock time for free. A fresh Session per worker
+    # (not one shared across threads issuing the domain-guess HEAD
+    # requests) avoids connection-pool contention at this width.
     results = []
     to_check = new_tokens[: args.verify_limit]
-    for i, token in enumerate(to_check):
-        if i and i % 20 == 0:
-            print(f"  verified {i}/{len(to_check)}...", file=sys.stderr)
-        r = verify_candidate(sess, args.ats, token)
-        if r:
-            results.append(r)
-        time.sleep(0.1)
+    done = 0
+
+    def _verify(token: str):
+        sess = requests.Session()
+        sess.headers.update({"User-Agent": UA})
+        return verify_candidate(sess, args.ats, token)
+
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        futures = {pool.submit(_verify, token): token for token in to_check}
+        for fut in as_completed(futures):
+            done += 1
+            if done % 50 == 0:
+                print(f"  verified {done}/{len(to_check)}...", file=sys.stderr)
+            r = fut.result()
+            if r:
+                results.append(r)
 
     print(f"{len(results)} verified real boards with open jobs, out of {len(to_check)} checked", file=sys.stderr)
+    # Israel-heaviest first -- see this module's own docstring for why:
+    # this is the whole fix for the merge queue draining mostly-non-Israeli
+    # companies first, and it's just a sort, not a new discovery step.
+    results.sort(key=lambda r: (-r["israel_job_count"], -r["job_count"]))
     if args.json:
         print(json.dumps(results, indent=2, ensure_ascii=False))
     else:
-        for r in sorted(results, key=lambda r: -r["job_count"]):
+        for r in results:
             mark = "OK" if r["domain_verified"] else "? "
-            print(f"  [{mark}] {r['ats']}:{r['token']:<30} {r['job_count']:>4} jobs  -> {r['guessed_domain']}")
+            print(f"  [{mark}] {r['ats']}:{r['token']:<30} {r['job_count']:>4} jobs "
+                  f"({r['israel_job_count']} IL)  -> {r['guessed_domain']}")
     return 0
 
 

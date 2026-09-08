@@ -35,9 +35,9 @@ ROOT = Path(__file__).parent
 QUEUE_PATH = ROOT / "pending-discovery-candidates.json"
 DOMAINS_PATH = ROOT / "domains.txt"
 
-BATCH_SIZE = 40
-BUDGET_FRACTION = 0.7  # don't merge more if the fast-poll is already using >70% of its 300s budget
-FAST_POLL_TIMEOUT_S = 300
+BATCH_SIZE = 80  # was 40; doubled 2026-09-08 alongside the fast-poll's own memory/timeout bump, now that a real run has proven headroom (68% memory, 31% time) at the pre-bump scale
+BUDGET_FRACTION = 0.7  # don't merge more if the fast-poll is already using >70% of its budget
+FAST_POLL_TIMEOUT_S = 400  # matches infra/variables.tf's scrape_lambda_timeout_s
 LOG_GROUP = "/aws/lambda/iljobs-scrape-fast"
 
 
