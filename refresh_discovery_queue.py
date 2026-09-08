@@ -19,6 +19,26 @@ discover_companies.py's own docstring for why that sort exists. A
 fresh, more Israel-relevant candidate found today can jump ahead of an
 already-queued but Israel-irrelevant one from a previous run, not just
 get appended to the back and wait its turn.
+
+Per-ats limits below reflect each platform's REAL available pool in
+Common Crawl, measured live (2026-09-08), not a flat guess:
+greenhouse ~1,784 unique tokens, ashby ~2,758, workable ~1,802,
+smartrecruiters ~585 -- all previously left almost entirely unchecked
+at the old flat 300/ats limit. Since verify_candidate() already scores
+Israel relevance on every candidate it checks (no extra cost), simply
+checking a much larger slice of an already-free, already-automated
+source finds more real Israel-relevant companies without needing a
+paid search API at all.
+
+lever excluded entirely: confirmed live via jobs.lever.co/robots.txt --
+`User-agent: CCBot / Disallow: /` blocks Common Crawl's own crawler
+outright, so its index has essentially nothing for this host (62 URLs
+across 10 pages, all robots.txt itself, zero real job-board captures).
+Not a bug on this side to fix -- Lever's own robots.txt opts out of
+Common Crawl specifically. The only way to find new Lever-hosted
+companies is a real search engine's own index (a manual web search
+found several live 2026-09-08), which this pipeline doesn't have
+automated access to.
 """
 
 import json
@@ -28,7 +48,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 QUEUE_PATH = ROOT / "pending-discovery-candidates.json"
-ATS_TYPES = ["greenhouse", "lever", "ashby", "workable", "smartrecruiters"]
+
+# (max_pages, verify_limit) per ats -- see this module's own docstring
+# for where these numbers come from.
+ATS_LIMITS = {
+    "greenhouse": (30, 1800),
+    "ashby": (30, 2800),
+    "workable": (20, 1800),
+    "smartrecruiters": (20, 600),
+}
 
 
 def main() -> int:
@@ -39,12 +67,12 @@ def main() -> int:
     seen = {(c["ats"], c["token"]) for c in queue}
     added = 0
 
-    for ats in ATS_TYPES:
-        print(f"discovering {ats}...", file=sys.stderr)
+    for ats, (max_pages, verify_limit) in ATS_LIMITS.items():
+        print(f"discovering {ats} (max-pages={max_pages}, verify-limit={verify_limit})...", file=sys.stderr)
         proc = subprocess.run(
             [sys.executable, str(ROOT / "discover_companies.py"), "--ats", ats,
-             "--max-pages", "5", "--verify-limit", "300", "--json"],
-            capture_output=True, text=True, timeout=900,
+             "--max-pages", str(max_pages), "--verify-limit", str(verify_limit), "--json"],
+            capture_output=True, text=True, timeout=3600,
         )
         if proc.stderr:
             print(proc.stderr, file=sys.stderr)
