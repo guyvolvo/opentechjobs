@@ -65,14 +65,16 @@ resource "aws_lambda_function" "scrape_workday" {
   memory_size      = var.scrape_workday_memory_mb
   timeout          = var.scrape_workday_timeout_s
 
-  # 1024, not 3008: this Lambda's own loader call passes --skip-vacuum
-  # since 2026-09-08 (same reasoning as scrape_fast's own ephemeral
-  # storage comment -- VACUUM's ~2x-DB-size scratch need doesn't apply
-  # here anymore, scrape_maintenance_handler.py owns it now), so this
-  # only ever needs to hold the downloaded jobs.db plus a modest
-  # journal/WAL overhead for a dozen companies' worth of upserts.
+  # Was 1024 the same day: reasoned that skipping VACUUM (no more
+  # ~2x-DB-size scratch need) meant this only had to hold the
+  # downloaded jobs.db itself -- true, but jobs.db passed 795MB a few
+  # hours later, leaving under 230MB of real margin for everything
+  # else in /tmp. Bumped to 3008 (this Lambda's own OOM was the
+  # memory ceiling, not ephemeral storage, but both were sized against
+  # the same now-stale assumption -- fixing one without the other just
+  # moves the next wall here instead).
   ephemeral_storage {
-    size = 1024
+    size = 3008
   }
 
   environment {

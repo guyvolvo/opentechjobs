@@ -78,8 +78,8 @@ variable "scrape_fast_timeout_s" {
 
 variable "scrape_workday_memory_mb" {
   type        = number
-  default     = 1024
-  description = "Workday's dedicated Lambda (see scrape_workday_lambda.tf) handles a small, hand-pinned company set (companies.yml), not the general discovery-fed list, so its size doesn't grow with the same driver scrape_fast's sharding exists to tame. A real run measured 760-764MB used with VACUUM included; --skip-vacuum (2026-09-08, moved to scrape_maintenance_handler.py) should only lower that further, so 1024MB is real margin above a number that was already comfortable."
+  default     = 3008
+  description = "Workday's dedicated Lambda handles a small, hand-pinned company set (companies.yml), but load_to_sqlite.py's own pull-modify-push cycle still downloads and opens the FULL, ever-growing jobs.db regardless of how few rows this run touches -- unlike scrape_fast, sharding this Lambda wouldn't help, since the memory pressure comes from total DB size, not company count. Confirmed live (2026-09-08): jobs.db passed 795MB and this Lambda started hitting Runtime.OutOfMemory outright at the 1024MB this variable used to be (which had been sized against a real measurement of 760-764MB against a much smaller DB, already stale by the time it mattered). 3008MB, the account's real Lambda memory ceiling (see scrape_fast_memory_mb's own history for how that number was found), not a guess at how much further this specific number will need to grow -- this Lambda has no sharding to decouple it from that growth, so watch it again."
 }
 
 variable "scrape_workday_timeout_s" {
