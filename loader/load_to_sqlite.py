@@ -30,6 +30,17 @@ from pathlib import Path
 
 SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
 
+# Stamped via PRAGMA user_version on every DB this loader writes (see
+# open_db). Partition & Merge's own merge step (loader/merge_partitions.py)
+# reads this back before touching a partition file's rows -- a mismatch
+# means that partition was written by a loader version whose schema this
+# merge code doesn't know how to trust (a column added/renamed/dropped
+# since), and the safe move is to skip that one partition and alert, not
+# crash the whole merge or silently merge mismatched rows. Bump this any
+# time schema.sql or _NEW_COLUMNS changes in a way old readers couldn't
+# handle.
+SCHEMA_VERSION = 1
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -49,6 +60,12 @@ def open_db(path: Path) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
     _migrate(conn)
+    # See SCHEMA_VERSION's own comment. Stamped unconditionally on every
+    # open, not just a fresh DB, so an existing jobs.db built before this
+    # existed picks up the current version the next time anything writes
+    # to it -- there's no meaningful "old" version to preserve, only "not
+    # stamped yet."
+    conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
     return conn
 
 

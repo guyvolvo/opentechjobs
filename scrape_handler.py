@@ -44,7 +44,6 @@ import json
 import os
 import subprocess
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -52,16 +51,11 @@ import boto3
 from botocore.exceptions import ClientError
 
 from alerts import evaluate_alerts
+from sharding import SHARD_SIZE, current_shard_index, num_shards_for, ordered_domains
 
 ROOT = Path(__file__).parent
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
-
-# ~50 companies/shard measured comfortably under a minute per invocation
-# with real network I/O to each board's own API -- see this module's own
-# docstring for why a fixed shard size (not a fixed shard COUNT) is what
-# keeps per-invocation cost flat as the company list grows.
-SHARD_SIZE = 50
 
 # Matches the EventBridge schedule below (rate(5 minutes)) -- used only
 # to pick a shard from wall-clock time, not to enforce timing itself.
@@ -91,18 +85,18 @@ def _write_status(s3, phase: str, detail: str = "") -> None:
 
 
 def _pick_shard(known: list) -> tuple[list, int, int]:
-    """Deterministic partition (sorted by domain, sliced into fixed-size
-    chunks) so which companies land in which shard doesn't shuffle
-    between invocations just because dict/JSON ordering changed -- only
-    NUM_SHARDS growing (as known.json grows) should ever move a company
-    to a different shard. Which shard runs THIS invocation comes from
-    wall-clock time, not the event payload, so scaling NUM_SHARDS up as
-    the company list grows needs no scheduler change.
+    """Which shard runs THIS invocation. The domain -> shard assignment
+    itself now lives in sharding.py, shared with loader/merge_partitions.py
+    -- see that module's own docstring for why the two must never drift
+    apart. Only the wall-clock "which shard runs right now" part stays
+    here, since that's specific to this Lambda's own schedule.
     """
-    ordered = sorted(known, key=lambda e: e.get("domain", ""))
-    num_shards = max(1, -(-len(ordered) // SHARD_SIZE))  # ceil division
-    shard_index = int(time.time() // SCHEDULE_INTERVAL_S) % num_shards
-    shard = ordered[shard_index * SHARD_SIZE: (shard_index + 1) * SHARD_SIZE]
+    by_domain = {e.get("domain", ""): e for e in known}
+    domains = ordered_domains(known)
+    num_shards = num_shards_for(len(domains))
+    shard_index = current_shard_index(num_shards, SCHEDULE_INTERVAL_S)
+    shard_domains = domains[shard_index * SHARD_SIZE: (shard_index + 1) * SHARD_SIZE]
+    shard = [by_domain[d] for d in shard_domains]
     return shard, shard_index, num_shards
 
 
