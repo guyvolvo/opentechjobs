@@ -914,7 +914,17 @@ const JOBS_CACHE_PREFIX = "iljobs_jobs_cache:";
 function getCachedJobs(params) {
   try {
     const raw = localStorage.getItem(JOBS_CACHE_PREFIX + params);
-    return raw ? JSON.parse(raw) : null;
+    const parsed = raw ? JSON.parse(raw) : null;
+    // An empty cached result is treated as a miss, never rendered.
+    // Reported live: the board showed "No listings match these filters"
+    // with no filters set and 109,878 jobs available, because a single
+    // empty response had been cached at some point and the cache-first
+    // path renders whatever it finds. A stale result with jobs in it is
+    // useful while the real one loads; a stale EMPTY one tells the user
+    // something false and looks identical to a broken board. It also
+    // outlives the transient that produced it forever, since nothing
+    // ever overwrites it until a fetch succeeds. Skeletons instead.
+    return parsed && Array.isArray(parsed.jobs) && parsed.jobs.length ? parsed : null;
   } catch {
     return null;
   }
@@ -922,6 +932,10 @@ function getCachedJobs(params) {
 
 function setCachedJobs(params, data) {
   try {
+    // Same reasoning as getCachedJobs: never persist an empty result.
+    // A genuine no-match is cheap to re-ask for and must not be able to
+    // survive as a false "the board is empty" on the next visit.
+    if (!data || !Array.isArray(data.jobs) || !data.jobs.length) return;
     localStorage.setItem(JOBS_CACHE_PREFIX + params, JSON.stringify(data));
   } catch {
     // Full quota or unavailable (private browsing) -- this is a pure UX
@@ -1988,7 +2002,32 @@ async function _loadTicker() {
 // stats (top_departments/top_locations) instead of a duplicate fetch.
 let latestStats = null;
 
+const STATS_CACHE_KEY = "iljobs_stats_cache";
+
+function getCachedStats() {
+  try {
+    const raw = localStorage.getItem(STATS_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && parsed.totals ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 async function refreshStats() {
+  // Cache-first, matching the job list. Without this the Statistics
+  // column sat on skeletons for the whole request on every single visit,
+  // even though /api/stats changes at most once an hour (the merge) and
+  // the previous answer is almost always still correct. The request
+  // still always runs and silently replaces this.
+  const cachedStats = getCachedStats();
+  if (cachedStats) {
+    latestStats = cachedStats;
+    renderMetrics(cachedStats);
+    renderPanels(cachedStats);
+  }
+
+  setLoadBar(true);
   try {
     const stats = await getJSON("/stats");
     latestStats = stats;
@@ -1996,10 +2035,21 @@ async function refreshStats() {
     renderPanels(stats);
     refreshFacetOptions();
     populateAlertFilterOptions();
+    try {
+      localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(stats));
+    } catch {
+      // Quota or private browsing. Purely a speed-up, never load-bearing.
+    }
   } catch (err) {
-    const msg = `<div class="error-state" style="grid-column:1/-1">Could not load /api/stats: ${escapeHtml(err.message)}</div>`;
-    document.getElementById("metrics-grid").innerHTML = msg;
-    document.getElementById("panel-grid").innerHTML = msg;
+    // Don't bury a perfectly good cached dashboard under an error banner
+    // over one failed refresh.
+    if (!cachedStats) {
+      const msg = `<div class="error-state" style="grid-column:1/-1">Could not load /api/stats: ${escapeHtml(err.message)}</div>`;
+      document.getElementById("metrics-grid").innerHTML = msg;
+      document.getElementById("panel-grid").innerHTML = msg;
+    }
+  } finally {
+    setLoadBar(false);
   }
 }
 
