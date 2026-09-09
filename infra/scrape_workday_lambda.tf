@@ -48,6 +48,9 @@ resource "aws_iam_role_policy" "scrape_workday_lambda" {
           "${aws_s3_bucket.data.arn}/jobs.db",
           "${aws_s3_bucket.data.arn}/jobs-partition-*",
           "${aws_s3_bucket.data.arn}/status.json",
+          # descriptions/*: written by load_to_sqlite.py when a job's
+          # description is new or changed (loader/descriptions.py).
+          "${aws_s3_bucket.data.arn}/descriptions/*",
         ]
       },
       {

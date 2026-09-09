@@ -52,6 +52,9 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
           # see scrape_handler.py's _write_status. Best-effort, never
           # allowed to fail the actual run, but still needs write access.
           "${aws_s3_bucket.data.arn}/status.json",
+          # descriptions/*: written by load_to_sqlite.py when a job's
+          # description is new or changed (loader/descriptions.py).
+          "${aws_s3_bucket.data.arn}/descriptions/*",
         ]
       },
       {

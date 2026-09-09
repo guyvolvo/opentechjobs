@@ -23,10 +23,13 @@ Dependencies: none beyond stdlib for local use. boto3 only if --bucket is given.
 import argparse
 import hashlib
 import json
+import os
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+from descriptions import description_sha, put_many
 
 SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
 
@@ -40,6 +43,13 @@ SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
 # time schema.sql or _NEW_COLUMNS changes in a way old readers couldn't
 # handle.
 SCHEMA_VERSION = 1
+
+# Where description blobs go (loader/descriptions.py). Read from the
+# environment rather than passed as a flag so every existing caller of
+# this script picks it up without a signature change; unset simply means
+# no blobs are written and the description column remains the only copy,
+# which is exactly the pre-existing behaviour.
+DESCRIPTIONS_BUCKET = os.environ.get("DATA_BUCKET")
 
 
 def now_iso() -> str:
@@ -81,6 +91,7 @@ def open_db(path: Path) -> sqlite3.Connection:
 # Apply this migration to the live S3 file BEFORE deploying the API
 # change next time, not after.
 _NEW_COLUMNS = {
+    "description_sha": "TEXT",
     "skills": "TEXT",
     "salary_text": "TEXT",
     "salary_is_estimate": "INTEGER NOT NULL DEFAULT 0",
@@ -129,6 +140,11 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
     data = json.loads(resolved_path.read_text(encoding="utf-8"))
     ts = now_iso()
     seen_ids_by_domain: dict[str, set[str]] = {}
+    # (job_id, description) for descriptions genuinely new or changed
+    # this run. Uploaded once after the transaction rather than inline
+    # per job: an S3 round trip inside the row loop would dominate the
+    # load, and most loads have nothing here at all.
+    changed_descriptions: list[tuple[str, str]] = []
 
     for r in data:
         domain = r["domain"]
@@ -294,10 +310,29 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
             jid = job_id(domain, j.get("ats") or ats, j.get("external_id"), j.get("url"), j.get("title") or "")
             ids.add(jid)
             job_confidence = "best_effort" if j.get("ats") == "jsonld" else "verified"
+            # Compared against the stored hash before the upsert
+            # overwrites it. An empty description means "this poll didn't
+            # fetch one" rather than "there isn't one" (see upsert_job's
+            # own CASE on description), so it never queues an upload and
+            # never clears an existing blob.
+            desc = j.get("description")
+            if desc:
+                sha = description_sha(desc)
+                row = conn.execute("SELECT description_sha FROM jobs WHERE id = ?", (jid,)).fetchone()
+                if row is None or row["description_sha"] != sha:
+                    changed_descriptions.append((jid, desc))
+                j["description_sha"] = sha
             upsert_job(conn, jid, domain, j, confidence=job_confidence, ts=ts, already_tracked_company=already_tracked)
         seen_ids_by_domain[domain] = ids
 
     close_missing_jobs(conn, seen_ids_by_domain, ts)
+
+    # After the DB work, never during it. This commit still writes the
+    # description column as well, so a failure here costs nothing yet.
+    if changed_descriptions and DESCRIPTIONS_BUCKET:
+        n = put_many(DESCRIPTIONS_BUCKET, changed_descriptions)
+        print(f"uploaded {n}/{len(changed_descriptions)} changed descriptions", file=sys.stderr)
+
     return {r["domain"] for r in data}
 
 
@@ -305,10 +340,10 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
     conn.execute(
         """
         INSERT INTO jobs (id, company_domain, ats, external_id, title, location, department,
-                           url, posted_at, description_chars, description, seniority, workplace_type,
+                           url, posted_at, description_chars, description, description_sha, seniority, workplace_type,
                            skills, salary_text, salary_is_estimate,
                            confidence, first_seen, last_seen, closed_at, raw_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             location = excluded.location,
@@ -364,6 +399,10 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- always sends a real value here, so this is a no-op for them.
             description_chars = CASE WHEN excluded.description_chars > 0 THEN excluded.description_chars ELSE description_chars END,
             description = CASE WHEN excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.description ELSE description END,
+            -- Moves with description, never independently: a poll that
+            -- carries no description must leave both alone or the hash
+            -- would claim a blob that was never written.
+            description_sha = CASE WHEN excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.description_sha ELSE description_sha END,
             -- Same "don't null out what a fuller pass already captured"
             -- reasoning as description above -- skills is derived from
             -- it (keyword match), so it goes empty on the exact same
@@ -422,7 +461,8 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
          # values would have been. A new company's jobs keep their real
          # reported time_updated, same as every other ats.
          ts if j.get("ats") == "comeet" and already_tracked_company else j.get("posted_at"),
-         j.get("description_chars", 0), j.get("description"), j.get("seniority"), j.get("workplace_type"),
+         j.get("description_chars", 0), j.get("description"), j.get("description_sha"),
+         j.get("seniority"), j.get("workplace_type"),
          ",".join(j.get("skills") or []), j.get("salary_text"), int(bool(j.get("salary_is_estimate"))),
          confidence, ts, ts,
          json.dumps(j, ensure_ascii=False)),

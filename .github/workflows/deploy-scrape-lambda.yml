@@ -57,7 +57,7 @@ jobs:
           mkdir -p fast/loader fast/db
           cp probe.py scrape_handler.py alerts.py sharding.py fast/
           cp api/job_filters.py fast/
-          cp loader/load_to_sqlite.py fast/loader/
+          cp loader/load_to_sqlite.py loader/descriptions.py fast/loader/
           cp db/schema.sql fast/db/
           pip install --target fast requests
           cd fast && zip -r ../scrape-fast.zip . -x "__pycache__/*" && cd ..
@@ -67,7 +67,7 @@ jobs:
           mkdir -p workday/loader workday/db
           cp probe.py scrape_workday_handler.py companies.yml workday/
           cp api/job_filters.py workday/
-          cp loader/load_to_sqlite.py workday/loader/
+          cp loader/load_to_sqlite.py loader/descriptions.py workday/loader/
           cp db/schema.sql workday/db/
           # pyyaml, not just requests: this is the one deployment package
           # that actually needs probe.py's companies.yml reading to work
@@ -82,7 +82,7 @@ jobs:
         run: |
           mkdir -p maintenance/loader maintenance/db
           cp scrape_maintenance_handler.py sharding.py maintenance/
-          cp loader/load_to_sqlite.py loader/merge_partitions.py loader/bootstrap.py maintenance/loader/
+          cp loader/load_to_sqlite.py loader/merge_partitions.py loader/bootstrap.py loader/descriptions.py maintenance/loader/
           # bootstrap.py needs FRESH_CLAUSE and category_of() so its
           # first page matches what /api/jobs would return exactly.
           cp api/job_filters.py maintenance/

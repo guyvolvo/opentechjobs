@@ -299,7 +299,39 @@ def route_jobs(params: dict) -> dict:
 # can 404 once a role closes). Always resolves, answering with closed_at
 # set if the job has closed, so a saved link never just dead-ends.
 
+def _description_from_s3(job_id: str) -> str | None:
+    """The job's description blob, or None for anything unusable.
+
+    Silent on failure on purpose: this is one of two places the text can
+    live, and the caller still has the column. A missing blob is the
+    normal state for every job written before this shipped.
+    """
+    bucket = os.environ.get("DATA_BUCKET")
+    if not bucket:
+        return None
+    try:
+        body = _status_s3.get_object(Bucket=bucket, Key=f"descriptions/{job_id}.json")["Body"].read()
+        return json.loads(body).get("description") or None
+    except Exception:
+        return None
+
+
 def route_job_detail(job_id: str) -> dict | None:
+    """One listing, including its full description.
+
+    The description is read from its own S3 object first and falls back
+    to the column. Descriptions are ~94% of jobs-read.db's 1.2GB, and
+    every reader of that file has to fit it in Lambda's 10GB /tmp, so
+    they are moving out to make the snapshot small enough to rebuild
+    often and cheap enough to pull inside a request. This route's own
+    response shape does not change: /api/jobs/{id} is a public surface
+    (see PRODUCT.md) and callers should never have to know where the
+    text is stored.
+
+    S3 is tried first deliberately, even while the column is still
+    populated, so the new path is exercised in production now rather
+    than the first time the column goes away.
+    """
     conn = get_connection()
     row = conn.execute(
         """
@@ -310,7 +342,13 @@ def route_job_detail(job_id: str) -> dict | None:
         """,
         (job_id,),
     ).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    job = dict(row)
+    blob = _description_from_s3(job_id)
+    if blob:
+        job["description"] = blob
+    return job
 
 
 # /health

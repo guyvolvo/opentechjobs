@@ -54,6 +54,10 @@ resource "aws_iam_role_policy" "api_lambda" {
           # handler's own docstring. Both read-only here, same as jobs.db.
           "${aws_s3_bucket.data.arn}/status.json",
           "${aws_s3_bucket.data.arn}/merge-status.json",
+          # descriptions/*: job descriptions live as their own objects now
+          # rather than inside jobs-read.db, which they were ~94% of. Read
+          # here by /api/jobs/{id}, whose response shape is unchanged.
+          "${aws_s3_bucket.data.arn}/descriptions/*",
         ]
       },
       {

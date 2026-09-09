@@ -70,6 +70,12 @@ CREATE TABLE IF NOT EXISTS jobs (
                                             -- _estimate_salary(), not the listing's own disclosed
                                             -- figure -- the frontend must render these differently.
 
+    description_sha     TEXT,              -- fingerprint of `description`, so a load can tell an
+                                            -- unchanged description from a changed one without
+                                            -- reading its S3 blob back. Without it every load would
+                                            -- rewrite every blob: ~1,600 PUTs per shard run and
+                                            -- ~460,000 a day for no benefit. See loader/descriptions.py.
+
     confidence          TEXT NOT NULL,     -- 'verified' (direct ATS API response) | 'best_effort'
                                             -- (deep scraper, JSON-LD or heuristic DOM scrape).
                                             -- Never blend best_effort silently into verified counts.
