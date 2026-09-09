@@ -651,7 +651,23 @@ def s3_pull(bucket: str, key: str, dest: Path) -> tuple[bool, str | None]:
         dest.write_bytes(resp["Body"].read())
         return True, resp["ETag"]
     except ClientError as e:
-        if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
+        code = e.response["Error"]["Code"]
+        # AccessDenied counts as "not there" when the caller can't list
+        # the bucket. S3 deliberately hides the difference between a
+        # missing object and one you may not read unless you hold
+        # s3:ListBucket, so a first write to a brand-new key comes back
+        # 403, not 404. These roles are scoped to object ARNs on purpose
+        # and have no ListBucket, so every partition's very first write
+        # hit this and died.
+        #
+        # Confirmed live (2026-09-09): the shard count had grown to 70
+        # while only partitions 0-39 existed, so every shard above 39
+        # scraped its companies, reported the job count, then threw the
+        # results away when the loader crashed. Roughly 43% of shards had
+        # been failing to persist anything for at least six hours, and
+        # nothing above 39 could ever be created because creating it was
+        # the thing that failed.
+        if code in ("404", "NoSuchKey", "AccessDenied", "403"):
             return False, None
         raise
 

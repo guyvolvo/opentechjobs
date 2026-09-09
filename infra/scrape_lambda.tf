@@ -32,6 +32,20 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
     Version = "2012-10-17"
     Statement = [
       {
+        # Without ListBucket, S3 answers 403 AccessDenied rather than 404
+        # for a key that does not exist yet, which is how every
+        # partition's first write died silently. See s3_pull, which now
+        # also treats that 403 as absent. Scoped by prefix, so this still
+        # cannot enumerate the rest of the bucket.
+        Sid      = "ListOwnPrefixes"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.data.arn
+        Condition = {
+          StringLike = { "s3:prefix" = ["jobs-partition-*", "descriptions/*"] }
+        }
+      },
+      {
         # Partition & Merge (2026-09-08): this Lambda now writes its own
         # shard's jobs-partition-{N}.db instead of the shared jobs.db --
         # see load_to_sqlite.py's --key and --skip-known, scrape_handler.py's
@@ -46,6 +60,9 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
         Resource = [
           "${aws_s3_bucket.data.arn}/jobs.db",
           "${aws_s3_bucket.data.arn}/jobs-partition-*",
+          # descriptions/*: written by load_to_sqlite.py when a job's
+          # description is new or changed (loader/descriptions.py).
+          "${aws_s3_bucket.data.arn}/descriptions/*",
           "${aws_s3_bucket.data.arn}/known.json",
           # status.json: this Lambda's own real-time phase, written at
           # each stage (scraping/loading/sending alerts/idle/error) --
