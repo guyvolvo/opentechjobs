@@ -29,7 +29,8 @@ from boto3.dynamodb.conditions import Key
 
 from db import get_connection
 from help_page import HELP_HTML
-from job_filters import FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where, has_fts_index
+from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
+                         has_fts_index, salary_source_select)
 
 _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 
@@ -258,7 +259,7 @@ def route_jobs(params: dict) -> dict:
         SELECT id, company_domain, ats, title, location, department,
                category_of(department, title) AS category, seniority, workplace_type, url,
                posted_at, confidence, first_seen, last_seen, closed_at,
-               skills, salary_text, salary_is_estimate,
+               skills, salary_text, salary_is_estimate, {salary_source_select(conn)},
                -- The company's own name as its ATS reports it.
                -- company_domain is often a hostname discovery guessed and
                -- never verified (see resolve_company_names.py), so this is

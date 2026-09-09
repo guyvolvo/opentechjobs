@@ -167,6 +167,31 @@ def _add_in_filter(where: list, args: list, params: dict, param_name: str, colum
     args.extend(values)
 
 
+def salary_source_select(conn) -> str:
+    """salary_source if the snapshot has it, otherwise the same answer
+    derived from the flag that has always been there.
+
+    Same deployment-clock problem as _has_company_name: code ships in
+    seconds, the snapshot gains a column only when the merge next runs.
+    Unlike company_name this degrades to a real value rather than NULL,
+    because the old boolean already carries the distinction the new
+    column refines. Every estimate before the learned model came from
+    probe.py's table, so "salary_is_estimate = 1" means "table" for every
+    row written before this column existed. API consumers therefore see
+    the new field working from the moment it deploys, and it simply gets
+    more precise once the column lands.
+    """
+    has_column = False
+    try:
+        has_column = any(r[1] == "salary_source" for r in conn.execute("PRAGMA table_info(jobs)"))
+    except Exception:
+        pass
+    if has_column:
+        return "salary_source"
+    return ("CASE WHEN salary_text IS NULL OR salary_text = '' THEN NULL "
+            "WHEN salary_is_estimate = 1 THEN 'table' ELSE 'disclosed' END AS salary_source")
+
+
 def has_fts_index(conn) -> bool:
     """Whether this database carries the jobs_fts index.
 

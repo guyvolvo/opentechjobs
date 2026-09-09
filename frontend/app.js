@@ -1186,17 +1186,33 @@ function jobMetaLine(j) {
   return line;
 }
 
-// Real disclosed comp (currently Ashby only) shown plainly; an estimate
-// (probe.py's _estimate_salary, Israeli role x seniority market data,
-// not this listing's own figure) prefixed "Est." and never styled with
-// the same weight as a real number -- see .job-salary.estimate. Neither
-// present just reads "Undisclosed," matching this board's own principle
-// of showing an absence as an absence, not hiding it.
+// What actually stands behind the number, in the reader's own terms.
+// Three sources with genuinely different evidence, and the difference
+// that matters most to someone reading it is whether the employer said
+// this or we did. Both estimates say so outright rather than leaving it
+// to the "Est." prefix.
+const SALARY_SOURCE_NOTE = {
+  disclosed: "Published by the employer on this listing.",
+  table: "Our estimate, from Israeli market pay for this role and seniority. Not the employer's own figure.",
+  estimated: "Our estimate, from what comparable roles actually pay at this company and location. Not the employer's own figure.",
+};
+
+// Real disclosed comp shown plainly; an estimate prefixed "Est." and
+// never given the weight of a real number. Neither present just reads
+// "Undisclosed," matching this board's principle of showing an absence
+// as an absence rather than hiding it.
+//
+// Falls back to the older salary_is_estimate boolean, because a cached
+// page or a bootstrap.json written before salary_source existed will
+// arrive without it, and "table" is what every estimate was then.
 function jobSalaryHtml(j) {
   if (!j.salary_text) return `<span class="job-salary undisclosed">Undisclosed</span>`;
-  const cls = j.salary_is_estimate ? "job-salary estimate" : "job-salary";
-  const prefix = j.salary_is_estimate ? "Est. " : "";
-  return `<span class="${cls}">${prefix}${escapeHtml(j.salary_text)}</span>`;
+  const source = j.salary_source || (j.salary_is_estimate ? "table" : "disclosed");
+  const isEstimate = source !== "disclosed";
+  const note = SALARY_SOURCE_NOTE[source] || SALARY_SOURCE_NOTE.estimated;
+  const cls = isEstimate ? `job-salary estimate ${escapeHtml(source)}` : "job-salary";
+  return `<span class="${cls}" data-salary-source="${escapeHtml(source)}" title="${escapeHtml(note)}">`
+    + `${isEstimate ? "Est. " : ""}${escapeHtml(j.salary_text)}</span>`;
 }
 
 // Plain text, no chip/badge container (confirmed live) -- each one

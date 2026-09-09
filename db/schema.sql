@@ -98,12 +98,26 @@ CREATE TABLE IF NOT EXISTS jobs (
     skills              TEXT,              -- comma-joined, up to 5 tech/skill terms matched against
                                             -- title+description (see probe.py's _extract_skills).
                                             -- Empty/NULL for non-technical roles or no description.
-    salary_text         TEXT,              -- real disclosed comp (currently Ashby only) or an
-                                            -- Israel role x seniority market estimate, never both --
-                                            -- see salary_is_estimate. NULL where neither applies.
-    salary_is_estimate  INTEGER NOT NULL DEFAULT 0,  -- 0/1. 1 means salary_text is probe.py's
-                                            -- _estimate_salary(), not the listing's own disclosed
-                                            -- figure -- the frontend must render these differently.
+    salary_text         TEXT,              -- real disclosed comp (currently Ashby only) or a market
+                                            -- estimate, never both. See salary_source for which.
+                                            -- NULL where neither applies.
+    salary_is_estimate  INTEGER NOT NULL DEFAULT 0,  -- 0/1. 1 means salary_text is an estimate, not
+                                            -- the listing's own disclosed figure. Kept as the
+                                            -- coarse public flag; salary_source below says which
+                                            -- kind of estimate, and the two never disagree.
+    salary_source       TEXT,              -- where salary_text came from, and therefore how much
+                                            -- to trust it. NULL alongside a NULL salary_text.
+                                            --   disclosed  the employer published this range
+                                            --   table      probe.py's Israeli role x seniority
+                                            --              table, a hand-transcribed market
+                                            --              snapshot, no per-listing evidence
+                                            --   estimated  salary_model.py, medians over real
+                                            --              disclosed listings in the same
+                                            --              company/market/level cell
+                                            -- Three sources with genuinely different evidence
+                                            -- behind them, which the UI has to be able to say out
+                                            -- loud. A reader deserves to know whether a number
+                                            -- came from the employer or from us.
 
     description_sha     TEXT,              -- fingerprint of `description`, so a load can tell an
                                             -- unchanged description from a changed one without

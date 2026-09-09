@@ -51,7 +51,7 @@ HELP_HTML = """<!doctype html>
 
         <div class="api-endpoint">
           <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/jobs</span></div>
-          <p>Search and filter job listings.</p>
+          <p>Search and filter job listings. Every listing carries <span class="param">salary_source</span>, which says what stands behind <span class="param">salary_text</span> and is null when there is no figure at all: <span class="param">disclosed</span> means the employer published that range on the listing itself, <span class="param">table</span> means our Israeli market estimate by role and seniority, and <span class="param">estimated</span> means our estimate from what comparable roles actually pay at that company and location. Only <span class="param">disclosed</span> is the employer's own number. The older <span class="param">salary_is_estimate</span> boolean is still returned and still means "not disclosed".</p>
           <table class="api-params">
             <tbody>
               <tr><td><span class="param">q</span></td><td>Free-text match against title, company, location, department.</td></tr>

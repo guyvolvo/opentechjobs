@@ -115,10 +115,16 @@ class Job:
     # non-technical roles or ATSes with no description on this pass.
     skills: list[str] = field(default_factory=list)
     # Real disclosed comp (Ashby's structured field today) or a market
-    # estimate (_estimate_salary, Israeli role x seniority snapshot) --
-    # never both; see salary_is_estimate. None when neither is available.
+    # estimate, never both. None when neither is available.
     salary_text: str | None = None
     salary_is_estimate: bool = False
+    # Where salary_text came from, and so how much weight it carries:
+    # "disclosed" (the employer published it), "table" (the Israeli role
+    # x seniority table in this file), or "estimated" (salary_model.py,
+    # medians over real disclosed listings). None alongside a None
+    # salary_text. The coarser salary_is_estimate stays as the public
+    # boolean, and the two are set together so they cannot disagree.
+    salary_source: str | None = None
 
 
 @dataclass
@@ -1081,7 +1087,8 @@ def f_ashby(sess, token):
                         _normalize_date(j.get("publishedAt")), _txt(j.get("department")) or None,
                         len(_txt(j.get("descriptionPlain"))), _clean_text(j.get("descriptionPlain")),
                         workplace_type=_ATS_WORKPLACE_MAP.get(_txt(j.get("workplaceType")).lower()) or None,
-                        salary_text=_txt(salary_text) or None, salary_is_estimate=False))
+                        salary_text=_txt(salary_text) or None, salary_is_estimate=False,
+                        salary_source="disclosed" if _txt(salary_text) else None))
     return out
 
 
@@ -2142,6 +2149,7 @@ def _fill_classifications(jobs: list[Job]) -> list[Job]:
                 lo, hi = estimate
                 j.salary_text = f"₪{lo}K–{hi}K"
                 j.salary_is_estimate = True
+                j.salary_source = "table"
     return jobs
 
 

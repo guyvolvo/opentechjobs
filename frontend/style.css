@@ -1312,6 +1312,21 @@ table.jobs .title-cell a:hover { color: var(--green); }
   font-weight: 700;
   padding: 2px 8px;
 }
+/* The learned estimate (salary_model.py) gets the outline, not the fill.
+   Not a downgrade: it has more evidence behind it than the table does,
+   since every band is the measured spread of real disclosed listings.
+   It is a question of how many rows carry it. The filled chip works on
+   the Israeli table's ~1% of the board; the learned model answers about
+   two thirds of it, and two thirds of a column painted Signal Green
+   breaks the One Voice Rule outright (see DESIGN.md: green marks one
+   thing at a time, and if everything is green nothing is). Same green,
+   same shape, one step quieter. */
+.job-salary.estimate.estimated {
+  background: none;
+  color: var(--green);
+  border: 1px solid var(--green);
+  padding: 1px 7px; /* 1px off the filled chip's padding, so the border doesn't grow the box */
+}
 .job-salary.undisclosed { color: var(--grey); font-weight: 400; }
 .skill-chip {
   background: none;

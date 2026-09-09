@@ -54,6 +54,25 @@ _COLUMNS = """
     skills, salary_text, salary_is_estimate
 """
 
+# Same fallback api/handler.py uses, and for the same reason: this runs
+# against whatever snapshot the merge just built, which may predate the
+# column. It has to match the API's answer exactly, because the two
+# render the same view moments apart and any disagreement shows up as a
+# flicker on the first page every reader sees.
+_SALARY_SOURCE_FALLBACK = (
+    "CASE WHEN salary_text IS NULL OR salary_text = '' THEN NULL "
+    "WHEN salary_is_estimate = 1 THEN 'table' ELSE 'disclosed' END AS salary_source"
+)
+
+
+def _salary_source_select(conn) -> str:
+    try:
+        if any(r[1] == "salary_source" for r in conn.execute("PRAGMA table_info(jobs)")):
+            return "salary_source"
+    except Exception:
+        pass
+    return _SALARY_SOURCE_FALLBACK
+
 # confidence=all contributes no clause (see build_jobs_where), and
 # neither include_closed nor include_outdated is set, so those two
 # defaults are the whole filter.
@@ -69,7 +88,7 @@ def build(db_path: Path) -> dict:
         total = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {_WHERE}").fetchone()[0]
         rows = conn.execute(
             f"""
-            SELECT {_COLUMNS}
+            SELECT {_COLUMNS}, {_salary_source_select(conn)}
             FROM jobs
             WHERE {_WHERE}
             -- datetime(), and NULLs last, matching route_jobs exactly:

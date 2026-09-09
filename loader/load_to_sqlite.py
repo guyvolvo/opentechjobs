@@ -117,6 +117,7 @@ _NEW_COLUMNS = {
     "skills": "TEXT",
     "salary_text": "TEXT",
     "salary_is_estimate": "INTEGER NOT NULL DEFAULT 0",
+    "salary_source": "TEXT",
 }
 
 
@@ -433,9 +434,9 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
         """
         INSERT INTO jobs (id, company_domain, ats, external_id, title, location, department,
                            url, posted_at, description_chars, description, description_sha, seniority, workplace_type,
-                           skills, salary_text, salary_is_estimate,
+                           skills, salary_text, salary_is_estimate, salary_source,
                            confidence, first_seen, last_seen, closed_at, raw_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             location = excluded.location,
@@ -544,6 +545,20 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
                      AND salary_is_estimate = 1 THEN 0
                 ELSE salary_is_estimate
             END,
+            -- Branch for branch identical to salary_text above, because
+            -- the two must never disagree. A row claiming a disclosed
+            -- salary whose text is actually an estimate is worse than
+            -- either alone: the UI would present our guess as the
+            -- employer's own figure.
+            salary_source = CASE
+                WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.salary_is_estimate = 0 THEN excluded.salary_source
+                WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.salary_source
+                WHEN salary_text IS NULL AND excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_source
+                WHEN (excluded.salary_text IS NULL OR excluded.salary_text = '')
+                     AND excluded.description IS NOT NULL AND excluded.description != ''
+                     AND salary_is_estimate = 1 THEN NULL
+                ELSE salary_source
+            END,
             seniority = excluded.seniority,
             workplace_type = excluded.workplace_type,
             last_seen = excluded.last_seen,
@@ -576,6 +591,13 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
          j.get("description_chars", 0), j.get("description"), j.get("description_sha"),
          j.get("seniority"), j.get("workplace_type"),
          ",".join(j.get("skills") or []), j.get("salary_text"), int(bool(j.get("salary_is_estimate"))),
+         # Derived rather than required, so a probe.py that predates
+         # salary_source still loads: an old payload carrying only
+         # salary_is_estimate lands on "table", which is what every
+         # estimate was before the learned model existed.
+         (j.get("salary_source")
+          or (None if not j.get("salary_text")
+              else "table" if j.get("salary_is_estimate") else "disclosed")),
          confidence, ts, ts,
          # raw_json: NULL, not the record. Measured on the live
          # snapshot: 583MB across 134,713 rows, 48% of the whole file
