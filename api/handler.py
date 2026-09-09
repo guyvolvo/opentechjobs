@@ -203,8 +203,31 @@ def _int_param(params: dict, name: str, default: int, lo: int, hi: int) -> int:
 
 # /jobs
 
+def _has_company_name(conn) -> bool:
+    """Whether the snapshot in hand carries companies.company_name.
+
+    Never assume it does. This Lambda's code and the database it reads
+    are deployed on completely separate clocks: code ships in seconds via
+    deploy-api.yml, while jobs-read.db only gains a new column when the
+    merge next rebuilds it, up to an hour later. Referencing the column
+    unconditionally took /api/jobs down with "no such column:
+    company_name" for exactly that window, confirmed live. Degrading to
+    NULL instead means the board shows domains for one merge cycle rather
+    than 500ing, and a rollback of the loader can't break the API either.
+    """
+    try:
+        return any(r[1] == "company_name" for r in conn.execute("PRAGMA table_info(companies)"))
+    except Exception:
+        return False
+
+
 def route_jobs(params: dict) -> dict:
     conn = get_connection()
+
+    company_name_select = (
+        "(SELECT company_name FROM companies WHERE domain = jobs.company_domain) AS company_name"
+        if _has_company_name(conn) else "NULL AS company_name"
+    )
 
     where_sql, args = build_jobs_where(params)
 
@@ -249,7 +272,7 @@ def route_jobs(params: dict) -> dict:
                -- because it is shared with the alert evaluator, which
                -- queries jobs on its own. Joining would make every one of
                -- those filters ambiguous and error the whole route out.
-               (SELECT company_name FROM companies WHERE domain = jobs.company_domain) AS company_name
+               {company_name_select}
         FROM jobs
         WHERE {where_sql}
         -- datetime(), not a bare column: posted_at is TEXT, and rows written
