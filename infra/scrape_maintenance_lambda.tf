@@ -151,7 +151,18 @@ resource "aws_cloudwatch_event_rule" "scrape_maintenance_schedule" {
   # §05/§07). Projected at ~190,000 GB-s/mo at this cadence, folded into
   # the overall ~$3.65/mo estimate alongside scrape-fast back at its full
   # 5-minute cadence -- see scrape_lambda.tf's own schedule for that half.
-  schedule_expression = "rate(60 minutes)"
+  # 5 minutes, down from 60. The merge was hourly because rebuilding a
+  # 1.2GB snapshot took 70 seconds and every API container then had to
+  # re-download it inside a user's request. Both of those went away when
+  # description text and raw_json left the file: measured live, the
+  # snapshot is now 284MB and a full rebuild takes about 10 seconds.
+  #
+  # This is the second half of getting a new job visible in minutes. The
+  # sweep already checks every company every 5 minutes; without this the
+  # result still sat in a partition for up to an hour before anyone
+  # could see it. Cost is ~85,000 GB-s/month at this cadence, inside the
+  # free tier.
+  schedule_expression = "rate(5 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_maintenance_schedule" {

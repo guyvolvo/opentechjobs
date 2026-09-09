@@ -59,7 +59,16 @@ TIMEOUT = 12
 # means more network throughput, not just headroom -- after the pipeline
 # outage this same day traced back to a per-invocation time budget that
 # turned out to have far less margin than assumed.
-WORKERS = 16
+# 32, not 16: the sweep now covers every company on every tick instead
+# of one shard of 50, and this work is network-bound (mostly 304s with
+# no body), so concurrency buys wall-clock time almost for free. Measured
+# basis: an all-unchanged shard of 50 took 2.3s at 16 workers, and most
+# of that was the partition round trip rather than the polling.
+WORKERS = 32
+
+# Backoff when a provider pushes back. See _request_json.
+RATE_LIMIT_BACKOFF_S = 2.0
+RATE_LIMIT_MAX_WAIT_S = 15.0
 PINS_FILE = Path(__file__).with_name("companies.yml")
 
 COMMON_TLDS = {"com", "io", "ai", "net", "org", "co", "il", "tech", "dev",
@@ -290,6 +299,35 @@ def _request_json(do_request, url: str, label: str) -> Any:
                 print(f"    [{label}] {url} -> exception, retrying once: {e!r}",
                       file=sys.stderr)
             time.sleep(0.5)
+    # 429/503: backing off matters far more now than it used to. The
+    # sweep checks every company every few minutes rather than 1/70th of
+    # them, which concentrates ~11 requests/second on a handful of hosts
+    # (Ashby and Greenhouse are 76% of tracked companies between them),
+    # sustained forever. Neither publishes a rate limit for these
+    # endpoints, so the only responsible behaviour is to slow down the
+    # moment one says to. Honours Retry-After when given, capped so one
+    # unhappy provider can't stall the whole sweep past its timeout.
+    if r.status_code in (429, 503):
+        wait = RATE_LIMIT_BACKOFF_S
+        header = r.headers.get("Retry-After")
+        if header:
+            try:
+                wait = min(float(header), RATE_LIMIT_MAX_WAIT_S)
+            except ValueError:
+                pass
+        if VERBOSE:
+            print(f"    [{label}] {url} -> {r.status_code}, backing off {wait:.1f}s", file=sys.stderr)
+        time.sleep(wait)
+        if attempt == 1:
+            # One retry after the wait, then give up and let this company
+            # be picked up by the next sweep rather than holding the run.
+            try:
+                r = do_request()
+            except requests.RequestException:
+                return None
+        if r.status_code in (429, 503):
+            return None
+
     # 304: the board is byte-for-byte what we already hold. Returns None
     # like any other non-200, so no fetcher needs to know this exists --
     # refetch_known checks the flag before interpreting None as failure.

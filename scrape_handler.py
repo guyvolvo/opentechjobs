@@ -65,7 +65,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from alerts import evaluate_alerts
-from sharding import SHARD_SIZE, current_shard_index, num_shards_for, ordered_domains
+from sharding import SHARD_SIZE, build_shard_map, current_shard_index, num_shards_for, ordered_domains
 
 ROOT = Path(__file__).parent
 TMP = Path("/tmp")
@@ -85,6 +85,12 @@ SCHEDULE_INTERVAL_S = int(os.environ.get("SCHEDULE_INTERVAL_S", "300"))
 # degrades to a normal full fetch rather than failing the run. Losing the
 # optimization is a cost problem; failing the run is a data problem.
 STATE_TABLE = os.environ.get("SCRAPE_STATE_TABLE")
+
+# 0 means sweep everything, which is the intent. A positive value caps
+# how many companies one run touches, as a lever to pull without a deploy
+# if a provider starts rate-limiting harder than probe.py's own backoff
+# can absorb.
+SWEEP_LIMIT = int(os.environ.get("SWEEP_LIMIT", "0"))
 
 
 def _load_scrape_state(domains: list[str]) -> dict[str, dict]:
@@ -202,18 +208,33 @@ def lambda_handler(event, context):
         raise
 
     known = json.loads(known_path.read_text(encoding="utf-8"))
-    shard, shard_index, num_shards = _pick_shard(known)
-    # Hand probe.py whatever validators we already hold for these
-    # companies. refetch_known sends them as If-None-Match, and ~88% of
-    # tracked companies sit on an ATS that answers 304 to that.
-    state = _load_scrape_state([e["domain"] for e in shard])
-    for e in shard:
+
+    # Every company, every run. Sharding existed because a poll used to
+    # mean downloading and parsing a whole board, so the only way to keep
+    # cost flat as the company list grew was to check 1/NUM_SHARDS of it
+    # per invocation -- which is precisely why a new job took up to 5.8
+    # hours to be noticed. Conditional polling removed that cost:
+    # measured live, a 50-company shard where everything answered 304
+    # completed in 2.3s, and most of even that was the partition round
+    # trip rather than the polling. Sweeping all of them costs seconds.
+    #
+    # SWEEP_LIMIT is a safety valve, not a design feature: set it to fall
+    # back to a partial sweep if a provider starts pushing back and the
+    # 429 backoff in probe.py isn't enough on its own.
+    sweep = known if not SWEEP_LIMIT else known[:SWEEP_LIMIT]
+    shard_map = build_shard_map(known)
+    num_shards = num_shards_for(len(known))
+
+    # Whatever validators we already hold. refetch_known sends them as
+    # If-None-Match, and ~88% of tracked companies sit on an ATS that
+    # answers 304 to one.
+    state = _load_scrape_state([e["domain"] for e in sweep])
+    for e in sweep:
         e.update(state.get(e["domain"], {}))
     shard_path = TMP / "known-shard.json"
-    shard_path.write_text(json.dumps(shard, ensure_ascii=False), encoding="utf-8")
+    shard_path.write_text(json.dumps(sweep, ensure_ascii=False), encoding="utf-8")
 
-    _write_status(s3, "scraping", f"re-checking shard {shard_index + 1}/{num_shards} "
-                                   f"({len(shard)} of {len(known)} known companies)")
+    _write_status(s3, "scraping", f"sweeping all {len(sweep)} known companies")
 
     # 200s ceiling carried over from the pre-sharding design (see git
     # history) -- comfortably more than a ~50-company shard needs, but
@@ -238,60 +259,84 @@ def lambda_handler(event, context):
     unchanged = [r for r in data if r.get("unchanged")]
     n_jobs = sum(r["job_count"] for r in hits)
     saved = _save_scrape_state(data)
-    print(f"shard {shard_index + 1}/{num_shards}: {len(hits)}/{len(data)} re-verified, {n_jobs} jobs, "
+    print(f"sweep: {len(hits)}/{len(data)} re-verified, {n_jobs} jobs, "
           f"{len(unchanged)} unchanged, {saved} validators stored")
     if errors:
-        print(f"{len(errors)} known boards failed to re-poll: {errors}")
+        print(f"{len(errors)} known boards failed to re-poll: {len(errors)} companies")
 
-    # --key jobs-partition-{shard_index}.db, not jobs.db: this shard's
-    # write now only ever moves its own ~50-company slice, not the full
-    # (ever-growing) database -- see this module's own docstring.
-    # --skip-known: a partition only ever holds this shard's own
-    # companies, so export_known() run against it would produce a
-    # known.json missing every other shard's companies -- see
-    # load_to_sqlite.py's --skip-known docstring. known.json stays the
-    # full discovery batch's job alone.
+    # The sweep polls every company, but writes stay per-shard. One
+    # global partition would be the monolith that partitioning exists to
+    # avoid -- partitions still carry description and raw_json, since
+    # that text is what the merge builds jobs_fts from, so a single file
+    # holding all of them would be the ~1.2GB object every writer used to
+    # pull and push on every run.
     #
-    # 300, not 60: confirmed live (2026-09-08) the SAME 60s timeout on
-    # scrape_workday_handler.py's own equivalent call hit
-    # TimeoutExpired outright once jobs.db passed 1GB, before partitioning
-    # existed -- kept at 300 here for real margin even though a single
-    # partition's own pull-modify-push is now far smaller and faster.
-    partition_key = f"jobs-partition-{shard_index}.db"
-    partition_path = TMP / partition_key
-    _write_status(s3, "loading", f"writing {n_jobs} jobs to {partition_key}")
-    load = subprocess.run(
-        [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
-         "--resolved", str(resolved_path), "--out", str(partition_path),
-         "--bucket", BUCKET, "--key", partition_key, "--skip-vacuum", "--skip-known"],
-        capture_output=True, text=True, timeout=300,
-    )
-    # load_to_sqlite.py logs its own progress to stderr, not stdout.
-    if load.stderr:
-        print(load.stderr)
-    if load.returncode != 0:
-        _write_status(s3, "error", f"load_to_sqlite.py exited {load.returncode}")
-        raise RuntimeError(f"load_to_sqlite.py exited {load.returncode}")
+    # So results are grouped back into the shard each company already
+    # belongs to, and only shards containing at least one CHANGED company
+    # are written at all. In steady state that is a handful of small
+    # files rather than 70, because conditional polling means most
+    # companies come back 304 with nothing to store.
+    by_shard: dict[int, list[dict]] = {}
+    for r in data:
+        idx = shard_map.get(r["domain"])
+        if idx is not None:
+            by_shard.setdefault(idx, []).append(r)
 
-    # This shard's own partition is already fresh on /tmp from the loader
-    # step just above -- evaluate_alerts() reads it directly, no separate
-    # download. Scoped to just this shard's companies now, not the full
-    # db -- correct, not a regression: a company's alerts only need
-    # checking when ITS OWN data was just refreshed, which is exactly
-    # when its own shard runs. Every company still gets checked once per
-    # full rotation, same cadence job data itself gets, rather than
-    # waiting on jobs-read.db's own hourly merge (which would delay alert
-    # delivery to whenever that runs next, instead of the moment a new
-    # listing is actually found). Alert failures are caught and reported
-    # inside evaluate_alerts() itself (one bad alert shouldn't stop the
-    # others), so nothing here needs to guard the fast-poll's own success
-    # on this step succeeding.
+    # A shard with only unchanged companies has nothing new to record.
+    # Skipping it avoids an S3 read and write per shard per sweep, which
+    # is the difference between this being affordable and not. The cost
+    # is that those companies' last_checked doesn't advance this run;
+    # harmless, since MAX(last_checked) across the snapshot still moves
+    # whenever anything at all changes.
+    changed_shards = {i: rs for i, rs in by_shard.items()
+                       if any(not r.get("unchanged") and r.get("ats") for r in rs)}
+    print(f"{len(changed_shards)} of {len(by_shard)} shards have changes to write")
+
+    written, touched_partitions = 0, []
+    for idx, results in sorted(changed_shards.items()):
+        partition_key = f"jobs-partition-{idx}.db"
+        partition_path = TMP / partition_key
+        part_resolved = TMP / f"resolved-{idx}.json"
+        part_resolved.write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")
+        _write_status(s3, "loading", f"writing shard {idx} ({len(results)} companies)")
+        load = subprocess.run(
+            [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
+             "--resolved", str(part_resolved), "--out", str(partition_path),
+             "--bucket", BUCKET, "--key", partition_key, "--skip-vacuum", "--skip-known"],
+            capture_output=True, text=True, timeout=300,
+        )
+        if load.stderr:
+            print(load.stderr)
+        if load.returncode != 0:
+            # One bad shard must not discard the rest of the sweep's
+            # work, which is the whole point of writing them separately.
+            print(f"load_to_sqlite.py exited {load.returncode} for shard {idx}, continuing")
+            continue
+        written += 1
+        touched_partitions.append(partition_path)
+        part_resolved.unlink(missing_ok=True)
+
+    print(f"wrote {written}/{len(changed_shards)} changed partitions")
+    if written == 0 and changed_shards:
+        _write_status(s3, "error", "every changed shard failed to load")
+        raise RuntimeError("every changed shard failed to load")
+
     _write_status(s3, "sending alerts", "matching new listings against saved filters")
-    alerts_result = evaluate_alerts(partition_path)
+    # Over each partition this sweep refreshed, not one shard's. A
+    # company's alerts only need checking when its own data just moved,
+    # which is exactly what changed_shards contains.
+    alerts_result = {"errors": []}
+    for partition_path in touched_partitions:
+        result = evaluate_alerts(partition_path)
+        alerts_result["errors"] += result.get("errors") or []
+        for k, v in result.items():
+            if k != "errors" and isinstance(v, int):
+                alerts_result[k] = alerts_result.get(k, 0) + v
     if alerts_result.get("errors"):
         print(f"alert evaluation errors: {alerts_result['errors']}")
 
-    _write_status(s3, "idle", f"last run: shard {shard_index + 1}/{num_shards}, "
-                              f"{len(hits)}/{len(hits) + len(errors)} companies, {n_jobs} jobs")
-    return {"shard": shard_index, "num_shards": num_shards, "hits": len(hits),
-            "errors": len(errors), "jobs": n_jobs, "alerts": alerts_result}
+    _write_status(s3, "idle", f"last sweep: {len(data)} companies, {len(unchanged)} unchanged, "
+                              f"{written} partitions written, {n_jobs} jobs")
+    return {"swept": len(data), "unchanged": len(unchanged), "partitions_written": written,
+            "num_shards": num_shards, "hits": len(hits), "errors": len(errors),
+            "jobs": n_jobs, "alerts": alerts_result}
