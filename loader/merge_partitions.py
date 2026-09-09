@@ -218,7 +218,15 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path,
         # The words are still searchable: jobs_fts is rebuilt below from
         # the same source rows. Partitions keep the column, because
         # building the index needs the text.
-        job_cols = [c for c in _shared_columns(merged, "jobs") if c != "description"]
+        # description and raw_json are both dropped on the way in.
+        # Measured on the live snapshot: raw_json was 583MB (48% of the
+        # file) and description 516MB (42%), together 90% of it. Nothing
+        # reads raw_json at all and every field in it except token is
+        # already a column beside it; the description text now lives as
+        # one S3 object per job, with the words still searchable through
+        # jobs_fts, rebuilt below.
+        _DROP = {"description", "raw_json"}
+        job_cols = [c for c in _shared_columns(merged, "jobs") if c not in _DROP]
         # DETACH has to come after the transaction that touched src
         # commits -- see the design doc's "Considered and declined" note
         # on the same mistake in an earlier reviewed SQL snippet.
