@@ -92,6 +92,19 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path) -> dict:
     """
     if out_path.exists():
         out_path.unlink()
+    # Delete first, always. open_db() opens whatever is already at this
+    # path, and on a WARM Lambda container that's the previous
+    # invocation's own finished jobs-read.db, roughly 1.2GB of it --
+    # every INSERT OR REPLACE below then rewrites rows into an
+    # already-populated file instead of appending to an empty one.
+    # Confirmed live (2026-09-09): that fragmentation is what drove Max
+    # Memory Used to 2996MB against a hard 3008MB ceiling (99.6%, with
+    # no headroom purchasable -- see infra/variables.tf) and median
+    # duration from ~30s to 122s over a single day. A cold container hid
+    # it completely, which is why it read as data growth rather than a
+    # bug. Building fresh every run makes both numbers a function of
+    # today's data only, not of how long this container has been warm.
+    out_path.unlink(missing_ok=True)
     merged = open_db(out_path)
 
     summary: dict = {"partitions": [], "companies_merged": 0, "companies_superseded": 0,
@@ -177,11 +190,16 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path) -> dict:
     # around its update_meta() call, for the same reason.
     with merged:
         update_meta(merged)
-    # Plain VACUUM in place, not the design doc's literal "VACUUM INTO a
-    # fresh file" -- merged was already opened fresh at out_path (open_db
-    # above), so there's no separate staging file to fold in; VACUUM here
-    # reclaims the same intermediate free space either phrasing would.
-    merged.execute("VACUUM")
+    # No VACUUM. It used to run here to reclaim free pages, but with the
+    # unlink above out_path really is a fresh file that only ever gets
+    # sequential INSERTs, so there are essentially no free pages to
+    # reclaim -- it was rebuilding the whole ~1.2GB file to recover
+    # almost nothing, and it was the single most expensive step in the
+    # merge. The comment it replaces claimed "merged was already opened
+    # fresh at out_path", which was true only on a cold container and is
+    # what made the leftover-file bug so easy to miss. Put it back only
+    # if jobs-read.db's own on-disk size starts drifting above the sum of
+    # its partitions.
     merged.close()
     return summary
 
