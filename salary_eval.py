@@ -38,46 +38,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from probe import _ROLE_CATEGORY_RULES, _estimate_salary, IL_KEYWORDS  # noqa: E402
+from salary_model import SalaryModel, parse_disclosed  # noqa: E402
 
 API = "https://opentechjobs.org/api/jobs"
-
-# Ashby joins extras onto the base range with a bullet: commission, a
-# sign-on bonus, equity, "Multiple Ranges". Only the first clause is the
-# salary. Getting this wrong turns "$17-$24 per hour, $2K-$10K
-# commission" into a $10M job, which is how the first version of this
-# script produced a nonsense answer.
-#
-# The lookbehind keeps R$ (Brazilian real) from reading as a dollar sign.
-MONEY = re.compile(
-    r"(?<![A-Za-z])(?P<cur>US\$|CA\$|A\$|SGD|PLN|\$|£|€|₪)\s?(?P<n>[\d,]+(?:\.\d+)?)(?P<k>K?)\b",
-    re.IGNORECASE,
-)
-
-
-def parse_disclosed(text: str) -> tuple[str, float, float] | None:
-    """(currency, low, high) annualised, or None for anything unusable.
-
-    Mixed-currency strings are dropped rather than guessed at, and so is
-    anything landing outside a sane annual band, which catches both
-    parse errors and the per-hour rows that are really contract work.
-    """
-    base = re.split(r"[•·]", text)[0]
-    low = base.lower()
-    per_year = 2080 if "per hour" in low else 12 if "per month" in low else 1
-    found = list(MONEY.finditer(base))
-    if not found:
-        return None
-    currency = found[0].group("cur").upper()
-    if any(m.group("cur").upper() != currency for m in found):
-        return None
-    values = [
-        float(m.group("n").replace(",", "")) * (1000 if m.group("k") else 1) * per_year
-        for m in found
-    ]
-    values = [v for v in values if 5_000 < v < 2_000_000]
-    if not values:
-        return None
-    return currency, min(values), max(values)
 
 
 def fetch(pages: int, per_page: int = 500) -> list[dict]:
@@ -135,6 +98,61 @@ def score(rows, key_of, min_rows=5):
         others = [v for v in groups[key_of(job)] if v != pay] or groups[key_of(job)]
         errors.append(abs(statistics.median(others) - pay) / pay)
     return statistics.median(errors), baseline, len(covered)
+
+
+def backtest(rows, folds: int = 5, seed: int = 7):
+    """Score the hierarchical estimator by k-fold cross validation.
+
+    Folds rather than leave-one-out, because the cells are sample-gated.
+    Pulling one row out can drop a cell below MIN_ROWS and change which
+    level of the chain answers, so the model genuinely has to be rebuilt
+    without the held-out rows rather than adjusted in place. Five rebuilds
+    are affordable; adjusting a cell would be neither affordable nor true.
+
+    Three numbers matter and they trade against each other. Error is how
+    far the middle of the band sits from the real figure. Hit rate is how
+    often the real figure lands inside the band at all, which is what a
+    reader actually experiences. Width is what the band costs them: one
+    wide enough to always be right tells nobody anything.
+    """
+    import random
+
+    shuffled = list(rows)
+    random.Random(seed).shuffle(shuffled)
+    buckets = [shuffled[i::folds] for i in range(folds)]
+
+    errors, widths, flat_errors = [], [], []
+    hits = predicted = 0
+    by_level = collections.Counter()
+    for i in range(folds):
+        train = [r for k, b in enumerate(buckets) if k != i for r in b]
+        model = SalaryModel.build(train, "$")
+        flat = statistics.median([p for _, p in train])
+        for job, pay in buckets[i]:
+            flat_errors.append(abs(flat - pay) / pay)
+            got = model.predict(job)
+            if not got:
+                continue
+            predicted += 1
+            middle = (got["low"] + got["high"]) / 2
+            errors.append(abs(middle - pay) / pay)
+            widths.append((got["high"] - got["low"]) / got["low"])
+            hits += got["low"] <= pay <= got["high"]
+            by_level[got["level"]] += 1
+
+    total = sum(len(b) for b in buckets)
+    print("\nHIERARCHICAL ESTIMATOR, 5-FOLD CROSS VALIDATION")
+    print(f"  coverage      {predicted:,}/{total:,} rows = {predicted / total:.0%}")
+    if not errors:
+        print("  nothing predicted, every cell too thin at this sample size")
+        return
+    print(f"  median error  {statistics.median(errors):.1%}   "
+          f"(flat baseline on the same corpus: {statistics.median(flat_errors):.1%})")
+    print(f"  hit rate      {hits / predicted:.0%} of real figures land inside the band")
+    print(f"  median width  {statistics.median(widths):.2f} of the band's own floor")
+    print("  which cell answered:")
+    for level, n in by_level.most_common():
+        print(f"    {level:<24}{n:>6}{n / predicted:>6.0%}")
 
 
 def main() -> int:
@@ -207,6 +225,8 @@ def main() -> int:
         median = statistics.median(values)
         ratio = f"{median / unstated:.2f}x unstated" if unstated else ""
         print(f"  {str(level or 'UNSTATED'):<10}{len(values):>6} rows   {median:>10,.0f}   {ratio}")
+
+    backtest(rows)
 
     print("\nWHAT WE ACTUALLY SHIP, ON ISRAELI LISTINGS")
     israeli = [j for j in jobs
