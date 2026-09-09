@@ -530,6 +530,19 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             salary_text = CASE
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.salary_is_estimate = 0 THEN excluded.salary_text
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.salary_text
+                -- The description guard above exists because the Israeli
+                -- table reads the listing's body, so a pass without one
+                -- produces a worse estimate from the bare title. The
+                -- learned model never looks at the body at all: it keys
+                -- on company, market, level and department. So its
+                -- estimate is never the degraded version of itself, and
+                -- holding it behind a guard written for a different
+                -- estimator only pins stale figures in place on the
+                -- ATSes whose fast poll carries no description.
+                -- Refreshing freely also means the daily rebuild of the
+                -- cells reaches listings within one poll instead of
+                -- whenever their body next happens to be fetched.
+                WHEN excluded.salary_source = 'estimated' AND salary_is_estimate = 1 THEN excluded.salary_text
                 WHEN salary_text IS NULL AND excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_text
                 WHEN (excluded.salary_text IS NULL OR excluded.salary_text = '')
                      AND excluded.description IS NOT NULL AND excluded.description != ''
@@ -539,6 +552,19 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             salary_is_estimate = CASE
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.salary_is_estimate = 0 THEN excluded.salary_is_estimate
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.salary_is_estimate
+                -- The description guard above exists because the Israeli
+                -- table reads the listing's body, so a pass without one
+                -- produces a worse estimate from the bare title. The
+                -- learned model never looks at the body at all: it keys
+                -- on company, market, level and department. So its
+                -- estimate is never the degraded version of itself, and
+                -- holding it behind a guard written for a different
+                -- estimator only pins stale figures in place on the
+                -- ATSes whose fast poll carries no description.
+                -- Refreshing freely also means the daily rebuild of the
+                -- cells reaches listings within one poll instead of
+                -- whenever their body next happens to be fetched.
+                WHEN excluded.salary_source = 'estimated' AND salary_is_estimate = 1 THEN excluded.salary_is_estimate
                 WHEN salary_text IS NULL AND excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_is_estimate
                 WHEN (excluded.salary_text IS NULL OR excluded.salary_text = '')
                      AND excluded.description IS NOT NULL AND excluded.description != ''
@@ -553,6 +579,19 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             salary_source = CASE
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.salary_is_estimate = 0 THEN excluded.salary_source
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.salary_source
+                -- The description guard above exists because the Israeli
+                -- table reads the listing's body, so a pass without one
+                -- produces a worse estimate from the bare title. The
+                -- learned model never looks at the body at all: it keys
+                -- on company, market, level and department. So its
+                -- estimate is never the degraded version of itself, and
+                -- holding it behind a guard written for a different
+                -- estimator only pins stale figures in place on the
+                -- ATSes whose fast poll carries no description.
+                -- Refreshing freely also means the daily rebuild of the
+                -- cells reaches listings within one poll instead of
+                -- whenever their body next happens to be fetched.
+                WHEN excluded.salary_source = 'estimated' AND salary_is_estimate = 1 THEN excluded.salary_source
                 WHEN salary_text IS NULL AND excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_source
                 WHEN (excluded.salary_text IS NULL OR excluded.salary_text = '')
                      AND excluded.description IS NOT NULL AND excluded.description != ''

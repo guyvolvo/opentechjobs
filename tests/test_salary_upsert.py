@@ -44,11 +44,16 @@ def result(job: dict) -> list[dict]:
     }]
 
 
-def job(salary=None, is_estimate=False, description=None) -> dict:
+def job(salary=None, is_estimate=False, description=None, source=None) -> dict:
+    """description stays third: every case below it was written before
+    salary_source existed and reads better positionally.
+    """
+    if source is None and salary:
+        source = "table" if is_estimate else "disclosed"
     return {
         "external_id": "1", "ats": "greenhouse", "title": "Backend Engineer", "url": "https://x/1",
         "location": "Tel Aviv, Israel", "description": description,
-        "salary_text": salary, "salary_is_estimate": is_estimate,
+        "salary_text": salary, "salary_is_estimate": is_estimate, "salary_source": source,
     }
 
 
@@ -103,6 +108,21 @@ check("a disclosed salary is never withdrawn",
 check("a pass with neither estimate nor description changes nothing",
       run(job("₪30K–37K", True, "desc"), job(None, False, None)) == ("₪30K–37K", 1),
       str(run(job("₪30K–37K", True, "desc"), job(None, False, None))))
+
+# A learned estimate refreshes freely, description or not. It never
+# reads the body, so a pass without one is not a degraded version of it,
+# and the daily rebuild of the cells has to be able to reach listings on
+# the ATSes whose fast poll carries no description.
+check("a learned estimate refreshes without a description",
+      run(job("$15K - $18K", True, "d", source="estimated"), job("$16K - $19K", True, None, source="estimated"))
+      == ("$16K - $19K", 1),
+      str(run(job("$15K - $18K", True, "d", source="estimated"), job("$16K - $19K", True, None, source="estimated"))))
+
+# But it still must not overwrite a real disclosed figure.
+check("a learned estimate never overwrites a disclosed one",
+      run(job("$120K - $150K", False, "d", source="disclosed"), job("$16K - $19K", True, None, source="estimated"))
+      == ("$120K - $150K", 0),
+      str(run(job("$120K - $150K", False, "d", source="disclosed"), job("$16K - $19K", True, None, source="estimated"))))
 
 # Something beats nothing on a first pass, even with no description.
 check("a first estimate lands even without a description",
