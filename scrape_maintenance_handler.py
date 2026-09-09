@@ -45,6 +45,10 @@ from pathlib import Path
 import boto3
 
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT / "loader"))
+
+from alerts import evaluate_alerts  # noqa: E402
+from deltas import delete_fragments, list_fragments, read_fragments  # noqa: E402
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 # Where bootstrap.json goes. Optional: unset just means the site keeps
@@ -107,37 +111,71 @@ def _publish_bootstrap(s3) -> None:
 
 
 def lambda_handler(event, context):
-    s3 = boto3.client("s3")
-    _write_status(s3, "merging", "combining every writer's own partition into jobs-read.db")
+    """Apply pending delta fragments to the live snapshot.
 
-    merge = subprocess.run(
-        [sys.executable, str(ROOT / "loader" / "merge_partitions.py"),
-         "--bucket", BUCKET, "--out", str(TMP / "jobs-read.db"), "--key", "jobs-read.db"],
+    Was a merge of every jobs-partition-*.db into a fresh jobs-read.db.
+    That made sense while each writer owned a partition, but the sweep no
+    longer writes partitions at all: persisting one cost a 48MB
+    pull-modify-push per shard touched, which is what capped how wide a
+    sweep could be. Writers now emit small delta fragments and this
+    replays them.
+
+    Incremental, not a rebuild. Pulling the 284MB snapshot, applying a
+    few kilobytes and pushing it back is far less work than downloading
+    every partition, and it is what lets this run every 5 minutes instead
+    of hourly.
+
+    Fragments are deleted only after the new snapshot is safely pushed,
+    so a failure anywhere in here costs a repeat rather than a listing.
+    """
+    s3 = boto3.client("s3")
+    keys = list_fragments(BUCKET)
+    if not keys:
+        _write_status(s3, "idle", "no pending deltas")
+        print("no pending delta fragments")
+        return {"ok": True, "applied": 0, "fragments": 0}
+
+    _write_status(s3, "merging", f"applying {len(keys)} delta fragments to jobs-read.db")
+    results = read_fragments(BUCKET, keys)
+    if not results:
+        # Every fragment unreadable. Leave them alone rather than delete
+        # what was never applied.
+        _write_status(s3, "error", "delta fragments present but none readable")
+        raise RuntimeError("delta fragments present but none readable")
+
+    resolved = TMP / "delta-resolved.json"
+    resolved.write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")
+    snapshot = TMP / "jobs-read.db"
+
+    load = subprocess.run(
+        [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
+         "--resolved", str(resolved), "--out", str(snapshot),
+         "--bucket", BUCKET, "--key", "jobs-read.db",
+         "--drop-description", "--skip-vacuum", "--skip-known"],
         capture_output=True, text=True, timeout=550,
     )
-    # merge_partitions.py logs its own progress (including the per-run
-    # summary dict and any schema-mismatch alert) to stderr, not stdout.
-    if merge.stderr:
-        print(merge.stderr)
-    if merge.returncode != 0:
-        _write_status(s3, "error", f"merge_partitions.py exited {merge.returncode}")
-        raise RuntimeError(f"merge_partitions.py exited {merge.returncode}")
+    if load.stderr:
+        print(load.stderr)
+    if load.returncode != 0:
+        _write_status(s3, "error", f"load_to_sqlite.py exited {load.returncode}")
+        raise RuntimeError(f"load_to_sqlite.py exited {load.returncode}")
 
-    # The summary dict is the last stderr line merge_partitions.py prints
-    # -- surfaced in this Lambda's own return value so a manual invoke
-    # (or a CloudWatch Logs Insights query) can see it without digging
-    # through the full log stream.
-    summary = {}
-    for line in reversed(merge.stderr.splitlines()):
-        try:
-            summary = json.loads(line)
-            break
-        except json.JSONDecodeError:
-            continue
+    # Only now: the snapshot carrying them is pushed.
+    removed = delete_fragments(BUCKET, keys)
+    print(f"applied {len(results)} company results from {len(keys)} fragments, "
+          f"{removed} fragments cleared")
 
+    # Alerts moved here from the sweep, which no longer opens a database.
+    # Better placed anyway: one evaluation against the full snapshot
+    # rather than one per partition, right after the data lands.
+    _write_status(s3, "sending alerts", "matching new listings against saved filters")
+    alerts_result = evaluate_alerts(snapshot)
+    if alerts_result.get("errors"):
+        print(f"alert evaluation errors: {alerts_result['errors']}")
+
+    summary = {"applied": len(results), "fragments": len(keys), "alerts": alerts_result}
     _publish_bootstrap(s3)
 
-    print(f"merge complete: {json.dumps(summary)}")
-    _write_status(s3, "idle", f"last merge: {summary.get('companies_merged', '?')} companies "
-                              f"across {len(summary.get('partitions', []))} partitions")
-    return {"ok": True, "summary": summary}
+    print(f"delta apply complete: {json.dumps(summary, default=str)}")
+    _write_status(s3, "idle", f"last apply: {len(results)} companies from {len(keys)} fragments")
+    return {"ok": True, **summary}

@@ -60,9 +60,18 @@ CREATE INDEX IF NOT EXISTS idx_companies_ats ON companies(ats);
 -- wherever jobs rows are written (load_to_sqlite on ingest) and rebuilt
 -- from scratch whenever they are re-created (merge_partitions), never
 -- copied between files.
+-- contentless_delete=1 (SQLite 3.43+) is what makes an UPDATE possible.
+-- A plain contentless table can only remove a row if handed back the
+-- exact string it indexed, and the snapshot deliberately no longer
+-- stores that string, so the old terms could never be removed: a job
+-- whose description changed stayed matchable by BOTH its old and new
+-- text, forever, silently. Caught by test rather than in production.
+-- open_db falls back to a plain contentless table if the runtime is
+-- older, and index_description handles both.
 CREATE VIRTUAL TABLE IF NOT EXISTS jobs_fts USING fts5(
     description,
-    content=''
+    content='',
+    contentless_delete=1
 );
 
 CREATE TABLE IF NOT EXISTS jobs (

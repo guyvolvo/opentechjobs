@@ -64,10 +64,12 @@ from pathlib import Path
 import boto3
 from botocore.exceptions import ClientError
 
-from alerts import evaluate_alerts
-from sharding import SHARD_SIZE, build_shard_map, current_shard_index, num_shards_for, ordered_domains
+from sharding import SHARD_SIZE, current_shard_index, num_shards_for, ordered_domains
 
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT / "loader"))
+
+from deltas import put_fragment  # noqa: E402
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 
@@ -234,7 +236,6 @@ def lambda_handler(event, context):
     # is the global sweep; above 1 it rotates through equal windows, in
     # the same stable domain order the shard map uses, so coverage is
     # complete every SWEEP_WINDOWS runs rather than every 70.
-    shard_map = build_shard_map(known)
     num_shards = num_shards_for(len(known))
     if SWEEP_WINDOWS == 1:
         sweep = known
@@ -281,84 +282,29 @@ def lambda_handler(event, context):
     unchanged = [r for r in data if r.get("unchanged")]
     n_jobs = sum(r["job_count"] for r in hits)
     saved = _save_scrape_state(data)
+    changed = [r for r in data if r.get("ats") and not r.get("unchanged")]
     print(f"sweep: {len(hits)}/{len(data)} re-verified, {n_jobs} jobs, "
           f"{len(unchanged)} unchanged, {saved} validators stored")
     if errors:
         print(f"{len(errors)} known boards failed to re-poll: {len(errors)} companies")
 
-    # The sweep polls every company, but writes stay per-shard. One
-    # global partition would be the monolith that partitioning exists to
-    # avoid -- partitions still carry description and raw_json, since
-    # that text is what the merge builds jobs_fts from, so a single file
-    # holding all of them would be the ~1.2GB object every writer used to
-    # pull and push on every run.
+    # One small fragment, not N partition rewrites. This is the change
+    # that makes a wide sweep affordable: persisting a sweep used to mean
+    # a 48MB pull-modify-push per shard it touched, 50-170s each, and a
+    # run wanting 18 of them finished 1 and discarded the rest. A
+    # fragment holds only the companies that actually changed, so the
+    # sweep never opens a database at all and the write is kilobytes.
     #
-    # So results are grouped back into the shard each company already
-    # belongs to, and only shards containing at least one CHANGED company
-    # are written at all. In steady state that is a handful of small
-    # files rather than 70, because conditional polling means most
-    # companies come back 304 with nothing to store.
-    by_shard: dict[int, list[dict]] = {}
-    for r in data:
-        idx = shard_map.get(r["domain"])
-        if idx is not None:
-            by_shard.setdefault(idx, []).append(r)
-
-    # A shard with only unchanged companies has nothing new to record.
-    # Skipping it avoids an S3 read and write per shard per sweep, which
-    # is the difference between this being affordable and not. The cost
-    # is that those companies' last_checked doesn't advance this run;
-    # harmless, since MAX(last_checked) across the snapshot still moves
-    # whenever anything at all changes.
-    changed_shards = {i: rs for i, rs in by_shard.items()
-                       if any(not r.get("unchanged") and r.get("ats") for r in rs)}
-    print(f"{len(changed_shards)} of {len(by_shard)} shards have changes to write")
-
-    written, touched_partitions = 0, []
-    for idx, results in sorted(changed_shards.items()):
-        partition_key = f"jobs-partition-{idx}.db"
-        partition_path = TMP / partition_key
-        part_resolved = TMP / f"resolved-{idx}.json"
-        part_resolved.write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")
-        _write_status(s3, "loading", f"writing shard {idx} ({len(results)} companies)")
-        load = subprocess.run(
-            [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
-             "--resolved", str(part_resolved), "--out", str(partition_path),
-             "--bucket", BUCKET, "--key", partition_key, "--skip-vacuum", "--skip-known"],
-            capture_output=True, text=True, timeout=300,
-        )
-        if load.stderr:
-            print(load.stderr)
-        if load.returncode != 0:
-            # One bad shard must not discard the rest of the sweep's
-            # work, which is the whole point of writing them separately.
-            print(f"load_to_sqlite.py exited {load.returncode} for shard {idx}, continuing")
-            continue
-        written += 1
-        touched_partitions.append(partition_path)
-        part_resolved.unlink(missing_ok=True)
-
-    print(f"wrote {written}/{len(changed_shards)} changed partitions")
-    if written == 0 and changed_shards:
-        _write_status(s3, "error", "every changed shard failed to load")
-        raise RuntimeError("every changed shard failed to load")
-
-    _write_status(s3, "sending alerts", "matching new listings against saved filters")
-    # Over each partition this sweep refreshed, not one shard's. A
-    # company's alerts only need checking when its own data just moved,
-    # which is exactly what changed_shards contains.
-    alerts_result = {"errors": []}
-    for partition_path in touched_partitions:
-        result = evaluate_alerts(partition_path)
-        alerts_result["errors"] += result.get("errors") or []
-        for k, v in result.items():
-            if k != "errors" and isinstance(v, int):
-                alerts_result[k] = alerts_result.get(k, 0) + v
-    if alerts_result.get("errors"):
-        print(f"alert evaluation errors: {alerts_result['errors']}")
+    # The 5-minute applier (scrape_maintenance_handler.py) replays these
+    # into jobs-read.db. Fragments survive until it has successfully
+    # pushed a snapshot containing them, so a crash here or there costs a
+    # repeat, never a listing.
+    _write_status(s3, "loading", f"writing delta for {len(changed)} changed companies")
+    fragment = put_fragment(BUCKET, data)
+    print(f"delta fragment: {fragment or '(nothing changed, none written)'}")
 
     _write_status(s3, "idle", f"last sweep: {len(data)} companies, {len(unchanged)} unchanged, "
-                              f"{written} partitions written, {n_jobs} jobs")
-    return {"swept": len(data), "unchanged": len(unchanged), "partitions_written": written,
-            "num_shards": num_shards, "hits": len(hits), "errors": len(errors),
-            "jobs": n_jobs, "alerts": alerts_result}
+                              f"{len(changed)} changed, {n_jobs} jobs")
+    return {"swept": len(data), "unchanged": len(unchanged), "changed": len(changed),
+            "fragment": fragment, "num_shards": num_shards, "hits": len(hits),
+            "errors": len(errors), "jobs": n_jobs}

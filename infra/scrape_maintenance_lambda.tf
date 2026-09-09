@@ -48,7 +48,7 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         Action   = ["s3:ListBucket"]
         Resource = aws_s3_bucket.data.arn
         Condition = {
-          StringLike = { "s3:prefix" = ["jobs-partition-*"] }
+          StringLike = { "s3:prefix" = ["jobs-partition-*", "deltas/*"] }
         }
       },
       {
@@ -61,7 +61,7 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         # scrape_maintenance_handler.py's own _write_status.
         Sid    = "PartitionsReadKnownReadWriteSnapshot"
         Effect = "Allow"
-        Action = ["s3:GetObject", "s3:PutObject"]
+        Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = [
           "${aws_s3_bucket.data.arn}/jobs-partition-*",
           "${aws_s3_bucket.data.arn}/known.json",
@@ -71,6 +71,12 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # resolve-company-names.yml; this Lambda only applies it to the
           # snapshot it just built (see apply_company_names).
           "${aws_s3_bucket.data.arn}/company-names.json",
+          # deltas/*: read and then deleted once a snapshot containing
+          # them has been pushed. See loader/deltas.py.
+          "${aws_s3_bucket.data.arn}/deltas/*",
+          # descriptions/*: the applier now runs the loader, so it writes
+          # description blobs too.
+          "${aws_s3_bucket.data.arn}/descriptions/*",
         ]
       },
       {

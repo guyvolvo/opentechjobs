@@ -64,11 +64,33 @@ def job_id(domain: str, ats: str, external_id: str | None, url: str | None, titl
     return hashlib.md5(key.encode("utf-8")).hexdigest()[:16]
 
 
+# The exact text schema.sql uses, so the fallback strips precisely this
+# and nothing else.
+FTS_DELETE_OPTION = ",\n    contentless_delete=1"
+
+
+def _create_schema(conn: sqlite3.Connection, sql: str) -> None:
+    """Apply schema.sql, degrading the FTS table on an older SQLite.
+
+    contentless_delete=1 needs 3.43+. Rather than hard-fail the whole
+    pipeline on a runtime that predates it, fall back to a plain
+    contentless table; index_description detects which one it got.
+    """
+    try:
+        conn.executescript(sql)
+    except sqlite3.OperationalError as e:
+        if "contentless_delete" not in str(e):
+            raise
+        print(f"sqlite {sqlite3.sqlite_version} lacks contentless_delete, "
+              f"falling back to a plain contentless index", file=sys.stderr)
+        conn.executescript(sql.replace(FTS_DELETE_OPTION, ""))
+
+
 def open_db(path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+    _create_schema(conn, SCHEMA_PATH.read_text(encoding="utf-8"))
     _migrate(conn)
     # See SCHEMA_VERSION's own comment. Stamped unconditionally on every
     # open, not just a fresh DB, so an existing jobs.db built before this
@@ -119,31 +141,58 @@ def _migrate(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE companies ADD COLUMN {name} {coltype}")
 
 
-def index_description(conn: sqlite3.Connection, jid: str, new_text: str, old_text: str | None) -> None:
+def _fts_supports_rowid_delete(conn: sqlite3.Connection) -> bool:
+    """Whether jobs_fts can drop a row by rowid alone.
+
+    True on SQLite 3.43+ where the table was created with
+    contentless_delete=1. Probed once per connection against a rowid that
+    cannot exist, so it costs nothing and changes nothing either way.
+    """
+    # Read the table's own definition rather than probing behaviour. A
+    # DELETE against a rowid that matches nothing succeeds on a plain
+    # contentless table too, so probing reports support that isn't there
+    # and only fails once a row genuinely needs removing, which is the
+    # worst possible moment to find out.
+    try:
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'jobs_fts'"
+        ).fetchone()
+    except sqlite3.Error:
+        return False
+    return bool(row) and "contentless_delete" in (row[0] or "")
+
+
+def index_description(conn: sqlite3.Connection, jid: str, new_text: str, old_text: str | None,
+                      rowid_delete: bool) -> None:
     """Keep this job's row in the full-text index current.
 
-    Contentless FTS5 has no update-by-key and, having never stored the
-    text, cannot work out what to remove on its own: deleting a row means
-    handing back the exact string that was indexed. So the caller must
-    capture the previous description BEFORE upsert_job overwrites the
-    column, and pass it here. Passing the new text instead does not error,
-    it corrupts the index, which then fails as "database disk image is
-    malformed" on the next write.
+    Two ways to retire the previous entry, and the first is much better.
+    With contentless_delete=1 the row goes by rowid, which works even
+    though the snapshot no longer stores the text. Without it, FTS5 needs
+    the exact string it originally indexed handed back, so the caller has
+    to capture the description BEFORE upsert_job overwrites the column,
+    and a snapshot that dropped the column cannot delete at all: the
+    stale terms would linger and the job would stay matchable by text it
+    no longer contains.
 
-    rowid is read after the upsert, since a job appearing for the first
-    time has no row until then.
+    Passing the wrong text to the text-based delete does not error, it
+    corrupts the index and surfaces later as "database disk image is
+    malformed".
     """
     row = conn.execute("SELECT rowid FROM jobs WHERE id = ?", (jid,)).fetchone()
     if row is None:
         return
     rowid = row["rowid"]
-    if old_text:
+    if rowid_delete:
+        conn.execute("DELETE FROM jobs_fts WHERE rowid = ?", (rowid,))
+    elif old_text:
         conn.execute("INSERT INTO jobs_fts(jobs_fts, rowid, description) VALUES('delete', ?, ?)",
                      (rowid, old_text))
     conn.execute("INSERT INTO jobs_fts(rowid, description) VALUES (?, ?)", (rowid, new_text))
 
 
-def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
+def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
+                  drop_description: bool = False) -> set[str]:
     """Upsert probe.py's --json output. Every company in this file was
     re-checked THIS run, so companies/jobs not mentioned for a given
     domain but present in the DB from a prior run are fair game to close
@@ -169,6 +218,9 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
     # per job: an S3 round trip inside the row loop would dominate the
     # load, and most loads have nothing here at all.
     changed_descriptions: list[tuple[str, str]] = []
+    # Probed once here rather than per job: which delete strategy the FTS
+    # table supports is a property of the file, not of a row.
+    rowid_delete = _fts_supports_rowid_delete(conn)
 
     for r in data:
         domain = r["domain"]
@@ -356,13 +408,19 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
                 j["description_sha"] = sha
             upsert_job(conn, jid, domain, j, confidence=job_confidence, ts=ts, already_tracked_company=already_tracked)
             if reindex:
-                index_description(conn, jid, desc, prior_desc)
+                index_description(conn, jid, desc, prior_desc, rowid_delete)
         seen_ids_by_domain[domain] = ids
 
     close_missing_jobs(conn, seen_ids_by_domain, ts)
 
     # After the DB work, never during it. This commit still writes the
     # description column as well, so a failure here costs nothing yet.
+    if drop_description and changed_descriptions:
+        # Order matters: the FTS row and the S3 blob are both written
+        # above, from the text, before this removes it from the column.
+        conn.executemany("UPDATE jobs SET description = NULL WHERE id = ?",
+                         [(jid,) for jid, _ in changed_descriptions])
+
     if changed_descriptions and DESCRIPTIONS_BUCKET:
         n = put_many(DESCRIPTIONS_BUCKET, changed_descriptions)
         print(f"uploaded {n}/{len(changed_descriptions)} changed descriptions", file=sys.stderr)
@@ -798,6 +856,11 @@ def main() -> int:
                           "sharding exists to avoid. scrape_maintenance_handler.py's own daily, --resolved-less "
                           "run is where VACUUM actually happens now; every other caller (scrape-discover.yml's "
                           "full batch, merge_discovered_batch.py) keeps vacuuming every run, unchanged.")
+    ap.add_argument("--drop-description", action="store_true",
+                     help="index the description and upload its blob, but store NULL in the "
+                          "description column. The applier writes straight into jobs-read.db, "
+                          "which must stay small: description text was ~42% of that file and the "
+                          "words remain searchable through jobs_fts either way.")
     ap.add_argument("--skip-known", action="store_true",
                      help="a --key pointed at a partition file (jobs-partition-{name}.db, see the Partition & "
                           "Merge design doc) only ever holds ITS OWN shard's companies -- export_known() run "
@@ -831,7 +894,7 @@ def main() -> int:
 
         conn = open_db(args.out)
         with conn:
-            current_domains = load_resolved(conn, args.resolved)
+            current_domains = load_resolved(conn, args.resolved, args.drop_description)
             if args.deep:
                 load_deep(conn, args.deep)
             if args.prune_stale:

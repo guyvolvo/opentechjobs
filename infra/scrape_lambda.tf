@@ -63,6 +63,9 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
           # descriptions/*: written by load_to_sqlite.py when a job's
           # description is new or changed (loader/descriptions.py).
           "${aws_s3_bucket.data.arn}/descriptions/*",
+          # deltas/*: one fragment per sweep, holding only the companies
+          # that changed. Replayed into jobs-read.db by the applier.
+          "${aws_s3_bucket.data.arn}/deltas/*",
           "${aws_s3_bucket.data.arn}/known.json",
           # status.json: this Lambda's own real-time phase, written at
           # each stage (scraping/loading/sending alerts/idle/error) --
