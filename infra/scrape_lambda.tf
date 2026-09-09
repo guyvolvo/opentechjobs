@@ -176,7 +176,12 @@ resource "aws_lambda_function" "scrape_fast" {
       # partitions, which fits, and still covers everything every ~2
       # hours against the old 5.8. Lowering this further needs the delta
       # write path, not a bigger timeout.
-      SWEEP_WINDOWS     = "24"
+      # 1: the full global sweep, every company on every tick. This was
+      # 24 because persisting a sweep meant rewriting every partition it
+      # touched, 48MB and 50-170s each, so a wide sweep wrote 1 of 18 and
+      # binned the rest. The sweep now writes one small delta fragment
+      # instead, so that ceiling is gone.
+      SWEEP_WINDOWS     = "1"
       ALERTS_FROM_EMAIL = var.alerts_from_email
       SITE_ORIGIN       = "https://${var.domain_name}"
       # Must match schedule_expression below in real seconds. Confirmed
