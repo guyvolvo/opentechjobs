@@ -119,6 +119,30 @@ def _migrate(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE companies ADD COLUMN {name} {coltype}")
 
 
+def index_description(conn: sqlite3.Connection, jid: str, new_text: str, old_text: str | None) -> None:
+    """Keep this job's row in the full-text index current.
+
+    Contentless FTS5 has no update-by-key and, having never stored the
+    text, cannot work out what to remove on its own: deleting a row means
+    handing back the exact string that was indexed. So the caller must
+    capture the previous description BEFORE upsert_job overwrites the
+    column, and pass it here. Passing the new text instead does not error,
+    it corrupts the index, which then fails as "database disk image is
+    malformed" on the next write.
+
+    rowid is read after the upsert, since a job appearing for the first
+    time has no row until then.
+    """
+    row = conn.execute("SELECT rowid FROM jobs WHERE id = ?", (jid,)).fetchone()
+    if row is None:
+        return
+    rowid = row["rowid"]
+    if old_text:
+        conn.execute("INSERT INTO jobs_fts(jobs_fts, rowid, description) VALUES('delete', ?, ?)",
+                     (rowid, old_text))
+    conn.execute("INSERT INTO jobs_fts(rowid, description) VALUES (?, ?)", (rowid, new_text))
+
+
 def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
     """Upsert probe.py's --json output. Every company in this file was
     re-checked THIS run, so companies/jobs not mentioned for a given
@@ -316,13 +340,23 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
             # own CASE on description), so it never queues an upload and
             # never clears an existing blob.
             desc = j.get("description")
+            prior_desc = None
+            reindex = False
             if desc:
                 sha = description_sha(desc)
-                row = conn.execute("SELECT description_sha FROM jobs WHERE id = ?", (jid,)).fetchone()
+                row = conn.execute(
+                    "SELECT description_sha, description FROM jobs WHERE id = ?", (jid,)
+                ).fetchone()
+                # Captured before the upsert below overwrites it: the FTS
+                # delete needs the exact text that was indexed.
+                prior_desc = row["description"] if row else None
                 if row is None or row["description_sha"] != sha:
                     changed_descriptions.append((jid, desc))
+                    reindex = True
                 j["description_sha"] = sha
             upsert_job(conn, jid, domain, j, confidence=job_confidence, ts=ts, already_tracked_company=already_tracked)
+            if reindex:
+                index_description(conn, jid, desc, prior_desc)
         seen_ids_by_domain[domain] = ids
 
     close_missing_jobs(conn, seen_ids_by_domain, ts)

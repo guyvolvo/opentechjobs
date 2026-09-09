@@ -212,7 +212,13 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path,
         # simply arrives as NULL for older partitions and fills in as
         # each one gets rewritten by its own next scrape.
         company_cols = _shared_columns(merged, "companies")
-        job_cols = _shared_columns(merged, "jobs")
+        # description is deliberately dropped on the way in. It is ~94%
+        # of this file's bytes and the text now lives as one S3 object
+        # per job (loader/descriptions.py), read back by /api/jobs/{id}.
+        # The words are still searchable: jobs_fts is rebuilt below from
+        # the same source rows. Partitions keep the column, because
+        # building the index needs the text.
+        job_cols = [c for c in _shared_columns(merged, "jobs") if c != "description"]
         # DETACH has to come after the transaction that touched src
         # commits -- see the design doc's "Considered and declined" note
         # on the same mistake in an earlier reviewed SQL snippet.
@@ -226,6 +232,15 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path,
                 f"INSERT OR REPLACE INTO jobs ({','.join(job_cols)}) "
                 f"SELECT {','.join(job_cols)} FROM src.jobs WHERE company_domain IN ({placeholders})",
                 keep_domains,
+            )
+        # Rebuilt, never copied: FTS5 rowids only mean anything inside one
+        # database file, and this output assigns fresh rowids as rows
+        # arrive. Joining on the stable job id maps each one correctly.
+        with merged:
+            merged.execute(
+                "INSERT INTO jobs_fts(rowid, description) "
+                "SELECT j.rowid, s.description FROM jobs j JOIN src.jobs s ON s.id = j.id "
+                "WHERE s.description IS NOT NULL AND s.description != ''"
             )
         merged.execute("DETACH DATABASE src")
 

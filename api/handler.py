@@ -29,7 +29,7 @@ from boto3.dynamodb.conditions import Key
 
 from db import get_connection
 from help_page import HELP_HTML
-from job_filters import FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where
+from job_filters import FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where, has_fts_index
 
 _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 
@@ -229,7 +229,7 @@ def route_jobs(params: dict) -> dict:
         if _has_company_name(conn) else "NULL AS company_name"
     )
 
-    where_sql, args = build_jobs_where(params)
+    where_sql, args = build_jobs_where(params, has_fts_index(conn))
 
     sort_key = params.get("sort", "age")
     if sort_key not in SORT_COLUMNS:
@@ -537,7 +537,7 @@ def route_facets(params: dict) -> dict:
     def counts_by(column_expr: str, exclude_param: str, limit: int) -> list[dict]:
         scoped = dict(params)
         scoped.pop(exclude_param, None)
-        where_sql, args = build_jobs_where(scoped)
+        where_sql, args = build_jobs_where(scoped, has_fts_index(conn))
         rows = conn.execute(
             f"""
             SELECT {column_expr} AS value, COUNT(*) AS n

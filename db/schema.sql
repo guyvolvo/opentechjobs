@@ -39,6 +39,32 @@ CREATE TABLE IF NOT EXISTS companies (
 
 CREATE INDEX IF NOT EXISTS idx_companies_ats ON companies(ats);
 
+-- Full-text index over job descriptions.
+--
+-- content='' makes this "contentless": FTS5 stores the inverted index
+-- and never the original text. That is the whole point. Descriptions are
+-- ~94% of the snapshot's bytes (a job row's metadata is 570 bytes, the
+-- full row averages 9,521), which is what made jobs-read.db 1.2GB and
+-- would make it 8.9GB at a million listings, past the 10GB Lambda /tmp
+-- ceiling every reader has to fit inside. The text itself now lives as
+-- one S3 object per job (loader/descriptions.py); the words stay here so
+-- they remain searchable.
+--
+-- Keyed by jobs.rowid. A contentless table cannot return columns, only
+-- match rowids, which is exactly what build_jobs_where's keywords filter
+-- needs: `jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE ... MATCH ?)`.
+-- That also replaces a LIKE '%term%' scan over every row with a real
+-- index, so keyword search gets faster as well as cheaper.
+--
+-- rowid is only stable within one database file, so this is populated
+-- wherever jobs rows are written (load_to_sqlite on ingest) and rebuilt
+-- from scratch whenever they are re-created (merge_partitions), never
+-- copied between files.
+CREATE VIRTUAL TABLE IF NOT EXISTS jobs_fts USING fts5(
+    description,
+    content=''
+);
+
 CREATE TABLE IF NOT EXISTS jobs (
     id                  TEXT PRIMARY KEY,     -- stable hash: domain + url/external_id (see loader)
     company_domain      TEXT NOT NULL REFERENCES companies(domain),

@@ -167,7 +167,34 @@ def _add_in_filter(where: list, args: list, params: dict, param_name: str, colum
     args.extend(values)
 
 
-def build_jobs_where(params: dict) -> tuple[str, list]:
+def has_fts_index(conn) -> bool:
+    """Whether this database carries the jobs_fts index.
+
+    Callers pass the result into build_jobs_where. Checked rather than
+    assumed because the same function serves the merged snapshot and the
+    per-shard partitions, and those gain the index at different times.
+    """
+    try:
+        row = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'jobs_fts'"
+        ).fetchone()
+        return row is not None
+    except Exception:
+        return False
+
+
+def fts_escape(term: str) -> str:
+    """Wrap a user term as an FTS5 string literal.
+
+    FTS5's query language treats ", *, ^, -, NEAR, OR and friends as
+    syntax, so a raw term like C++ or "senior-engineer" is either a
+    syntax error or silently a different query. Quoting makes it a
+    literal phrase, and doubling embedded quotes escapes them.
+    """
+    return '"' + term.replace('"', '""') + '"'
+
+
+def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
     """Same WHERE-clause construction route_jobs() uses for /api/jobs,
     minus sort/limit/offset (callers that need a full listing add those
     themselves; the alert evaluator only ever needs WHERE + first_seen).
@@ -215,8 +242,28 @@ def build_jobs_where(params: dict) -> tuple[str, list]:
             if not term:
                 continue
             like = f"%{term.lower()}%"
-            where.append("(LOWER(title) LIKE ? OR LOWER(COALESCE(description, '')) LIKE ?)")
-            args.extend([like, like])
+            if has_fts:
+                # Descriptions no longer live in this table (see
+                # db/schema.sql's jobs_fts and loader/descriptions.py), so
+                # the text half of this match comes from the full-text
+                # index instead of a LIKE scan. Faster too: a real index
+                # rather than a substring scan over every open row.
+                # Title still matches by substring, so a partial word in
+                # a title behaves exactly as it always has.
+                where.append(
+                    "(LOWER(title) LIKE ? OR jobs.rowid IN "
+                    "(SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?))"
+                )
+                args.extend([like, fts_escape(term)])
+            else:
+                # No FTS table in this database: a partition written
+                # before the index existed, or any caller still holding a
+                # snapshot with the description column populated. Falls
+                # back to the original behaviour rather than silently
+                # matching nothing, which is what a keyword filter
+                # failing open would do to saved alerts.
+                where.append("(LOWER(title) LIKE ? OR LOWER(COALESCE(description, '')) LIKE ?)")
+                args.extend([like, like])
 
     if bool_param(params, "israel_only"):
         clauses = " OR ".join("LOWER(location) LIKE ?" for _ in IL_KEYWORDS)
