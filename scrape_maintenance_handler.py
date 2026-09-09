@@ -47,6 +47,9 @@ import boto3
 ROOT = Path(__file__).parent
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
+# Where bootstrap.json goes. Optional: unset just means the site keeps
+# fetching its first page from the API, which is what it did before.
+FRONTEND_BUCKET = os.environ.get("FRONTEND_BUCKET")
 
 
 def _write_status(s3, phase: str, detail: str = "") -> None:
@@ -63,6 +66,44 @@ def _write_status(s3, phase: str, detail: str = "") -> None:
         )
     except Exception as e:
         print(f"merge-status.json write failed (non-fatal): {e!r}")
+
+
+def _publish_bootstrap(s3) -> None:
+    """Publish the default first page as a static file for CloudFront.
+
+    Runs here rather than anywhere else because this is the only moment
+    the data changes, and because the freshly-merged snapshot is already
+    sitting on local disk. Best-effort throughout: a failure costs the
+    site its fast first paint, never its correctness, since the frontend
+    falls back to the normal API fetch whenever this file is missing,
+    stale-shaped, or simply doesn't match the query it was about to make.
+    """
+    if not FRONTEND_BUCKET:
+        return
+    out = TMP / "bootstrap.json"
+    try:
+        build = subprocess.run(
+            [sys.executable, str(ROOT / "loader" / "bootstrap.py"),
+             "--db", str(TMP / "jobs-read.db"), "--out", str(out)],
+            capture_output=True, text=True, timeout=60,
+        )
+        if build.stderr:
+            print(build.stderr.strip())
+        if build.returncode != 0:
+            print(f"bootstrap build failed (non-fatal): exit {build.returncode}")
+            return
+        s3.put_object(
+            Bucket=FRONTEND_BUCKET, Key="bootstrap.json",
+            Body=out.read_bytes(), ContentType="application/json",
+            # Short browser TTL, longer at the edge, and a generous
+            # stale-while-revalidate so a visitor never waits on a
+            # revalidation round trip. All of it is bounded by the merge
+            # cadence anyway: this content is only ever regenerated here.
+            CacheControl="public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+        )
+        print(f"published bootstrap.json ({out.stat().st_size} bytes) to {FRONTEND_BUCKET}")
+    except Exception as e:
+        print(f"bootstrap publish failed (non-fatal, site falls back to the API): {e!r}")
 
 
 def lambda_handler(event, context):
@@ -93,6 +134,8 @@ def lambda_handler(event, context):
             break
         except json.JSONDecodeError:
             continue
+
+    _publish_bootstrap(s3)
 
     print(f"merge complete: {json.dumps(summary)}")
     _write_status(s3, "idle", f"last merge: {summary.get('companies_merged', '?')} companies "

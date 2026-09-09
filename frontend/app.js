@@ -984,6 +984,31 @@ function setLoadBar(active) {
   if (bar) bar.classList.toggle("active", inFlight > 0);
 }
 
+// The precomputed default first page (loader/bootstrap.py), published by
+// the merge Lambda and served straight from CloudFront's edge. Used only
+// for the unfiltered default view, and only when its recorded params
+// match exactly what this build was about to request, so the two can
+// never drift into rendering something subtly wrong: any mismatch just
+// falls through to a normal fetch.
+//
+// Worth it because api/db.py re-downloads the whole ~1.26GB jobs-read.db
+// inside a user's request whenever its ETag moves. Measured across 809
+// real requests: median 1.49s, p90 9.08s, max 25.00s, which is the API
+// Lambda's own timeout. This file is 4.4KB gzipped and involves no
+// Lambda at all.
+let bootstrapPromise = null;
+function getBootstrap() {
+  // Started once, at module load, so it overlaps the rest of boot()
+  // instead of queueing behind it. index.html preloads the same URL, so
+  // this usually resolves from the browser's own preload cache.
+  if (bootstrapPromise === null) {
+    bootstrapPromise = fetch("/bootstrap.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null); // missing or unreachable is a normal, expected state
+  }
+  return bootstrapPromise;
+}
+
 async function loadJobs() {
   // Every state-mutating handler in this file calls loadJobs() right
   // after, so state is already final for this transition -- one call
@@ -1017,7 +1042,18 @@ async function loadJobs() {
     offset: state.offset,
   });
 
-  const cached = getCachedJobs(params);
+  let cached = getCachedJobs(params);
+
+  // Nothing cached locally, but this might be the default view, which is
+  // already sitting on the edge. Only await it when there's nothing
+  // better to show, so a returning visitor never waits on it.
+  if (!cached) {
+    const boot = await getBootstrap();
+    if (boot && boot.params === params && boot.jobs && boot.jobs.jobs.length) {
+      cached = boot.jobs;
+    }
+  }
+
   tbody.closest("table").style.display = "";
   if (cached) {
     document.getElementById("jobs-loading").textContent = "";

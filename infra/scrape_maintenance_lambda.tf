@@ -70,6 +70,18 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         ]
       },
       {
+        # bootstrap.json only. The merge is the one moment this data
+        # changes and the one process holding the freshly-built snapshot
+        # on local disk, so it publishes the site's default first page
+        # here as a static object CloudFront can serve from the edge with
+        # no Lambda in the request path at all. Scoped to that single
+        # key: this role has no other business in the frontend bucket.
+        Sid      = "PublishBootstrap"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "${aws_s3_bucket.frontend.arn}/bootstrap.json"
+      },
+      {
         Sid      = "Logs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
@@ -109,6 +121,9 @@ resource "aws_lambda_function" "scrape_maintenance" {
   environment {
     variables = {
       DATA_BUCKET = aws_s3_bucket.data.bucket
+      # Unset would simply mean no bootstrap.json gets published and the
+      # site keeps fetching its first page from the API, as it did before.
+      FRONTEND_BUCKET = aws_s3_bucket.frontend.bucket
     }
   }
 

@@ -38,6 +38,12 @@
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png" />
   <link rel="stylesheet" href="style.css" />
+  <!-- The default first page, precomputed at merge time and served from
+       CloudFront's edge with no Lambda in the path (loader/bootstrap.py).
+       Preloaded so it downloads alongside app.js rather than after it.
+       app.js ignores it unless it matches the exact query it was about
+       to make, so a mismatched file costs nothing but a normal fetch. -->
+  <link rel="preload" href="/bootstrap.json" as="fetch" crossorigin="anonymous" />
   <script>
     // Applied before first paint so there's no flash of the wrong theme
     // on reload. app.js still owns the toggle button/click handling.
