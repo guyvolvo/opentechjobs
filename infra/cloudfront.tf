@@ -156,6 +156,39 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
+  # /api/geo alone forwards the viewer's country to the Lambda. Two
+  # headers, not one, because the answer comes from a different place
+  # depending on whether Cloudflare is proxying the zone: CF-IPCountry
+  # is Cloudflare's own, present only on a proxied (orange-cloud)
+  # request, and CloudFront-Viewer-Country is CloudFront's own, which
+  # CloudFront adds itself when an origin request policy names it.
+  # Behind a proxied Cloudflare zone the CloudFront one degrades to the
+  # Cloudflare PoP's country rather than the real viewer's, since
+  # CloudFront then only ever sees Cloudflare's IP -- so route_geo
+  # prefers CF-IPCountry and falls back. Deliberately its own behavior
+  # rather than a header added to /api/*'s shared cache policy: a
+  # country in THAT cache key would fragment every jobs/stats response
+  # per country for nothing.
+  ordered_cache_behavior {
+    path_pattern           = "/api/geo"
+    target_origin_id       = "api-lambda"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    # Caching disabled, not a country-keyed cache. The response is two
+    # fields and the Lambda call is trivial, while a cached answer
+    # handed to a viewer in a different country is exactly the bug this
+    # route would get blamed for.
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = aws_cloudfront_origin_request_policy.viewer_country.id
+    compress                 = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.legacy_domain_redirect.arn
+    }
+  }
+
   ordered_cache_behavior {
     path_pattern           = "/api/*"
     target_origin_id       = "api-lambda"
@@ -187,6 +220,25 @@ resource "aws_cloudfront_distribution" "main" {
     acm_certificate_arn      = aws_acm_certificate_validation.site.certificate_arn
     ssl_support_method       = "sni-only" # free; the alternative (vip) costs ~$600/mo and isn't needed for a modern SNI-capable domain
     minimum_protocol_version = "TLSv1.2_2021"
+  }
+}
+
+# Forwards just the two country headers to the API Lambda, for the
+# /api/geo behavior above. Naming CloudFront-Viewer-Country here is
+# what makes CloudFront ADD it: it's CloudFront's own header, not
+# something the viewer sent. CF-IPCountry genuinely is a viewer header
+# by the time CloudFront sees it, added by Cloudflare at its own edge,
+# so it exists only while the zone is proxied.
+resource "aws_cloudfront_origin_request_policy" "viewer_country" {
+  name    = "${var.project_name}-viewer-country"
+  comment = "Country headers for /api/geo"
+
+  cookies_config { cookie_behavior = "none" }
+  query_strings_config { query_string_behavior = "none" }
+
+  headers_config {
+    header_behavior = "whitelist"
+    headers { items = ["CloudFront-Viewer-Country", "CF-IPCountry"] }
   }
 }
 

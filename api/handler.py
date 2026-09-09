@@ -96,6 +96,11 @@ def lambda_handler(event, context):
             return _response(200, json.dumps(route_health(), default=str), cache_seconds=60)
         if path == "/pipeline-status":
             return _response(200, json.dumps(route_pipeline_status(), default=str))
+        if path == "/geo":
+            # No cache_seconds, deliberately: the answer is per-viewer,
+            # and CloudFront's own /api/geo behavior disables caching
+            # for the same reason (infra/cloudfront.tf).
+            return _response(200, json.dumps(route_geo(event)))
         if path == "/me/alerts":
             claims = _authenticated_claims(event)
             if method == "GET":
@@ -335,6 +340,31 @@ def route_pipeline_status() -> dict:
         # headroom, not a guess at the actual duration.
         "merge": _read_status(bucket, "merge-status.json", stale_minutes=15),
     }
+
+
+def route_geo(event: dict) -> dict:
+    """The viewer's own country, for the frontend to offer a local
+    default without imposing one. Cloudflare's CF-IPCountry first,
+    CloudFront's CloudFront-Viewer-Country second: while the zone is
+    proxied through Cloudflare, CloudFront only ever sees Cloudflare's
+    own IP, so ITS header reports whichever Cloudflare PoP took the
+    request, not where the person actually is. Neither header reaches
+    this Lambda unless /api/geo's own cache behavior forwards it --
+    /api/* strips every header (see infra/cloudfront.tf).
+
+    Answers null rather than guessing. An absent or unusable value
+    means the frontend shows no prompt at all, which is the right
+    failure: a wrong country guess is worse than none, and this is
+    only ever a suggestion the visitor can ignore.
+    """
+    headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
+    for key in ("cf-ipcountry", "cloudfront-viewer-country"):
+        raw = (headers.get(key) or "").strip().upper()
+        # XX is Cloudflare's own "couldn't tell", T1 is Tor. Both are
+        # real values it sends, neither is a country.
+        if len(raw) == 2 and raw.isalpha() and raw not in ("XX", "T1"):
+            return {"country": raw, "source": key}
+    return {"country": None, "source": None}
 
 
 def route_health() -> dict:
