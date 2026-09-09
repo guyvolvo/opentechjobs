@@ -80,6 +80,74 @@ BUCKET = os.environ["DATA_BUCKET"]
 # 300 only for a bare local run outside the Lambda environment.
 SCHEDULE_INTERVAL_S = int(os.environ.get("SCHEDULE_INTERVAL_S", "300"))
 
+# Conditional-poll validators (infra/dynamodb.tf's scrape_state table).
+# Optional on purpose: an unset table name, or any failure reading it,
+# degrades to a normal full fetch rather than failing the run. Losing the
+# optimization is a cost problem; failing the run is a data problem.
+STATE_TABLE = os.environ.get("SCRAPE_STATE_TABLE")
+
+
+def _load_scrape_state(domains: list[str]) -> dict[str, dict]:
+    """domain -> {etag, last_modified, content_hash} for this shard.
+
+    One BatchGetItem per 100 keys, which at SHARD_SIZE=50 is a single
+    round trip. Kept out of the partition file deliberately: reading a
+    validator out of a 30-90MB S3 object would cost more than the fetch
+    it saves.
+    """
+    if not STATE_TABLE or not domains:
+        return {}
+    try:
+        client = boto3.client("dynamodb")
+        out: dict[str, dict] = {}
+        for i in range(0, len(domains), 100):
+            chunk = domains[i:i + 100]
+            resp = client.batch_get_item(
+                RequestItems={STATE_TABLE: {
+                    "Keys": [{"domain": {"S": d}} for d in chunk],
+                    "ProjectionExpression": "#d, etag, last_modified, content_hash",
+                    "ExpressionAttributeNames": {"#d": "domain"},
+                }}
+            )
+            for item in resp.get("Responses", {}).get(STATE_TABLE, []):
+                out[item["domain"]["S"]] = {
+                    k: item[k]["S"] for k in ("etag", "last_modified", "content_hash") if k in item
+                }
+        return out
+    except Exception as e:
+        print(f"couldn't read scrape state (non-fatal, falling back to full fetches): {e!r}")
+        return {}
+
+
+def _save_scrape_state(results: list[dict]) -> int:
+    """Persist whatever validators this run learned.
+
+    Only rows that actually carry one are written, so an unchanged 304
+    (which carries the same validator it was given) costs no write.
+    """
+    if not STATE_TABLE:
+        return 0
+    puts = []
+    for r in results:
+        if r.get("unchanged") or not r.get("ats"):
+            continue  # nothing new learned, or nothing worth trusting
+        item = {"domain": {"S": r["domain"]}}
+        for key in ("etag", "last_modified", "content_hash"):
+            if r.get(key):
+                item[key] = {"S": str(r[key])}
+        if len(item) > 1:
+            puts.append({"PutRequest": {"Item": item}})
+    if not puts:
+        return 0
+    try:
+        client = boto3.client("dynamodb")
+        for i in range(0, len(puts), 25):  # BatchWriteItem's own hard limit
+            client.batch_write_item(RequestItems={STATE_TABLE: puts[i:i + 25]})
+        return len(puts)
+    except Exception as e:
+        print(f"couldn't save scrape state (non-fatal, next run just refetches): {e!r}")
+        return 0
+
 
 def _write_status(s3, phase: str, detail: str = "") -> None:
     """Best-effort, real-time "what is the pipeline doing right now"
@@ -135,6 +203,12 @@ def lambda_handler(event, context):
 
     known = json.loads(known_path.read_text(encoding="utf-8"))
     shard, shard_index, num_shards = _pick_shard(known)
+    # Hand probe.py whatever validators we already hold for these
+    # companies. refetch_known sends them as If-None-Match, and ~88% of
+    # tracked companies sit on an ATS that answers 304 to that.
+    state = _load_scrape_state([e["domain"] for e in shard])
+    for e in shard:
+        e.update(state.get(e["domain"], {}))
     shard_path = TMP / "known-shard.json"
     shard_path.write_text(json.dumps(shard, ensure_ascii=False), encoding="utf-8")
 
@@ -161,8 +235,11 @@ def lambda_handler(event, context):
     data = json.loads(probe.stdout)
     hits = [r for r in data if r.get("ats")]
     errors = [r["domain"] for r in data if r.get("error")]
+    unchanged = [r for r in data if r.get("unchanged")]
     n_jobs = sum(r["job_count"] for r in hits)
-    print(f"shard {shard_index + 1}/{num_shards}: {len(hits)}/{len(data)} re-verified, {n_jobs} jobs")
+    saved = _save_scrape_state(data)
+    print(f"shard {shard_index + 1}/{num_shards}: {len(hits)}/{len(data)} re-verified, {n_jobs} jobs, "
+          f"{len(unchanged)} unchanged, {saved} validators stored")
     if errors:
         print(f"{len(errors)} known boards failed to re-poll: {errors}")
 

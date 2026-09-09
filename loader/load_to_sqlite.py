@@ -104,6 +104,11 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
     existing jobs would manufacture a false "closed" signal from what
     might just be a transient probe failure.
 
+    A third answer, "unchanged", is handled before any of that: see the
+    branch at the top of the loop. It means the board was checked and
+    provably hasn't moved, so its jobs are deliberately absent from the
+    payload rather than genuinely gone.
+
     Returns every domain this run covered, hit or miss -- --prune-stale's
     "is this domain still tracked at all" check (see prune_stale_companies).
     """
@@ -115,6 +120,40 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
         domain = r["domain"]
         ats = r.get("ats")
         token = r.get("token")
+
+        # "unchanged": probe.py's conditional re-poll got a 304 (or the
+        # normalized content hash matched), so it deliberately did NOT
+        # fetch this board's jobs. That is NOT the same as a board that
+        # came back empty, and conflating the two destroys live data:
+        # falling through with jobs == [] puts this domain into
+        # seen_ids_by_domain with an empty set, and close_missing_jobs
+        # then marks every open listing at this company closed. On a
+        # shard where most companies legitimately answer 304 -- which is
+        # the normal case, ~88% of tracked companies are on ATSes that
+        # support conditional GET -- that closes most of the board every
+        # cycle. tests/test_unchanged_state.py fails loudly without this
+        # branch; it was written before it and did exactly that.
+        #
+        # Only tried/error/last_checked move. ats, token, confidence and
+        # job_count all keep whatever they already had, job_count
+        # especially: this run genuinely doesn't know it, and the normal
+        # upsert below would write this payload's 0 over the real number.
+        # last_checked still advances, because the board really was
+        # checked -- freshness and the merge's own last_checked-based
+        # conflict resolution both depend on that being honest.
+        if r.get("unchanged"):
+            conn.execute(
+                """
+                INSERT INTO companies (domain, ats, token, confidence, job_count, tried, error, first_seen, last_checked)
+                VALUES (?, ?, ?, 'verified', ?, ?, NULL, ?, ?)
+                ON CONFLICT(domain) DO UPDATE SET
+                    tried = excluded.tried,
+                    error = NULL,
+                    last_checked = excluded.last_checked
+                """,
+                (domain, ats, token, r.get("job_count", 0), r.get("tried", 0), ts, ts),
+            )
+            continue
 
         # Reported live, repeatedly, and NOT fixed by removing the loser
         # domain from domains.txt alone (Cato: cato.networks and

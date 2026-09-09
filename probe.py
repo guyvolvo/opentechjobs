@@ -15,9 +15,11 @@ Dependencies: requests, pyyaml (only needed to load companies.yml pins)
 
 import argparse
 import html
+import hashlib
 import json
 import re
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
@@ -127,6 +129,19 @@ class Resolution:
     # reads this, not error's mere presence, to decide whether a MISS
     # should overwrite a stale ats/token or leave it alone.
     retryable: bool = False
+    # True when this board was checked and provably hasn't moved, either
+    # a 304 or a matching normalized_job_hash. Critically NOT the same as
+    # "the board is empty": jobs is [] in both cases, and
+    # load_to_sqlite.load_resolved would close every open listing at this
+    # company if it couldn't tell them apart. See
+    # tests/test_unchanged_state.py, which fails hard without that branch.
+    unchanged: bool = False
+    # Carried back so the caller can store them and send them next time.
+    # etag/last_modified come from the board's own response headers;
+    # content_hash is ours, for the ~12% of platforms that send neither.
+    etag: str | None = None
+    last_modified: str | None = None
+    content_hash: str | None = None
     jobs: list[Job] = field(default_factory=list)
 
 
@@ -145,6 +160,69 @@ def session() -> requests.Session:
     return s
 
 
+# Conditional re-polling. Measured live (2026-09-09) against one real
+# board per platform: Greenhouse, Lever, Ashby and SmartRecruiters all
+# return 304 to an If-None-Match, which is 87.7% of tracked companies.
+# Workable, Comeet, Recruitee, Personio, JazzHR and Teamtailor send no
+# ETag and no Last-Modified at all, and Workday sends no-store; those
+# fall back to normalized_job_hash below, which skips the DB work but
+# not the fetch.
+CONDITIONAL_ATS = {"greenhouse", "lever", "ashby", "smartrecruiters"}
+
+# One company at a time per worker thread (see WORKERS/ThreadPoolExecutor),
+# so thread-local is exactly the right scope for "which company is this
+# request for". Avoids threading an extra argument through every fetcher
+# signature, none of which otherwise care that conditional GET exists.
+_cond = threading.local()
+
+
+def _cond_reset(etag: str | None = None, last_modified: str | None = None) -> None:
+    _cond.etag = etag
+    _cond.last_modified = last_modified
+    # Armed for the FIRST request only. A fetcher that then makes N
+    # per-job detail calls (Workday, Comeet) must not send the board's
+    # own validator to a completely different URL.
+    _cond.armed = bool(etag or last_modified)
+    _cond.not_modified = False
+    _cond.new_etag = None
+    _cond.new_last_modified = None
+
+
+_cond_reset()
+
+
+def _cond_headers() -> dict:
+    """Validators for this request, if any, disarming as it hands them
+    over so only the first call in a fetcher gets them.
+    """
+    if not getattr(_cond, "armed", False):
+        return {}
+    _cond.armed = False
+    h = {}
+    if _cond.etag:
+        h["If-None-Match"] = _cond.etag
+    if _cond.last_modified:
+        h["If-Modified-Since"] = _cond.last_modified
+    return h
+
+
+def normalized_job_hash(jobs: list["Job"]) -> str:
+    """A stable fingerprint of what a board actually contains.
+
+    Deliberately NOT a hash of the raw response body. Several of these
+    APIs embed a server timestamp, a request id, or an unstable ordering,
+    so raw bytes change on every poll while the jobs don't -- which would
+    make the fallback useless on precisely the platforms that need it.
+    This hashes only fields we actually store, sorted, so reordering and
+    volatile metadata are both invisible to it.
+    """
+    items = sorted(
+        (j.external_id or "", j.title or "", j.location or "", j.url or "")
+        for j in jobs
+    )
+    return hashlib.sha256(json.dumps(items, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
 def get_json(sess: requests.Session, url: str) -> Any:
     """GET returning parsed JSON, or None if the response isn't usable.
 
@@ -153,14 +231,16 @@ def get_json(sess: requests.Session, url: str) -> Any:
     errors only (timeout/DNS/reset). A real 404 is a signal, not a fluke,
     and isn't retried.
     """
-    return _request_json(lambda: sess.get(url, timeout=TIMEOUT), url, "get_json")
+    headers = _cond_headers()
+    return _request_json(lambda: sess.get(url, timeout=TIMEOUT, headers=headers), url, "get_json")
 
 
 def get_json_post(sess: requests.Session, url: str, body: dict) -> Any:
     """POST variant of get_json. Workday's CXS API takes search params
     as a JSON body, not a query string. Same retry/logging behavior.
     """
-    return _request_json(lambda: sess.post(url, json=body, timeout=TIMEOUT), url, "get_json_post")
+    headers = _cond_headers()
+    return _request_json(lambda: sess.post(url, json=body, timeout=TIMEOUT, headers=headers), url, "get_json_post")
 
 
 def _request_json(do_request, url: str, label: str) -> Any:
@@ -178,7 +258,18 @@ def _request_json(do_request, url: str, label: str) -> Any:
                 print(f"    [{label}] {url} -> exception, retrying once: {e!r}",
                       file=sys.stderr)
             time.sleep(0.5)
+    # 304: the board is byte-for-byte what we already hold. Returns None
+    # like any other non-200, so no fetcher needs to know this exists --
+    # refetch_known checks the flag before interpreting None as failure.
+    if r.status_code == 304:
+        _cond.not_modified = True
+        if VERBOSE:
+            print(f"    [{label}] {url} -> 304 not modified", file=sys.stderr)
+        return None
     ctype = r.headers.get("Content-Type", "")
+    if r.status_code == 200:
+        _cond.new_etag = r.headers.get("ETag")
+        _cond.new_last_modified = r.headers.get("Last-Modified")
     if r.status_code != 200:
         if VERBOSE:
             print(f"    [{label}] {url} -> status={r.status_code} type={ctype!r}",
@@ -1778,7 +1869,9 @@ def load_pins(path: Path = PINS_FILE) -> dict[str, dict[str, dict[str, str]]]:
 PINS = load_pins()
 
 
-def refetch_known(sess: requests.Session, domain: str, ats: str, token: str) -> Resolution:
+def refetch_known(sess: requests.Session, domain: str, ats: str, token: str,
+                  etag: str | None = None, last_modified: str | None = None,
+                  content_hash: str | None = None) -> Resolution:
     """Re-poll an already-known ats+token directly, no guessing or
     scraping. The fast, frequent-running path (see --known), versus
     resolve()'s expensive discovery.
@@ -1788,6 +1881,10 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str) -> 
     re-extracted), everything else is the raw FETCHERS[ats] token.
     """
     res = Resolution(domain=domain)
+    # Only arm validators for platforms measured to honour them. Sending
+    # If-None-Match to one that ignores it is harmless but pointless, and
+    # a stored ETag from a platform that never sends one can't exist.
+    _cond_reset(etag, last_modified) if ats in CONDITIONAL_ATS else _cond_reset()
     try:
         if ats == "comeet":
             uid, ctoken = token.split(":", 1)
@@ -1806,6 +1903,17 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str) -> 
         jobs = None
 
     res.tried = 1
+
+    # Checked before the `jobs is None` branch below, deliberately: a 304
+    # comes back as None like any other non-200, and treating it as the
+    # re-poll failure it superficially resembles would throw away the
+    # entire point of asking conditionally.
+    if getattr(_cond, "not_modified", False):
+        res.ats, res.token = ats, token
+        res.unchanged = True
+        res.etag, res.last_modified, res.content_hash = etag, last_modified, content_hash
+        return res
+
     if jobs is None:
         # Surfaced as an error, not downgraded to a silent MISS. Could
         # mean the board closed, the token rotated, or a transient
@@ -1816,7 +1924,23 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str) -> 
         res.error = f"known {ats}:{token} did not return a valid board on re-poll"
         res.retryable = True
         return res
-    res.ats, res.token, res.jobs = ats, token, _fill_classifications(jobs)
+    # Fresh validators for next time, plus our own fingerprint. The hash
+    # is computed for every platform, not just the ones without an ETag:
+    # it costs nothing here and catches the case where a board returns
+    # 200 with a changed ETag but identical contents.
+    res.etag = getattr(_cond, "new_etag", None)
+    res.last_modified = getattr(_cond, "new_last_modified", None)
+    res.content_hash = normalized_job_hash(jobs)
+    res.ats, res.token = ats, token
+
+    if content_hash is not None and res.content_hash == content_hash:
+        # Same board, fetched but unchanged. Nothing downstream needs the
+        # jobs, and handing them over would mean re-upserting every row
+        # for no reason.
+        res.unchanged = True
+        return res
+
+    res.jobs = _fill_classifications(jobs)
     res.job_count = len(jobs)
     return res
 
@@ -1845,6 +1969,14 @@ def _fill_classifications(jobs: list[Job]) -> list[Job]:
 
 
 def resolve(domain: str, sess: requests.Session) -> Resolution:
+    # Belt and braces: discovery never sends validators, but it shares a
+    # worker thread pool with refetch_known, and a leftover armed ETag
+    # would make a board answer 304 mid-search -- which reads as "this
+    # ATS didn't match" and silently resolves the company to something
+    # else. That failure mode has already cost this project once, see
+    # island.io in companies.yml. The two paths don't actually mix in one
+    # process today; this makes that not matter.
+    _cond_reset()
     res = Resolution(domain=domain)
     tried = 0
     best: tuple[str, str, list[Job]] | None = None
@@ -2147,7 +2279,11 @@ def main() -> int:
             print(f"no resolved (ats+token) entries in {args.known}", file=sys.stderr)
             return 2
         results = run_and_report(
-            known, lambda e: refetch_known(sess, e["domain"], e["ats"], e["token"]), args.json
+            known,
+            lambda e: refetch_known(sess, e["domain"], e["ats"], e["token"],
+                                     etag=e.get("etag"), last_modified=e.get("last_modified"),
+                                     content_hash=e.get("content_hash")),
+            args.json
         )
     else:
         domains = []

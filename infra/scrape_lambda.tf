@@ -55,6 +55,20 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
         ]
       },
       {
+        # Conditional-poll validators, read before the probe step and
+        # written back after it. BatchGetItem/BatchWriteItem because a
+        # shard is up to SHARD_SIZE companies and one round trip beats
+        # fifty; the singular forms are the fallback path for a partial
+        # batch response, which DynamoDB is allowed to return.
+        Sid    = "ReadWriteScrapeState"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem",
+          "dynamodb:GetItem", "dynamodb:PutItem",
+        ]
+        Resource = aws_dynamodb_table.scrape_state.arn
+      },
+      {
         # alerts.py: full scan + per-alert watermark update, run once
         # per fast-poll cycle after the loader step above.
         Sid      = "EvaluateAlerts"
@@ -126,10 +140,11 @@ resource "aws_lambda_function" "scrape_fast" {
 
   environment {
     variables = {
-      DATA_BUCKET       = aws_s3_bucket.data.bucket
-      ALERTS_TABLE      = aws_dynamodb_table.alerts.name
-      ALERTS_FROM_EMAIL = var.alerts_from_email
-      SITE_ORIGIN       = "https://${var.domain_name}"
+      DATA_BUCKET        = aws_s3_bucket.data.bucket
+      ALERTS_TABLE       = aws_dynamodb_table.alerts.name
+      SCRAPE_STATE_TABLE = aws_dynamodb_table.scrape_state.name
+      ALERTS_FROM_EMAIL  = var.alerts_from_email
+      SITE_ORIGIN        = "https://${var.domain_name}"
       # Must match schedule_expression below in real seconds. Confirmed
       # live (2026-09-08): during the interim 20-minute cut, this was
       # left hardcoded at 300 in scrape_handler.py while the actual

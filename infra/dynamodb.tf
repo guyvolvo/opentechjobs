@@ -30,3 +30,32 @@ resource "aws_dynamodb_table" "alerts" {
   # this project's expected scale (a handful to low hundreds of alerts);
   # revisit with a GSI only if that stops being true.
 }
+
+# Conditional-poll validators, one row per company. Exists so the
+# fast-poll can ask "has this board changed?" without downloading the
+# 30-90MB partition file that would otherwise be the only place to keep
+# an ETag -- which defeats the point, since avoiding that download is
+# most of the saving.
+#
+# known.json can't hold these either: export_known() rewrites it
+# wholesale from the discover DB and merge_discovered_batch.py upserts
+# into it separately, so a validator column there gets clobbered by
+# whichever writes last.
+#
+# Tiny and hot: one BatchGetItem of <=50 keys per fast-poll invocation,
+# and writes only for companies that actually moved. Same PAY_PER_REQUEST
+# reasoning as the alerts table above.
+resource "aws_dynamodb_table" "scrape_state" {
+  name         = "${var.project_name}-scrape-state"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "domain"
+
+  attribute {
+    name = "domain"
+    type = "S"
+  }
+
+  # No TTL. A stale validator is self-correcting: the board answers 200
+  # instead of 304 and the row is overwritten on the spot. Expiring rows
+  # would only ever throw away a working ETag and force a full fetch.
+}
