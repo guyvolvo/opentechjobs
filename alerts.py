@@ -141,7 +141,7 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
 def _digest_text(n: int, matches: list[dict]) -> str:
     lines = [f"{n} new listing{'s' if n != 1 else ''} match your alert settings:", ""]
     for j in matches:
-        lines.append(f"- {j['title']} — {j['company_domain']} ({j['location'] or 'location unknown'})")
+        lines.append(f"- {j['title']}, {j['company_domain']} ({j['location'] or 'location unknown'})")
         lines.append(f"  {j['url']}")
     lines.append("")
     lines.append(f"Manage this alert: {SITE_ORIGIN}/")
