@@ -66,12 +66,23 @@ let msDepartment, msSeniority, msCompany, msLocation, msWorkplace;
 // scrolls off the current page.
 let selectedJobId = null;
 
-// Below this width, .job-detail becomes a fixed full-screen sheet
-// instead of a stacked-inline panel (see style.css's 960px block) --
-// same cutoff the mobile card-list table layout already switches on.
-// Matches getBoundingClientRect()'s manual-scroll workaround below one
-// media query, not two independently-drifting width literals.
-const MOBILE_DRAWER_QUERY = window.matchMedia("(max-width: 960px)");
+// Two breakpoints, because the detail panel has three layouts and only
+// two of them behave the same way.
+//
+// Above 1300px it is an in-flow sticky column beside the list. At or
+// below that the list has no room left to share, so the panel leaves the
+// flow and comes back as a sheet over the board: right-hand under
+// 1300px, full-screen under 960px (see style.css). Everything the sheet
+// needs from JS -- the .open class, the scroll lock on the page behind
+// it, skipping the scroll bookkeeping the in-flow layout needs -- is the
+// same for both, so that is one query.
+//
+// The second is only for the swipe-to-close gesture, which is written
+// against the bottom sheet's translateY and would fight the side sheet's
+// translateX. Both mirror a real media query in style.css. Reading the
+// width from a literal in two places is how these drift apart.
+const DETAIL_SHEET_QUERY = window.matchMedia("(max-width: 1300px)");
+const MOBILE_SHEET_QUERY = window.matchMedia("(max-width: 960px)");
 
 // Guards the close-then-reopen race: closeJobDetail's hidden=true is
 // delayed to let the slide-out transition finish, so picking a
@@ -1468,26 +1479,22 @@ async function openJobDetail(id) {
     : `<div class="loading-state">Loading job…</div>`;
   if (known) wireJobDetailPanel(known);
 
-  if (MOBILE_DRAWER_QUERY.matches) {
-    // Fixed full-screen sheet (see style.css) -- lock the page behind it
-    // so the drawer's own scroll doesn't also scroll the job list
-    // underneath, and slide it in on the next frame (added after
-    // hidden=false paints, or there's no off-screen starting position
-    // for the transition to animate from).
+  if (DETAIL_SHEET_QUERY.matches) {
+    // Sheet layout (see style.css): lock the page behind it so the
+    // sheet's own scroll doesn't also scroll the list underneath, and
+    // slide it in on the next frame. The class goes on after hidden=false
+    // has painted, or there's no off-screen starting position for the
+    // transition to animate from.
     document.body.style.overflow = "hidden";
-    requestAnimationFrame(() => panel.classList.add("open"));
-  } else {
-    // On the stacked layout (<=1300px, see style.css) the panel renders
-    // below the *entire* list, not beside it, invisible without this. On
-    // the desktop side-by-side layout it's already sticky-positioned into
-    // view, so skip the scroll there rather than yank the page around.
-    // -60 clears the sticky topbar, same offset renderPanels()'s company
-    // click and renderPagination()'s page-button handlers already use.
-    const rect = panel.getBoundingClientRect();
-    if (rect.top < 0 || rect.top > window.innerHeight * 0.8) {
-      window.scrollTo({ top: window.scrollY + rect.top - 60, behavior: "smooth" });
-    }
+    requestAnimationFrame(() => {
+      panel.classList.add("open");
+      document.getElementById("job-scrim")?.classList.add("open");
+    });
   }
+  // Above 1300px there is deliberately nothing to do. The panel is a
+  // sticky in-flow column that's already in view, and the old code that
+  // scrolled the page to find it was compensating for the stacked layout
+  // that used to exist below 1300px. That layout is gone.
 
   try {
     const full = await getJSON(`/jobs/${encodeURIComponent(id)}`);
@@ -1520,10 +1527,11 @@ function closeJobDetail() {
   const panel = document.getElementById("job-detail");
   // Where the row sat on screen before the panel goes away. Reported
   // live: closing a listing dumped the reader at the bottom of the page
-  // instead of back where they were. On every layout except the mobile
-  // sheet the panel is part of the document flow, so removing it makes
-  // the page shorter and the browser clamps the scroll position to the
-  // new maximum, which is the footer.
+  // instead of back where they were. In the wide layout the panel is
+  // part of the document flow, so removing it can make the page shorter
+  // and the browser clamps the scroll position to the new maximum, which
+  // is the footer. The sheet layouts are position:fixed and never affect
+  // the page's height, so this is a no-op there.
   //
   // Anchored to the row rather than to a saved scrollY, because the
   // document height changes underneath: restoring a raw offset would
@@ -1534,8 +1542,9 @@ function closeJobDetail() {
     : null;
   const anchorTop = anchorRow ? anchorRow.getBoundingClientRect().top : null;
 
-  if (MOBILE_DRAWER_QUERY.matches) {
+  if (DETAIL_SHEET_QUERY.matches) {
     panel.classList.remove("open");
+    document.getElementById("job-scrim")?.classList.remove("open");
     document.body.style.overflow = "";
     // Delayed to match style.css's 0.25s slide-out transition -- an
     // immediate hidden=true would cut straight to display:none, same as
@@ -1552,13 +1561,13 @@ function closeJobDetail() {
   document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.remove("selected");
   selectedJobId = null;
 
-  // Put the row back where it was. Skipped on the mobile sheet, which is
-  // position:fixed and never affected the page's height to begin with,
-  // and skipped when the row isn't on this page at all (a deep link, or
-  // the list moved on underneath). Instant, not smooth: this is undoing
+  // Put the row back where it was. Skipped on either sheet layout, which
+  // is position:fixed and never affected the page's height to begin
+  // with, and skipped when the row isn't on this page at all (a deep
+  // link, or the list moved on underneath). Instant, not smooth: this is undoing
   // an unwanted jump, and animating it would draw attention to the very
   // movement it exists to hide.
-  if (!MOBILE_DRAWER_QUERY.matches && anchorRow && anchorTop !== null) {
+  if (!DETAIL_SHEET_QUERY.matches && anchorRow && anchorTop !== null) {
     const drift = anchorRow.getBoundingClientRect().top - anchorTop;
     if (Math.abs(drift) > 1) {
       window.scrollTo({ top: window.scrollY + drift, behavior: "auto" });
@@ -1583,12 +1592,40 @@ function wireJobDetail() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && selectedJobId !== null) closeJobDetailAndSync();
   });
+
+  // Clicking the dimmed board closes the sheet. Standard for anything
+  // covering the page, and it's the nearest target at the width where
+  // the scrim exists at all: the close button is over on the far side of
+  // the sheet, but the thing the reader is looking at is the list.
+  document.getElementById("job-scrim")?.addEventListener("click", () => {
+    if (selectedJobId !== null) closeJobDetailAndSync();
+  });
+
+  // Crossing 1300px with a job open swaps the panel between an in-flow
+  // column and a sheet, and the scroll lock belongs to only one of them.
+  // Without this, resizing from a sheet to the wide layout leaves the
+  // page permanently unscrollable with nothing on screen to explain it.
+  DETAIL_SHEET_QUERY.addEventListener("change", (e) => {
+    const scrim = document.getElementById("job-scrim");
+    const panel = document.getElementById("job-detail");
+    if (e.matches && selectedJobId !== null) {
+      document.body.style.overflow = "hidden";
+      panel.classList.add("open");
+      scrim?.classList.add("open");
+    } else {
+      document.body.style.overflow = "";
+      panel.classList.remove("open");
+      scrim?.classList.remove("open");
+    }
+  });
+
   wireJobDetailSwipe();
 }
 
-// Requested live: the drawer takes the whole screen on mobile, so
+// Requested live: the sheet takes the whole screen on mobile, so
 // closing it should also work as a swipe, not just tapping the small X
-// in the corner. Only cares about a drag starting on the panel's own
+// in the corner. Gated to that full-screen variant, since it drags on
+// translateY and the side sheet above 960px slides on translateX. Only cares about a drag starting on the panel's own
 // header (job-detail-actions and above -- the description/skills area
 // below has its own vertical scroll to preserve, so a swipe starting
 // there would fight it), and only a downward drag by more than a
@@ -1600,7 +1637,7 @@ function wireJobDetailSwipe() {
   let dragging = false;
 
   panel.addEventListener("touchstart", (e) => {
-    if (!MOBILE_DRAWER_QUERY.matches || !panel.classList.contains("open")) return;
+    if (!MOBILE_SHEET_QUERY.matches || !panel.classList.contains("open")) return;
     if (!e.target.closest(".job-detail-actions, .job-detail-meta")) return;
     startY = e.touches[0].clientY;
     dragging = true;

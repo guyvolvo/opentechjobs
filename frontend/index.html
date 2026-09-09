@@ -150,6 +150,10 @@
           </div>
 
           <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail" hidden></aside>
+          <!-- Dims and catches clicks on the board while the job sheet is
+               up under 1300px. Inert above that width, where the panel is
+               an in-flow column. -->
+          <div id="job-scrim" aria-hidden="true"></div>
         </div>
       </div>
     </section>

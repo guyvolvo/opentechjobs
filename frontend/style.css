@@ -33,6 +33,11 @@
   --grey-line: #c7d9b3; /* reported live: the original #dce8ce sat too close to --white's #f3f6e4 to read as a visible line at all */
   --red: #b8362c;
   --hover-bg: #e9efdb;
+  /* Dims the board behind the job sheet under 1300px. Its own token
+     because it has to darken in both themes, and --black is a light
+     colour in dark mode -- reusing it there would brighten the page
+     behind the sheet instead of pushing it back. */
+  --scrim: rgba(64, 81, 59, 0.34);
 
   --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: "Overused Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -56,6 +61,7 @@
   --grey: #9a9a9a;
   --grey-line: #2b2c31;
   --hover-bg: #1e1f24;
+  --scrim: rgba(0, 0, 0, 0.58);
   color-scheme: dark;
 }
 
@@ -744,6 +750,23 @@ button, input, select {
 }
 .job-detail[hidden] { display: none; }
 
+/* Turned on only by the 1300px sheet block below, where the panel
+   covers part of the board and locks its scroll. Above that the panel
+   is a normal in-flow column beside the list and covers nothing, so
+   there is nothing to dim. Opacity rather than display carries the
+   fade, since display can't transition. */
+#job-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 19; /* under .job-detail's 20, over .topbar's 10 */
+  background: var(--scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+#job-scrim.open { opacity: 1; pointer-events: auto; }
+
 .job-detail-header {
   display: flex;
   align-items: flex-start;
@@ -874,14 +897,48 @@ button, input, select {
 table.jobs tbody tr.selected { background: var(--hover-bg); }
 table.jobs tbody tr[data-id] { cursor: pointer; }
 
+/* Below 1300px the side-by-side split has nowhere left to go. At a
+   1200px viewport the workspace already spends 360px on Market Stats
+   and ~96px on gutters, so a 320px detail panel would leave the list
+   about 330px of table, which is not a table any more.
+
+   It used to solve that by stacking: the panel dropped below the
+   *entire* list in document flow, so clicking a row scrolled the reader
+   to the footer and closing it scrolled them back. Reported live on a
+   laptop, and it is the same complaint that moved the phone layout to a
+   sheet in the 960px block. So the panel leaves the flow here too and
+   comes back as a right-hand sheet over the board. The page's height
+   never changes, which means there is no jump to correct in the first
+   place.
+
+   Right-anchored rather than full-screen, because at these widths the
+   list stays useful next to it and the detail-lives-on-the-right model
+   from the desktop layout still holds. Below 960px it becomes the
+   full-screen bottom sheet instead (see the responsive block). */
 @media (max-width: 1300px) {
-  .board-split { flex-direction: column; }
   .job-detail {
-    flex-basis: auto;
-    width: 100%;
-    position: static;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: clamp(380px, 46vw, 560px);
     max-height: none;
+    z-index: 20; /* above .topbar's 10 */
+    background: var(--white);
+    border-width: 0 0 0 var(--rule);
+    border-radius: 0;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
   }
+  .job-detail.open { transform: none; }
+
+  /* Not a shadow and not elevation (see DESIGN.md's No-Shadow Rule),
+     which is why it is a flat tint rather than a gradient falloff. The
+     board behind the sheet is scroll-locked while it is up, so without
+     something marking it as inert the page reads as broken. Clicking it
+     closes, the usual escape hatch for anything covering the page. */
+  #job-scrim { display: block; }
 }
 
 /* Flex, not a fixed-column grid, so #f-q/#f-keywords/.ms can each take a
@@ -1545,28 +1602,21 @@ footer {
     overflow-y: visible;
   }
 
-  /* Reported live ("atrocious" on mobile): the stacked-inline job-detail
-     panel from the 1300px rule above gets appended below the *entire*
-     list in document flow, so opening one visibly jerks the whole page
-     down -- app.js's manual scroll-to-panel was working around this,
-     not fixing it. A fixed full-screen sheet instead: openJobDetail/
-     closeJobDetail (app.js) toggle .open on the next frame and lock
-     document.body's own scroll for as long as it's up, both gated to
-     this exact width via MOBILE_DRAWER_QUERY. */
+  /* The 1300px block above already took the panel out of the flow and
+     made it a right-hand sheet. At phone width a 380px sheet beside a
+     ~360px viewport is the whole screen anyway, so it goes full-screen
+     and slides up from the bottom instead of in from the side, which is
+     what a phone reader expects and what the swipe-to-close gesture in
+     app.js is written against. The scrim stays off here: the sheet
+     covers the viewport, so there is nothing behind it left to dim. */
   .job-detail {
-    position: fixed;
     inset: 0;
     width: 100vw;
     height: 100vh;
-    max-height: none;
-    z-index: 20; /* above .topbar's 10 */
     border-width: var(--rule) 0 0 0;
-    border-radius: 0;
-    background: var(--white);
     transform: translateY(100%);
-    transition: transform 0.25s ease;
   }
-  .job-detail.open { transform: translateY(0); }
+  #job-scrim { display: none; }
   table.jobs thead { display: none; }
   /* Reset the desktop bleed (width:100%+gutter, negative margin) back to
      plain 100%, meaningless once every cell stacks as its own block. */
@@ -1838,6 +1888,8 @@ footer {
   .skeleton { animation: none; background-image: none; }
   .load-bar::after { animation: none; width: 100%; left: 0; }
   .btn-busy::after { animation: none; }
+  /* The sheet still opens and closes, it just arrives already there. */
+  .job-detail, #job-scrim { transition: none; }
 }
 
 /* Screen-reader-only announcement for the skeleton states above. The
