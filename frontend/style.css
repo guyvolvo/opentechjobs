@@ -1716,3 +1716,143 @@ footer {
     border-width: var(--rule) var(--rule) 0 var(--rule);
   }
 }
+
+/* Loading states */
+
+/* Skeleton bones. --grey-line is already this system's "quiet divider"
+   weight (see DESIGN.md's color spec), which is exactly what a
+   placeholder should be: present, structural, not competing with real
+   content. No new gray token, and no #2A2A2A-style neutral, which would
+   read as a foreign object against the sage-cream ground.
+   Sharp corners, not 4px: these live inside the table and the stat grid,
+   both of which DESIGN.md keeps at radius 0. */
+.skeleton {
+  display: block;
+  background-color: var(--grey-line);
+  background-image: linear-gradient(90deg, transparent 0%, var(--hover-bg) 50%, transparent 100%);
+  background-size: 55% 100%;
+  background-repeat: no-repeat;
+  /* steps(), not a smooth glide. The status dot established this
+     system's motion voice as mechanical and quantized, deliberately
+     "closer to a Minecraft torch than a smooth pulse" (DESIGN.md), and
+     a silky gradient sweep here would be the only smoothly-interpolated
+     motion on the page. Reads as a terminal repainting, which is the
+     right register for a market-terminal board. */
+  animation: skeleton-sweep 1.15s steps(11, end) infinite;
+}
+@keyframes skeleton-sweep {
+  from { background-position: -60% 0; }
+  to   { background-position: 160% 0; }
+}
+
+/* Matched to the real row's own geometry so nothing shifts when the
+   data lands: same 12px/10px cell padding, same 40px logo column, same
+   three stacked lines in the card body. */
+.skeleton-row td { padding: 12px 10px; vertical-align: top; }
+.sk-star { width: 14px; height: 14px; }
+.sk-logo { width: 40px; height: 40px; }
+.sk-line { height: 11px; margin-bottom: 7px; }
+.sk-title { width: 62%; height: 14px; }
+.sk-meta  { width: 84%; }
+.sk-links { width: 38%; margin-bottom: 0; }
+.sk-age   { width: 44px; height: 11px; }
+/* Uneven widths so a column of rows reads as text, not a barcode. */
+.skeleton-row:nth-child(3n+2) .sk-title { width: 47%; }
+.skeleton-row:nth-child(3n+2) .sk-meta  { width: 71%; }
+.skeleton-row:nth-child(3n)   .sk-title { width: 73%; }
+.skeleton-row:nth-child(3n)   .sk-meta  { width: 58%; }
+
+/* Stat tiles. The grid supplies the border (see DESIGN.md Layout), so
+   these only ever fill the tile's interior. */
+.sk-tile { padding: 14px 16px; }
+.sk-tile .sk-label { width: 54%; height: 9px; margin-bottom: 12px; }
+.sk-tile .sk-value { width: 38%; height: 26px; }
+.sk-panel { padding: 16px; }
+.sk-panel .sk-label { width: 44%; height: 9px; margin-bottom: 16px; }
+.sk-panel .sk-bar { height: 10px; margin-bottom: 10px; }
+.sk-panel .sk-bar:nth-child(2) { width: 88%; }
+.sk-panel .sk-bar:nth-child(3) { width: 66%; }
+.sk-panel .sk-bar:nth-child(4) { width: 79%; }
+.sk-panel .sk-bar:nth-child(5) { width: 41%; margin-bottom: 0; }
+
+/* Refetch indicator. Rides the topbar's existing 2px ink bottom rule
+   rather than adding furniture: the rule that is already there turns
+   green and sweeps while a fetch is in flight, then goes back to being
+   a rule. Green is legitimate here under DESIGN.md's "if a green
+   appears, it is pointing at something" test, since it points at work
+   actually happening right now. Current results stay on screen
+   underneath, which is the whole point over a blocking spinner. */
+.load-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--rule));
+  height: var(--rule);
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+}
+.load-bar.active { opacity: 1; }
+.load-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 26%;
+  background: var(--green);
+  animation: load-bar-sweep 0.85s steps(13, end) infinite;
+}
+@keyframes load-bar-sweep {
+  from { left: -28%; }
+  to   { left: 100%; }
+}
+
+/* Inline button busy state. color:transparent keeps the label in flow,
+   so the button never changes size mid-click. */
+.btn-busy {
+  color: transparent;
+  pointer-events: none;
+  position: relative;
+}
+.btn-busy::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 13px;
+  height: 13px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid var(--grey-line);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: btn-spin 0.72s steps(8, end) infinite;
+}
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Everything above still communicates with the animation off: the bones
+   remain, the bar stays green and full-width, the spinner holds one
+   frame. Nothing depends on movement to be legible. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; background-image: none; }
+  .load-bar::after { animation: none; width: 100%; left: 0; }
+  .btn-busy::after { animation: none; }
+}
+
+/* Screen-reader-only announcement for the skeleton states above. The
+   bones themselves are aria-hidden decoration, so without this a
+   non-visual user gets silence where a sighted one sees "something is
+   coming". */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

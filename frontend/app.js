@@ -929,6 +929,47 @@ function setCachedJobs(params, data) {
   }
 }
 
+// Loading affordances. Three of them, each scoped to a different kind of
+// wait, because one spinner for all of them is what makes an app feel
+// slow: a full-screen blocker for a 200ms background refetch reads as
+// "everything stopped" when nothing did.
+//
+//   skeleton rows  -> first load, nothing on screen yet
+//   the load bar   -> a refetch while real results are still readable
+//   .btn-busy      -> one control the user just clicked
+const SKELETON_ROWS = 8;
+
+function jobsSkeletonHtml(n = SKELETON_ROWS) {
+  // Mirrors renderJobs' own row shape (star cell, logo + three stacked
+  // lines, age cell) so the real rows land in the same places these
+  // occupy and nothing jumps. aria-hidden throughout: a screen reader
+  // gets the status line instead, not eight rows of nothing.
+  return Array.from({ length: n }, () => `
+    <tr class="skeleton-row" aria-hidden="true">
+      <td><span class="skeleton sk-star"></span></td>
+      <td class="title-cell">
+        <span class="skeleton sk-logo"></span>
+        <div class="job-card-body">
+          <span class="skeleton sk-line sk-title"></span>
+          <span class="skeleton sk-line sk-meta"></span>
+          <span class="skeleton sk-line sk-links"></span>
+        </div>
+      </td>
+      <td><span class="skeleton sk-age"></span></td>
+    </tr>`).join("");
+}
+
+// Rides the topbar's own bottom rule (see .load-bar in style.css).
+// Reference-counted: the board and the ticker refetch independently and
+// often overlap, and the first one to finish shouldn't switch the bar
+// off while the other is still in flight.
+let inFlight = 0;
+function setLoadBar(active) {
+  inFlight = Math.max(0, inFlight + (active ? 1 : -1));
+  const bar = document.getElementById("load-bar");
+  if (bar) bar.classList.toggle("active", inFlight > 0);
+}
+
 async function loadJobs() {
   // Every state-mutating handler in this file calls loadJobs() right
   // after, so state is already final for this transition -- one call
@@ -965,17 +1006,21 @@ async function loadJobs() {
   const cached = getCachedJobs(params);
   tbody.closest("table").style.display = "";
   if (cached) {
-    document.getElementById("jobs-loading").style.display = "none";
+    document.getElementById("jobs-loading").textContent = "";
     lastJobsResponse = cached;
     renderJobs(cached, starred);
     renderPagination(cached);
   } else {
-    document.getElementById("jobs-loading").style.display = "block";
+    // Bones, not "Loading listings…". Same height as the rows about to
+    // replace them, so the page doesn't reflow when data lands.
+    tbody.innerHTML = jobsSkeletonHtml();
+    document.getElementById("jobs-loading").textContent = "Loading listings";
   }
 
+  setLoadBar(true);
   try {
     const data = await getJSON(`/jobs?${params}`);
-    document.getElementById("jobs-loading").style.display = "none";
+    document.getElementById("jobs-loading").textContent = "";
     // Skip the re-render when the background refresh just confirms
     // nothing changed -- avoids a jarring flicker/scroll-reset for what
     // will be the common case (revisiting within the same 5-min window).
@@ -987,7 +1032,8 @@ async function loadJobs() {
     }
     setCachedJobs(params, data);
   } catch (err) {
-    document.getElementById("jobs-loading").style.display = "none";
+    document.getElementById("jobs-loading").textContent = "";
+    if (!cached) tbody.innerHTML = ""; // bones would otherwise sit there forever behind the error
     // A cached render is still on screen and still useful -- don't bury
     // it under an error banner over a transient fetch failure.
     if (!cached) {
@@ -995,11 +1041,13 @@ async function loadJobs() {
       errEl.textContent = `Could not load jobs: ${err.message}`;
       errEl.style.display = "block";
     }
+  } finally {
+    setLoadBar(false);
   }
 }
 
 function renderStarredOnly(starred) {
-  document.getElementById("jobs-loading").style.display = "none";
+  document.getElementById("jobs-loading").textContent = "";
   document.getElementById("jobs-error").style.display = "none";
   const rows = lastJobsResponse?.jobs?.filter((j) => starred.has(j.id)) || [];
   if (!rows.length) {
@@ -1897,6 +1945,15 @@ function wireThemeToggle() {
 // handler, but not pagination/sort (those don't change what "recent"
 // means). Duplicated once in the DOM so the CSS marquee loops seamlessly.
 async function loadTicker() {
+  setLoadBar(true);
+  try {
+    return await _loadTicker();
+  } finally {
+    setLoadBar(false);
+  }
+}
+
+async function _loadTicker() {
   const track = document.getElementById("ticker-track");
   try {
     const params = qs({ ...currentFilterParams(), limit: 10, sort: "age", dir: "asc" });
@@ -2573,7 +2630,13 @@ function wireAlertCreateForm() {
     alertFormState.israel_only = e.target.checked;
   });
 
-  document.getElementById("create-alert-btn").addEventListener("click", async () => {
+  document.getElementById("create-alert-btn").addEventListener("click", async (e) => {
+    // Localized to the button, not a page-level spinner: the user
+    // clicked one control and that control is what should look busy.
+    // .btn-busy hides the label with color:transparent rather than
+    // replacing it, so the button keeps its exact width mid-request.
+    const btn = e.currentTarget;
+    btn.classList.add("btn-busy");
     const raw = {
       q: alertFormState.q,
       department: alertFormState.department.join(","),
@@ -2591,6 +2654,10 @@ function wireAlertCreateForm() {
       renderAlertsList(await loadMyAlerts());
     } catch (err) {
       showCreateAlertFeedback(err.message || "Could not create alert.", true);
+    } finally {
+      // The panel is torn down and rebuilt on sign-out, so this button
+      // can be gone by the time the request settles.
+      btn.classList.remove("btn-busy");
     }
   });
 }

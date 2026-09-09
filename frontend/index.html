@@ -69,6 +69,9 @@
         </a>
       </nav>
     </div>
+    <!-- Sits on the topbar's existing 2px bottom rule and turns it green
+         while a fetch is in flight. Results stay visible underneath. -->
+    <div class="load-bar" id="load-bar" aria-hidden="true"></div>
   </div>
 
   <div class="workspace">
@@ -116,7 +119,10 @@
             </button>
             <div id="result-count" class="result-count"></div>
 
-            <div id="jobs-loading" class="loading-state" style="display:none">Loading listings…</div>
+            <!-- Skeleton rows replaced the text loader (see jobsSkeletonHtml
+                 in app.js); this stays as the screen-reader half of that,
+                 since the bones themselves are aria-hidden. -->
+            <div id="jobs-loading" class="visually-hidden" role="status"></div>
             <div id="jobs-error" class="error-state" style="display:none"></div>
             <div id="jobs-empty" class="empty-state" style="display:none">No listings match these filters.</div>
 
@@ -146,13 +152,29 @@
       <h2 class="section-title">Statistics</h2>
 
       <div id="metrics-grid" class="metrics-grid">
-        <div class="loading-state" style="grid-column:1/-1">Loading metrics…</div>
+        <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+        <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+        <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+        <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+        <span class="visually-hidden" role="status">Loading metrics</span>
       </div>
 
       <div id="panel-grid" class="panel-grid">
-        <div class="panel">
-          <div class="loading-state">Loading market panels…</div>
+        <div class="panel sk-panel" aria-hidden="true">
+          <span class="skeleton sk-label"></span>
+          <span class="skeleton sk-bar"></span>
+          <span class="skeleton sk-bar"></span>
+          <span class="skeleton sk-bar"></span>
+          <span class="skeleton sk-bar"></span>
         </div>
+        <div class="panel sk-panel" aria-hidden="true">
+          <span class="skeleton sk-label"></span>
+          <span class="skeleton sk-bar"></span>
+          <span class="skeleton sk-bar"></span>
+          <span class="skeleton sk-bar"></span>
+          <span class="skeleton sk-bar"></span>
+        </div>
+        <span class="visually-hidden" role="status">Loading market panels</span>
       </div>
     </aside>
   </div>
