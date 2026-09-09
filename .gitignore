@@ -41,3 +41,6 @@ Thumbs.db
 # Salary eval samples (salary_eval.py --cache). Large, refetchable.
 sample_jobs.json
 salary-sample*.json
+salary-matrix.json
+_local-snapshot.db
+_matrix.json

@@ -217,6 +217,20 @@ resource "aws_iam_role_policy" "data_deploy" {
           # writes the result here. The merge picks it up on its next run
           # and stamps the names onto jobs-read.db.
           "${aws_s3_bucket.data.arn}/company-names.json",
+          # jobs-read.db: build-salary-matrix.yml reads the live snapshot
+          # to find every listing that discloses a real range. Read is
+          # what it needs; PutObject on this key is granted only because
+          # this statement covers both actions for every key it lists, and
+          # nothing in that workflow writes the snapshot. Worth watching:
+          # this is the one grant here that touches the file the API
+          # serves from, and a bug that wrote it would be a live outage
+          # rather than a stale side file.
+          "${aws_s3_bucket.data.arn}/jobs-read.db",
+          # salary-matrix.json: the cells of disclosed pay the estimator
+          # looks up (build_salary_matrix.py). Same shape as
+          # company-names.json above, a small side file the pipeline reads
+          # rather than anything on the serving path.
+          "${aws_s3_bucket.data.arn}/salary-matrix.json",
         ]
       },
       {

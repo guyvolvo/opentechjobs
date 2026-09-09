@@ -1,0 +1,75 @@
+name: build-salary-matrix
+
+# Rebuilds salary-matrix.json: the cells of real disclosed pay the
+# estimator looks up. See build_salary_matrix.py for what a cell is and
+# salary_model.py for how one gets chosen.
+#
+# Daily rather than per-merge, on purpose. The cells move at the speed
+# employers post jobs, and a full table scan of the snapshot has no place
+# in the 5-minute apply that has to stay fast. A day-old median is
+# indistinguishable from a fresh one.
+#
+# Nothing here touches the live database. It reads jobs-read.db and
+# writes one small JSON object beside it, the same shape
+# resolve-company-names.yml already uses.
+#
+# On the schedule: GitHub's own cron is unreliable on this repo (see
+# scrape_handler.py's docstring and community discussion 147369), and the
+# fix elsewhere was to trigger from EventBridge instead. Not done here,
+# deliberately. A missed run costs a day of freshness on a table whose
+# inputs barely move, which is not worth another scheduled rule. If this
+# starts slipping by more than a couple of days, point the existing
+# dispatch Lambda at it rather than fighting the cron.
+
+on:
+  schedule:
+    - cron: "17 5 * * *" # daily, off the hour and clear of the 04:41 name resolver
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and report the matrix without publishing it"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - run: pip install boto3
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build the matrix
+        run: |
+          python build_salary_matrix.py \
+            --bucket ${{ vars.DATA_BUCKET }} \
+            --out salary-matrix.json \
+            ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+
+      # The build refuses to publish an empty matrix, so a run that got
+      # here produced real cells. Keeping the artifact makes a bad day
+      # diagnosable: comparing yesterday's cells against today's is the
+      # only way to tell a genuine market move from a parser regression.
+      - name: Keep the matrix as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: salary-matrix
+          path: salary-matrix.json
+          retention-days: 30
