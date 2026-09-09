@@ -515,16 +515,33 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- signal than whatever's already stored), or nothing was
             -- stored yet at all (something beats nothing on a first
             -- pass). Otherwise the existing, better-informed value stands.
+            --
+            -- The fourth branch is the one that lets the estimator get
+            -- QUIETER. probe.py now declines to estimate where it would
+            -- have produced something useless, but every branch above
+            -- requires a new non-empty value to overwrite with, so
+            -- without this a row that already carries a bad estimate
+            -- keeps it for the life of the listing. A pass carrying real
+            -- description text is fully informed by definition, so if
+            -- THAT pass produced nothing, the stored estimate is
+            -- withdrawn. Only ever an estimate: a disclosed salary is
+            -- never cleared by anything.
             salary_text = CASE
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.salary_is_estimate = 0 THEN excluded.salary_text
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.salary_text
                 WHEN salary_text IS NULL AND excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_text
+                WHEN (excluded.salary_text IS NULL OR excluded.salary_text = '')
+                     AND excluded.description IS NOT NULL AND excluded.description != ''
+                     AND salary_is_estimate = 1 THEN NULL
                 ELSE salary_text
             END,
             salary_is_estimate = CASE
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.salary_is_estimate = 0 THEN excluded.salary_is_estimate
                 WHEN excluded.salary_text IS NOT NULL AND excluded.salary_text != '' AND excluded.description IS NOT NULL AND excluded.description != '' THEN excluded.salary_is_estimate
                 WHEN salary_text IS NULL AND excluded.salary_text IS NOT NULL AND excluded.salary_text != '' THEN excluded.salary_is_estimate
+                WHEN (excluded.salary_text IS NULL OR excluded.salary_text = '')
+                     AND excluded.description IS NOT NULL AND excluded.description != ''
+                     AND salary_is_estimate = 1 THEN 0
                 ELSE salary_is_estimate
             END,
             seniority = excluded.seniority,

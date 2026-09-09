@@ -457,7 +457,10 @@ _SENIORITY_RULES: list[tuple[str, "re.Pattern[str]"]] = [
         ("director", ["director", "head of"]),
         ("principal", ["principal"]),
         ("staff", ["staff"]),
-        ("lead", ["lead", "tech lead", "team lead"]),
+        # "leader" spelled out, not just "lead":  makes "Team Leader"
+        # fail the "team lead" needle, and 91 of the 100 titles carrying
+        # the word on this board were coming back with no level at all.
+        ("lead", ["lead", "leader", "tech lead", "team lead", "team leader", "group leader"]),
         ("manager", ["manager"]),
         ("senior", ["senior", "sr"]),
         ("mid", ["mid-level", "mid level", "midlevel"]),
@@ -877,54 +880,113 @@ _SENIORITY_TO_BAND = {
     "lead": "mgmt", "manager": "mgmt",
 }
 
+# Where a posting states no level at all, which is 40% of the Israeli
+# listings we estimate for. This used to span every band the role has,
+# and that is what produced things like a flat "20K-100K" on a job whose
+# only sin was not saying "Senior" in its title. A range that wide tells
+# a reader nothing and reads as a broken feature.
+#
+# Measured rather than assumed. Against the 1,738 listings on this board
+# that disclose a real range (all US, via Ashby), median pay by stated
+# level runs junior 115K, unstated 137.5K, senior 175K, staff 220K. An
+# unstated level sits just above junior and well below senior, which is
+# the 3-5y column, so that is what it maps to. The caveat is that this
+# is a US, mostly non-engineering population, so it is evidence about
+# what "no level stated" means as a hiring convention, not about Israeli
+# pay. It is still a great deal better than spanning the whole ladder.
+_UNSTATED_BAND = "3-5"
+
+# An estimate wider than this, as a fraction of its own floor, is
+# suppressed rather than shown. 1.0 means the top may be at most double
+# the bottom. Before this gate, 38% of everything shipped was wider than
+# its own floor. A few source rows are legitimately that wide on their
+# own (vulnerability research runs 40-80 at 3-5y), and those survive at
+# exactly 1.0; what does not survive is a range manufactured by stitching
+# bands together.
+_MAX_ESTIMATE_REL_WIDTH = 1.0
+
+# Only these may be picked up from a description rather than a title.
+# They are technologies, not job families: a language named in the body
+# genuinely refines "Software Engineer" into something more specific,
+# which is why description matching was added (a real Go role that said
+# "Go" only in a "preferably in Go (Golang)" line was landing on the
+# generic backend row).
+#
+# Job families deliberately cannot be. Company boilerplate says what the
+# company does, not what the role is, and every listing at a security
+# vendor contains the word "security". Reported live: "Motion, Video &
+# Brand Designer" was being priced as a security expert, and so was a
+# "GRC Operations Specialist", both on the strength of the description.
+_DESCRIPTION_REFINABLE = {
+    "python", "go", "java", "cpp", "c_lang", "dotnet", "nodejs", "react",
+    "angular", "kotlin", "scala", "php", "ios", "android", "embedded",
+}
+
+# The catch-all rows. Only a title that landed on one of these is vague
+# enough to be worth refining from its description; anything more
+# specific already said what it is.
+_REFINABLE_FROM = {"backend", "fullstack", "frontend", "mobile_generic"}
+
 
 def _estimate_salary(title: str | None, description: str | None, seniority: str | None) -> tuple[int, int] | None:
-    """(low, high) in ₪K/month from _IL_SALARY_TABLE_KNIS, or None if
-    neither title nor description confidently match a role category, or
-    the seniority is director/exec (no mapping -- see
-    _SENIORITY_TO_BAND). Never guessed for a job whose location isn't
-    Israel -- callers are expected to check that themselves, since this
-    function only has the title/description/seniority to work with.
+    """(low, high) in Shekel-thousands per month from _IL_SALARY_TABLE_KNIS,
+    or None when we would rather say nothing.
 
-    Matches against title+description together, same as
-    _extract_skills -- a generic title ("Senior Software Engineer")
-    often states the actual language/specialization only in the body
-    (reported live: a real "Go" role with no "Go" in its title, only in
-    a "preferably in Go (Golang)" line, fell back to the generic
-    backend row instead of the more specific -- and more accurate --
-    Go one). Role-category rules are still checked in their own
-    priority order regardless of where in the combined text a term
-    appears, same as before.
+    None happens for four reasons: no title, no role category the title
+    matches, a director/exec level this source has no row for (see
+    _SENIORITY_TO_BAND), or a resulting range so wide it would not inform
+    anyone (_MAX_ESTIMATE_REL_WIDTH). Never guessed for a job outside
+    Israel; callers check that, since all this sees is the text.
 
-    A posting that doesn't state a level, or whose stated level has no
-    row for this specific role (e.g. QA/automation rows have no
-    "management" column), gets a wider range spanning every band this
-    role DOES have data for, rather than no estimate at all -- still a
-    real figure pulled from the sourced table, just less precise.
+    The category comes from the TITLE. A description can then refine a
+    catch-all title into a specific technology row, but it can never pick
+    the job family on its own. See _DESCRIPTION_REFINABLE for why: the
+    body of a listing describes the company as much as the role, so
+    matching job families against it priced a brand designer at a
+    security vendor as a security expert.
+
+    A posting that states no level gets the 3-5y column rather than a
+    span of every band the role has. _UNSTATED_BAND carries the
+    measurement behind that.
     """
     if not title:
         return None
-    text = f"{title}\n{description or ''}"
     category = None
     for cat, pattern in _ROLE_CATEGORY_RULES:
-        if pattern.search(text):
+        if pattern.search(title):
             category = cat
             break
     if not category:
         return None
+    if category in _REFINABLE_FROM and description:
+        for cat, pattern in _ROLE_CATEGORY_RULES:
+            if cat in _DESCRIPTION_REFINABLE and pattern.search(description):
+                category = cat
+                break
     if seniority in ("director", "exec"):
         return None
 
-    band = _SENIORITY_TO_BAND.get(seniority or "")
-    if band:
-        direct = _IL_SALARY_TABLE_KNIS.get((category, band))
-        if direct:
-            return direct
+    band = _SENIORITY_TO_BAND.get(seniority or "") or _UNSTATED_BAND
+    rng = _IL_SALARY_TABLE_KNIS.get((category, band))
+    if not rng:
+        # This role has no row for that band. QA and automation stop at
+        # 6-10y, for instance, so a QA manager has no management column.
+        # Fall back to the nearest band the role does have rather than
+        # spanning all of them.
+        order = list(_IL_SALARY_BANDS)
+        want = order.index(band)
+        near = sorted(
+            (b for b in order if _IL_SALARY_TABLE_KNIS.get((category, b))),
+            key=lambda b: abs(order.index(b) - want),
+        )
+        if not near:
+            return None
+        rng = _IL_SALARY_TABLE_KNIS[(category, near[0])]
 
-    available = [rng for b in _IL_SALARY_BANDS if (rng := _IL_SALARY_TABLE_KNIS.get((category, b)))]
-    if not available:
+    lo, hi = rng
+    if lo <= 0 or (hi - lo) / lo > _MAX_ESTIMATE_REL_WIDTH:
         return None
-    return (min(r[0] for r in available), max(r[1] for r in available))
+    return lo, hi
 
 
 def _normalize_date(v: Any) -> str | None:

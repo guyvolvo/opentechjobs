@@ -37,3 +37,7 @@ CLAUDE.md
 # OS cruft
 .DS_Store
 Thumbs.db
+
+# Salary eval samples (salary_eval.py --cache). Large, refetchable.
+sample_jobs.json
+salary-sample*.json
