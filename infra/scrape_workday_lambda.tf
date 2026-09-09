@@ -124,7 +124,16 @@ resource "aws_cloudwatch_event_rule" "scrape_workday_schedule" {
   # concurrency -- watch actual CloudWatch Duration across a few real
   # cycles before tightening to 5, same discipline as scrape-fast's own
   # cadence restoration.
-  schedule_expression = "rate(10 minutes)"
+  # 30 minutes, up from 10 (2026-09-09). Measured: this Lambda was 61%
+  # of the project's ENTIRE Lambda bill (~780,000 GB-s/month of ~1.27M)
+  # to re-poll twelve hand-pinned tenants -- it never got sharded like
+  # scrape_fast, so every invocation walks all of companies.yml's workday
+  # pins, 144 times a day at ~61.5s each. Those twelve are Intel, Cisco,
+  # NVIDIA, Salesforce, PayPal, Visa and the like: enterprise boards whose
+  # Israel-facing postings move on a scale of days, so a 10-minute cadence
+  # bought no freshness anyone could observe. Frees ~200,000 GB-s/month
+  # for the shard rotation, where churn actually happens.
+  schedule_expression = "rate(30 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_workday_schedule" {
