@@ -71,7 +71,16 @@ check("below the sane floor is dropped", parse_disclosed("$0 – $1 per hour"), 
 check("bay area suburb", metro_of("San Carlos  - Hybrid"), "us-sf")
 check("new york phrasing", metro_of("US - New York"), "us-nyc")
 check("israel", metro_of("Israel, Tel Aviv"), "il")
-check("remote is its own market", metro_of("United States, Remote"), "us-remote")
+check("US remote is its own market", metro_of("United States, Remote"), "us-remote")
+# "Remote" alone says nothing about which country's pay scale applies.
+# Reported live: "Remote - Singapore" was being priced from US cells in
+# US dollars because the pattern matched the word and stopped looking.
+check("remote elsewhere is not the US market", metro_of("Remote - Singapore"), None)
+check("nor is bare remote", metro_of("Remote"), None)
+check("a named place beats remote", metro_of("Remote - London"), "uk")
+# Two-letter state codes collide with country codes: IN is Indiana and
+# India, DE is Delaware and Germany.
+check("an ambiguous country code is not a US state", metro_of("Remote - Delhi, IN"), None)
 check("unplaceable location", metro_of("Shenzhen HQ"), None)
 check("no location", metro_of(None), None)
 

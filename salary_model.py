@@ -73,23 +73,49 @@ METROS = [
     ("us-chi", r"chicago|evanston"),
     ("us-den", r"denver|boulder|salt lake"),
     ("us-atl", r"atlanta|miami|charlotte|raleigh|durham|nashville"),
-    ("us-remote", r"remote|anywhere|distributed"),
     ("uk", r"london|manchester, uk|edinburgh|united kingdom"),
     ("ca", r"toronto|vancouver|montreal|ottawa|waterloo"),
     ("il", r"israel|tel aviv|herzliya|haifa|jerusalem|ra'?anana|petah|netanya|beer ?sheva"),
 ]
 METRO_PATTERNS = [(name, re.compile(pattern, re.IGNORECASE)) for name, pattern in METROS]
 
+# "Remote" is a working arrangement, not a place, and it is checked last
+# because on its own it says nothing about which country's pay scale a
+# listing sits on. Reported live: "Remote - Singapore" was landing on
+# us-remote and being priced from US cells in US dollars, because the
+# pattern matched the word "remote" and stopped looking.
+#
+# So a remote listing counts as the US market only when it also says so.
+# Anything else remote gets no market and therefore no estimate, which
+# costs coverage on the many bare "Remote" listings that really are US
+# roles. That is the right side to err on: a figure in the wrong currency
+# is not a smaller error than no figure, it is a different number.
+REMOTE = re.compile(r"\bremote\b|\banywhere\b|\bdistributed\b", re.IGNORECASE)
+
+# Spelled-out only. Two-letter state codes were the obvious way to catch
+# "Remote, NV" and the wrong one: IN is Indiana and India, DE is Delaware
+# and Germany, CA is California and Canada. A pattern that turns "Remote -
+# Delhi, IN" into a US salary is worse than one that gives that listing
+# nothing. The major US metros are matched by name above and checked
+# first anyway, so this only has to catch the ones with no city at all.
+UNITED_STATES = re.compile(r"united states|\bu\.s\.a?\b|\busa\b|\bus\b", re.IGNORECASE)
+
 
 def metro_of(location: str | None) -> str | None:
     """A coarse market label, or None when the location says nothing we
     can place. None is common and is not a failure.
+
+    Named places win over "remote": a listing reading "Remote - London"
+    is a London salary, and checking the metros first is what makes that
+    come out right.
     """
     if not location:
         return None
     for name, pattern in METRO_PATTERNS:
         if pattern.search(location):
             return name
+    if REMOTE.search(location) and UNITED_STATES.search(location):
+        return "us-remote"
     return None
 
 
