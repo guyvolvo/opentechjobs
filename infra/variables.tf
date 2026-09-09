@@ -127,9 +127,9 @@ variable "google_client_id" {
 
 variable "google_client_secret" {
   type        = string
+  sensitive   = true
   description = "OAuth client secret paired with google_client_id."
   default     = ""
-  sensitive   = true
 }
 
 # GitHub doesn't federate with Cognito directly (no OIDC discovery
@@ -138,15 +138,15 @@ variable "google_client_secret" {
 # resource. See github_auth_lambda.tf.
 variable "github_oauth_client_id" {
   type        = string
-  description = "Client ID from a GitHub OAuth App (github.com/settings/developers). Callback URL: https://<domain_name>/api/auth/github/callback."
-  default     = ""
+  description = "Client ID from a GitHub OAuth App (github.com/settings/developers). Callback URL: https://<domain_name>/api/auth/github/callback. Public by design -- it also ships in frontend/app.js, since the browser has to put it in the authorize URL. Only the paired secret is sensitive."
+  default     = "Ov23lii8kIqDUL9aLhxh"
 }
 
 variable "github_oauth_client_secret" {
   type        = string
-  description = "Client secret paired with github_oauth_client_id."
-  default     = ""
   sensitive   = true
+  description = "Client secret paired with github_oauth_client_id. Never given a real default and never committed: deploy-infra.yml passes it as TF_VAR_github_oauth_client_secret from the GH_OAUTH_CLIENT_SECRET repository secret. Empty means GitHub sign-in stays switched off, which is the safe resting state rather than a broken one."
+  default     = ""
 }
 
 variable "alerts_from_email" {

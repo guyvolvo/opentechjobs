@@ -2211,9 +2211,12 @@ async function refreshPipelineStatus() {
 const COGNITO_DOMAIN = "iljobs-auth-876913698688.auth.il-central-1.amazoncognito.com";
 const COGNITO_REGION = "il-central-1";
 const COGNITO_CLIENT_ID = "5021pv23cp3udp1uaq34tp38mb";
-// Filled in once the GitHub OAuth App exists (github.com/settings/developers) --
-// OAuth client IDs aren't secret, safe to ship in frontend JS same as Google's.
-const GITHUB_OAUTH_CLIENT_ID = "";
+// OAuth client IDs aren't secret, safe to ship in frontend JS same as
+// Google's. The paired client secret is NOT here and never should be:
+// it lives only in the github-auth Lambda's environment, set from
+// var.github_oauth_client_secret (infra/github_auth_lambda.tf), because
+// only the server side of the code exchange is allowed to hold it.
+const GITHUB_OAUTH_CLIENT_ID = "Ov23lii8kIqDUL9aLhxh";
 // Flips to true once infra/cognito.tf's aws_cognito_identity_provider.google
 // actually exists (real Google Cloud Console credentials set). Until then,
 // redirecting to Cognito's /oauth2/authorize?identity_provider=Google lands
