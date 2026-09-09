@@ -150,6 +150,31 @@ SCRAPE_COMEET = True
 SCRAPE_EMBED = True
 FETCH_FULL_DESCRIPTIONS = False  # Comeet + Workday's extra per-job detail request; see the Job.description comment
 
+# ATSes whose per-job detail fetch runs even with FETCH_FULL_DESCRIPTIONS
+# off. A global flag is the wrong lever here because the two gated
+# platforms are nowhere near the same size: measured live 2026-09-09,
+# Comeet is 1,235 open jobs across 51 companies with a 216-job largest
+# board, while SmartRecruiters is 17,392 across 371 companies and one
+# single board is documented at 16,921 postings on its own. Turning
+# descriptions on globally in the 5-minute poll would mean tens of
+# thousands of detail requests per rotation and a guaranteed timeout on
+# that one company.
+#
+# Comeet earns the exception because its list endpoint carries no
+# description field at all (confirmed: content=true, details=true and
+# include=description all return zero), so without this every Comeet
+# listing on the site reads "No description provided by this listing."
+# Greenhouse, Lever, Ashby and Recruitee all inline descriptions in the
+# list response and need none of this. SmartRecruiters and Workable have
+# the same gap as Comeet and are deliberately still excluded on size --
+# they need per-job state (see f_workday's known_external_ids) before
+# they can be afforded.
+DESCRIPTION_ATS = {"comeet"}
+
+
+def wants_descriptions(ats: str) -> bool:
+    return FETCH_FULL_DESCRIPTIONS or ats in DESCRIPTION_ATS
+
 
 def session() -> requests.Session:
     s = requests.Session()
@@ -176,9 +201,16 @@ CONDITIONAL_ATS = {"greenhouse", "lever", "ashby", "smartrecruiters"}
 _cond = threading.local()
 
 
-def _cond_reset(etag: str | None = None, last_modified: str | None = None) -> None:
+def _cond_reset(etag: str | None = None, last_modified: str | None = None,
+                prior_hash: str | None = None) -> None:
     _cond.etag = etag
     _cond.last_modified = last_modified
+    # Lets a fetcher compare a cheap list response against what we already
+    # hold and stop BEFORE any per-job detail requests. normalized_job_hash
+    # can only run after the jobs are built, which for Comeet is after the
+    # expensive part has already happened.
+    _cond.prior_hash = prior_hash
+    _cond.new_hash = None
     # Armed for the FIRST request only. A fetcher that then makes N
     # per-job detail calls (Workday, Comeet) must not send the board's
     # own validator to a completely different URL.
@@ -1354,7 +1386,7 @@ def _comeet_job(sess: requests.Session, j: dict, uid: str, token: str) -> Job:
     """
     description = None
     description_chars = 0
-    if FETCH_FULL_DESCRIPTIONS:
+    if wants_descriptions("comeet"):
         # Confirmed live: the positions LIST endpoint (what `j` is) never
         # has a description at all, but the per-job detail endpoint
         # (position_url) has both `description` (role/company overview)
@@ -1411,6 +1443,19 @@ def f_comeet_scrape(sess: requests.Session, domain: str) -> tuple[list[Job], str
     return None
 
 
+def _comeet_list_fingerprint(jobs: list[dict]) -> str:
+    """Fingerprint a Comeet board from its LIST response alone, before any
+    per-job detail fetch. time_updated is included deliberately: an edited
+    posting is exactly the case where its description needs refetching.
+    """
+    items = sorted(
+        (_txt(j.get("position_uid")), _txt(j.get("name")), _txt(j.get("location")),
+         _txt(j.get("time_updated")))
+        for j in jobs
+    )
+    return hashlib.sha256(json.dumps(items, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
 def _fetch_comeet_pin(sess: requests.Session, uid: str, token: str) -> list[Job] | None:
     """Same API call as f_comeet_scrape's tail end, split out so a pinned
     uid/token from companies.yml can skip the page-scraping step entirely.
@@ -1418,7 +1463,31 @@ def _fetch_comeet_pin(sess: requests.Session, uid: str, token: str) -> list[Job]
     jobs = get_json(sess, f"https://www.comeet.com/careers-api/1.0/company/{uid}/positions?token={token}")
     if not isinstance(jobs, list):
         return None
-    return [_comeet_job(sess, j, uid, token) for j in jobs]
+
+    # Comeet sends no ETag and no Last-Modified (measured 2026-09-09), so
+    # this list fingerprint is the only conditional signal available. It
+    # has to be checked HERE rather than in refetch_known, because
+    # _comeet_job below makes one detail request per job and the whole
+    # point is not to make them. Cyera alone is 216 jobs.
+    fingerprint = _comeet_list_fingerprint(jobs)
+    _cond.new_hash = fingerprint
+    if getattr(_cond, "prior_hash", None) == fingerprint:
+        _cond.not_modified = True
+        return None
+
+    # Pooled, not sequential. Measured live 2026-09-09 against cyera.com:
+    # 216 postings took 130.6s one at a time, which is most of the way to
+    # the 200s probe.py subprocess timeout scrape_handler.py allows for a
+    # WHOLE shard of 50 companies. 4 workers, matching _workday_paginated
+    # and the SmartRecruiters filler's own reasoning: probe.py's outer
+    # loop already runs companies concurrently, so this is a second level
+    # of fan-out and shouldn't take a full WORKERS-sized share of the
+    # connection pool. Only ever reached on a board that actually
+    # changed, since the fingerprint check above returns first otherwise.
+    if not wants_descriptions("comeet"):
+        return [_comeet_job(sess, j, uid, token) for j in jobs]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        return list(pool.map(lambda j: _comeet_job(sess, j, uid, token), jobs))
 
 
 # Best-effort tier: for domains that miss every guessable/pinned ATS above.
@@ -1884,7 +1953,13 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str,
     # Only arm validators for platforms measured to honour them. Sending
     # If-None-Match to one that ignores it is harmless but pointless, and
     # a stored ETag from a platform that never sends one can't exist.
-    _cond_reset(etag, last_modified) if ats in CONDITIONAL_ATS else _cond_reset()
+    # The prior hash goes down for every ATS, not just the conditional-GET
+    # ones: a fetcher that can pre-check it cheaply (Comeet) uses it to
+    # skip per-job work entirely, and the rest fall back to comparing
+    # normalized_job_hash after the fact.
+    _cond_reset(etag if ats in CONDITIONAL_ATS else None,
+                last_modified if ats in CONDITIONAL_ATS else None,
+                content_hash)
     try:
         if ats == "comeet":
             uid, ctoken = token.split(":", 1)
@@ -1930,7 +2005,9 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str,
     # 200 with a changed ETag but identical contents.
     res.etag = getattr(_cond, "new_etag", None)
     res.last_modified = getattr(_cond, "new_last_modified", None)
-    res.content_hash = normalized_job_hash(jobs)
+    # A fetcher's own list-level fingerprint wins where it set one, since
+    # that's the value its next-run pre-check will be compared against.
+    res.content_hash = getattr(_cond, "new_hash", None) or normalized_job_hash(jobs)
     res.ats, res.token = ats, token
 
     if content_hash is not None and res.content_hash == content_hash:
