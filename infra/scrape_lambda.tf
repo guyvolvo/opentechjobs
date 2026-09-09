@@ -67,6 +67,13 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
           # that changed. Replayed into jobs-read.db by the applier.
           "${aws_s3_bucket.data.arn}/deltas/*",
           "${aws_s3_bucket.data.arn}/known.json",
+          # salary-matrix.json: read once per container, never written
+          # here. Rebuilt daily by build-salary-matrix.yml, which is why
+          # probe.py downloads it rather than reading a bundled copy that
+          # would freeze at whatever the last deploy caught. Losing this
+          # object costs listings their learned estimate and nothing
+          # else, so probe.py swallows every failure reading it.
+          "${aws_s3_bucket.data.arn}/salary-matrix.json",
           # status.json: this Lambda's own real-time phase, written at
           # each stage (scraping/loading/sending alerts/idle/error) --
           # see scrape_handler.py's _write_status. Best-effort, never

@@ -17,6 +17,7 @@ import argparse
 import html
 import hashlib
 import json
+import os
 import re
 import sys
 import threading
@@ -932,6 +933,107 @@ _DESCRIPTION_REFINABLE = {
 # enough to be worth refining from its description; anything more
 # specific already said what it is.
 _REFINABLE_FROM = {"backend", "fullstack", "frontend", "mobile_generic"}
+
+
+# Which currency a market pays in. Only markets we can name, because a
+# figure in the wrong currency is not a smaller error than no figure, it
+# is a completely different number. An unplaceable location gets nothing.
+#
+# Israel is absent on purpose: no Israeli employer discloses a range, so
+# there is no shekel model to look up, and those listings are the one
+# market the hand-built table above actually covers.
+_METRO_CURRENCY = {"uk": "£", "ca": "CA$"}
+
+# Set to "0" to stop emitting learned estimates without a code change.
+# This is the one switch here that changes what a reader sees on two
+# thirds of the board, so it should be reachable faster than a deploy.
+_LEARNED_ESTIMATES_ON = os.environ.get("LEARNED_SALARY_ESTIMATES", "1") != "0"
+
+_salary_matrix: dict | None = None
+_salary_matrix_loaded = False
+
+
+def _load_salary_matrix() -> dict:
+    """The published cells of disclosed pay, once per container.
+
+    Downloaded rather than bundled: the cells are rebuilt daily from the
+    snapshot (build_salary_matrix.py) and the deployment package is
+    rebuilt only when code changes, so bundling would freeze the model at
+    whatever the last deploy happened to catch.
+
+    Every failure here is silent and returns an empty dict. A missing or
+    unreadable matrix means listings show no estimate, which is exactly
+    what they showed before this existed. It is never worth failing a
+    scrape over.
+    """
+    global _salary_matrix, _salary_matrix_loaded
+    if _salary_matrix_loaded:
+        return _salary_matrix or {}
+    _salary_matrix_loaded = True
+    _salary_matrix = {}
+    bucket = os.environ.get("DATA_BUCKET")
+    if not bucket or not _LEARNED_ESTIMATES_ON:
+        return {}
+    try:
+        import boto3
+        from salary_model import SalaryModel
+
+        body = boto3.client("s3").get_object(Bucket=bucket, Key="salary-matrix.json")["Body"].read()
+        raw = json.loads(body)
+        _salary_matrix = {
+            currency: SalaryModel.from_json(json.dumps(model))
+            for currency, model in raw.get("models", {}).items()
+        }
+        print(f"salary matrix: {len(_salary_matrix)} currencies, built {raw.get('built_at')}",
+              file=sys.stderr)
+    except Exception as e:
+        print(f"no salary matrix ({e!r}); listings will show no learned estimate", file=sys.stderr)
+        _salary_matrix = {}
+    return _salary_matrix
+
+
+def _format_money(value: float, currency: str) -> str:
+    """Thousands, matching how the disclosed ranges we learned from are
+    written. A figure to the nearest hundred dollars would imply a
+    precision the median of five listings does not have.
+    """
+    return f"{currency}{round(value / 1000):,.0f}K"
+
+
+def _learned_salary(job: "Job", domain: str | None) -> tuple[str, str] | None:
+    """(text, currency) from the published cells, or None.
+
+    None is the common answer and always the safe one. Reasons, in order
+    of how often they fire: the location names no market we know, the
+    market has no model, or every cell in the chain was too thin or too
+    wide to say anything (see salary_model.py).
+    """
+    matrix = _load_salary_matrix()
+    if not matrix or not job.location:
+        return None
+    try:
+        from salary_model import metro_of
+    except Exception:
+        return None
+    metro = metro_of(job.location)
+    if not metro or metro == "il":
+        return None
+    currency = "$" if metro.startswith("us-") else _METRO_CURRENCY.get(metro)
+    model = matrix.get(currency) if currency else None
+    if not model:
+        return None
+    got = model.predict({
+        "company_domain": domain,
+        "location": job.location,
+        "seniority": job.seniority,
+        "department": job.department,
+    })
+    if not got:
+        return None
+    low, high = got["low"], got["high"]
+    if round(low / 1000) == round(high / 1000):
+        return _format_money(low, currency), currency
+    return f"{_format_money(low, currency)} - {_format_money(high, currency)}", currency
 
 
 def _estimate_salary(title: str | None, description: str | None, seniority: str | None) -> tuple[int, int] | None:
@@ -2124,18 +2226,32 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str,
         res.unchanged = True
         return res
 
-    res.jobs = _fill_classifications(jobs)
+    res.jobs = _fill_classifications(jobs, res.domain)
     res.job_count = len(jobs)
     return res
 
 
-def _fill_classifications(jobs: list[Job]) -> list[Job]:
+def _fill_classifications(jobs: list[Job], domain: str | None = None) -> list[Job]:
     """Fills in a text-keyword guess for any job whose fetcher didn't
     already set a structured seniority/workplace_type, plus skills and a
-    salary estimate (only where no fetcher already set a real disclosed
-    salary_text -- see f_ashby -- and only for an Israel-located job, per
-    _estimate_salary's own docstring). Mutates in place, returns the
-    same list.
+    salary estimate. Mutates in place, returns the same list.
+
+    Salary falls back in order of how much evidence stands behind each
+    answer, and stops at the first that produces one:
+
+      disclosed  the employer published a range, set by the fetcher
+                 (f_ashby today). Never overwritten by anything below.
+      table      the Israeli role x seniority table in this file. Only
+                 for Israel-located listings, which is the one market it
+                 covers and the one market nobody discloses in.
+      estimated  salary_model.py, over real disclosed listings in the
+                 same company, market and level. Everywhere else.
+      nothing    the honest answer, and a common one.
+
+    The table goes before the learned model rather than after because
+    they cover disjoint markets: there are no Israeli disclosed ranges to
+    learn from, so the matrix has nothing to say about Tel Aviv, and the
+    table has nothing to say about anywhere else.
     """
     for j in jobs:
         if j.seniority is None:
@@ -2143,13 +2259,21 @@ def _fill_classifications(jobs: list[Job]) -> list[Job]:
         if j.workplace_type is None:
             j.workplace_type = _classify_workplace(j.location)
         j.skills = _extract_skills(j.title, j.description)
-        if j.salary_text is None and j.location and any(kw in j.location.lower() for kw in IL_KEYWORDS):
+        if j.salary_text is not None:
+            continue
+        if j.location and any(kw in j.location.lower() for kw in IL_KEYWORDS):
             estimate = _estimate_salary(j.title, j.description, j.seniority)
             if estimate:
                 lo, hi = estimate
                 j.salary_text = f"₪{lo}K–{hi}K"
                 j.salary_is_estimate = True
                 j.salary_source = "table"
+            continue
+        learned = _learned_salary(j, domain)
+        if learned:
+            j.salary_text = learned[0]
+            j.salary_is_estimate = True
+            j.salary_source = "estimated"
     return jobs
 
 
@@ -2176,7 +2300,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
         except Exception:
             jobs = None
         if jobs is not None:
-            res.ats, res.token, res.jobs = "comeet", f"{pin['uid']}:{pin['token']}", _fill_classifications(jobs)
+            res.ats, res.token, res.jobs = "comeet", f"{pin['uid']}:{pin['token']}", _fill_classifications(jobs, res.domain)
             res.job_count = len(jobs)
             res.tried = tried
             return res
@@ -2205,7 +2329,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
             jobs = None
         if jobs is not None:
             token = f"{pin['tenant']}:{pin['wd']}:{pin['site']}"
-            res.ats, res.token, res.jobs = "workday", token, _fill_classifications(jobs)
+            res.ats, res.token, res.jobs = "workday", token, _fill_classifications(jobs, res.domain)
             res.job_count = len(jobs)
             res.tried = tried
             return res
@@ -2232,7 +2356,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
             if _prefer_match(jobs, best):
                 best = (ats, token, jobs)
             if jobs and _match_is_fresh(jobs):
-                res.ats, res.token, res.jobs = best[0], best[1], _fill_classifications(best[2])
+                res.ats, res.token, res.jobs = best[0], best[1], _fill_classifications(best[2], res.domain)
                 res.job_count = len(res.jobs)
                 res.tried = tried
                 return res
@@ -2284,7 +2408,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
 
     res.tried = tried
     if best:
-        res.ats, res.token, res.jobs = best[0], best[1], _fill_classifications(best[2])
+        res.ats, res.token, res.jobs = best[0], best[1], _fill_classifications(best[2], res.domain)
         res.job_count = len(res.jobs)
     else:
         res.error = "no ATS matched any token candidate"

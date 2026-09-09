@@ -55,7 +55,7 @@ jobs:
       - name: Build scrape-fast package
         run: |
           mkdir -p fast/loader fast/db
-          cp probe.py scrape_handler.py alerts.py sharding.py fast/
+          cp probe.py scrape_handler.py alerts.py sharding.py salary_model.py fast/
           cp api/job_filters.py fast/
           cp loader/load_to_sqlite.py loader/descriptions.py loader/deltas.py fast/loader/
           cp db/schema.sql fast/db/
@@ -65,7 +65,7 @@ jobs:
       - name: Build scrape-workday package
         run: |
           mkdir -p workday/loader workday/db
-          cp probe.py scrape_workday_handler.py companies.yml workday/
+          cp probe.py scrape_workday_handler.py companies.yml salary_model.py workday/
           cp api/job_filters.py workday/
           cp loader/load_to_sqlite.py loader/descriptions.py workday/loader/
           cp db/schema.sql workday/db/
