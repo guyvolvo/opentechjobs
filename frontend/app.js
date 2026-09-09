@@ -362,6 +362,16 @@ function fmtMinutesAgo(mins) {
   return `${Math.round(mins / (60 * 24))}D AGO`;
 }
 
+// Deliberately no "AGO". This is the age of the data being shown, not
+// the time since some event, and "29M AGO" under a heading about the
+// API invited exactly the wrong reading.
+function fmtDataAge(mins) {
+  if (mins === null || mins === undefined) return "UNKNOWN";
+  if (mins < 60) return `${Math.round(mins)}M`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)}H`;
+  return `${Math.round(mins / (60 * 24))}D`;
+}
+
 function escapeHtml(s) {
   return (s ?? "").replace(/[&<>"']/g, (c) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
@@ -441,13 +451,24 @@ const SYNC_INTERVAL_MINUTES = 60;
 // almost two full cycles).
 const FRESH_THRESHOLD_MINUTES = 75;
 
+// The number here is MAX(companies.last_checked) from the current
+// snapshot, so it answers "how old is the freshest listing data I'm
+// holding", not "when did I last reach the API" and not "when did the
+// sync run". Those are three different clocks and the card used to
+// present the first as if it were the second: a heading of "API Status"
+// over "29M AGO" reads as the API having been unreachable for half an
+// hour, which is alarming and wrong, since the API answers in
+// milliseconds and the figure is really bounded by the hourly merge.
+// Reported live, asking whether the sync was actually hourly. It was.
 function apiStatusFields() {
   const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
   const fresh = (minutesSince ?? 9999) <= FRESH_THRESHOLD_MINUTES;
   return {
     fresh,
-    value: fresh ? "LIVE" : fmtMinutesAgo(minutesSince),
-    sub: fresh ? fmtMinutesAgo(minutesSince) : "no recent updates",
+    // "CURRENT" rather than "LIVE": the claim is about the data being
+    // up to date, which is what this measures.
+    value: fresh ? "CURRENT" : fmtDataAge(minutesSince),
+    sub: fresh ? `${fmtDataAge(minutesSince)} old` : "no recent updates",
   };
 }
 
@@ -529,7 +550,7 @@ function renderMetrics(stats) {
     },
     {
       id: "metric-api-status",
-      label: "API Status",
+      label: "Listing Data",
       value: apiStatusFields().value,
       sub: apiStatusFields().sub,
       sub2: nextSyncText(),
@@ -1133,8 +1154,20 @@ function renderJobs(data, starred) {
 // under the title, LinkedIn-card style, standing in for what used to be
 // three separate table columns (Company was already folded in as the
 // row's ".company" div; Location and Category had their own <td>s).
+// What to actually call a company on screen. company_domain is an
+// internal key, not an identity: discovery guesses {ats-token}.com and
+// keeps the guess even when it resolves to nothing, so a fifth of them
+// are hosts that never existed (headoutcareers.com for Headout,
+// informagroupplc.com for Informa Group Plc.). company_name is the name
+// the company's own ATS reports, resolved once by
+// resolve_company_names.py. Falls back to the domain for Lever and
+// Workday, which expose no name anywhere, about 1% of companies.
+function companyLabel(j) {
+  return j.company_name || j.company_domain;
+}
+
 function jobMetaLine(j) {
-  const parts = [escapeHtml(j.company_domain)];
+  const parts = [escapeHtml(companyLabel(j))];
   if (j.department) parts.push(escapeHtml(j.department));
   if (j.location) parts.push(escapeHtml(j.location));
   let line = parts.join(" · ");
@@ -1356,7 +1389,7 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
   return `
     <div class="job-detail-header">
       <div>
-        <div class="job-detail-company">${companyLogoImg(job.company_domain, 64, "detail")}${escapeHtml(job.company_domain)}</div>
+        <div class="job-detail-company">${companyLogoImg(job.company_domain, 64, "detail")}${escapeHtml(companyLabel(job))}</div>
         <h3 class="job-detail-title">${escapeHtml(job.title)}</h3>
         <div class="job-detail-badges">
           ${job.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority)}</span>` : ""}
@@ -2027,7 +2060,7 @@ async function _loadTicker() {
         (j) => `
         <a class="ticker-item" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">
           <span class="bullet">●</span>${escapeHtml(j.title)}
-          <span class="ticker-company">@${escapeHtml(j.company_domain)}</span>
+          <span class="ticker-company">@${escapeHtml(companyLabel(j))}</span>
         </a>`
       )
       .join("");

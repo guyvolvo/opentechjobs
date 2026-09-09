@@ -212,6 +212,11 @@ resource "aws_iam_role_policy" "data_deploy" {
           "${aws_s3_bucket.data.arn}/jobs-full-discover.db",
           "${aws_s3_bucket.data.arn}/known.json",
           "${aws_s3_bucket.data.arn}/status.json",
+          # company-names.json: resolve-company-names.yml reads known.json
+          # to find companies without a name, asks each one's own ATS, and
+          # writes the result here. The merge picks it up on its next run
+          # and stamps the names onto jobs-read.db.
+          "${aws_s3_bucket.data.arn}/company-names.json",
         ]
       },
       {

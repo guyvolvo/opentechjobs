@@ -1,0 +1,61 @@
+name: resolve-company-names
+
+# Resolves each company's real name from its own ATS and keeps the result
+# in company-names.json. See resolve_company_names.py for why this is
+# needed at all: companies.domain is frequently a hostname discovery
+# guessed and never verified, so the board was captioning real listings
+# with hosts that have never existed.
+#
+# A name never changes, so this only ever works on companies that don't
+# have one yet. The first run resolves the backlog; every run after is
+# just whatever discovery added since, usually a handful.
+#
+# Nothing here touches the live database. The merge picks the file up on
+# its next hourly run and stamps the names onto jobs-read.db.
+
+on:
+  schedule:
+    - cron: "41 4 * * *" # daily, offset off the hour and away from the discover sweep
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Resolve at most this many unnamed companies (0 = all)"
+        required: false
+        default: "0"
+        type: string
+      refresh:
+        description: "Re-resolve companies that already have a name"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - run: pip install requests boto3
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve names
+        run: |
+          python resolve_company_names.py \
+            --bucket ${{ vars.DATA_BUCKET }} \
+            --limit ${{ github.event.inputs.limit || '0' }} \
+            ${{ github.event.inputs.refresh == 'true' && '--refresh' || '' }}

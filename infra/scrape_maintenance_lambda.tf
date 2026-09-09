@@ -67,6 +67,10 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           "${aws_s3_bucket.data.arn}/known.json",
           "${aws_s3_bucket.data.arn}/jobs-read.db",
           "${aws_s3_bucket.data.arn}/merge-status.json",
+          # company-names.json: read-only here. Written by
+          # resolve-company-names.yml; this Lambda only applies it to the
+          # snapshot it just built (see apply_company_names).
+          "${aws_s3_bucket.data.arn}/company-names.json",
         ]
       },
       {

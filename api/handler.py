@@ -235,7 +235,21 @@ def route_jobs(params: dict) -> dict:
         SELECT id, company_domain, ats, title, location, department,
                category_of(department, title) AS category, seniority, workplace_type, url,
                posted_at, confidence, first_seen, last_seen, closed_at,
-               skills, salary_text, salary_is_estimate
+               skills, salary_text, salary_is_estimate,
+               -- The company's own name as its ATS reports it.
+               -- company_domain is often a hostname discovery guessed and
+               -- never verified (see resolve_company_names.py), so this is
+               -- what belongs anywhere a human reads it. NULL for ATSes
+               -- that expose no name (Lever, Workday), and the UI falls
+               -- back to the domain.
+               --
+               -- A scalar subquery rather than a LEFT JOIN, deliberately:
+               -- jobs and companies share ats, confidence and first_seen,
+               -- and build_jobs_where emits bare unqualified column names
+               -- because it is shared with the alert evaluator, which
+               -- queries jobs on its own. Joining would make every one of
+               -- those filters ambiguous and error the whole route out.
+               (SELECT company_name FROM companies WHERE domain = jobs.company_domain) AS company_name
         FROM jobs
         WHERE {where_sql}
         -- datetime(), not a bare column: posted_at is TEXT, and rows written

@@ -92,7 +92,33 @@ def _shared_columns(conn: sqlite3.Connection, table: str) -> list[str]:
     return [c for c in _table_columns(conn, table) if c in src]
 
 
-def merge_partitions(partition_paths: dict[str, Path], out_path: Path) -> dict:
+def apply_company_names(conn: sqlite3.Connection, names: dict[str, str] | None) -> int:
+    """Stamp each company's real name onto the merged snapshot.
+
+    Names live in their own file (company-names.json, written by
+    resolve_company_names.py) rather than in the partitions, because they
+    come from a completely different cadence: a name is resolved once and
+    never again, while partitions are rewritten every rotation. Applying
+    them here means a newly resolved name reaches the site on the next
+    merge without needing every partition rewritten first.
+
+    Only ever fills a name in, never clears one: a company missing from
+    the file keeps whatever it already had.
+    """
+    if not names:
+        return 0
+    rows = [(name, domain) for domain, name in names.items() if name]
+    if not rows:
+        return 0
+    with conn:
+        conn.executemany("UPDATE companies SET company_name = ? WHERE domain = ?", rows)
+    return conn.execute(
+        "SELECT COUNT(*) FROM companies WHERE company_name IS NOT NULL"
+    ).fetchone()[0]
+
+
+def merge_partitions(partition_paths: dict[str, Path], out_path: Path,
+                     names: dict[str, str] | None = None) -> dict:
     """partition_paths maps each partition's own name (e.g. "0", "1",
     "workday" -- not the S3 key or local filename) to its already-
     downloaded local file. Builds a fresh DB at out_path and returns a
@@ -210,6 +236,8 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path) -> dict:
     # around its update_meta() call, for the same reason.
     with merged:
         update_meta(merged)
+    apply_company_names(merged, names)
+
     # No VACUUM. It used to run here to reclaim free pages, but with the
     # unlink above out_path really is a fresh file that only ever gets
     # sequential INSERTs, so there are essentially no free pages to
@@ -250,7 +278,20 @@ def main() -> int:
             print(f"{key} was listed but gone on pull (another process's own cleanup?) -- skipping",
                   file=sys.stderr)
 
-    summary = merge_partitions(partition_paths, args.out)
+    # Best-effort: no names file just means every company falls back to
+    # its domain, exactly as before this existed.
+    names = None
+    if args.bucket:
+        names_path = args.out.with_name("company-names.json")
+        try:
+            existed, _ = s3_pull(args.bucket, "company-names.json", names_path)
+            if existed:
+                names = json.loads(names_path.read_text(encoding="utf-8"))
+                print(f"loaded {len(names)} company names", file=sys.stderr)
+        except Exception as e:
+            print(f"couldn't load company-names.json (non-fatal): {e!r}", file=sys.stderr)
+
+    summary = merge_partitions(partition_paths, args.out, names)
     print(json.dumps(summary), file=sys.stderr)
     if summary["skipped_version_mismatch"]:
         print(f"ALERT: {len(summary['skipped_version_mismatch'])} partition(s) skipped for schema "
