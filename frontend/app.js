@@ -467,7 +467,7 @@ function apiStatusFields() {
     fresh,
     // "CURRENT" rather than "LIVE": the claim is about the data being
     // up to date, which is what this measures.
-    value: fresh ? "CURRENT" : fmtDataAge(minutesSince),
+    value: fresh ? "LIVE" : fmtDataAge(minutesSince),
     sub: fresh ? `${fmtDataAge(minutesSince)} old` : "no recent updates",
   };
 }
@@ -550,7 +550,7 @@ function renderMetrics(stats) {
     },
     {
       id: "metric-api-status",
-      label: "Listing Data",
+      label: "Data Health",
       value: apiStatusFields().value,
       sub: apiStatusFields().sub,
       sub2: nextSyncText(),
@@ -1518,6 +1518,22 @@ async function openJobDetailAndPush(id) {
 
 function closeJobDetail() {
   const panel = document.getElementById("job-detail");
+  // Where the row sat on screen before the panel goes away. Reported
+  // live: closing a listing dumped the reader at the bottom of the page
+  // instead of back where they were. On every layout except the mobile
+  // sheet the panel is part of the document flow, so removing it makes
+  // the page shorter and the browser clamps the scroll position to the
+  // new maximum, which is the footer.
+  //
+  // Anchored to the row rather than to a saved scrollY, because the
+  // document height changes underneath: restoring a raw offset would
+  // land somewhere else, or be clamped away entirely. Keeping the row
+  // visually still is what "where I was" actually means.
+  const anchorRow = selectedJobId
+    ? document.querySelector(`tr[data-id="${selectedJobId}"]`)
+    : null;
+  const anchorTop = anchorRow ? anchorRow.getBoundingClientRect().top : null;
+
   if (MOBILE_DRAWER_QUERY.matches) {
     panel.classList.remove("open");
     document.body.style.overflow = "";
@@ -1535,6 +1551,19 @@ function closeJobDetail() {
   }
   document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.remove("selected");
   selectedJobId = null;
+
+  // Put the row back where it was. Skipped on the mobile sheet, which is
+  // position:fixed and never affected the page's height to begin with,
+  // and skipped when the row isn't on this page at all (a deep link, or
+  // the list moved on underneath). Instant, not smooth: this is undoing
+  // an unwanted jump, and animating it would draw attention to the very
+  // movement it exists to hide.
+  if (!MOBILE_DRAWER_QUERY.matches && anchorRow && anchorTop !== null) {
+    const drift = anchorRow.getBoundingClientRect().top - anchorTop;
+    if (Math.abs(drift) > 1) {
+      window.scrollTo({ top: window.scrollY + drift, behavior: "auto" });
+    }
+  }
 }
 
 // Same reasoning as openJobDetailAndPush -- closing via the header
