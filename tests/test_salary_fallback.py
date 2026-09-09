@@ -53,8 +53,11 @@ install_matrix()
 out = probe._fill_classifications([job()], "acme.com")[0]
 check("a US listing gets a learned estimate", out.salary_source, "estimated")
 check("and is flagged an estimate", out.salary_is_estimate, True)
-check("formatted in thousands, like the ranges it learned from",
-      out.salary_text, "$182K - $213K")
+# Monthly gross, not the annual figure it learned from. $182K-$213K a
+# year is $15K-$18K a month, and the Israeli table beside it in the same
+# column has always been monthly.
+check("a learned band is converted to monthly gross",
+      out.salary_text, "$15K - $18K")
 
 # A disclosed figure is never touched by anything downstream.
 out = probe._fill_classifications([job(salary="$200K - $240K", source="disclosed")], "acme.com")[0]
@@ -95,6 +98,18 @@ try:
 finally:
     probe._LEARNED_ESTIMATES_ON = saved
     install_matrix()
+
+# Both ends rounding to the same thousand a month is common once a
+# yearly spread is divided by twelve, and "$15K - $15K" reads as a bug.
+tight = [({"company_domain": "acme.com", "location": "San Francisco",
+           "seniority": "senior", "department": "Engineering"}, 180_000 + i * 200)
+          for i in range(MIN_ROWS + 3)]
+probe._salary_matrix = {"$": SalaryModel.build(tight, "$")}
+probe._salary_matrix_loaded = True
+out = probe._fill_classifications([job()], "acme.com")[0]
+check("a band that rounds to one figure collapses to one figure",
+      out.salary_text, "$15K")
+install_matrix()
 
 # A missing matrix is not an error. It is the behaviour from before any
 # of this existed.

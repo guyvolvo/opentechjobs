@@ -992,12 +992,24 @@ def _load_salary_matrix() -> dict:
     return _salary_matrix
 
 
-def _format_money(value: float, currency: str) -> str:
-    """Thousands, matching how the disclosed ranges we learned from are
-    written. A figure to the nearest hundred dollars would imply a
-    precision the median of five listings does not have.
+# Every estimate this board shows is monthly gross. The Israeli table has
+# always been ₪/month, and a learned band quoted annually would have put
+# "$182K - $213K" in the same column, under the same "Est." label, as
+# "₪30K–37K". Two units in one column is not a smaller problem than a
+# wrong number; a reader comparing rows has no way to tell.
+#
+# Disclosed figures are exempt and stay exactly as the employer wrote
+# them, annual or hourly or anything else. That text is theirs, not ours,
+# and rewriting it would misquote them.
+_MONTHS_PER_YEAR = 12
+
+
+def _format_money(annual: float, currency: str) -> str:
+    """Monthly gross, in thousands, matching the Israeli table's own
+    format. A figure to the nearest hundred would imply a precision the
+    median of five listings does not have.
     """
-    return f"{currency}{round(value / 1000):,.0f}K"
+    return f"{currency}{round(annual / _MONTHS_PER_YEAR / 1000):,.0f}K"
 
 
 def _learned_salary(job: "Job", domain: str | None) -> tuple[str, str] | None:
@@ -1031,9 +1043,15 @@ def _learned_salary(job: "Job", domain: str | None) -> tuple[str, str] | None:
     if not got:
         return None
     low, high = got["low"], got["high"]
-    if round(low / 1000) == round(high / 1000):
-        return _format_money(low, currency), currency
-    return f"{_format_money(low, currency)} - {_format_money(high, currency)}", currency
+    # Collapsed to a single figure when both ends round to the same
+    # thousand, which monthly amounts do far more often than annual ones:
+    # a $12K annual spread is a whole thousand a year and nothing a month.
+    # Printing "$15K - $15K" would look like a bug rather than a tight
+    # estimate.
+    low_text, high_text = _format_money(low, currency), _format_money(high, currency)
+    if low_text == high_text:
+        return low_text, currency
+    return f"{low_text} - {high_text}", currency
 
 
 def _estimate_salary(title: str | None, description: str | None, seniority: str | None) -> tuple[int, int] | None:

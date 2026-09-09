@@ -1191,10 +1191,13 @@ function jobMetaLine(j) {
 // that matters most to someone reading it is whether the employer said
 // this or we did. Both estimates say so outright rather than leaving it
 // to the "Est." prefix.
+// Both estimates are monthly gross, so both say so. A disclosed figure
+// is quoted exactly as the employer wrote it, which may be annual or
+// hourly, so its note claims no period at all.
 const SALARY_SOURCE_NOTE = {
-  disclosed: "Published by the employer on this listing.",
-  table: "Our estimate, from Israeli market pay for this role and seniority. Not the employer's own figure.",
-  estimated: "Our estimate, from what comparable roles actually pay at this company and location. Not the employer's own figure.",
+  disclosed: "Published by the employer on this listing, in their own terms.",
+  table: "Our estimate of monthly gross pay, from Israeli market rates for this role and seniority. Not the employer's own figure.",
+  estimated: "Our estimate of monthly gross pay, from what comparable roles actually pay at this company and location. Not the employer's own figure.",
 };
 
 // Real disclosed comp shown plainly; an estimate prefixed "Est." and
