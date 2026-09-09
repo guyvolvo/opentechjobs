@@ -93,6 +93,28 @@ def main() -> int:
                 "ats": c["ats"],
                 "token": c["token"],
                 "domain": c["guessed_domain"],
+                # Carried through, not dropped. discover_companies.py
+                # already does the work of checking whether its
+                # {token}.com guess resolves to anything (see
+                # _guess_domain), and this queue used to read
+                # guessed_domain while ignoring the verdict sitting right
+                # next to it. Every unverified guess then became a real
+                # company's permanent identity: confirmed live, the
+                # guesser returns False for both "headoutcareers" and
+                # "informagroupplc", and the board still shows
+                # headoutcareers.com as a company with 20 open jobs when
+                # the company is Headout at headout.com. Roughly a fifth
+                # of a 40-company sample was invented this way, one of
+                # them literally named stealth-healthtech-startup.com.
+                #
+                # Kept rather than dropped, deliberately: these are real
+                # companies with real listings reached through a real ATS
+                # board, and the only wrong part is the hostname we
+                # guessed for them. Discarding the candidate would throw
+                # away genuine jobs to avoid a cosmetic error. Recording
+                # the flag lets the loader and the UI stop presenting a
+                # guess as fact.
+                "domain_verified": bool(c.get("domain_verified")),
                 "job_count": c["job_count"],
                 "israel_job_count": c.get("israel_job_count", 0),
             })

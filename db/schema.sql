@@ -21,7 +21,20 @@ CREATE TABLE IF NOT EXISTS companies (
     tried           INTEGER NOT NULL DEFAULT 0,   -- probe attempts made, for debugging hit rate
     error           TEXT,
     first_seen      TEXT NOT NULL,      -- ISO 8601, first time this domain was probed at all
-    last_checked    TEXT NOT NULL       -- ISO 8601, most recent probe run
+    last_checked    TEXT NOT NULL,      -- ISO 8601, most recent probe run
+    -- The company's own name as its ATS reports it ("Headout", "Informa
+    -- Group Plc."), not derived from `domain`. Exists because `domain`
+    -- is frequently NOT the company's real hostname: discovery guesses
+    -- {ats-token}.com and, when that doesn't resolve, keeps the guess
+    -- anyway (see refresh_discovery_queue.py). Roughly a fifth of a
+    -- 40-company sample were invented that way, so the board was
+    -- captioning real listings "headoutcareers.com" when the company is
+    -- Headout. NULL until resolved, and callers fall back to `domain`.
+    company_name    TEXT,
+    -- Whether `domain` was ever confirmed to resolve. 0 means treat it
+    -- as an internal id only: don't show it as an identity and don't
+    -- fetch a logo from it.
+    domain_verified INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_companies_ats ON companies(ats);

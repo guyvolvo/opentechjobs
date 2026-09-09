@@ -80,8 +80,16 @@ def _partition_name(key: str, prefix: str) -> str:
     return key[len(prefix):-len(".db")]
 
 
-def _table_columns(conn: sqlite3.Connection, table: str) -> list[str]:
-    return [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]
+def _table_columns(conn: sqlite3.Connection, table: str, schema: str = "main") -> list[str]:
+    return [r[1] for r in conn.execute(f"PRAGMA {schema}.table_info({table})")]
+
+
+def _shared_columns(conn: sqlite3.Connection, table: str) -> list[str]:
+    """Columns present in BOTH the merged output and the attached source,
+    in the output's own order. Requires src to be ATTACHed.
+    """
+    src = set(_table_columns(conn, table, schema="src"))
+    return [c for c in _table_columns(conn, table) if c in src]
 
 
 def merge_partitions(partition_paths: dict[str, Path], out_path: Path) -> dict:
@@ -165,8 +173,20 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path) -> dict:
         # accept. Column lists come from THIS connection's own live
         # schema, so they track schema.sql automatically -- a partition's
         # extra legacy columns are just ignored, not propagated forward.
-        company_cols = _table_columns(merged, "companies")
-        job_cols = _table_columns(merged, "jobs")
+        # Intersected with the SOURCE's own columns, not taken from this
+        # connection alone. The comment above covers one direction, a
+        # partition carrying a legacy column this schema no longer has,
+        # and dropping it is correct. The other direction is the one that
+        # breaks: the moment schema.sql GAINS a column, every partition
+        # already sitting in S3 predates it, and selecting a column the
+        # source doesn't have is an OperationalError that kills the whole
+        # merge. That stops jobs-read.db updating at all and freezes the
+        # site on stale data, silently, which is a far worse failure than
+        # the missing column itself. Intersecting means an added column
+        # simply arrives as NULL for older partitions and fills in as
+        # each one gets rewritten by its own next scrape.
+        company_cols = _shared_columns(merged, "companies")
+        job_cols = _shared_columns(merged, "jobs")
         # DETACH has to come after the transaction that touched src
         # commits -- see the design doc's "Considered and declined" note
         # on the same mistake in an earlier reviewed SQL snippet.

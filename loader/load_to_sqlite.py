@@ -87,11 +87,25 @@ _NEW_COLUMNS = {
 }
 
 
+# Same idea as _NEW_COLUMNS above, for the companies table. Kept
+# separate rather than folded in because the two tables' migrations have
+# nothing to do with each other and a single dict would have to carry the
+# table name on every entry.
+_NEW_COMPANY_COLUMNS = {
+    "company_name": "TEXT",
+    "domain_verified": "INTEGER",
+}
+
+
 def _migrate(conn: sqlite3.Connection) -> None:
     existing = {row["name"] for row in conn.execute("PRAGMA table_info(jobs)")}
     for name, coltype in _NEW_COLUMNS.items():
         if name not in existing:
             conn.execute(f"ALTER TABLE jobs ADD COLUMN {name} {coltype}")
+    existing_companies = {row["name"] for row in conn.execute("PRAGMA table_info(companies)")}
+    for name, coltype in _NEW_COMPANY_COLUMNS.items():
+        if name not in existing_companies:
+            conn.execute(f"ALTER TABLE companies ADD COLUMN {name} {coltype}")
 
 
 def load_resolved(conn: sqlite3.Connection, resolved_path: Path) -> set[str]:
