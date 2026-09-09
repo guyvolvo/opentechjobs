@@ -86,11 +86,23 @@ SCHEDULE_INTERVAL_S = int(os.environ.get("SCHEDULE_INTERVAL_S", "300"))
 # optimization is a cost problem; failing the run is a data problem.
 STATE_TABLE = os.environ.get("SCRAPE_STATE_TABLE")
 
-# 0 means sweep everything, which is the intent. A positive value caps
-# how many companies one run touches, as a lever to pull without a deploy
-# if a provider starts rate-limiting harder than probe.py's own backoff
-# can absorb.
-SWEEP_LIMIT = int(os.environ.get("SWEEP_LIMIT", "0"))
+# How many runs it takes to cover every company. 1 is a true global
+# sweep and the destination; anything higher splits the list into that
+# many rotating windows.
+#
+# Not 1 yet, and the reason is measured rather than cautious. A sweep is
+# only cheap when companies answer 304, and that needs a stored
+# validator: right now 1,642 of 3,491 have one (47%), because shards
+# 40-69 spent hours unable to persist anything (see s3_pull's own
+# AccessDenied note). The remaining 1,849 are full fetches, and a global
+# sweep of all of them ran past probe.py's 200s subprocess timeout and
+# killed the run outright, which is worse than the rotation it replaced.
+#
+# 4 windows is ~873 companies per run, full coverage every 20 minutes,
+# still 17x better than the 5.8-hour rotation. Drop this to 1 once
+# validator coverage is high enough that a full sweep fits comfortably;
+# the code path is identical either way.
+SWEEP_WINDOWS = max(1, int(os.environ.get("SWEEP_WINDOWS", "4")))
 
 
 def _load_scrape_state(domains: list[str]) -> dict[str, dict]:
@@ -218,12 +230,22 @@ def lambda_handler(event, context):
     # completed in 2.3s, and most of even that was the partition round
     # trip rather than the polling. Sweeping all of them costs seconds.
     #
-    # SWEEP_LIMIT is a safety valve, not a design feature: set it to fall
-    # back to a partial sweep if a provider starts pushing back and the
-    # 429 backoff in probe.py isn't enough on its own.
-    sweep = known if not SWEEP_LIMIT else known[:SWEEP_LIMIT]
+    # SWEEP_WINDOWS controls how much of that is done per run. At 1 this
+    # is the global sweep; above 1 it rotates through equal windows, in
+    # the same stable domain order the shard map uses, so coverage is
+    # complete every SWEEP_WINDOWS runs rather than every 70.
     shard_map = build_shard_map(known)
     num_shards = num_shards_for(len(known))
+    if SWEEP_WINDOWS == 1:
+        sweep = known
+        window_desc = "all"
+    else:
+        by_domain = {e.get("domain", ""): e for e in known}
+        domains = ordered_domains(known)
+        window = current_shard_index(SWEEP_WINDOWS, SCHEDULE_INTERVAL_S)
+        size = -(-len(domains) // SWEEP_WINDOWS)  # ceil
+        sweep = [by_domain[d] for d in domains[window * size:(window + 1) * size]]
+        window_desc = f"window {window + 1}/{SWEEP_WINDOWS} of"
 
     # Whatever validators we already hold. refetch_known sends them as
     # If-None-Match, and ~88% of tracked companies sit on an ATS that
@@ -234,7 +256,7 @@ def lambda_handler(event, context):
     shard_path = TMP / "known-shard.json"
     shard_path.write_text(json.dumps(sweep, ensure_ascii=False), encoding="utf-8")
 
-    _write_status(s3, "scraping", f"sweeping all {len(sweep)} known companies")
+    _write_status(s3, "scraping", f"sweeping {window_desc} {len(sweep)} of {len(known)} companies")
 
     # 200s ceiling carried over from the pre-sharding design (see git
     # history) -- comfortably more than a ~50-company shard needs, but
