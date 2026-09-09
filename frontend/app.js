@@ -1978,7 +1978,17 @@ function wireThemeToggle() {
     btn.textContent = isDark ? "Light" : "Dark";
   };
   sync(); // index.html's inline head script already applied the saved theme before this ran
+  // Cleared on a timer, so a second click mid-fade restarts the window
+  // rather than letting the first one strip the class out from under it.
+  let themeFadeTimer = null;
   btn.addEventListener("click", () => {
+    const root = document.documentElement;
+    // Only ever on during the swap itself. See .theme-transition in
+    // style.css for why this isn't just left on permanently.
+    root.classList.add("theme-transition");
+    clearTimeout(themeFadeTimer);
+    themeFadeTimer = setTimeout(() => root.classList.remove("theme-transition"), 450);
+
     const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
     if (next === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
