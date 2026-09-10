@@ -472,16 +472,59 @@ const FRESH_THRESHOLD_MINUTES = 20;
 // milliseconds and the figure is really bounded by the write cycle.
 // Reported live, asking whether the sync cadence was what the card
 // implied. It was not, and it has been wrong in this spot twice since.
+// Three states on AWS's service-health vocabulary, not two.
+//
+// A binary green/red had nothing to say about the middle, which is where
+// the interesting failures live: the snapshot is written every 5
+// minutes, so one 12 minutes old has quietly missed two cycles while
+// still sitting inside the 20-minute threshold that decides whether the
+// board claims to be current at all. That is worth showing as degraded
+// rather than as either fine or broken.
+//
+// DEGRADED_AFTER_MINUTES is deliberately two missed cycles rather than
+// one. A single late merge is ordinary.
+const DEGRADED_AFTER_MINUTES = 10;
+
+const STATUS_LEVELS = {
+  operational: { symbol: "status-positive", label: "Operational", text: "LIVE" },
+  degraded: { symbol: "status-warning", label: "Degraded", text: "DEGRADED" },
+  outage: { symbol: "status-negative", label: "No recent updates", text: "OFFLINE" },
+};
+
 function apiStatusFields() {
   const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
-  const fresh = (minutesSince ?? 9999) <= FRESH_THRESHOLD_MINUTES;
+  const age = minutesSince ?? 9999;
+  const fresh = age <= FRESH_THRESHOLD_MINUTES;
+  const level = !fresh ? "outage" : age > DEGRADED_AFTER_MINUTES ? "degraded" : "operational";
   return {
     fresh,
+    level,
     // "CURRENT" rather than "LIVE": the claim is about the data being
     // up to date, which is what this measures.
     value: fresh ? "LIVE" : fmtDataAge(minutesSince),
     sub: fresh ? `${fmtDataAge(minutesSince)} old` : "no recent updates",
   };
+}
+
+// One writer for both places the state appears, so the topbar and the
+// Data Health tile cannot drift apart. Swapping the <use> target rather
+// than the markup keeps the sprite as the single definition of each
+// glyph.
+function paintStatusIcon(el, level) {
+  if (!el) return;
+  const spec = STATUS_LEVELS[level] || STATUS_LEVELS.operational;
+  const use = el.querySelector("use");
+  if (use) use.setAttribute("href", `#${spec.symbol}`);
+  el.classList.remove("degraded", "outage");
+  if (level !== "operational") el.classList.add(level);
+  el.setAttribute("aria-label", spec.label);
+}
+
+function statusIconHtml(level) {
+  const spec = STATUS_LEVELS[level] || STATUS_LEVELS.operational;
+  const cls = level === "operational" ? "status-icon" : `status-icon ${level}`;
+  return `<svg class="${cls}" role="img" aria-label="${spec.label}">`
+    + `<use href="#${spec.symbol}"></use></svg>`;
 }
 
 function nextSyncText() {
@@ -531,14 +574,14 @@ function nextSyncText() {
 function tickApiStatus() {
   const card = document.getElementById("metric-api-status");
   if (!card) return;
-  const { fresh, value, sub } = apiStatusFields();
+  const { fresh, level, value, sub } = apiStatusFields();
   card.classList.toggle("highlight", fresh);
-  card.querySelector(".value").textContent = value;
+  card.querySelector(".value").innerHTML = `${statusIconHtml(level)}${escapeHtml(value)}`;
   card.querySelector(".sub").textContent = sub;
   const syncEl = card.querySelector(".sync-countdown");
   if (syncEl) syncEl.textContent = nextSyncText() ?? "";
-  document.getElementById("status-dot").classList.toggle("offline", !fresh);
-  document.getElementById("status-text").textContent = fresh ? "LIVE" : "OFFLINE";
+  paintStatusIcon(document.getElementById("status-dot"), level);
+  document.getElementById("status-text").textContent = STATUS_LEVELS[level].text;
 }
 
 function renderMetrics(stats) {
@@ -578,7 +621,10 @@ function renderMetrics(stats) {
     {
       id: "metric-api-status",
       label: "Data Health",
-      value: apiStatusFields().value,
+      // Raw HTML here, unlike every other card's value: this one leads
+      // with the state glyph. The text beside it is our own constant or
+      // a formatted number, never anything a listing supplied.
+      value: `${statusIconHtml(apiStatusFields().level)}${escapeHtml(apiStatusFields().value)}`,
       sub: apiStatusFields().sub,
       sub2: nextSyncText(),
       hl: fresh,
@@ -599,8 +645,9 @@ function renderMetrics(stats) {
     )
     .join("");
 
-  document.getElementById("status-dot").classList.toggle("offline", !fresh);
-  document.getElementById("status-text").textContent = fresh ? "LIVE" : "OFFLINE";
+  paintStatusIcon(document.getElementById("status-dot"), apiStatusFields().level);
+  document.getElementById("status-text").textContent =
+    STATUS_LEVELS[apiStatusFields().level].text;
 }
 
 // Recomputes from lastCheckedAt every 1s -- the sync countdown needs a

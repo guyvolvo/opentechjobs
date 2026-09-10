@@ -54,9 +54,33 @@
 </head>
 <body>
 
+  <!-- Status glyph sprite, defined once and referenced by <use> wherever
+       a state is shown. Two places today: the topbar indicator and the
+       Data Health tile. Shapes carry the meaning so the state survives
+       being read in greyscale, by someone colourblind, or at the 13px
+       the topbar renders it. -->
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <symbol id="status-positive" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M7.7 12.3 10.7 15.3 16.4 9" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="status-warning" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M12 7.4v5.4" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round"/>
+      <circle cx="12" cy="16.4" r="1.15" fill="currentColor"/>
+    </symbol>
+    <symbol id="status-negative" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
   <div class="topbar">
     <div class="container">
-      <span class="status-indicator"><span id="status-dot" class="status-dot"></span><span id="status-text">...</span></span>
+      <span class="status-indicator"><svg class="status-icon" id="status-dot" role="img" aria-label="Pipeline status"><use href="#status-positive"></use></svg><span id="status-text">...</span></span>
       <a class="wordmark" href="/">
         <img src="logo-horizontal.png" alt="OpenTechJobs.org" class="wordmark-logo" />
       </a>

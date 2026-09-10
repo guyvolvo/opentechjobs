@@ -39,6 +39,15 @@
      behind the sheet instead of pushing it back. */
   --scrim: rgba(64, 81, 59, 0.34);
 
+  /* AWS service-health status colours, used only for pipeline state.
+     Kept apart from --green/--red, which are brand and carry the One
+     Voice Rule; these say "operational/degraded/disrupted" and nothing
+     else. --aws-maintenance is unused so far and is here so a scheduled
+     pause has somewhere to go rather than borrowing the warning colour. */
+  --aws-operational: #248823;
+  --aws-degraded: #ff9900;
+  --aws-outage: #d13212;
+  --aws-maintenance: #0073bb;
   --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: "Overused Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
@@ -54,6 +63,13 @@
 }
 
 :root[data-theme="dark"] {
+  /* AWS's own light-background status colours go muddy on #17181c,
+     particularly the green, which reads closer to black than to a
+     signal. Lifted for contrast, same hues. */
+  --aws-operational: #3fb950;
+  --aws-degraded: #ffab33;
+  --aws-outage: #ff5d47;
+  --aws-maintenance: #539fe5;
   --white: #17181c;
   --black: #ededec;
   --green: #2fae60;
@@ -473,14 +489,35 @@ button, input, select {
    live: the flicker animation this used to have read as distracting,
    not lively -- a flat, static color communicates the same LIVE/OFFLINE
    state without asking for attention every 1.6s. */
-.status-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--green);
-  display: inline-block;
+/* Status glyphs, on AWS's own service-health vocabulary rather than a
+   colour alone. Three states, because two wastes the middle: the write
+   cycle is 5 minutes, so a snapshot 10 minutes old has missed two of
+   them and is worth saying so about, while 20 minutes is the point the
+   whole board stops claiming to be current.
+
+   The shape is what carries the state. Colour on its own fails in
+   greyscale, fails for a red-green colourblind reader, and fails at the
+   13px the topbar renders this. A tick, a bang and a cross do not. */
+.status-icon {
+  width: 13px;
+  height: 13px;
+  display: block;
   margin-right: 6px;
+  color: var(--aws-operational);
+  flex: 0 0 auto;
 }
-.status-dot.offline { background: var(--red); }
+.status-icon.degraded { color: var(--aws-degraded); }
+.status-icon.outage { color: var(--aws-outage); }
+
+/* The Data Health tile shows the same state next to a 30px number, so
+   the glyph is sized to that line rather than the topbar's. */
+.metric-card .value .status-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 8px;
+}
 
 /* Workspace: Job Board (main) + Market Stats (a permanent right-hand
    board, not a drawer/overlay). Stacks vertically under the responsive
