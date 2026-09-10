@@ -2080,109 +2080,211 @@ footer {
   }
 }
 
-/* Advanced statistics page (stats.html). Reuses the homepage's metric
-   and panel grids wholesale; only what is new to this page lives here.
-   Full-width column rather than the two-up workspace, since there is no
-   board beside it. */
+/* Explore (stats.html). SQL over every listing, run in the browser
+   against a database file on the CDN. Reuses the topbar, the bar rows,
+   the trend line and the buttons; only what is new to this page is
+   here.
 
-.stats-page {
+   Monospace is the second scoped use of that voice in the system, after
+   the API reference's parameter chips. An SQL editor is the one place a
+   proportional face would be wrong: alignment is meaning. Same family
+   as the existing exception, so it is still two voices plus one
+   utility, not three voices. */
+
+.explore-page {
   display: block;
   padding-bottom: 48px;
 }
-.stats-page .section {
-  padding-top: 32px;
-}
-.stats-more {
-  display: inline-block;
-  margin: -6px 0 14px;
-  font-size: 12.5px;
-}
-.stats-intro {
+.explore-page .section { padding-top: 32px; }
+.explore-intro {
   color: var(--grey);
-  margin: 0 0 18px;
-}
-.stats-metrics {
-  grid-template-columns: repeat(4, 1fr);
-}
-.stats-panels {
-  grid-template-columns: repeat(3, 1fr);
-}
-.stats-panels .panel-wide {
-  grid-column: 1 / -1;
-}
-.panel-sub {
-  color: var(--grey);
-  font-size: 11.5px;
-  margin: -6px 0 12px;
-  line-height: 1.4;
+  margin: 0 0 20px;
+  max-width: 72ch;
+  line-height: 1.5;
 }
 .stats-note {
   color: var(--grey);
   font-size: 12.5px;
   margin-top: 22px;
-  max-width: 68ch;
+  max-width: 72ch;
+  line-height: 1.5;
 }
 
-/* Category by seniority heatmap. A CSS grid rather than an SVG: the
-   cells carry text and titles, which is accessibility for free, and a
-   grid reflows where an SVG would only scale.
-
-   Five shade steps of the ink colour. Flat, no gradient, each step a
-   fixed opacity so the same cell reads the same in both themes. Zero is
-   left as paper so an empty cell is visibly empty rather than faintly
-   filled. */
-.heatmap {
+.explore-layout {
   display: grid;
-  grid-template-columns: minmax(150px, 1.4fr) repeat(var(--hm-cols, 1), minmax(48px, 1fr));
-  gap: var(--rule);
-  background: var(--grey-line);
-  border: var(--rule) solid var(--grey-line);
-  border-radius: 4px;
-  overflow: hidden;
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
-.heatmap > * {
-  background: var(--white);
-  padding: 7px 8px;
-  min-height: 30px;
-  display: flex;
-  align-items: center;
-}
-.hm-corner { background: var(--white); }
-.hm-col {
-  justify-content: center;
+
+/* Sidebar: questions to start from, then the schema. */
+.explore-side-title {
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 10px;
+  letter-spacing: 0.1em;
   color: var(--grey);
   font-weight: 700;
-  text-align: center;
+  margin: 0 0 8px;
 }
-.hm-row {
-  justify-content: space-between;
+.explore-side-title + .explore-side-title,
+.explore-templates + .explore-side-title,
+.explore-schema + .explore-side-title { margin-top: 22px; }
+
+.explore-templates { display: flex; flex-direction: column; gap: 4px; }
+.explore-template {
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  background: none;
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  padding: 7px 10px;
+  color: var(--black);
+  cursor: pointer;
+  line-height: 1.3;
+}
+.explore-template:hover { background: var(--hover-bg); }
+/* Exactly one is green at a time: the question currently answered. */
+.explore-template.active {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.explore-schema details { border-top: 1px solid var(--grey-line); }
+.explore-schema details:last-child { border-bottom: 1px solid var(--grey-line); }
+.explore-schema summary {
+  cursor: pointer;
+  padding: 7px 0;
+  font-size: 12.5px;
+  display: flex;
   gap: 8px;
+  align-items: baseline;
+  list-style: none;
+}
+.explore-schema summary::-webkit-details-marker { display: none; }
+.explore-schema summary::before { content: "+"; color: var(--grey); width: 10px; }
+.explore-schema details[open] summary::before { content: "\2013"; }
+.explore-schema summary span { color: var(--grey); font-size: 11.5px; }
+.explore-schema ul { list-style: none; margin: 0 0 8px; padding: 0 0 0 18px; }
+.explore-schema li {
+  font-size: 11.5px;
+  padding: 2px 0;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.explore-schema li span { color: var(--grey); }
+.explore-schema code, .explore-notes code, .explore-tbl code {
+  font-family: "Courier New", monospace;
+  font-size: 11.5px;
+}
+.explore-notes { font-size: 11.5px; color: var(--grey); line-height: 1.5; }
+.explore-notes p { margin: 0 0 8px; }
+
+/* Main column: toolbar, editor, result. */
+.explore-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.explore-hint { color: var(--grey); font-size: 11.5px; }
+.explore-viz { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--grey); }
+.explore-viz select { font: inherit; font-size: 12.5px; }
+.explore-status {
+  margin-left: auto;
+  color: var(--grey);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+body.explore-busy .explore-status { color: var(--green); }
+
+.explore-editor {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: "Courier New", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 12px 14px;
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  resize: vertical;
+  min-height: 120px;
+  tab-size: 2;
+}
+.explore-editor:focus { outline: none; border-color: var(--green); }
+
+.explore-error {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--red);
+  border-radius: 4px;
+  color: var(--red);
+  font-family: "Courier New", monospace;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+}
+
+.explore-result { margin-top: 14px; }
+.explore-empty { color: var(--grey); font-size: 12.5px; }
+
+/* Results table. Wide results scroll inside their own box; the page
+   never scrolls sideways. */
+.explore-table-wrap {
+  overflow-x: auto;
+  border: var(--rule) solid var(--grey-line);
+  border-radius: 4px;
+}
+.explore-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.explore-table th, .explore-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--grey-line);
   white-space: nowrap;
+  max-width: 420px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.hm-total {
+.explore-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--grey);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  background: var(--white);
+}
+.explore-table tbody tr:last-child td { border-bottom: 0; }
+.explore-table tbody tr:hover td { background: var(--hover-bg); }
+.explore-table td.num { text-align: right; }
+.explore-table td.null { color: var(--grey); font-style: italic; }
+
+/* Bars reuse .bar-row; only the axis labels are new. */
+.explore-bars .bar-row { grid-template-columns: minmax(120px, 1fr) minmax(120px, 2fr) 64px; }
+.explore-axis {
+  display: flex;
+  justify-content: space-between;
   font-size: 10.5px;
+  color: var(--grey);
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
-.hm-cell {
-  justify-content: center;
-  color: var(--black);
-}
-.hm-cell.s1 { background: color-mix(in srgb, var(--black) 8%, var(--white)); }
-.hm-cell.s2 { background: color-mix(in srgb, var(--black) 18%, var(--white)); }
-.hm-cell.s3 { background: color-mix(in srgb, var(--black) 32%, var(--white)); }
-.hm-cell.s4 { background: color-mix(in srgb, var(--black) 50%, var(--white)); color: var(--white); }
-.hm-cell.s5 { background: var(--black); color: var(--white); }
+.explore-line-svg { height: 140px; }
+.explore-line .trend-axis { justify-content: space-between; }
 
 @media (max-width: 960px) {
-  .stats-metrics { grid-template-columns: repeat(2, 1fr); }
-  .stats-panels { grid-template-columns: 1fr; }
-  .heatmap { font-size: 10.5px; }
-  .heatmap > * { padding: 5px 6px; min-height: 26px; }
+  .explore-layout { grid-template-columns: 1fr; }
+  .explore-side { order: 2; }
+  .explore-main { order: 1; }
+  .explore-status { margin-left: 0; width: 100%; }
 }

@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OpenTechJobs: Advanced Statistics</title>
-  <meta name="description" content="Where the tech jobs are, what they ask for, how they work, and who runs the boards. Live figures from every listing OpenTechJobs tracks." />
+  <title>OpenTechJobs: Explore</title>
+  <meta name="description" content="Query every listing OpenTechJobs tracks, in SQL, in your browser. Ready-made questions to start from, and the whole dataset when you want to ask your own." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://opentechjobs.org/stats.html" />
-  <meta property="og:title" content="OpenTechJobs: Advanced Statistics" />
-  <meta property="og:description" content="Where the tech jobs are, what they ask for, how they work, and who runs the boards." />
+  <meta property="og:title" content="OpenTechJobs: Explore" />
+  <meta property="og:description" content="Query every listing we track, in SQL, in your browser." />
   <meta property="og:image" content="https://opentechjobs.org/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -18,10 +18,6 @@
   <link rel="icon" href="favicon.ico" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png" />
   <link rel="stylesheet" href="style.css" />
-  <!-- The whole page renders from this one file, published by the
-       applier and served from CloudFront with no Lambda in the path.
-       Preloaded so it arrives alongside the script rather than after. -->
-  <link rel="preload" href="/stats.json" as="fetch" crossorigin="anonymous" />
   <script>
     if (localStorage.getItem("iljobs_theme") === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
@@ -43,45 +39,66 @@
     </div>
   </div>
 
-  <div class="workspace stats-page">
+  <div class="workspace explore-page">
     <section class="section">
       <div class="container">
-        <h2 class="section-title">Advanced Statistics</h2>
-        <!-- The window is stated up front and never faked. The corpus
-             began 1 September 2026, and every figure on this page is
-             computed over it as it stands, refreshed every fifteen
-             minutes. Nothing here extrapolates. -->
-        <p class="stats-intro" id="stats-intro">Every open listing we track, as of a few minutes ago.</p>
+        <h2 class="section-title">Explore</h2>
+        <!-- The database is a static file on the CDN, and the query runs
+             in this tab, inside SQLite compiled to WebAssembly. Only the
+             pages a query touches are fetched, by HTTP range request, so
+             the size of the file is not the size of the download. Nothing
+             is sent anywhere. See loader/build_explore.py for what is in
+             it and why. -->
+        <p class="explore-intro">Every listing we track, queryable in SQL. It runs in your browser: the database is a file on the CDN and your query fetches only the pages it touches. Nothing leaves this tab.</p>
 
-        <div id="stats-metrics" class="metrics-grid stats-metrics" aria-live="polite">
-          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
-          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
-          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
-          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
-          <span class="visually-hidden" role="status">Loading figures</span>
+        <div class="explore-layout">
+          <aside class="explore-side">
+            <div class="explore-side-title">Start from a question</div>
+            <div id="explore-templates" class="explore-templates"></div>
+
+            <div class="explore-side-title">Schema</div>
+            <div id="explore-schema" class="explore-schema"></div>
+
+            <div class="explore-side-title">Notes</div>
+            <div class="explore-notes">
+              <p>SQLite syntax. CTEs and window functions work. There is no full-text search; use <code>LIKE</code> on <code>title</code>.</p>
+              <p>Descriptions are not in this file. <code>category</code> is the board's own normalisation of <code>department</code> and <code>title</code>, and is NULL where it could not tell.</p>
+              <p>A query with no index behind it scans the whole file. That is slow for you and costs nobody else anything.</p>
+            </div>
+          </aside>
+
+          <div class="explore-main">
+            <div class="explore-toolbar">
+              <button type="button" class="btn" id="explore-run">Run</button>
+              <span class="explore-hint">Ctrl+Enter</span>
+              <label class="explore-viz">
+                <span>Show as</span>
+                <select id="explore-viz">
+                  <option value="auto">Auto</option>
+                  <option value="table">Table</option>
+                  <option value="bar">Bars</option>
+                  <option value="line">Line</option>
+                </select>
+              </label>
+              <button type="button" class="btn ghost" id="explore-share">Copy link</button>
+              <span class="explore-status" id="explore-status">Loading the database runtime…</span>
+            </div>
+            <textarea id="explore-sql" class="explore-editor" spellcheck="false" autocomplete="off" autocapitalize="off" rows="8" aria-label="SQL query"></textarea>
+            <div id="explore-error" class="explore-error" hidden></div>
+            <div id="explore-result" class="explore-result" aria-live="polite"></div>
+          </div>
         </div>
 
-        <div id="stats-panels" class="panel-grid stats-panels">
-          <div class="panel sk-panel" aria-hidden="true">
-            <span class="skeleton sk-label"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-          </div>
-          <div class="panel sk-panel" aria-hidden="true">
-            <span class="skeleton sk-label"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-          </div>
-        </div>
-
-        <p class="stats-note" id="stats-note"></p>
+        <p class="stats-note" id="explore-note"></p>
         <p class="legal-back"><a class="link" href="/">&larr; Back to the job board</a></p>
       </div>
     </section>
   </div>
 
+  <!-- sql.js-httpvfs 0.8.12, vendored. A UMD bundle, so this plain tag
+       leaves createDbWorker on window; the worker and the wasm it loads
+       sit beside it in the same directory. -->
+  <script src="vendor/httpvfs/index.js"></script>
   <script src="stats.js"></script>
 </body>
 </html>

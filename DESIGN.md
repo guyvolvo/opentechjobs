@@ -230,6 +230,15 @@ fold it into the Two-Voice Rule as a named third case, or replace it with
 true. Left for `/impeccable audit` / a deliberate call, not silently
 changed here.
 
+Now a second site, which makes the decision more pressing rather than
+less: the Explore page's SQL editor and its results-table code cells use
+the same `"Courier New", monospace`. An SQL editor is the one place a
+proportional face would be wrong, because alignment is meaning, so this
+is not a case that can be folded back into `--font`. The honest reading
+of the system as built is two voices plus one utility face for literal
+code, and the rule should say so. Until it does, both sites stay on the
+same family so it remains one exception used twice, not two exceptions.
+
 `footer code` (the API-Reference `curl` example) uses literal
 `#0a0a0a`/`#2fae60`, not `var(--black)`/`var(--green)`, with its own
 inline comment explaining why: a terminal/code block reads as an actual

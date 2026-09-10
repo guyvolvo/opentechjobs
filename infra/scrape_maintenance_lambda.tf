@@ -111,6 +111,9 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # minutes per open tab.
           "${aws_s3_bucket.frontend.arn}/stats.json",
           "${aws_s3_bucket.frontend.arn}/facets.json",
+          # explore.db: the slim database the Explore page queries in the
+          # browser by HTTP range request. Rebuilt and uploaded hourly.
+          "${aws_s3_bucket.frontend.arn}/explore.db",
         ]
       },
       {

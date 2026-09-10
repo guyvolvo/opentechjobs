@@ -49,6 +49,7 @@ sys.path.insert(0, str(ROOT / "loader"))
 
 from alerts import evaluate_alerts  # noqa: E402
 from deltas import delete_fragments, list_fragments, read_fragments  # noqa: E402
+import build_explore
 import precompute
 
 # Listings closed longer ago than this leave the snapshot for S3. Every
@@ -254,8 +255,16 @@ def lambda_handler(event, context):
     written = precompute.publish(BUCKET, snapshot, FRONTEND_BUCKET)
     print(f"precomputed: {', '.join(written) if written else '(nothing written)'}")
 
+    # The Explore page's own database: a slim, query-shaped copy of the
+    # snapshot, read in the browser by range request. Paced to hourly
+    # inside build_explore, since every rebuild is a 70MB upload and a
+    # cold edge cache. See loader/build_explore.py.
+    _write_status(s3, "precomputing", "building explore.db for the stats page")
+    explore = build_explore.publish(FRONTEND_BUCKET, snapshot, TMP)
+
     summary = {"applied": len(results), "fragments": len(keys),
-               "alerts": alerts_result, "precomputed": len(written)}
+               "alerts": alerts_result, "precomputed": len(written),
+               "explore": explore["bytes"] if explore else None}
     _publish_bootstrap(s3)
 
     print(f"delta apply complete: {json.dumps(summary, default=str)}")
