@@ -1961,6 +1961,14 @@ footer {
   to   { transform: translateX(385%); }
 }
 
+/* The reduced-motion stand-in. Never dips far enough to read as
+   flickering, and never reaches zero, so the bar is always visibly
+   there rather than blinking in and out. */
+@keyframes load-bar-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
 /* Inline button busy state. color:transparent keeps the label in flow,
    so the button never changes size mid-click. */
 .btn-busy {
@@ -1986,11 +1994,28 @@ footer {
 }
 
 /* Everything above still communicates with the animation off: the bones
-   remain, the bar stays green and full-width, the spinner holds one
-   frame. Nothing depends on movement to be legible. */
+   remain, the spinner holds one frame, the sheet arrives already open.
+   Nothing depends on movement to be legible.
+
+   The load bar was the exception and it read as broken. A static
+   full-width green bar is indistinguishable from a decorative rule that
+   has changed colour for no reason, and it was reported exactly that
+   way: "static green instead of an actual loading animation."
+
+   So it pulses instead of sweeping. Reduced motion is about not
+   triggering people with vestibular sensitivity, which is a rule about
+   large translation, not about holding every pixel still. A slow
+   cross-fade in place carries "something is happening" without moving
+   anything across the screen. Three seconds, not the sweep's 0.85, so
+   it reads as a patient breath rather than a blink. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; background-image: none; }
-  .load-bar::after { animation: none; width: 100%; left: 0; transform: none; }
+  .load-bar::after {
+    width: 100%;
+    left: 0;
+    transform: none;
+    animation: load-bar-breathe 3s ease-in-out infinite;
+  }
   .btn-busy::after { animation: none; }
   /* The sheet still opens and closes, it just arrives already there. */
   .job-detail, #job-scrim { transition: none; }
