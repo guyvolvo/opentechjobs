@@ -1,34 +1,227 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-04T11:35:00Z",
+  "generatedAt": "2026-09-10T10:48:33Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
-      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "#f3f6e4", "tonalRamp": ["#232922", "#3d4634", "#586346", "#747f57", "#909c6b", "#adba82", "#cad79c", "#e9f5c0"] },
-      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#40513b", "tonalRamp": ["#141c12", "#233020", "#324430", "#435840", "#546c51", "#688164", "#7f9679", "#98ac91"] },
-      "signal-green": { "role": "primary", "displayName": "Signal Green", "canonical": "#609966", "tonalRamp": ["#193b1e", "#2c5c32", "#417d47", "#549e5b", "#69b06f", "#8bc490", "#b1d9b4", "#daecdb"] },
-      "muted-grey": { "role": "neutral", "displayName": "Muted Grey", "canonical": "#40513b", "tonalRamp": ["#141c12", "#233020", "#324430", "#435840", "#546c51", "#688164", "#7f9679", "#98ac91"] },
-      "hairline-grey": { "role": "neutral", "displayName": "Hairline Grey", "canonical": "#dce8ce", "tonalRamp": ["#5a6b4c", "#7e9269", "#a2b78c", "#c0d0ac", "#dce8ce", "#e6efdc", "#f0f6ea", "#f9fbf5"] },
-      "alert-red": { "role": "error", "displayName": "Alert Red", "canonical": "#b8362c", "tonalRamp": ["#3e120f", "#73221c", "#a53027", "#d04439", "#dc736b", "#e69e98", "#f0c5c1", "#faecea"] },
-      "hover-tint": { "role": "neutral", "displayName": "Hover Tint", "canonical": "#e9efdb", "tonalRamp": ["#4c583e", "#6c7a58", "#8c9c76", "#a8b992", "#c4d1af", "#dbe4c8", "#e9efdb", "#f5f8ee"] }
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#f3f6e4",
+        "tonalRamp": [
+          "#232922",
+          "#3d4634",
+          "#586346",
+          "#747f57",
+          "#909c6b",
+          "#adba82",
+          "#cad79c",
+          "#e9f5c0"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#40513b",
+        "tonalRamp": [
+          "#141c12",
+          "#233020",
+          "#324430",
+          "#435840",
+          "#546c51",
+          "#688164",
+          "#7f9679",
+          "#98ac91"
+        ]
+      },
+      "signal-green": {
+        "role": "primary",
+        "displayName": "Signal Green",
+        "canonical": "#609966",
+        "tonalRamp": [
+          "#193b1e",
+          "#2c5c32",
+          "#417d47",
+          "#549e5b",
+          "#69b06f",
+          "#8bc490",
+          "#b1d9b4",
+          "#daecdb"
+        ]
+      },
+      "muted-grey": {
+        "role": "neutral",
+        "displayName": "Muted Grey",
+        "canonical": "#40513b",
+        "tonalRamp": [
+          "#141c12",
+          "#233020",
+          "#324430",
+          "#435840",
+          "#546c51",
+          "#688164",
+          "#7f9679",
+          "#98ac91"
+        ]
+      },
+      "hairline-grey": {
+        "role": "neutral",
+        "displayName": "Hairline Grey",
+        "canonical": "#dce8ce",
+        "tonalRamp": [
+          "#5a6b4c",
+          "#7e9269",
+          "#a2b78c",
+          "#c0d0ac",
+          "#dce8ce",
+          "#e6efdc",
+          "#f0f6ea",
+          "#f9fbf5"
+        ]
+      },
+      "alert-red": {
+        "role": "error",
+        "displayName": "Alert Red",
+        "canonical": "#b8362c",
+        "tonalRamp": [
+          "#3e120f",
+          "#73221c",
+          "#a53027",
+          "#d04439",
+          "#dc736b",
+          "#e69e98",
+          "#f0c5c1",
+          "#faecea"
+        ]
+      },
+      "hover-tint": {
+        "role": "neutral",
+        "displayName": "Hover Tint",
+        "canonical": "#e9efdb",
+        "tonalRamp": [
+          "#4c583e",
+          "#6c7a58",
+          "#8c9c76",
+          "#a8b992",
+          "#c4d1af",
+          "#dbe4c8",
+          "#e9efdb",
+          "#f5f8ee"
+        ]
+      },
+      "aws-operational": {
+        "role": "status",
+        "displayName": "Operational",
+        "canonical": "#248823",
+        "tonalRamp": [
+          "#0b2c0b",
+          "#134a13",
+          "#1a6619",
+          "#248823",
+          "#3fb950",
+          "#63c974",
+          "#93dc9e",
+          "#c6efcc"
+        ]
+      },
+      "aws-degraded": {
+        "role": "status",
+        "displayName": "Degraded",
+        "canonical": "#ff9900",
+        "tonalRamp": [
+          "#4d2e00",
+          "#804d00",
+          "#b36b00",
+          "#ff9900",
+          "#ffab33",
+          "#ffbd5c",
+          "#ffd28f",
+          "#ffe8c2"
+        ]
+      },
+      "aws-outage": {
+        "role": "status",
+        "displayName": "Disrupted",
+        "canonical": "#d13212",
+        "tonalRamp": [
+          "#3f0f05",
+          "#6b1a08",
+          "#9c260c",
+          "#d13212",
+          "#ff5d47",
+          "#ff8371",
+          "#ffab9e",
+          "#ffd4cd"
+        ]
+      },
+      "aws-maintenance": {
+        "role": "status",
+        "displayName": "Scheduled",
+        "canonical": "#0073bb",
+        "tonalRamp": [
+          "#00243b",
+          "#003e63",
+          "#00588c",
+          "#0073bb",
+          "#539fe5",
+          "#7bb6ec",
+          "#a8cef3",
+          "#d4e7f9"
+        ]
+      }
     },
     "typographyMeta": {
-      "display-wordmark": { "displayName": "Display / Wordmark", "purpose": "The topbar wordmark only (\"OpenMarket.IL\"). 13px below the 640px breakpoint." },
-      "display-section-title": { "displayName": "Display / Section Title", "purpose": "The two section titles (\"Job Board\" / \"Market Stats\") only -- never at table-row or data-dense sizes." },
-      "title-metric": { "displayName": "Title / Metric", "purpose": "The large number on a metric tile -- the one place body copy gets genuinely large." },
-      "subtitle": { "displayName": "Subtitle", "purpose": "The job-detail panel's title (.job-detail-title) -- more prominent than table-row body text, without competing with the two display-face headings." },
-      "body": { "displayName": "Body", "purpose": "Filters, table cells, panel prose, buttons -- everything data-dense." },
-      "label": { "displayName": "Label", "purpose": "Uppercase micro-labels: column headers, panel titles, chips, result count, topnav." }
+      "display-wordmark": {
+        "displayName": "Display / Wordmark",
+        "purpose": "The topbar wordmark only (\"OpenMarket.IL\"). 13px below the 640px breakpoint."
+      },
+      "display-section-title": {
+        "displayName": "Display / Section Title",
+        "purpose": "The two section titles (\"Job Board\" / \"Market Stats\") only -- never at table-row or data-dense sizes."
+      },
+      "title-metric": {
+        "displayName": "Title / Metric",
+        "purpose": "The large number on a metric tile -- the one place body copy gets genuinely large."
+      },
+      "subtitle": {
+        "displayName": "Subtitle",
+        "purpose": "The job-detail panel's title (.job-detail-title) -- more prominent than table-row body text, without competing with the two display-face headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Filters, table cells, panel prose, buttons -- everything data-dense."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase micro-labels: column headers, panel titles, chips, result count, topnav."
+      }
     },
     "shadows": [],
     "motion": [
-      { "name": "torch-flicker", "value": "steps(1) 1.6s infinite, hand-placed irregular opacity keyframes (6%, 11%, 19%, 27%, 33%, 41%, 52%, 58%, 69%, 74%, 83%, 89%)", "purpose": "Live-status dot -- jump-cut flicker meant to read as a torch/redstone lamp, not a smooth pulse. Killed outright (not still pulsing) when offline." },
-      { "name": "ticker-scroll", "value": "translateX(0) to translateX(-50%), linear 40s, paused on hover", "purpose": "Seamless looping marquee of the board's own current top listings between the wordmark and the online/offline status." }
+      {
+        "name": "torch-flicker",
+        "value": "steps(1) 1.6s infinite, hand-placed irregular opacity keyframes (6%, 11%, 19%, 27%, 33%, 41%, 52%, 58%, 69%, 74%, 83%, 89%)",
+        "purpose": "Live-status dot -- jump-cut flicker meant to read as a torch/redstone lamp, not a smooth pulse. Killed outright (not still pulsing) when offline."
+      },
+      {
+        "name": "ticker-scroll",
+        "value": "translateX(0) to translateX(-50%), linear 40s, paused on hover",
+        "purpose": "Seamless looping marquee of the board's own current top listings between the wordmark and the online/offline status."
+      }
     ],
     "breakpoints": [
-      { "name": "tablet-stack", "value": "960px" },
-      { "name": "phone-stack", "value": "640px" },
-      { "name": "filter-bar-wrap", "value": "900px (container query on #board, not viewport -- the two-column workspace grid decouples #board's actual width from the viewport width)" }
+      {
+        "name": "tablet-stack",
+        "value": "960px"
+      },
+      {
+        "name": "phone-stack",
+        "value": "640px"
+      },
+      {
+        "name": "filter-bar-wrap",
+        "value": "900px (container query on #board, not viewport -- the two-column workspace grid decouples #board's actual width from the viewport width)"
+      }
     ]
   },
   "components": [
@@ -73,12 +266,12 @@
       "css": ".ds-metric-card { background: var(--white); color: var(--black); padding: 18px 16px; min-height: 116px; display: flex; flex-direction: column; justify-content: space-between; } .ds-metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--grey); } .ds-metric-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 10px; color: var(--black); }"
     },
     {
-      "name": "Status Dot",
+      "name": "Status Glyph",
       "kind": "custom",
       "refersTo": null,
-      "description": "Signature live-status indicator -- square block, jump-cut torch flicker while live, goes solid alert-red with animation killed outright when offline (no sync in 16+ minutes).",
-      "html": "<span class=\"ds-status-dot\"></span>",
-      "css": ".ds-status-dot { width: 8px; height: 8px; background: var(--green); display: inline-block; animation: ds-torch-flicker 1.6s steps(1) infinite; } .ds-status-dot.ds-offline { background: var(--red); animation: none; } @keyframes ds-torch-flicker { 0%, 100% { opacity: 1; } 6% { opacity: 0.8; } 11% { opacity: 1; } 19% { opacity: 0.55; } 27% { opacity: 1; } 33% { opacity: 0.85; } 41% { opacity: 1; } 52% { opacity: 0.7; } 58% { opacity: 1; } 69% { opacity: 0.9; } 74% { opacity: 1; } 83% { opacity: 0.6; } 89% { opacity: 1; } }"
+      "description": "Signature pipeline-state indicator. Three states on AWS's service-health vocabulary: a tick in a ring while current, a bang past two missed write cycles, a cross past the freshness threshold. The shape carries the state, not the colour, so it survives greyscale, a red-green colourblind reader and the 13px the topbar renders it at. One sprite defined per document, referenced by <use> in both places the state appears. Replaced a square block that torch-flickered on steps(1) timing.",
+      "html": "<svg width=\"0\" height=\"0\" aria-hidden=\"true\"><symbol id=\"status-positive\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M7.7 12.3 10.7 15.3 16.4 9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></symbol></svg><svg class=\"ds-status-icon\" role=\"img\" aria-label=\"Operational\"><use href=\"#status-positive\"></use></svg>",
+      "css": ".ds-status-icon { width: 13px; height: 13px; display: block; color: var(--aws-operational); } .ds-status-icon.ds-degraded { color: var(--aws-degraded); } .ds-status-icon.ds-outage { color: var(--aws-outage); }"
     },
     {
       "name": "GitHub Icon Link",
@@ -100,10 +293,26 @@
       "A live-status vocabulary (the ticker, the status-dot torch flicker) borrowed from terminals/dashboards, not marketing sites"
     ],
     "rules": [
-      { "name": "The One Voice Rule", "body": "Green marks exactly one \"this matters\" element at a time. If everything is green, nothing is -- it never appears as decoration, only on live status, primary metrics, and the handful of buttons/links that actually do something.", "section": "colors" },
-      { "name": "The Token Rule", "body": "Light and dark mode are two independently tuned palettes, not a hex inversion of each other -- but every rule in the system still reads var(--white)/var(--black) (never a literal hex), so retuning either palette only ever means editing the two :root blocks. A hardcoded #fff/#000 anywhere breaks that.", "section": "colors" },
-      { "name": "The Two-Voice Rule", "body": "Helvetica (via --font) carries everything dense; Overused Grotesk (via --font-display) is reserved for exactly two brand-level spots. No third typeface is part of the system.", "section": "typography" },
-      { "name": "The No-Shadow Rule", "body": "The black rules between cards are the only depth cue this design uses. A shadow anywhere is a bug, not a style choice.", "section": "elevation" }
+      {
+        "name": "The One Voice Rule",
+        "body": "Green marks exactly one \"this matters\" element at a time. If everything is green, nothing is -- it never appears as decoration, only on live status, primary metrics, and the handful of buttons/links that actually do something.",
+        "section": "colors"
+      },
+      {
+        "name": "The Token Rule",
+        "body": "Light and dark mode are two independently tuned palettes, not a hex inversion of each other -- but every rule in the system still reads var(--white)/var(--black) (never a literal hex), so retuning either palette only ever means editing the two :root blocks. A hardcoded #fff/#000 anywhere breaks that.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-Voice Rule",
+        "body": "Helvetica (via --font) carries everything dense; Overused Grotesk (via --font-display) is reserved for exactly two brand-level spots. No third typeface is part of the system.",
+        "section": "typography"
+      },
+      {
+        "name": "The No-Shadow Rule",
+        "body": "The black rules between cards are the only depth cue this design uses. A shadow anywhere is a bug, not a style choice.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do keep border-radius at 0 everywhere, no exceptions.",
