@@ -29,6 +29,22 @@ jobs:
           role-to-assume: ${{ vars.FRONTEND_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Stamp asset URLs with the commit
+        run: |
+          # Cloudflare does not pass our no-cache through for .js and
+          # .css. It rewrites them to max-age=14400, so a browser keeps
+          # the old app.js or stats.js for four hours after a deploy
+          # while the HTML (not cached by Cloudflare) is already new.
+          # Seen live (2026-09-10): new stats.html running the previous
+          # stats.js, which threw on a button that no longer existed and
+          # left the page half-wired. A query string the browser has
+          # never seen is a new URL to it, so every deploy's HTML points
+          # at fresh copies. Only local scripts and stylesheets: anything
+          # with a scheme (the support widget's CDN script) is left alone.
+          v=${GITHUB_SHA::8}
+          sed -i -E "s#(src|href)=\"([^\":]+\.(js|css))\"#\1=\"\2?v=$v\"#g" frontend/*.html
+          grep -n '?v=' frontend/*.html
+
       - name: Sync frontend/ to S3
         run: |
           # --cache-control "no-cache": NOT no-store -- browsers still
@@ -39,11 +55,9 @@ jobs:
           # caching behavior was left to each browser's own unreliable
           # heuristic (roughly 10% of the file's Last-Modified age --
           # near-zero right after a deploy, meaning a full re-download
-          # anyway). A real max-age can't be used instead: nothing here
-          # has a content hash in its filename, so a stale cached app.js
-          # would silently keep running after a deploy until it expired.
-          # no-cache gets the actual win (a 200-byte 304 instead of the
-          # full file on an unchanged asset) without that risk.
+          # anyway). This header reaches the browser for HTML only;
+          # scripts and stylesheets get Cloudflare's four-hour TTL
+          # instead, which is why the step above stamps their URLs.
           # --exclude for everything the applier publishes rather than
           # this repo, since --delete would wipe them on every unrelated
           # CSS or JS deploy. bootstrap.json was excluded from the start.
