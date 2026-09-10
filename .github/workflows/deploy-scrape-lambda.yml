@@ -85,12 +85,14 @@ jobs:
         run: |
           mkdir -p maintenance/loader maintenance/db
           cp scrape_maintenance_handler.py sharding.py maintenance/
-          cp loader/load_to_sqlite.py loader/merge_partitions.py loader/bootstrap.py loader/descriptions.py loader/deltas.py maintenance/loader/
+          cp loader/load_to_sqlite.py loader/merge_partitions.py loader/bootstrap.py loader/descriptions.py loader/deltas.py loader/precompute.py maintenance/loader/
           # bootstrap.py needs FRESH_CLAUSE and category_of() so its
           # first page matches what /api/jobs would return exactly.
           cp api/job_filters.py maintenance/
           cp db/schema.sql maintenance/db/
-          cp alerts.py api/job_filters.py maintenance/
+          # aggregates.py: the /stats and /facets bodies, shared with the API
+          # so the applier answers exactly what a request would have.
+          cp alerts.py api/job_filters.py api/aggregates.py maintenance/
           pip install --target maintenance requests
           cd maintenance && zip -r ../scrape-maintenance.zip . -x "__pycache__/*" && cd ..
 

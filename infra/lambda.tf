@@ -58,6 +58,10 @@ resource "aws_iam_role_policy" "api_lambda" {
           # rather than inside jobs-read.db, which they were ~94% of. Read
           # here by /api/jobs/{id}, whose response shape is unchanged.
           "${aws_s3_bucket.data.arn}/descriptions/*",
+          # precomputed/*: the answers to /stats and /facets, computed
+          # once per merge so the API reads a finished number instead of
+          # deriving it on every page load.
+          "${aws_s3_bucket.data.arn}/precomputed/*",
         ]
       },
       {

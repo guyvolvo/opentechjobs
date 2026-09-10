@@ -74,6 +74,10 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # deltas/*: read and then deleted once a snapshot containing
           # them has been pushed. See loader/deltas.py.
           "${aws_s3_bucket.data.arn}/deltas/*",
+          # precomputed/*: the answers to /stats and /facets, computed
+          # once per merge so the API reads a finished number instead of
+          # deriving it on every page load.
+          "${aws_s3_bucket.data.arn}/precomputed/*",
           # descriptions/*: the applier now runs the loader, so it writes
           # description blobs too.
           "${aws_s3_bucket.data.arn}/descriptions/*",

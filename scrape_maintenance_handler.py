@@ -49,6 +49,7 @@ sys.path.insert(0, str(ROOT / "loader"))
 
 from alerts import evaluate_alerts  # noqa: E402
 from deltas import delete_fragments, list_fragments, read_fragments  # noqa: E402
+import precompute
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 # Where bootstrap.json goes. Optional: unset just means the site keeps
@@ -173,7 +174,22 @@ def lambda_handler(event, context):
     if alerts_result.get("errors"):
         print(f"alert evaluation errors: {alerts_result['errors']}")
 
-    summary = {"applied": len(results), "fragments": len(keys), "alerts": alerts_result}
+    # The two aggregate routes, answered here once instead of on every
+    # request. Measured with the edge cache bypassed, /api/stats took
+    # 7.03s and /api/facets 5.02s against 0.44s for /api/jobs, and both
+    # fire on every page load. Same snapshot, same answer, so computing
+    # it per visitor was the API's largest single expense.
+    #
+    # Deliberately after the snapshot is pushed and the fragments are
+    # cleared: this is a dashboard, and nothing about it is worth risking
+    # a listing over. precompute.publish never raises, and the API treats
+    # a missing file as "compute it yourself".
+    _write_status(s3, "precomputing", "answering /stats and /facets for the new snapshot")
+    written = precompute.publish(BUCKET, snapshot)
+    print(f"precomputed: {', '.join(written) if written else '(nothing written)'}")
+
+    summary = {"applied": len(results), "fragments": len(keys),
+               "alerts": alerts_result, "precomputed": len(written)}
     _publish_bootstrap(s3)
 
     print(f"delta apply complete: {json.dumps(summary, default=str)}")
