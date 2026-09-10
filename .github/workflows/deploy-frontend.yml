@@ -44,12 +44,18 @@ jobs:
           # would silently keep running after a deploy until it expired.
           # no-cache gets the actual win (a 200-byte 304 instead of the
           # full file on an unchanged asset) without that risk.
-          # --exclude bootstrap.json: the merge Lambda publishes that file,
-          # not this repo, so --delete would wipe the live first-page snapshot
-          # on every unrelated CSS or JS deploy and leave the site back on
-          # slow first loads until the next merge an hour later.
+          # --exclude for everything the applier publishes rather than
+          # this repo, since --delete would wipe them on every unrelated
+          # CSS or JS deploy. bootstrap.json was excluded from the start.
+          # stats.json and facets.json were not, and until this was
+          # noticed each frontend deploy deleted both and sent every poll
+          # back through the Lambda until the next precompute. Not an
+          # outage, the page falls back to the API, but exactly the cost
+          # those files exist to avoid.
           aws s3 sync frontend/ "s3://${{ vars.FRONTEND_BUCKET }}/" --delete \
             --exclude "bootstrap.json" \
+            --exclude "stats.json" \
+            --exclude "facets.json" \
             --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache

@@ -73,6 +73,20 @@ with tempfile.TemporaryDirectory() as td:
     check("stats carries the 14-day series",
           len(stats["open_jobs_history"]) == 14, str(len(stats["open_jobs_history"])))
 
+    # The stats page's own panels: three group-bys over columns nothing
+    # else surfaces, and a cross-tab that must reconcile with the list
+    # it was derived from.
+    for key in ("category_seniority", "workplace", "top_skills", "skills_coverage"):
+        check(f"stats carries {key}", key in stats, str(sorted(stats)))
+    crosstab_total = sum(c["n"] for c in stats["category_seniority"])
+    list_total = sum(d["n"] for d in stats["top_departments"])
+    check("the category cross-tab sums to the category list it was derived from",
+          crosstab_total == list_total, f"{crosstab_total} vs {list_total}")
+    check("workplace keeps the unstated majority as its own row",
+          any(r["workplace"] == "unstated" for r in stats["workplace"]), str(stats["workplace"]))
+    check("skills coverage is stated as a fraction of open jobs",
+          stats["skills_coverage"]["open_jobs"] == 10, str(stats["skills_coverage"]))
+
     # israel_only changes exactly one field, so both versions of it ship
     # together rather than as a second near-identical file.
     check("the israel-scoped locations ride along",

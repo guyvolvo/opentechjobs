@@ -2079,3 +2079,110 @@ footer {
     transition: none !important;
   }
 }
+
+/* Advanced statistics page (stats.html). Reuses the homepage's metric
+   and panel grids wholesale; only what is new to this page lives here.
+   Full-width column rather than the two-up workspace, since there is no
+   board beside it. */
+
+.stats-page {
+  display: block;
+  padding-bottom: 48px;
+}
+.stats-page .section {
+  padding-top: 32px;
+}
+.stats-more {
+  display: inline-block;
+  margin: -6px 0 14px;
+  font-size: 12.5px;
+}
+.stats-intro {
+  color: var(--grey);
+  margin: 0 0 18px;
+}
+.stats-metrics {
+  grid-template-columns: repeat(4, 1fr);
+}
+.stats-panels {
+  grid-template-columns: repeat(3, 1fr);
+}
+.stats-panels .panel-wide {
+  grid-column: 1 / -1;
+}
+.panel-sub {
+  color: var(--grey);
+  font-size: 11.5px;
+  margin: -6px 0 12px;
+  line-height: 1.4;
+}
+.stats-note {
+  color: var(--grey);
+  font-size: 12.5px;
+  margin-top: 22px;
+  max-width: 68ch;
+}
+
+/* Category by seniority heatmap. A CSS grid rather than an SVG: the
+   cells carry text and titles, which is accessibility for free, and a
+   grid reflows where an SVG would only scale.
+
+   Five shade steps of the ink colour. Flat, no gradient, each step a
+   fixed opacity so the same cell reads the same in both themes. Zero is
+   left as paper so an empty cell is visibly empty rather than faintly
+   filled. */
+.heatmap {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) repeat(var(--hm-cols, 1), minmax(48px, 1fr));
+  gap: var(--rule);
+  background: var(--grey-line);
+  border: var(--rule) solid var(--grey-line);
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.heatmap > * {
+  background: var(--white);
+  padding: 7px 8px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+}
+.hm-corner { background: var(--white); }
+.hm-col {
+  justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+  color: var(--grey);
+  font-weight: 700;
+  text-align: center;
+}
+.hm-row {
+  justify-content: space-between;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-total {
+  color: var(--grey);
+  font-size: 10.5px;
+}
+.hm-cell {
+  justify-content: center;
+  color: var(--black);
+}
+.hm-cell.s1 { background: color-mix(in srgb, var(--black) 8%, var(--white)); }
+.hm-cell.s2 { background: color-mix(in srgb, var(--black) 18%, var(--white)); }
+.hm-cell.s3 { background: color-mix(in srgb, var(--black) 32%, var(--white)); }
+.hm-cell.s4 { background: color-mix(in srgb, var(--black) 50%, var(--white)); color: var(--white); }
+.hm-cell.s5 { background: var(--black); color: var(--white); }
+
+@media (max-width: 960px) {
+  .stats-metrics { grid-template-columns: repeat(2, 1fr); }
+  .stats-panels { grid-template-columns: 1fr; }
+  .heatmap { font-size: 10.5px; }
+  .heatmap > * { padding: 5px 6px; min-height: 26px; }
+}

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenTechJobs: Advanced Statistics</title>
+  <meta name="description" content="Where the tech jobs are, what they ask for, how they work, and who runs the boards. Live figures from every listing OpenTechJobs tracks." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentechjobs.org/stats.html" />
+  <meta property="og:title" content="OpenTechJobs: Advanced Statistics" />
+  <meta property="og:description" content="Where the tech jobs are, what they ask for, how they work, and who runs the boards." />
+  <meta property="og:image" content="https://opentechjobs.org/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- The whole page renders from this one file, published by the
+       applier and served from CloudFront with no Lambda in the path.
+       Preloaded so it arrives alongside the script rather than after. -->
+  <link rel="preload" href="/stats.json" as="fetch" crossorigin="anonymous" />
+  <script>
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container">
+      <a class="wordmark" href="/">
+        <img src="logo-horizontal.png" alt="OpenTechJobs.org" class="wordmark-logo" />
+      </a>
+      <nav class="topnav">
+        <button id="theme-toggle" class="theme-toggle" type="button">Dark</button>
+        <a class="link" href="/">Job board</a>
+        <a class="link" href="/api/help">API</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="workspace stats-page">
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title">Advanced Statistics</h2>
+        <!-- The window is stated up front and never faked. The corpus
+             began 1 September 2026, and every figure on this page is
+             computed over it as it stands, refreshed every fifteen
+             minutes. Nothing here extrapolates. -->
+        <p class="stats-intro" id="stats-intro">Every open listing we track, as of a few minutes ago.</p>
+
+        <div id="stats-metrics" class="metrics-grid stats-metrics" aria-live="polite">
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <span class="visually-hidden" role="status">Loading figures</span>
+        </div>
+
+        <div id="stats-panels" class="panel-grid stats-panels">
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+        </div>
+
+        <p class="stats-note" id="stats-note"></p>
+        <p class="legal-back"><a class="link" href="/">&larr; Back to the job board</a></p>
+      </div>
+    </section>
+  </div>
+
+  <script src="stats.js"></script>
+</body>
+</html>

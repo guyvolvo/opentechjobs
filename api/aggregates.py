@@ -146,17 +146,71 @@ def compute_stats(conn, params: dict | None = None) -> dict:
     # filter now matches against, so what a user picks here is exactly
     # what they filter by. LIMIT 20 is moot now (<=len(CATEGORIES)
     # possible rows) but harmless to leave as a cap.
-    top_departments = conn.execute(
+    # Grouped by category AND seniority in one pass, with the plain
+    # category list derived from it below. category_of() is a Python
+    # function called per row, and it is most of what makes this
+    # function slow, so the cross-tab must not cost a second pass.
+    category_seniority_rows = conn.execute(
         f"""
-        SELECT category_of(department, title) AS department, COUNT(*) AS n
+        SELECT category_of(department, title) AS category, seniority, COUNT(*) AS n
         FROM jobs
         WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}
           AND category_of(department, title) IS NOT NULL
-        GROUP BY category_of(department, title)
-        ORDER BY n DESC
-        LIMIT 20
+        GROUP BY category_of(department, title), seniority
         """
     ).fetchall()
+    by_category: dict = {}
+    for r in category_seniority_rows:
+        by_category[r["category"]] = by_category.get(r["category"], 0) + r["n"]
+    top_departments = [
+        {"department": c, "n": n}
+        for c, n in sorted(by_category.items(), key=lambda kv: -kv[1])[:20]
+    ]
+    # NULL seniority is most rows and is a real answer ("unstated"),
+    # kept rather than dropped so the heatmap's row totals reconcile
+    # with the category list.
+    category_seniority = [
+        {"category": r["category"], "seniority": r["seniority"] or "unstated", "n": r["n"]}
+        for r in category_seniority_rows
+    ]
+
+    # The stats page's own panels. Three group-bys the homepage never
+    # renders, over columns nothing else surfaces.
+    #
+    # workplace_type: remote/hybrid/onsite. Roughly half of listings say
+    # nothing, and that half is reported as its own row rather than
+    # hidden, because "most employers do not say" is the finding.
+    workplace = conn.execute(
+        f"""
+        SELECT COALESCE(workplace_type, 'unstated') AS workplace, COUNT(*) AS n
+        FROM jobs
+        WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}
+        GROUP BY workplace_type
+        ORDER BY n DESC
+        """
+    ).fetchall()
+
+    # skills is comma-joined text, up to five terms per listing, on about
+    # a third of rows. Split in Python: SQLite has no split, and pulling
+    # 111k short strings is well under a second.
+    skill_counts: dict = {}
+    skilled = 0
+    for (raw,) in conn.execute(
+        f"""
+        SELECT skills FROM jobs
+        WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}
+          AND skills IS NOT NULL AND skills != ''
+        """
+    ):
+        skilled += 1
+        for term in raw.split(","):
+            term = term.strip().lower()
+            if term:
+                skill_counts[term] = skill_counts.get(term, 0) + 1
+    top_skills = [
+        {"skill": k, "n": v}
+        for k, v in sorted(skill_counts.items(), key=lambda kv: -kv[1])[:30]
+    ]
 
     # `location` is raw ATS text, not a normalized place. "Austin" and
     # "Austin, TX" are different rows here, not merged. A top-N of literal
@@ -295,6 +349,10 @@ def compute_stats(conn, params: dict | None = None) -> dict:
     return {
         "meta": meta,
         "open_jobs_by_ats": [dict(r) for r in by_ats],
+        "category_seniority": category_seniority,
+        "workplace": [dict(r) for r in workplace],
+        "top_skills": top_skills,
+        "skills_coverage": {"with_skills": skilled, "open_jobs": open_jobs_fresh},
         "top_companies": [dict(r) for r in top_companies],
         "top_departments": [dict(r) for r in top_departments],
         "top_locations": [dict(r) for r in top_locations],
