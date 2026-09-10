@@ -78,7 +78,7 @@ jobs:
           # pyyaml carries a compiled extension, so the wheel has to match
           # the Lambda's architecture rather than the runner's. requests is
           # pure Python and does not care, but this installs both together.
-          pip install --target workday --platform manylinux2014_aarch64 \n            --implementation cp --python-version 3.13 --only-binary=:all: \n            requests pyyaml
+          pip install --target workday --platform manylinux2014_aarch64 --implementation cp --python-version 3.13 --only-binary=:all: requests pyyaml
           cd workday && zip -r ../scrape-workday.zip . -x "__pycache__/*" && cd ..
 
       - name: Build scrape-maintenance package
