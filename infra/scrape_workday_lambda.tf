@@ -85,16 +85,6 @@ resource "aws_iam_role_policy" "scrape_workday_lambda" {
 }
 
 resource "aws_lambda_function" "scrape_workday" {
-  # Reserved concurrency as a blast radius, not a performance tuning knob.
-  # The account ceiling is 10, so without per-function caps a scraper stuck
-  # in a retry loop can take the whole pool and run it flat out. This is
-  # the cheap half of a kill-switch: preventive, instant, free, and it
-  # needs no alarm, no SNS topic and no Lambda to do the killing. A budget
-  # alert is the other half, and it lags spend by up to a day.
-  #
-  # Capped at what the schedule actually needs. Every 30 minutes, never concurrent with itself.
-  reserved_concurrent_executions = 1
-
   function_name = "${var.project_name}-scrape-workday"
   role          = aws_iam_role.scrape_workday_lambda.arn
   handler       = "scrape_workday_handler.lambda_handler"

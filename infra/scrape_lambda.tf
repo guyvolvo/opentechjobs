@@ -137,17 +137,6 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
 }
 
 resource "aws_lambda_function" "scrape_fast" {
-  # Reserved concurrency as a blast radius, not a performance tuning knob.
-  # The account ceiling is 10, so without per-function caps a scraper stuck
-  # in a retry loop can take the whole pool and run it flat out. This is
-  # the cheap half of a kill-switch: preventive, instant, free, and it
-  # needs no alarm, no SNS topic and no Lambda to do the killing. A budget
-  # alert is the other half, and it lags spend by up to a day.
-  #
-  # Capped at what the schedule actually needs. One sweep runs per 5-minute tick and a retry can overlap it, so 2 is
-  # the real ceiling this needs.
-  reserved_concurrent_executions = 2
-
   function_name = "${var.project_name}-scrape-fast"
   role          = aws_iam_role.scrape_fast_lambda.arn
   handler       = "scrape_handler.lambda_handler"
