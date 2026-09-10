@@ -73,15 +73,16 @@ ORDER BY pct_disclosed DESC` },
 
 const SCHEMA = [
   { table: "jobs", note: "One row per listing, open and closed.",
-    columns: [["id", "stable id"], ["company", "domain; joins to companies"], ["ats", "which system it came from"],
-      ["title", ""], ["category", "our normalisation; NULL when unsure"], ["department", "the employer's own label"],
-      ["seniority", "intern to exec, or NULL"], ["workplace", "remote, hybrid, onsite, or NULL"], ["location", "as written"],
-      ["salary_text", "as shown on the board"], ["salary_source", "disclosed, table, estimated, or NULL"], ["url", ""],
-      ["posted_at", "employer's date, if given"], ["first_seen", "when we first saw it"], ["last_seen", ""],
-      ["closed_at", "NULL while open"], ["days_open", "closed minus first seen, or age so far"]] },
-  { table: "job_skills", note: "One row per skill per listing.", columns: [["job_id", ""], ["skill", "lower-cased"]] },
-  { table: "companies", note: "One row per tracked company.", columns: [["domain", ""], ["name", "as the ATS reports it"], ["ats", ""], ["open_jobs", ""]] },
-  { table: "meta", note: "When this file was built.", columns: [["key", ""], ["value", ""]] },
+    columns: [["id", "text", "stable id"], ["company", "text", "domain; joins to companies"], ["ats", "text", "which system it came from"],
+      ["title", "text", ""], ["category", "text", "our normalisation; NULL when unsure"], ["department", "text", "the employer's own label"],
+      ["seniority", "text", "intern to exec, or NULL"], ["workplace", "text", "remote, hybrid, onsite, or NULL"], ["location", "text", "as written"],
+      ["salary_text", "text", "as shown on the board"], ["salary_source", "text", "disclosed, table, estimated, or NULL"], ["url", "text", ""],
+      ["posted_at", "text", "employer's date, if given"], ["first_seen", "text", "when we first saw it"], ["last_seen", "text", ""],
+      ["closed_at", "text", "NULL while open"], ["days_open", "real", "closed minus first seen, or age so far"]] },
+  { table: "job_skills", note: "One row per skill per listing.", columns: [["job_id", "text", ""], ["skill", "text", "lower-cased"]] },
+  { table: "companies", note: "One row per tracked company.", columns: [["domain", "text", ""], ["name", "text", "as the ATS reports it"], ["ats", "text", ""], ["open_jobs", "integer", ""]] },
+  { table: "facets", note: "Distinct values per filter, with counts.", columns: [["field", "text", ""], ["value", "text", ""], ["label", "text", "companies only"], ["n", "integer", "open listings"]] },
+  { table: "meta", note: "When this file was built.", columns: [["key", "text", ""], ["value", "text", ""]] },
 ];
 
 const LABELS = {
@@ -102,6 +103,7 @@ let mode = "builder";
 let viz = "auto";
 let state = QB.defaultState();
 let pickerValues = {};   // field -> [{value,label}], from the database itself
+let lastResult = null;   // {columns, values} of the last answer, for the CSV export
 const filterWidgets = new Map();  // filter index -> multi-select handle
 
 // A port of the board's multi-select (app.js createMultiSelect), trimmed
@@ -281,7 +283,10 @@ function readBuilder() {
   });
 }
 
-function setMode(next) {
+// Switching to SQL normally shows the query the builder wrote. A
+// starter query or a shared link brings its own SQL instead; passing it
+// here keeps the builder from writing over it.
+function setMode(next, sql) {
   mode = next;
   document.querySelectorAll(".seg [data-mode]").forEach((b) => {
     const on = b.dataset.mode === next;
@@ -290,8 +295,10 @@ function setMode(next) {
   });
   $("qb").hidden = next !== "builder";
   $("sqlmode").hidden = next !== "sql";
-  if (next === "sql") { readBuilder(); syncSqlFromBuilder(); }
-  else { renderBuilder(); }
+  $("qb-reset").hidden = next !== "builder";
+  if (next !== "sql") renderBuilder();
+  else if (sql != null) $("explore-sql").value = sql;
+  else { readBuilder(); syncSqlFromBuilder(); }
 }
 
 function setViz(next) {
@@ -333,10 +340,10 @@ async function run() {
   const sql = $("explore-sql").value.trim();
   if (!sql) return;
   running = true;
-  const status = $("explore-status");
+  const metric = $("explore-metric");
   const err = $("explore-error");
   err.hidden = true;
-  status.textContent = "Running…";
+  metric.textContent = "Running…";
   document.body.classList.add("explore-busy");
   const t0 = performance.now();
   const before = await worker.worker.bytesRead;
@@ -354,7 +361,9 @@ async function run() {
     err.textContent = String(e.message || e);
     err.hidden = false;
     $("explore-result").innerHTML = "";
-    status.textContent = "Query failed";
+    metric.textContent = "Failed";
+    lastResult = null;
+    $("explore-csv").disabled = true;
   } finally {
     running = false;
     document.body.classList.remove("explore-busy");
@@ -362,17 +371,21 @@ async function run() {
 }
 
 function render(result, ms, read) {
-  const status = $("explore-status");
+  const metric = $("explore-metric");
   const out = $("explore-result");
   if (!result.length) {
     out.innerHTML = '<div class="explore-empty">No rows.</div>';
-    status.textContent = `0 rows in ${ms} ms, ${fmtBytes(read)} fetched`;
+    metric.textContent = `0 rows in ${ms} ms, ${fmtBytes(read)} fetched`;
+    lastResult = null;
+    $("explore-csv").disabled = true;
     return;
   }
   const { columns, values } = result[result.length - 1];
+  lastResult = { columns, values };
+  $("explore-csv").disabled = false;
   const shown = values.slice(0, MAX_ROWS);
   const kind = pickViz(columns, shown);
-  status.textContent = `${fmtInt(values.length)} row${values.length === 1 ? "" : "s"} in ${ms} ms, ${fmtBytes(read)} fetched`
+  metric.textContent = `${fmtInt(values.length)} row${values.length === 1 ? "" : "s"} in ${ms} ms, ${fmtBytes(read)} fetched`
     + (values.length > MAX_ROWS ? `, showing ${fmtInt(MAX_ROWS)}` : "");
   if (kind === "bar") out.innerHTML = renderBars(columns, shown);
   else if (kind === "line") out.innerHTML = renderLine(columns, shown);
@@ -403,33 +416,68 @@ function cell(v, col) {
   return `<td>${escapeHtml(s)}</td>`;
 }
 
-// Bars in the board's own bar-row markup; first row green, One Voice.
+// Bars. Label, track, value on one line each; the track column shares
+// one scale from a baseline to the largest value, with gridlines at the
+// quarters and their values ticked underneath. First row green, One
+// Voice: the largest is the one thing the chart is saying.
 function renderBars(columns, rows) {
   const max = Math.max(1, ...rows.map((r) => Number(r[1]) || 0));
-  return `<div class="explore-bars">${rows.map((r) => `
-    <div class="bar-row">
-      <div class="name" title="${escapeHtml(r[0])}">${escapeHtml(r[0] ?? "NULL")}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${((Number(r[1]) || 0) / max) * 100}%"></div></div>
-      <div class="n">${Number.isInteger(r[1]) ? fmtInt(r[1]) : r[1]}</div>
+  const tick = (f) => (Number.isInteger(max) ? fmtInt(Math.round(max * f)) : (max * f).toFixed(1));
+  return `<div class="xbars">${rows.map((r) => `
+    <div class="xbar">
+      <div class="xbar-name" title="${escapeHtml(r[0])}">${escapeHtml(r[0] ?? "NULL")}</div>
+      <div class="xbar-track"><div class="xbar-fill" style="width:${((Number(r[1]) || 0) / max) * 100}%"></div></div>
+      <div class="xbar-n">${Number.isInteger(r[1]) ? fmtInt(r[1]) : r[1]}</div>
     </div>`).join("")}
-    <div class="explore-axis"><span>${escapeHtml(columns[0])}</span><span>${escapeHtml(columns[1])}</span></div>
+    <div class="xbar xbar-axis">
+      <div class="xbar-name">${escapeHtml(columns[0])}</div>
+      <div class="xbar-ticks">${[0, 0.25, 0.5, 0.75, 1].map((f) => `<span style="left:${f * 100}%">${tick(f)}</span>`).join("")}</div>
+      <div class="xbar-n">${escapeHtml(columns[1])}</div>
+    </div>
   </div>`;
 }
 
-// One hand-drawn line, the homepage's trend voice: single stroke, no
-// fill, no markers, the ends labelled.
+// Line. One stroke, the homepage's trend voice, on a scale with the
+// quarters ruled and labelled. The svg stretches to the panel, so the
+// labels live outside it in HTML and stay crisp.
 function renderLine(columns, rows) {
-  const w = 640, h = 140, pad = 4;
+  const w = 640, h = 160, pad = 2;
   const ys = rows.map((r) => Number(r[1]) || 0);
   const max = Math.max(1, ...ys);
   const step = rows.length > 1 ? (w - pad * 2) / (rows.length - 1) : 0;
-  const d = ys.map((y, i) => `${i ? "L" : "M"}${(pad + i * step).toFixed(1)},${(h - pad - (y / max) * (h - pad * 2)).toFixed(1)}`).join(" ");
-  return `<div class="explore-line">
-    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="trend-chart explore-line-svg">
-      <path class="trend-line" d="${d}"><title>${escapeHtml(columns[1])}</title></path>
+  const yOf = (y) => (h - pad - (y / max) * (h - pad * 2)).toFixed(1);
+  const d = ys.map((y, i) => `${i ? "L" : "M"}${(pad + i * step).toFixed(1)},${yOf(y)}`).join(" ");
+  const tick = (f) => (Number.isInteger(max) ? fmtInt(Math.round(max * f)) : (max * f).toFixed(1));
+  const mid = rows[Math.floor(rows.length / 2)][0];
+  return `<div class="xline">
+    <div class="xline-y">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${tick(f)}</span>`).join("")}</div>
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="xline-svg" aria-label="${escapeHtml(columns[1])} over ${escapeHtml(columns[0])}">
+      ${[1, 0.75, 0.5, 0.25].map((f) => `<line class="xline-grid" x1="0" x2="${w}" y1="${yOf(max * f)}" y2="${yOf(max * f)}"/>`).join("")}
+      <line class="xline-base" x1="0" x2="${w}" y1="${h - pad}" y2="${h - pad}"/>
+      <path class="xline-path" d="${d}"><title>${escapeHtml(columns[1])}</title></path>
     </svg>
-    <div class="trend-axis"><span>${escapeHtml(rows[0][0])}</span><span>peak ${fmtInt(max)}</span><span>${escapeHtml(rows[rows.length - 1][0])}</span></div>
+    <div class="xline-x"><span>${escapeHtml(rows[0][0])}</span><span>${escapeHtml(mid)}</span><span>${escapeHtml(rows[rows.length - 1][0])}</span></div>
   </div>`;
+}
+
+// CSV of the whole last answer, not just the rows on screen. Quotes
+// anything with a comma, quote, or newline; NULL becomes an empty cell.
+function exportCsv() {
+  if (!lastResult) return;
+  const q = (v) => {
+    if (v == null) return "";
+    const s = String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [lastResult.columns.map(q).join(",")].concat(lastResult.values.map((r) => r.map(q).join(",")));
+  const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `opentechjobs-explore-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // Sidebar.
@@ -444,21 +492,26 @@ function renderTemplates() {
     const t = TEMPLATES[Number(b.dataset.i)];
     setViz("auto");
     if (t.state) { state = Object.assign(QB.defaultState(), JSON.parse(JSON.stringify(t.state))); setMode("builder"); }
-    else { $("explore-sql").value = t.sql; setMode("sql"); }
+    else setMode("sql", t.sql);
     run();
   });
 }
 
-// The schema list is a hand-built disclosure, not a <details>, so it
+// The schema explorer is a hand-built tree, not a <details>, so it
 // takes the system's own marker and spacing rather than the browser's.
+// Typing in the search box filters columns by name or note across every
+// table, opens the tables that still have something, and hides the rest.
 function renderSchema() {
   $("explore-schema").innerHTML = SCHEMA.map((t, i) => `
-    <div class="explore-tbl ${i === 0 ? "open" : ""}">
-      <button type="button" class="explore-tbl-toggle" aria-expanded="${i === 0}"><code>${t.table}</code><span>${escapeHtml(t.note)}</span></button>
-      <ul ${i === 0 ? "" : "hidden"}>${t.columns.map(([c, n]) => `<li><code>${c}</code>${n ? `<span>${escapeHtml(n)}</span>` : ""}</li>`).join("")}</ul>
+    <div class="sx-table ${i === 0 ? "open" : ""}" data-table="${t.table}">
+      <button type="button" class="sx-toggle" aria-expanded="${i === 0}">
+        <code>${t.table}</code><span class="sx-count">${t.columns.length}</span><span class="sx-note">${escapeHtml(t.note)}</span>
+      </button>
+      <ul ${i === 0 ? "" : "hidden"}>${t.columns.map(([c, ty, n]) => `
+        <li data-col="${escapeHtml(c)}" data-note="${escapeHtml(n.toLowerCase())}"><code>${c}</code><span class="sx-type">${ty}</span>${n ? `<span class="sx-note">${escapeHtml(n)}</span>` : ""}</li>`).join("")}</ul>
     </div>`).join("");
   $("explore-schema").addEventListener("click", (e) => {
-    const b = e.target.closest(".explore-tbl-toggle");
+    const b = e.target.closest(".sx-toggle");
     if (!b) return;
     const box = b.parentElement;
     const ul = box.querySelector("ul");
@@ -466,6 +519,23 @@ function renderSchema() {
     ul.hidden = !open;
     box.classList.toggle("open", open);
     b.setAttribute("aria-expanded", String(open));
+  });
+  $("schema-search").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll(".sx-table").forEach((box, i) => {
+      const ul = box.querySelector("ul");
+      let hits = 0;
+      ul.querySelectorAll("li").forEach((li) => {
+        const hit = !q || li.dataset.col.includes(q) || li.dataset.note.includes(q) || box.dataset.table.includes(q);
+        li.hidden = !hit;
+        if (hit) hits++;
+      });
+      box.hidden = Boolean(q) && hits === 0;
+      const open = q ? hits > 0 : i === 0;
+      ul.hidden = !open;
+      box.classList.toggle("open", open);
+      box.querySelector(".sx-toggle").setAttribute("aria-expanded", String(open));
+    });
   });
 }
 
@@ -489,8 +559,8 @@ async function boot() {
 
   document.querySelectorAll(".seg [data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
   document.querySelectorAll(".seg [data-viz]").forEach((b) => b.addEventListener("click", () => { setViz(b.dataset.viz); run(); }));
-  $("qb-run").addEventListener("click", run);
-  $("sql-run").addEventListener("click", run);
+  $("explore-run").addEventListener("click", run);
+  $("explore-csv").addEventListener("click", exportCsv);
   $("qb-reset").addEventListener("click", () => { state = QB.defaultState(); renderBuilder(); run(); });
   ["qb-status", "qb-group", "qb-metric"].forEach((id) => $(id).addEventListener("change", () => {
     readBuilder();
@@ -535,7 +605,7 @@ async function boot() {
   }
 
   const fromUrl = readUrl();
-  if (fromUrl === "sql") setMode("sql");
+  if (fromUrl === "sql") setMode("sql", $("explore-sql").value);
   else {
     if (!fromUrl) { state = Object.assign(QB.defaultState(), JSON.parse(JSON.stringify(TEMPLATES[0].state))); document.querySelector(".explore-template").classList.add("active"); }
     setMode("builder");

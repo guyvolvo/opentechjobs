@@ -51,81 +51,99 @@
         <p class="explore-intro">Ask a question of every listing we track. Pick what to count and how to slice it, or write the SQL yourself. It runs in your browser: the database is a file on the CDN and your query fetches only the pages it touches.</p>
 
         <div class="explore-layout">
+          <!-- Sidebar. Schema first, the starter questions under it, both
+               as panels in the same bordered voice as the workspace. -->
           <aside class="explore-side">
-            <div class="explore-side-title">Start from a question</div>
-            <div id="explore-templates" class="explore-templates"></div>
-
-            <div class="explore-side-title">What is in the data</div>
-            <div id="explore-schema" class="explore-schema"></div>
+            <section class="panel">
+              <div class="panel-head">
+                <span class="panel-title">Schema</span>
+              </div>
+              <div class="panel-body panel-body-flush">
+                <input type="search" id="schema-search" class="qb-input schema-search" placeholder="Find a column" aria-label="Find a column" autocomplete="off" />
+                <div id="explore-schema" class="sx"></div>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <span class="panel-title">Starter queries</span>
+              </div>
+              <div id="explore-templates" class="explore-templates"></div>
+            </section>
           </aside>
 
           <div class="explore-main">
-            <!-- Mode. Builder is the default and the one most visitors
-                 stay in. Switching to SQL shows the query the builder
-                 wrote, editable; switching back restores the builder's
-                 last state and drops any edits, and says so. -->
-            <div class="explore-toolbar">
-              <div class="seg" role="tablist" aria-label="Query mode">
-                <button type="button" class="seg-btn active" data-mode="builder" role="tab" aria-selected="true">Builder</button>
-                <button type="button" class="seg-btn" data-mode="sql" role="tab" aria-selected="false">SQL</button>
-              </div>
-              <span class="explore-status" id="explore-status">Loading the database runtime…</span>
-            </div>
-
-            <!-- Builder. Same vocabulary as the board's filter bar: 38px
-                 inputs, 1.5px ink borders, the hand-built multi-select. -->
-            <div id="qb" class="qb">
-              <div class="qb-row qb-row-top">
-                <label class="qb-field">
-                  <span class="qb-label">Listings</span>
-                  <select id="qb-status" class="qb-select"></select>
-                </label>
-                <label class="qb-field">
-                  <span class="qb-label">Group by</span>
-                  <select id="qb-group" class="qb-select"></select>
-                </label>
-                <label class="qb-field" id="qb-metric-field">
-                  <span class="qb-label">Show</span>
-                  <select id="qb-metric" class="qb-select"></select>
-                </label>
-                <label class="qb-field qb-field-limit">
-                  <span class="qb-label">Rows</span>
-                  <input type="text" id="qb-limit" class="qb-input" inputmode="numeric" value="25" />
-                </label>
+            <!-- Query panel. Mode switch top left, the database's own
+                 headline top right, controls in the body, one Run button
+                 and the last run's measurement in the footer. Switching to
+                 SQL shows the query the builder wrote, editable; switching
+                 back restores the builder's last state and drops edits. -->
+            <section class="panel">
+              <div class="panel-head">
+                <div class="seg" role="tablist" aria-label="Query mode">
+                  <button type="button" class="seg-btn active" data-mode="builder" role="tab" aria-selected="true">Builder</button>
+                  <button type="button" class="seg-btn" data-mode="sql" role="tab" aria-selected="false">SQL</button>
+                </div>
+                <span class="explore-status" id="explore-status">Loading the database runtime…</span>
               </div>
 
-              <div class="qb-label qb-filters-label">Only where</div>
-              <div id="qb-filters" class="qb-filters"></div>
-              <div class="qb-row qb-row-actions">
-                <div class="qb-add">
+              <div id="qb" class="qb panel-body">
+                <div class="qb-row qb-row-top">
+                  <label class="qb-field">
+                    <span class="qb-label">Listings</span>
+                    <select id="qb-status" class="qb-select"></select>
+                  </label>
+                  <label class="qb-field">
+                    <span class="qb-label">Group by</span>
+                    <select id="qb-group" class="qb-select"></select>
+                  </label>
+                  <label class="qb-field" id="qb-metric-field">
+                    <span class="qb-label">Show</span>
+                    <select id="qb-metric" class="qb-select"></select>
+                  </label>
+                  <label class="qb-field qb-field-limit">
+                    <span class="qb-label">Rows</span>
+                    <input type="text" id="qb-limit" class="qb-input" inputmode="numeric" value="25" />
+                  </label>
+                </div>
+                <div class="qb-where">
+                  <span class="qb-label">Only where</span>
+                  <div id="qb-filters" class="qb-filters"></div>
                   <select id="qb-add-field" class="qb-select qb-select-inline" aria-label="Add a filter"></select>
                 </div>
-                <button type="button" class="btn" id="qb-run">Run</button>
-                <button type="button" class="btn ghost" id="qb-reset">Reset</button>
               </div>
-            </div>
 
-            <!-- SQL. Hidden until the mode switches. -->
-            <div id="sqlmode" class="sqlmode" hidden>
-              <div class="sqlmode-note" id="sqlmode-note">This is the query the builder wrote. Edit it freely. Going back to the builder restores its last state.</div>
-              <textarea id="explore-sql" class="explore-editor" spellcheck="false" autocomplete="off" autocapitalize="off" rows="10" aria-label="SQL query"></textarea>
-              <div class="qb-row qb-row-actions">
-                <button type="button" class="btn" id="sql-run">Run</button>
+              <div id="sqlmode" class="sqlmode panel-body panel-body-flush" hidden>
+                <textarea id="explore-sql" class="explore-editor" spellcheck="false" autocomplete="off" autocapitalize="off" rows="8" aria-label="SQL query"></textarea>
+              </div>
+
+              <div class="panel-foot">
+                <button type="button" class="btn btn-small" id="explore-run">Run query</button>
+                <button type="button" class="btn ghost btn-small" id="qb-reset">Reset</button>
                 <span class="explore-hint">Ctrl+Enter</span>
+                <span class="explore-metric" id="explore-metric" aria-live="polite"></span>
               </div>
-            </div>
+            </section>
 
-            <div class="explore-result-bar">
-              <div class="seg seg-small" role="tablist" aria-label="Show results as">
-                <button type="button" class="seg-btn active" data-viz="auto" role="tab" aria-selected="true">Auto</button>
-                <button type="button" class="seg-btn" data-viz="table" role="tab" aria-selected="false">Table</button>
-                <button type="button" class="seg-btn" data-viz="bar" role="tab" aria-selected="false">Bars</button>
-                <button type="button" class="seg-btn" data-viz="line" role="tab" aria-selected="false">Line</button>
+            <!-- Results panel. Its header carries the shape switch and the
+                 two things you can do with an answer. -->
+            <section class="panel">
+              <div class="panel-head">
+                <div class="seg" role="tablist" aria-label="Show results as">
+                  <button type="button" class="seg-btn active" data-viz="auto" role="tab" aria-selected="true">Auto</button>
+                  <button type="button" class="seg-btn" data-viz="table" role="tab" aria-selected="false">Table</button>
+                  <button type="button" class="seg-btn" data-viz="bar" role="tab" aria-selected="false">Bars</button>
+                  <button type="button" class="seg-btn" data-viz="line" role="tab" aria-selected="false">Line</button>
+                </div>
+                <div class="panel-actions">
+                  <button type="button" class="btn ghost btn-small" id="explore-share">Copy link</button>
+                  <button type="button" class="btn ghost btn-small" id="explore-csv" disabled>Export CSV</button>
+                </div>
               </div>
-              <button type="button" class="btn ghost btn-small" id="explore-share">Copy link</button>
-            </div>
-            <div id="explore-error" class="explore-error" hidden></div>
-            <div id="explore-result" class="explore-result" aria-live="polite"></div>
+              <div class="panel-body">
+                <div id="explore-error" class="explore-error" hidden></div>
+                <div id="explore-result" class="explore-result" aria-live="polite"></div>
+              </div>
+            </section>
           </div>
         </div>
 
