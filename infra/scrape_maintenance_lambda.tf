@@ -48,7 +48,13 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         Action   = ["s3:ListBucket"]
         Resource = aws_s3_bucket.data.arn
         Condition = {
-          StringLike = { "s3:prefix" = ["jobs-partition-*", "deltas/*"] }
+          # descriptions/*: rebuild_fts.py lists this prefix to learn
+          # which listings actually have text. It used to ask per row
+          # instead, which meant two thirds of its fetches were for blobs
+          # that do not exist and each still cost a round trip: 180 rows
+          # a second against 143,361, well past the function's ceiling.
+          # One listing pass answers the same question exactly.
+          StringLike = { "s3:prefix" = ["jobs-partition-*", "deltas/*", "descriptions/*"] }
         }
       },
       {
