@@ -2242,7 +2242,11 @@ async function refreshStats() {
 // setLastCheckedAt's monotonic guard means this can only ever pull the
 // countdown's anchor forward, never regress it against a fresher value
 // the last /stats poll already saw.
-const HEALTH_POLL_MS = 30_000;
+// Was 30s, which predates the 5-minute write cycle: it asked the same
+// question ten times per available answer, and each miss past
+// CloudFront's window was a Lambda invocation. 120s still sees every
+// cycle twice.
+const HEALTH_POLL_MS = 120_000;
 
 async function refreshFreshness() {
   try {
@@ -2956,7 +2960,28 @@ async function boot() {
     loadTicker();
   });
 
-  setInterval(() => {
+  // Every poller below goes through this. A tab nobody is looking at
+  // still ran all three of them, forever, and a backgrounded tab left
+  // open overnight was quietly the largest single source of API Lambda
+  // invocations on the whole system. document.hidden costs one property
+  // read and gives back everything that tab was spending.
+  //
+  // The catch-up on becoming visible is the part that keeps this from
+  // being a downgrade: you come back to the tab and it refreshes, rather
+  // than showing you whatever was on screen when you left.
+  function whenVisible(fn) {
+    return () => {
+      if (!document.hidden) fn();
+    };
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    refreshStats();
+    refreshFreshness();
+    refreshPipelineStatus();
+  });
+
+  setInterval(whenVisible(() => {
     refreshStats();
     loadTicker();
     // Piggybacks on the same 2-min tick as the stats/ticker refresh
@@ -2967,11 +2992,13 @@ async function boot() {
     // never re-renders (and never flickers) when nothing really did
     // change, which is the common case within one 2-min window.
     loadJobs();
-  }, STATS_POLL_MS);
+  }), STATS_POLL_MS);
+  // The countdown tick stays unconditional: it reads no network, it only
+  // recomputes a number already in memory.
   setInterval(tickApiStatus, API_STATUS_TICK_MS);
-  setInterval(refreshFreshness, HEALTH_POLL_MS);
+  setInterval(whenVisible(refreshFreshness), HEALTH_POLL_MS);
   refreshPipelineStatus();
-  setInterval(refreshPipelineStatus, HEALTH_POLL_MS);
+  setInterval(whenVisible(refreshPipelineStatus), HEALTH_POLL_MS);
 }
 
 boot();

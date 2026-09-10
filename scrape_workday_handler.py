@@ -61,6 +61,7 @@ import probe
 
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / "loader"))
+from deltas import put_fragment  # noqa: E402
 from load_to_sqlite import s3_pull  # noqa: E402
 
 # Reported live: "most Workday listings have no description." Workday's
@@ -190,7 +191,8 @@ def lambda_handler(event, context):
     load = subprocess.run(
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
          "--resolved", str(resolved_path), "--out", str(TMP / "jobs-partition-workday.db"),
-         "--bucket", BUCKET, "--key", "jobs-partition-workday.db", "--skip-vacuum", "--skip-known"],
+         "--bucket", BUCKET, "--key", "jobs-partition-workday.db",
+         "--skip-vacuum", "--skip-known", "--drop-description"],
         capture_output=True, text=True, timeout=300,
     )
     if load.stderr:
@@ -199,5 +201,23 @@ def lambda_handler(event, context):
         _write_status(s3, "error", f"load_to_sqlite.py exited {load.returncode}")
         raise RuntimeError(f"load_to_sqlite.py exited {load.returncode}")
 
+    # The partition above is this Lambda's own memory, not a delivery
+    # mechanism. It stopped being one when delta fragments replaced the
+    # partition merge: nothing has merged jobs-partition-*.db into
+    # jobs-read.db since, so every Workday run since has written 139MB to
+    # a file no reader opens.
+    #
+    # Found by asking why 700 Workday listings in the served snapshot all
+    # carried the same last_seen from the previous day while this Lambda
+    # was running every 30 minutes without an error. It was working
+    # perfectly and delivering nowhere.
+    #
+    # The fragment is what reaches jobs-read.db, exactly as the fast
+    # sweep's does. The partition stays because _known_external_ids_by_domain
+    # reads it back to skip description re-fetches, which is the whole
+    # reason a run is 65 seconds instead of many minutes.
+    fragment = put_fragment(BUCKET, results)
+    print(f"delta fragment: {fragment or '(nothing to apply, none written)'}")
+
     _write_status(s3, "idle", f"last run: {len(hits)}/{len(results)} Workday companies, {n_jobs} jobs")
-    return {"hits": len(hits), "jobs": n_jobs}
+    return {"hits": len(hits), "jobs": n_jobs, "fragment": fragment}

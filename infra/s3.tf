@@ -52,12 +52,27 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
     }
   }
 
+  # 3 days, not 30. "Everything else is small and rarely rewritten" was
+  # wrong, and measuring the bucket said so: jobs.db, the pre-delta file
+  # nothing writes any more, was holding 164GB across 1,050 versions;
+  # jobs-partition-workday.db another 22GB; and the deltas prefix 5GB of
+  # fragments that are deleted within minutes of being applied and then
+  # kept for a month anyway.
+  #
+  # Three days is still a real rollback window for the small hand-made
+  # files here (known.json, companies.yml exports, salary-matrix.json),
+  # which is the only thing the 30 was ever protecting.
   rule {
-    id     = "expire-old-jobsdb-versions"
+    id     = "expire-old-versions"
     status = "Enabled"
-    filter {} # everything else here is small and rarely rewritten
+    filter {}
     noncurrent_version_expiration {
-      noncurrent_days = 30 # keep a month of rollback history, not forever
+      noncurrent_days = 3
+    }
+    # Delta fragments are written and deleted constantly. Without this,
+    # every one of them leaves a delete marker behind forever.
+    expiration {
+      expired_object_delete_marker = true
     }
   }
 
