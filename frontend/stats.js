@@ -1,265 +1,306 @@
-// The Explore page: SQL over every listing, run in the browser.
+// The Explore page: questions over every listing, run in the browser.
+//
+// Two ways to ask. The builder, which most visitors will stay in: pick
+// which listings, how to group them, what to show, and any number of
+// filters, and qb.js writes the SQL. Or the SQL itself, for anyone who
+// wants what the builder cannot express. The builder's controls are the
+// board's own filter-bar vocabulary, including a port of its hand-built
+// multi-select, so this page has no native-looking controls on it.
 //
 // The database is /explore.db, a static file the applier rebuilds hourly
-// (loader/build_explore.py). SQLite compiled to WebAssembly opens it
+// (loader/build_explore.py). SQLite compiled to WebAssembly reads it
 // through a virtual filesystem that fetches only the 4KB pages a query
-// touches, by HTTP range request. So an indexed query reads a few dozen
-// pages whether the file is 78MB or 780, a full scan reads the whole
-// thing once, and either way no server runs anything.
-//
-// That is also the whole security model. A query can only exhaust this
-// tab. There is no backend to protect from it.
-//
-// Its own script, not a mode of app.js, for the same reason the stats
-// page was: three thousand lines of board machinery this page has no
-// use for.
+// touches, by HTTP range request. No server runs anything, and a query
+// can only exhaust this tab, which is the whole security model.
 
 "use strict";
 
 const DB_URL = "/explore.db";
 const WORKER_URL = "vendor/httpvfs/sqlite.worker.js";
 const WASM_URL = "vendor/httpvfs/sql-wasm.wasm";
+const CHUNK_SIZE = 4096;       // matches PAGE_SIZE in the builder
+const MAX_BYTES = 256 * 1024 * 1024;  // per page load, then the worker refuses
+const MAX_ROWS = 2000;         // painted, not computed
+const QUERY_TIMEOUT_MS = 60_000;
 
-// Matches PAGE_SIZE in the builder. Smaller means more requests for a
-// scan; larger means more waste on an index lookup.
-const CHUNK_SIZE = 4096;
-
-// A ceiling on what one page load may fetch, in bytes. A single full
-// scan of the file fits under it; a runaway query that keeps scanning
-// does not, and gets a disk I/O error rather than an unbounded bill for
-// the visitor's own bandwidth.
-const MAX_BYTES = 256 * 1024 * 1024;
-
-// Rows rendered, not rows computed. The query runs to completion in the
-// worker; this only bounds what the page tries to paint.
-const MAX_ROWS = 2000;
-
+// Starting questions. Builder states where the builder can express them,
+// plain SQL where it cannot. Clicking one loads it and runs it.
 const TEMPLATES = [
-  {
-    name: "Open jobs by category and seniority",
-    sql: `SELECT COALESCE(category, 'other') AS category,
-       COALESCE(seniority, 'unstated') AS seniority,
-       COUNT(*) AS jobs
-FROM jobs
-WHERE closed_at IS NULL
-GROUP BY 1, 2
-ORDER BY jobs DESC
-LIMIT 40`,
-  },
-  {
-    name: "Most-asked-for skills",
-    sql: `SELECT s.skill, COUNT(*) AS listings
-FROM job_skills s
-JOIN jobs j ON j.id = s.job_id
-WHERE j.closed_at IS NULL
-GROUP BY s.skill
-ORDER BY listings DESC
-LIMIT 25`,
-  },
-  {
-    name: "Skills asked of senior engineers",
-    sql: `SELECT s.skill, COUNT(*) AS listings
-FROM job_skills s
-JOIN jobs j ON j.id = s.job_id
-WHERE j.closed_at IS NULL
-  AND j.seniority = 'senior'
-  AND j.category = 'Software Engineering'
-GROUP BY s.skill
-ORDER BY listings DESC
-LIMIT 20`,
-  },
-  {
-    name: "Remote, hybrid, on site, or unsaid",
-    sql: `SELECT COALESCE(workplace, 'unstated') AS workplace,
-       COUNT(*) AS jobs,
-       ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM jobs WHERE closed_at IS NULL), 1) AS pct
-FROM jobs
-WHERE closed_at IS NULL
-GROUP BY 1
-ORDER BY jobs DESC`,
-  },
-  {
-    name: "Who discloses pay, by ATS",
+  { name: "Open jobs by category",
+    state: { status: "open", group: "category", metric: "count", limit: 25 } },
+  { name: "Seniority spread",
+    state: { status: "open", group: "seniority", metric: "share", limit: 25 } },
+  { name: "Most-asked-for skills",
+    state: { status: "open", group: "skill", metric: "count", limit: 25 } },
+  { name: "Skills asked of senior engineers",
+    state: { status: "open", group: "skill", metric: "count", limit: 20,
+             filters: [{ field: "seniority", values: ["senior"] },
+                       { field: "category", values: ["Software Engineering"] }] } },
+  { name: "Remote, hybrid, on site, or unsaid",
+    state: { status: "open", group: "workplace", metric: "share", limit: 10 } },
+  { name: "Who discloses pay, by ATS",
     sql: `SELECT ats,
-       COUNT(*) AS jobs,
+       COUNT(*) AS listings,
        SUM(salary_source = 'disclosed') AS disclosed,
        ROUND(100.0 * SUM(salary_source = 'disclosed') / COUNT(*), 1) AS pct_disclosed
 FROM jobs
 WHERE closed_at IS NULL
 GROUP BY ats
-HAVING jobs > 300
-ORDER BY pct_disclosed DESC`,
-  },
-  {
-    name: "New listings per day",
-    sql: `SELECT substr(first_seen, 1, 10) AS day, COUNT(*) AS new_listings
-FROM jobs
-GROUP BY day
-ORDER BY day`,
-  },
-  {
-    name: "Days open before closing, by category",
-    sql: `SELECT COALESCE(category, 'other') AS category,
-       COUNT(*) AS closed,
-       ROUND(AVG(days_open), 1) AS avg_days_open
-FROM jobs
-WHERE closed_at IS NOT NULL
-GROUP BY 1
-HAVING closed > 100
-ORDER BY avg_days_open DESC`,
-  },
-  {
-    name: "Companies hiring the most right now",
-    sql: `SELECT COALESCE(name, domain) AS company, domain, open_jobs
-FROM companies
-ORDER BY open_jobs DESC
-LIMIT 30`,
-  },
-  {
-    name: "Senior backend roles in Israel",
-    sql: `SELECT title, company, location, salary_text, url
-FROM jobs
-WHERE closed_at IS NULL
-  AND seniority = 'senior'
-  AND category = 'Software Engineering'
-  AND (location LIKE '%Israel%' OR location LIKE '%Tel Aviv%')
-ORDER BY first_seen DESC
-LIMIT 100`,
-  },
-  {
-    name: "Listings that state a real salary",
-    sql: `SELECT title, company, location, salary_text, url
-FROM jobs
-WHERE closed_at IS NULL
-  AND salary_source = 'disclosed'
-ORDER BY first_seen DESC
-LIMIT 100`,
-  },
+HAVING listings > 300
+ORDER BY pct_disclosed DESC` },
+  { name: "New listings per day",
+    state: { status: "all", group: "day", metric: "count", limit: 60 } },
+  { name: "Days open before closing, by category",
+    state: { status: "closed", group: "category", metric: "avg_days_open", limit: 25 } },
+  { name: "Companies hiring the most",
+    state: { status: "open", group: "company", metric: "count", limit: 30 } },
+  { name: "Senior backend roles in Israel",
+    state: { status: "open", group: "none", limit: 100,
+             filters: [{ field: "seniority", values: ["senior"] },
+                       { field: "category", values: ["Software Engineering"] },
+                       { field: "location", text: "Israel" }] } },
+  { name: "Listings that state a real salary",
+    state: { status: "open", group: "none", limit: 100,
+             filters: [{ field: "salary_source", values: ["disclosed"] }] } },
 ];
 
 const SCHEMA = [
-  {
-    table: "jobs",
-    note: "One row per listing, open and closed.",
-    columns: [
-      ["id", "stable id"],
-      ["company", "domain; joins to companies"],
-      ["ats", "which system it was scraped from"],
-      ["title", ""],
-      ["category", "board's normalisation; NULL when unsure"],
-      ["department", "the employer's own label"],
-      ["seniority", "intern … exec, or NULL"],
-      ["workplace", "remote, hybrid, onsite, or NULL"],
-      ["location", "as written"],
-      ["salary_text", "as shown on the board"],
-      ["salary_source", "disclosed, table, estimated, or NULL"],
-      ["url", ""],
-      ["posted_at", "employer's date, if given"],
-      ["first_seen", "when we first saw it"],
-      ["last_seen", ""],
-      ["closed_at", "NULL while open"],
-      ["days_open", "closed minus first seen, or age so far"],
-    ],
-  },
-  {
-    table: "job_skills",
-    note: "One row per skill per listing. Join on job_id.",
-    columns: [["job_id", ""], ["skill", "lower-cased"]],
-  },
-  {
-    table: "companies",
-    note: "One row per tracked company.",
-    columns: [["domain", ""], ["name", "as the ATS reports it"], ["ats", ""], ["open_jobs", ""]],
-  },
-  {
-    table: "meta",
-    note: "When this file was built, and how much is in it.",
-    columns: [["key", ""], ["value", ""]],
-  },
+  { table: "jobs", note: "One row per listing, open and closed.",
+    columns: [["id", "stable id"], ["company", "domain; joins to companies"], ["ats", "which system it came from"],
+      ["title", ""], ["category", "our normalisation; NULL when unsure"], ["department", "the employer's own label"],
+      ["seniority", "intern to exec, or NULL"], ["workplace", "remote, hybrid, onsite, or NULL"], ["location", "as written"],
+      ["salary_text", "as shown on the board"], ["salary_source", "disclosed, table, estimated, or NULL"], ["url", ""],
+      ["posted_at", "employer's date, if given"], ["first_seen", "when we first saw it"], ["last_seen", ""],
+      ["closed_at", "NULL while open"], ["days_open", "closed minus first seen, or age so far"]] },
+  { table: "job_skills", note: "One row per skill per listing.", columns: [["job_id", ""], ["skill", "lower-cased"]] },
+  { table: "companies", note: "One row per tracked company.", columns: [["domain", ""], ["name", "as the ATS reports it"], ["ats", ""], ["open_jobs", ""]] },
+  { table: "meta", note: "When this file was built.", columns: [["key", ""], ["value", ""]] },
 ];
 
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => (
-    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
-  ));
-}
-
-function fmtInt(n) {
-  return Number(n).toLocaleString("en-US");
-}
-
-function fmtBytes(b) {
-  if (b < 1024 * 1024) return `${Math.round(b / 1024)} KB`;
-  return `${(b / (1024 * 1024)).toFixed(1)} MB`;
-}
+const LABELS = {
+  seniority: { intern: "Intern", junior: "Junior", mid: "Mid", senior: "Senior", staff: "Staff", principal: "Principal", lead: "Lead", manager: "Manager", director: "Director", exec: "Executive" },
+  workplace: { remote: "Remote", hybrid: "Hybrid", onsite: "On site" },
+  salary_source: { disclosed: "Disclosed by employer", table: "Estimated (Israeli table)", estimated: "Estimated (learned)" },
+  ats: { greenhouse: "Greenhouse", ashby: "Ashby", smartrecruiters: "SmartRecruiters", workable: "Workable", lever: "Lever", comeet: "Comeet", workday: "Workday", recruitee: "Recruitee", personio: "Personio", teamtailor: "Teamtailor", jazzhr: "JazzHR", jsonld: "Career page" },
+};
 
 const $ = (id) => document.getElementById(id);
+const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtInt = (n) => Number(n).toLocaleString("en-US");
+const fmtBytes = (b) => (b < 1024 * 1024 ? `${Math.round(b / 1024)} KB` : `${(b / (1024 * 1024)).toFixed(1)} MB`);
 
 let worker = null;
 let running = false;
+let mode = "builder";
+let viz = "auto";
+let state = QB.defaultState();
+let pickerValues = {};   // field -> [{value,label}], from the database itself
+const filterWidgets = new Map();  // filter index -> multi-select handle
 
-// Comlink cannot cancel a running query, so this is a bound on what the
-// page waits for, not on what the worker does. The byte cap is the real
-// backstop.
-const QUERY_TIMEOUT_MS = 60_000;
+// A port of the board's multi-select (app.js createMultiSelect), trimmed
+// to what this page uses. Same markup, same classes, so it is the same
+// control. Duplicated rather than imported: app.js is three thousand
+// lines of board machinery this page has no use for.
+const OPEN_MENUS = new Set();
+document.addEventListener("click", () => OPEN_MENUS.forEach((close) => close()));
 
+function createMultiSelect(container, { placeholder, options = [], searchable = false, onChange, selected: initial = [] }) {
+  const selected = new Set(initial);
+  container.innerHTML = `
+    <button type="button" class="ms-toggle" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(placeholder)}</button>
+    <div class="ms-menu" hidden>
+      ${searchable ? '<input type="text" class="ms-search" placeholder="Filter…" />' : ""}
+      <div class="ms-options" role="listbox"></div>
+      <button type="button" class="ms-clear">Clear</button>
+    </div>`;
+  const toggle = container.querySelector(".ms-toggle");
+  const menu = container.querySelector(".ms-menu");
+  const optionsEl = container.querySelector(".ms-options");
+  const searchEl = container.querySelector(".ms-search");
+
+  function renderOptions(filterText = "") {
+    const q = filterText.trim().toLowerCase();
+    const visible = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+    optionsEl.innerHTML = visible.slice(0, 400).map((o) => `
+      <label class="ms-option">
+        <input type="checkbox" value="${escapeHtml(o.value)}" ${selected.has(o.value) ? "checked" : ""} />
+        ${escapeHtml(o.label)}
+      </label>`).join("") || '<div class="ms-empty">No matches.</div>';
+  }
+  function updateLabel() {
+    if (selected.size === 0) toggle.textContent = placeholder;
+    else if (selected.size === 1) {
+      const v = [...selected][0];
+      const o = options.find((x) => x.value === v);
+      toggle.textContent = o ? o.label : v;
+    } else toggle.textContent = `${selected.size} selected`;
+    toggle.classList.toggle("active", selected.size > 0);
+  }
+  function close() { menu.hidden = true; toggle.setAttribute("aria-expanded", "false"); OPEN_MENUS.delete(close); }
+  function open() { OPEN_MENUS.forEach((c) => c()); menu.hidden = false; toggle.setAttribute("aria-expanded", "true"); OPEN_MENUS.add(close); if (searchEl) searchEl.focus(); }
+
+  toggle.addEventListener("click", (e) => { e.stopPropagation(); menu.hidden ? open() : close(); });
+  menu.addEventListener("click", (e) => e.stopPropagation());
+  optionsEl.addEventListener("change", (e) => {
+    if (!e.target.matches('input[type="checkbox"]')) return;
+    e.target.checked ? selected.add(e.target.value) : selected.delete(e.target.value);
+    updateLabel();
+    onChange([...selected]);
+  });
+  if (searchEl) searchEl.addEventListener("input", () => renderOptions(searchEl.value));
+  container.querySelector(".ms-clear").addEventListener("click", () => {
+    selected.clear(); renderOptions(searchEl ? searchEl.value : ""); updateLabel(); onChange([]);
+  });
+  renderOptions();
+  updateLabel();
+  return { close };
+}
+
+// Database.
 async function openDatabase() {
   const status = $("explore-status");
   status.textContent = "Opening the database…";
-  const config = {
-    from: "inline",
-    config: {
-      serverMode: "full",
-      url: DB_URL,
-      requestChunkSize: CHUNK_SIZE,
-    },
-  };
-  // eslint-disable-next-line no-undef
-  worker = await createDbWorker([config], WORKER_URL, WASM_URL, MAX_BYTES);
-  const meta = await worker.db.exec("SELECT key, value FROM meta");
-  const m = Object.fromEntries(meta[0] ? meta[0].values : []);
-  const built = m.built_at ? new Date(m.built_at) : null;
+  const config = { from: "inline", config: { serverMode: "full", url: DB_URL, requestChunkSize: CHUNK_SIZE } };
+  worker = await createDbWorker([config], WORKER_URL, WASM_URL, MAX_BYTES);  // eslint-disable-line no-undef
+
+  const meta = Object.fromEntries((await worker.db.exec("SELECT key, value FROM meta"))[0]?.values || []);
+  const built = meta.built_at ? new Date(meta.built_at) : null;
   const age = built ? Math.round((Date.now() - built.getTime()) / 60000) : null;
-  status.textContent = `${fmtInt(m.jobs || 0)} listings, ${fmtInt(m.companies || 0)} companies`
+  status.textContent = `${fmtInt(meta.jobs || 0)} listings, ${fmtInt(meta.companies || 0)} companies`
     + (age == null ? "" : `, built ${age < 2 ? "just now" : age + " min ago"}`);
-  $("explore-note").textContent =
-    `The file covers every verified listing seen since ${m.corpus_since || "1 September 2026"} and is rebuilt every hour. `
+  $("explore-note").textContent = `The file covers every verified listing seen since ${meta.corpus_since || "1 September 2026"} and is rebuilt every hour. `
     + `Your queries fetch only what they touch; a page load may read up to ${fmtBytes(MAX_BYTES)} before it stops itself.`;
-}
 
-function currentSql() {
-  return $("explore-sql").value.trim();
-}
-
-function setSql(sql) {
-  $("explore-sql").value = sql;
-}
-
-// Shareable state: the query in the URL, so a link reproduces the view.
-// Base64 of UTF-8, because SQL has every character URLs dislike.
-function readSqlFromUrl() {
-  const q = new URLSearchParams(location.search).get("q");
-  if (!q) return null;
-  try {
-    return decodeURIComponent(escape(atob(q)));
-  } catch {
-    return null;
+  // The pickers' options come from the data, not a hard-coded list, so a
+  // new ATS or category shows up on its own. Each is one indexed query.
+  const cols = { category: "category", seniority: "seniority", workplace: "workplace", ats: "ats", salary_source: "salary_source" };
+  for (const [field, col] of Object.entries(cols)) {
+    const r = await worker.db.exec(`SELECT ${col}, COUNT(*) n FROM jobs WHERE closed_at IS NULL AND ${col} IS NOT NULL GROUP BY 1 ORDER BY n DESC`);
+    pickerValues[field] = (r[0]?.values || []).map(([v, n]) => ({ value: v, label: `${(LABELS[field] || {})[v] || v} (${fmtInt(n)})` }));
   }
+  const sk = await worker.db.exec("SELECT skill, COUNT(*) n FROM job_skills GROUP BY 1 ORDER BY n DESC");
+  pickerValues.skill = (sk[0]?.values || []).map(([v, n]) => ({ value: v, label: `${v} (${fmtInt(n)})` }));
+  const co = await worker.db.exec("SELECT domain, COALESCE(name, domain), open_jobs FROM companies WHERE open_jobs > 0 ORDER BY open_jobs DESC");
+  pickerValues.company = (co[0]?.values || []).map(([d, name, n]) => ({ value: d, label: `${name} (${fmtInt(n)})` }));
 }
 
-function writeSqlToUrl(sql) {
-  const q = btoa(unescape(encodeURIComponent(sql)));
-  history.replaceState(null, "", `${location.pathname}?q=${q}`);
+// Builder UI.
+function fillSelect(el, entries, current) {
+  el.innerHTML = entries.map(([v, label]) => `<option value="${escapeHtml(v)}" ${v === current ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
 }
 
-async function runQuery() {
+function renderBuilder() {
+  fillSelect($("qb-status"), Object.entries(QB.STATUS).map(([k, v]) => [k, v.label]), state.status);
+  fillSelect($("qb-group"), Object.entries(QB.GROUPS).map(([k, v]) => [k, v.label]), state.group);
+  fillSelect($("qb-metric"), Object.entries(QB.METRICS).map(([k, v]) => [k, v.label]), state.metric);
+  $("qb-metric-field").hidden = state.group === "none";
+  $("qb-limit").value = state.limit;
+  fillSelect($("qb-add-field"), [["", "Add a filter…"], ...Object.entries(QB.FIELDS).map(([k, v]) => [k, v.label])], "");
+  renderFilters();
+}
+
+function renderFilters() {
+  const host = $("qb-filters");
+  filterWidgets.clear();
+  host.innerHTML = (state.filters || []).map((f, i) => {
+    const spec = QB.FIELDS[f.field];
+    if (!spec) return "";
+    let control;
+    if (spec.kind === "pick") control = `<div class="ms qb-ms" data-i="${i}"></div>`;
+    else if (spec.kind === "text") control = `<input type="text" class="qb-input" data-i="${i}" data-k="text" value="${escapeHtml(f.text || "")}" placeholder="contains…" />`;
+    else control = `<input type="text" class="qb-input qb-date" data-i="${i}" data-k="from" value="${escapeHtml(f.from || "")}" placeholder="from YYYY-MM-DD" />
+                    <input type="text" class="qb-input qb-date" data-i="${i}" data-k="to" value="${escapeHtml(f.to || "")}" placeholder="to YYYY-MM-DD" />`;
+    return `<div class="qb-filter">
+      <span class="qb-filter-name">${escapeHtml(spec.label)}</span>
+      <span class="qb-filter-op">${spec.kind === "pick" ? "is one of" : spec.kind === "text" ? "contains" : "between"}</span>
+      ${control}
+      <button type="button" class="qb-remove" data-i="${i}" aria-label="Remove filter">&times;</button>
+    </div>`;
+  }).join("") || '<div class="qb-none">No filters. Every listing that matches the status above.</div>';
+
+  host.querySelectorAll(".qb-ms").forEach((el) => {
+    const i = Number(el.dataset.i);
+    const f = state.filters[i];
+    const spec = QB.FIELDS[f.field];
+    filterWidgets.set(i, createMultiSelect(el, {
+      placeholder: `Any ${spec.label.toLowerCase()}`,
+      options: pickerValues[f.field] || [],
+      searchable: !!spec.searchable || (pickerValues[f.field] || []).length > 20,
+      selected: f.values || [],
+      onChange: (vals) => { state.filters[i].values = vals; syncSqlFromBuilder(); },
+    }));
+  });
+}
+
+function syncSqlFromBuilder() {
+  $("explore-sql").value = QB.buildSql(state);
+}
+
+function readBuilder() {
+  state.status = $("qb-status").value;
+  state.group = $("qb-group").value;
+  state.metric = $("qb-metric").value;
+  state.limit = parseInt($("qb-limit").value, 10) || 25;
+  $("qb-filters").querySelectorAll("input.qb-input").forEach((inp) => {
+    const f = state.filters[Number(inp.dataset.i)];
+    if (f) f[inp.dataset.k] = inp.value;
+  });
+}
+
+function setMode(next) {
+  mode = next;
+  document.querySelectorAll(".seg [data-mode]").forEach((b) => {
+    const on = b.dataset.mode === next;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", String(on));
+  });
+  $("qb").hidden = next !== "builder";
+  $("sqlmode").hidden = next !== "sql";
+  if (next === "sql") { readBuilder(); syncSqlFromBuilder(); }
+  else { renderBuilder(); }
+}
+
+function setViz(next) {
+  viz = next;
+  document.querySelectorAll(".seg [data-viz]").forEach((b) => {
+    const on = b.dataset.viz === next;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", String(on));
+  });
+}
+
+// URL state. The builder state when in builder mode, the SQL otherwise,
+// so a link reproduces the view either way.
+function writeUrl() {
+  const p = new URLSearchParams();
+  if (mode === "builder") p.set("b", QB.encodeState(state));
+  else p.set("q", btoa(unescape(encodeURIComponent($("explore-sql").value))));
+  if (viz !== "auto") p.set("v", viz);
+  history.replaceState(null, "", `${location.pathname}?${p}`);
+}
+
+function readUrl() {
+  const p = new URLSearchParams(location.search);
+  if (p.get("v")) setViz(p.get("v"));
+  if (p.get("b")) {
+    const s = QB.decodeState(p.get("b"));
+    if (s) { state = Object.assign(QB.defaultState(), s); return "builder"; }
+  }
+  if (p.get("q")) {
+    try { $("explore-sql").value = decodeURIComponent(escape(atob(p.get("q")))); return "sql"; } catch { /* fall through */ }
+  }
+  return null;
+}
+
+// Running and rendering.
+async function run() {
   if (!worker || running) return;
-  const sql = currentSql();
+  if (mode === "builder") { readBuilder(); syncSqlFromBuilder(); }
+  const sql = $("explore-sql").value.trim();
   if (!sql) return;
   running = true;
   const status = $("explore-status");
   const err = $("explore-error");
-  const out = $("explore-result");
   err.hidden = true;
   status.textContent = "Running…";
   document.body.classList.add("explore-busy");
@@ -269,17 +310,16 @@ async function runQuery() {
     const result = await Promise.race([
       worker.db.exec(sql),
       new Promise((_, reject) => setTimeout(() => reject(new Error(
-        `Still running after ${QUERY_TIMEOUT_MS / 1000}s. The query continues in the background; `
-        + "narrow it or add an indexed WHERE clause.")), QUERY_TIMEOUT_MS)),
+        `Still running after ${QUERY_TIMEOUT_MS / 1000}s. Narrow it with a filter or an indexed column.`)), QUERY_TIMEOUT_MS)),
     ]);
     const ms = Math.round(performance.now() - t0);
     const read = (await worker.worker.bytesRead) - before;
-    writeSqlToUrl(sql);
+    writeUrl();
     render(result, ms, read);
   } catch (e) {
     err.textContent = String(e.message || e);
     err.hidden = false;
-    out.innerHTML = "";
+    $("explore-result").innerHTML = "";
     status.textContent = "Query failed";
   } finally {
     running = false;
@@ -297,23 +337,20 @@ function render(result, ms, read) {
   }
   const { columns, values } = result[result.length - 1];
   const shown = values.slice(0, MAX_ROWS);
-  const viz = pickViz(columns, shown);
+  const kind = pickViz(columns, shown);
   status.textContent = `${fmtInt(values.length)} row${values.length === 1 ? "" : "s"} in ${ms} ms, ${fmtBytes(read)} fetched`
     + (values.length > MAX_ROWS ? `, showing ${fmtInt(MAX_ROWS)}` : "");
-  if (viz === "bar") out.innerHTML = renderBars(columns, shown);
-  else if (viz === "line") out.innerHTML = renderLine(columns, shown);
+  if (kind === "bar") out.innerHTML = renderBars(columns, shown);
+  else if (kind === "line") out.innerHTML = renderLine(columns, shown);
   else out.innerHTML = renderTable(columns, shown);
 }
 
-// Auto picks the shape the data is already in. Two columns where the
-// first is a label and the second a number is a bar chart; where the
-// first is a date it is a line. Anything else is a table, which is
-// never wrong, only sometimes less useful.
+// Auto picks the shape the data is already in: a label and a number is
+// bars, a date and a number is a line, anything else a table.
 function pickViz(columns, rows) {
-  const chosen = $("explore-viz").value;
-  if (chosen !== "auto") return chosen;
+  if (viz !== "auto") return viz;
   if (columns.length < 2 || rows.length < 2 || rows.length > 60) return "table";
-  const firstIsDate = rows.every((r) => /^\d{4}-\d{2}(-\d{2})?/.test(String(r[0] ?? "")));
+  const firstIsDate = rows.every((r) => /^\d{4}-(\d{2}|W\d{2})(-\d{2})?/.test(String(r[0] ?? "")));
   const secondIsNumber = rows.every((r) => typeof r[1] === "number");
   if (!secondIsNumber) return "table";
   return firstIsDate ? "line" : "bar";
@@ -324,19 +361,15 @@ function renderTable(columns, rows) {
   const body = rows.map((r) => `<tr>${r.map((v, i) => cell(v, columns[i])).join("")}</tr>`).join("");
   return `<div class="explore-table-wrap"><table class="explore-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
-
 function cell(v, col) {
   if (v == null) return '<td class="null">NULL</td>';
   if (typeof v === "number") return `<td class="num">${Number.isInteger(v) ? fmtInt(v) : v}</td>`;
   const s = String(v);
-  if (col === "url" && /^https?:\/\//.test(s)) {
-    return `<td><a class="link" href="${escapeHtml(s)}" target="_blank" rel="noopener">open</a></td>`;
-  }
+  if (col === "url" && /^https?:\/\//.test(s)) return `<td><a class="link" href="${escapeHtml(s)}" target="_blank" rel="noopener">open</a></td>`;
   return `<td>${escapeHtml(s)}</td>`;
 }
 
-// Horizontal bars in the board's own bar-row markup, so a query result
-// looks like the panels it replaced. First row green, One Voice Rule.
+// Bars in the board's own bar-row markup; first row green, One Voice.
 function renderBars(columns, rows) {
   const max = Math.max(1, ...rows.map((r) => Number(r[1]) || 0));
   return `<div class="explore-bars">${rows.map((r) => `
@@ -349,26 +382,23 @@ function renderBars(columns, rows) {
   </div>`;
 }
 
-// One line, hand-drawn. Same visual voice as the homepage's trend
-// chart: a single stroke, no fill, no markers, the ends labelled.
+// One hand-drawn line, the homepage's trend voice: single stroke, no
+// fill, no markers, the ends labelled.
 function renderLine(columns, rows) {
-  const w = 640;
-  const h = 140;
-  const pad = 4;
+  const w = 640, h = 140, pad = 4;
   const ys = rows.map((r) => Number(r[1]) || 0);
   const max = Math.max(1, ...ys);
   const step = rows.length > 1 ? (w - pad * 2) / (rows.length - 1) : 0;
-  const pts = ys.map((y, i) => [pad + i * step, h - pad - (y / max) * (h - pad * 2)]);
-  const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-  const last = rows[rows.length - 1];
+  const d = ys.map((y, i) => `${i ? "L" : "M"}${(pad + i * step).toFixed(1)},${(h - pad - (y / max) * (h - pad * 2)).toFixed(1)}`).join(" ");
   return `<div class="explore-line">
     <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="trend-chart explore-line-svg">
       <path class="trend-line" d="${d}"><title>${escapeHtml(columns[1])}</title></path>
     </svg>
-    <div class="trend-axis"><span>${escapeHtml(rows[0][0])}</span><span>peak ${fmtInt(max)}</span><span>${escapeHtml(last[0])}</span></div>
+    <div class="trend-axis"><span>${escapeHtml(rows[0][0])}</span><span>peak ${fmtInt(max)}</span><span>${escapeHtml(rows[rows.length - 1][0])}</span></div>
   </div>`;
 }
 
+// Sidebar.
 function renderTemplates() {
   $("explore-templates").innerHTML = TEMPLATES.map((t, i) =>
     `<button type="button" class="explore-template" data-i="${i}">${escapeHtml(t.name)}</button>`).join("");
@@ -377,33 +407,42 @@ function renderTemplates() {
     if (!b) return;
     document.querySelectorAll(".explore-template.active").forEach((x) => x.classList.remove("active"));
     b.classList.add("active");
-    setSql(TEMPLATES[Number(b.dataset.i)].sql);
-    $("explore-viz").value = "auto";
-    runQuery();
+    const t = TEMPLATES[Number(b.dataset.i)];
+    setViz("auto");
+    if (t.state) { state = Object.assign(QB.defaultState(), JSON.parse(JSON.stringify(t.state))); setMode("builder"); }
+    else { $("explore-sql").value = t.sql; setMode("sql"); }
+    run();
   });
 }
 
+// The schema list is a hand-built disclosure, not a <details>, so it
+// takes the system's own marker and spacing rather than the browser's.
 function renderSchema() {
-  $("explore-schema").innerHTML = SCHEMA.map((t) => `
-    <details class="explore-tbl" ${t.table === "jobs" ? "open" : ""}>
-      <summary><code>${t.table}</code><span>${escapeHtml(t.note)}</span></summary>
-      <ul>${t.columns.map(([c, n]) =>
-        `<li><code>${c}</code>${n ? `<span>${escapeHtml(n)}</span>` : ""}</li>`).join("")}</ul>
-    </details>`).join("");
+  $("explore-schema").innerHTML = SCHEMA.map((t, i) => `
+    <div class="explore-tbl ${i === 0 ? "open" : ""}">
+      <button type="button" class="explore-tbl-toggle" aria-expanded="${i === 0}"><code>${t.table}</code><span>${escapeHtml(t.note)}</span></button>
+      <ul ${i === 0 ? "" : "hidden"}>${t.columns.map(([c, n]) => `<li><code>${c}</code>${n ? `<span>${escapeHtml(n)}</span>` : ""}</li>`).join("")}</ul>
+    </div>`).join("");
+  $("explore-schema").addEventListener("click", (e) => {
+    const b = e.target.closest(".explore-tbl-toggle");
+    if (!b) return;
+    const box = b.parentElement;
+    const ul = box.querySelector("ul");
+    const open = ul.hidden;
+    ul.hidden = !open;
+    box.classList.toggle("open", open);
+    b.setAttribute("aria-expanded", String(open));
+  });
 }
 
 function wireThemeToggle() {
   const btn = $("theme-toggle");
-  if (!btn) return;
-  const sync = () => {
-    btn.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "Light" : "Dark";
-  };
+  const sync = () => { btn.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "Light" : "Dark"; };
   sync();
   btn.addEventListener("click", () => {
     const root = document.documentElement;
     const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    if (next === "dark") root.setAttribute("data-theme", "dark");
-    else root.removeAttribute("data-theme");
+    if (next === "dark") root.setAttribute("data-theme", "dark"); else root.removeAttribute("data-theme");
     localStorage.setItem("iljobs_theme", next);
     sync();
   });
@@ -414,47 +453,60 @@ async function boot() {
   renderTemplates();
   renderSchema();
 
-  $("explore-run").addEventListener("click", runQuery);
-  $("explore-sql").addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      runQuery();
-    }
+  document.querySelectorAll(".seg [data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  document.querySelectorAll(".seg [data-viz]").forEach((b) => b.addEventListener("click", () => { setViz(b.dataset.viz); run(); }));
+  $("qb-run").addEventListener("click", run);
+  $("sql-run").addEventListener("click", run);
+  $("qb-reset").addEventListener("click", () => { state = QB.defaultState(); renderBuilder(); run(); });
+  ["qb-status", "qb-group", "qb-metric"].forEach((id) => $(id).addEventListener("change", () => {
+    readBuilder();
+    $("qb-metric-field").hidden = state.group === "none";
+    run();
+  }));
+  $("qb-limit").addEventListener("change", run);
+  $("qb-add-field").addEventListener("change", (e) => {
+    const field = e.target.value;
+    if (!field) return;
+    state.filters.push({ field, values: [], text: "", from: "", to: "" });
+    e.target.value = "";
+    renderFilters();
   });
-  $("explore-viz").addEventListener("change", () => {
-    if (currentSql()) runQuery();
+  $("qb-filters").addEventListener("click", (e) => {
+    const b = e.target.closest(".qb-remove");
+    if (!b) return;
+    state.filters.splice(Number(b.dataset.i), 1);
+    renderFilters();
+    run();
+  });
+  $("qb-filters").addEventListener("change", (e) => { if (e.target.matches("input.qb-input")) run(); });
+  $("explore-sql").addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
   });
   $("explore-share").addEventListener("click", async () => {
-    const sql = currentSql();
-    if (!sql) return;
-    writeSqlToUrl(sql);
+    writeUrl();
     try {
       await navigator.clipboard.writeText(location.href);
       $("explore-share").textContent = "Copied";
       setTimeout(() => { $("explore-share").textContent = "Copy link"; }, 1500);
-    } catch {
-      // Clipboard denied. The URL bar already has it.
-    }
+    } catch { /* the URL bar already has it */ }
   });
 
   try {
     await openDatabase();
   } catch (e) {
     $("explore-status").textContent = "The database runtime could not start.";
-    const err = $("explore-error");
-    err.textContent = `${e.message || e}. This page needs WebAssembly and a modern browser.`;
-    err.hidden = false;
+    $("explore-error").textContent = `${e.message || e}. This page needs WebAssembly and a modern browser.`;
+    $("explore-error").hidden = false;
     return;
   }
 
-  const fromUrl = readSqlFromUrl();
-  if (fromUrl) {
-    setSql(fromUrl);
-  } else {
-    setSql(TEMPLATES[0].sql);
-    document.querySelector(".explore-template").classList.add("active");
+  const fromUrl = readUrl();
+  if (fromUrl === "sql") setMode("sql");
+  else {
+    if (!fromUrl) { state = Object.assign(QB.defaultState(), JSON.parse(JSON.stringify(TEMPLATES[0].state))); document.querySelector(".explore-template").classList.add("active"); }
+    setMode("builder");
   }
-  runQuery();
+  run();
 }
 
 boot();

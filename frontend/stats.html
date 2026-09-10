@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OpenTechJobs: Explore</title>
-  <meta name="description" content="Query every listing OpenTechJobs tracks, in SQL, in your browser. Ready-made questions to start from, and the whole dataset when you want to ask your own." />
+  <meta name="description" content="Ask questions of every listing OpenTechJobs tracks. Pick filters and a grouping, or write SQL. It runs in your browser." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://opentechjobs.org/stats.html" />
   <meta property="og:title" content="OpenTechJobs: Explore" />
-  <meta property="og:description" content="Query every listing we track, in SQL, in your browser." />
+  <meta property="og:description" content="Ask questions of every listing we track. Pick filters and a grouping, or write SQL." />
   <meta property="og:image" content="https://opentechjobs.org/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -43,47 +43,87 @@
     <section class="section">
       <div class="container">
         <h2 class="section-title">Explore</h2>
-        <!-- The database is a static file on the CDN, and the query runs
+        <!-- The database is a static file on the CDN and the query runs
              in this tab, inside SQLite compiled to WebAssembly. Only the
-             pages a query touches are fetched, by HTTP range request, so
-             the size of the file is not the size of the download. Nothing
-             is sent anywhere. See loader/build_explore.py for what is in
-             it and why. -->
-        <p class="explore-intro">Every listing we track, queryable in SQL. It runs in your browser: the database is a file on the CDN and your query fetches only the pages it touches. Nothing leaves this tab.</p>
+             pages a query touches are fetched, by HTTP range request.
+             Nothing is sent anywhere. loader/build_explore.py says what
+             is in the file and why. -->
+        <p class="explore-intro">Ask a question of every listing we track. Pick what to count and how to slice it, or write the SQL yourself. It runs in your browser: the database is a file on the CDN and your query fetches only the pages it touches.</p>
 
         <div class="explore-layout">
           <aside class="explore-side">
             <div class="explore-side-title">Start from a question</div>
             <div id="explore-templates" class="explore-templates"></div>
 
-            <div class="explore-side-title">Schema</div>
+            <div class="explore-side-title">What is in the data</div>
             <div id="explore-schema" class="explore-schema"></div>
-
-            <div class="explore-side-title">Notes</div>
-            <div class="explore-notes">
-              <p>SQLite syntax. CTEs and window functions work. There is no full-text search; use <code>LIKE</code> on <code>title</code>.</p>
-              <p>Descriptions are not in this file. <code>category</code> is the board's own normalisation of <code>department</code> and <code>title</code>, and is NULL where it could not tell.</p>
-              <p>A query with no index behind it scans the whole file. That is slow for you and costs nobody else anything.</p>
-            </div>
           </aside>
 
           <div class="explore-main">
+            <!-- Mode. Builder is the default and the one most visitors
+                 stay in. Switching to SQL shows the query the builder
+                 wrote, editable; switching back restores the builder's
+                 last state and drops any edits, and says so. -->
             <div class="explore-toolbar">
-              <button type="button" class="btn" id="explore-run">Run</button>
-              <span class="explore-hint">Ctrl+Enter</span>
-              <label class="explore-viz">
-                <span>Show as</span>
-                <select id="explore-viz">
-                  <option value="auto">Auto</option>
-                  <option value="table">Table</option>
-                  <option value="bar">Bars</option>
-                  <option value="line">Line</option>
-                </select>
-              </label>
-              <button type="button" class="btn ghost" id="explore-share">Copy link</button>
+              <div class="seg" role="tablist" aria-label="Query mode">
+                <button type="button" class="seg-btn active" data-mode="builder" role="tab" aria-selected="true">Builder</button>
+                <button type="button" class="seg-btn" data-mode="sql" role="tab" aria-selected="false">SQL</button>
+              </div>
               <span class="explore-status" id="explore-status">Loading the database runtime…</span>
             </div>
-            <textarea id="explore-sql" class="explore-editor" spellcheck="false" autocomplete="off" autocapitalize="off" rows="8" aria-label="SQL query"></textarea>
+
+            <!-- Builder. Same vocabulary as the board's filter bar: 38px
+                 inputs, 1.5px ink borders, the hand-built multi-select. -->
+            <div id="qb" class="qb">
+              <div class="qb-row qb-row-top">
+                <label class="qb-field">
+                  <span class="qb-label">Listings</span>
+                  <select id="qb-status" class="qb-select"></select>
+                </label>
+                <label class="qb-field">
+                  <span class="qb-label">Group by</span>
+                  <select id="qb-group" class="qb-select"></select>
+                </label>
+                <label class="qb-field" id="qb-metric-field">
+                  <span class="qb-label">Show</span>
+                  <select id="qb-metric" class="qb-select"></select>
+                </label>
+                <label class="qb-field qb-field-limit">
+                  <span class="qb-label">Rows</span>
+                  <input type="text" id="qb-limit" class="qb-input" inputmode="numeric" value="25" />
+                </label>
+              </div>
+
+              <div class="qb-label qb-filters-label">Only where</div>
+              <div id="qb-filters" class="qb-filters"></div>
+              <div class="qb-row qb-row-actions">
+                <div class="qb-add">
+                  <select id="qb-add-field" class="qb-select qb-select-inline" aria-label="Add a filter"></select>
+                </div>
+                <button type="button" class="btn" id="qb-run">Run</button>
+                <button type="button" class="btn ghost" id="qb-reset">Reset</button>
+              </div>
+            </div>
+
+            <!-- SQL. Hidden until the mode switches. -->
+            <div id="sqlmode" class="sqlmode" hidden>
+              <div class="sqlmode-note" id="sqlmode-note">This is the query the builder wrote. Edit it freely. Going back to the builder restores its last state.</div>
+              <textarea id="explore-sql" class="explore-editor" spellcheck="false" autocomplete="off" autocapitalize="off" rows="10" aria-label="SQL query"></textarea>
+              <div class="qb-row qb-row-actions">
+                <button type="button" class="btn" id="sql-run">Run</button>
+                <span class="explore-hint">Ctrl+Enter</span>
+              </div>
+            </div>
+
+            <div class="explore-result-bar">
+              <div class="seg seg-small" role="tablist" aria-label="Show results as">
+                <button type="button" class="seg-btn active" data-viz="auto" role="tab" aria-selected="true">Auto</button>
+                <button type="button" class="seg-btn" data-viz="table" role="tab" aria-selected="false">Table</button>
+                <button type="button" class="seg-btn" data-viz="bar" role="tab" aria-selected="false">Bars</button>
+                <button type="button" class="seg-btn" data-viz="line" role="tab" aria-selected="false">Line</button>
+              </div>
+              <button type="button" class="btn ghost btn-small" id="explore-share">Copy link</button>
+            </div>
             <div id="explore-error" class="explore-error" hidden></div>
             <div id="explore-result" class="explore-result" aria-live="polite"></div>
           </div>
@@ -95,10 +135,10 @@
     </section>
   </div>
 
-  <!-- sql.js-httpvfs 0.8.12, vendored. A UMD bundle, so this plain tag
-       leaves createDbWorker on window; the worker and the wasm it loads
-       sit beside it in the same directory. -->
+  <!-- sql.js-httpvfs 0.8.12, vendored. UMD, so a plain tag leaves
+       createDbWorker on window; the worker and its wasm sit beside it. -->
   <script src="vendor/httpvfs/index.js"></script>
+  <script src="qb.js"></script>
   <script src="stats.js"></script>
 </body>
 </html>

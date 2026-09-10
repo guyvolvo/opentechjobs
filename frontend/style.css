@@ -2080,35 +2080,26 @@ footer {
   }
 }
 
-/* Explore (stats.html). SQL over every listing, run in the browser
-   against a database file on the CDN. Reuses the topbar, the bar rows,
-   the trend line and the buttons; only what is new to this page is
-   here.
+/* Explore (stats.html). Questions over every listing, answered in the
+   browser against a database file on the CDN.
 
-   Monospace is the second scoped use of that voice in the system, after
-   the API reference's parameter chips. An SQL editor is the one place a
-   proportional face would be wrong: alignment is meaning. Same family
-   as the existing exception, so it is still two voices plus one
-   utility, not three voices. */
+   No native-looking control anywhere on the page. The builder is the
+   board's own filter-bar vocabulary: 38px inputs with a 1.5px ink
+   border, the hand-drawn chevron on selects, the hand-built multi-select
+   (.ms-*, shared with the board and only its JS ported). Mode and
+   visualisation switches are a segmented pair of the system's own
+   buttons, and the schema list is a hand-built disclosure rather than
+   <details>, so it takes the system's marker and spacing.
 
-.explore-page {
-  display: block;
-  padding-bottom: 48px;
-}
+   Monospace is the second scoped use of that voice, after the API
+   reference's parameter chips; an SQL editor is the one place a
+   proportional face would be wrong. Same family, so it stays one
+   exception used twice. */
+
+.explore-page { display: block; padding-bottom: 48px; }
 .explore-page .section { padding-top: 32px; }
-.explore-intro {
-  color: var(--grey);
-  margin: 0 0 20px;
-  max-width: 72ch;
-  line-height: 1.5;
-}
-.stats-note {
-  color: var(--grey);
-  font-size: 12.5px;
-  margin-top: 22px;
-  max-width: 72ch;
-  line-height: 1.5;
-}
+.explore-intro { color: var(--grey); margin: 0 0 20px; max-width: 72ch; line-height: 1.5; }
+.stats-note { color: var(--grey); font-size: 12.5px; margin-top: 22px; max-width: 72ch; line-height: 1.5; }
 
 .explore-layout {
   display: grid;
@@ -2117,7 +2108,7 @@ footer {
   align-items: start;
 }
 
-/* Sidebar: questions to start from, then the schema. */
+/* Sidebar. */
 .explore-side-title {
   font-size: 11px;
   text-transform: uppercase;
@@ -2126,16 +2117,14 @@ footer {
   font-weight: 700;
   margin: 0 0 8px;
 }
-.explore-side-title + .explore-side-title,
 .explore-templates + .explore-side-title,
 .explore-schema + .explore-side-title { margin-top: 22px; }
-
 .explore-templates { display: flex; flex-direction: column; gap: 4px; }
 .explore-template {
   font: inherit;
   font-size: 12.5px;
   text-align: left;
-  background: none;
+  background: var(--white);
   border: 1px solid var(--grey-line);
   border-radius: 4px;
   padding: 7px 10px;
@@ -2144,62 +2133,133 @@ footer {
   line-height: 1.3;
 }
 .explore-template:hover { background: var(--hover-bg); }
-/* Exactly one is green at a time: the question currently answered. */
-.explore-template.active {
-  border-color: var(--green);
-  color: var(--green);
-}
+.explore-template.active { border-color: var(--green); color: var(--green); font-weight: 700; }
 
-.explore-schema details { border-top: 1px solid var(--grey-line); }
-.explore-schema details:last-child { border-bottom: 1px solid var(--grey-line); }
-.explore-schema summary {
-  cursor: pointer;
+.explore-tbl { border-top: 1px solid var(--grey-line); }
+.explore-tbl:last-child { border-bottom: 1px solid var(--grey-line); }
+.explore-tbl-toggle {
+  width: 100%;
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  background: none;
+  border: 0;
   padding: 7px 0;
-  font-size: 12.5px;
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  list-style: none;
-}
-.explore-schema summary::-webkit-details-marker { display: none; }
-.explore-schema summary::before { content: "+"; color: var(--grey); width: 10px; }
-.explore-schema details[open] summary::before { content: "\2013"; }
-.explore-schema summary span { color: var(--grey); font-size: 11.5px; }
-.explore-schema ul { list-style: none; margin: 0 0 8px; padding: 0 0 0 18px; }
-.explore-schema li {
-  font-size: 11.5px;
-  padding: 2px 0;
+  color: var(--black);
+  cursor: pointer;
   display: flex;
   gap: 8px;
   align-items: baseline;
 }
-.explore-schema li span { color: var(--grey); }
-.explore-schema code, .explore-notes code, .explore-tbl code {
-  font-family: "Courier New", monospace;
-  font-size: 11.5px;
-}
-.explore-notes { font-size: 11.5px; color: var(--grey); line-height: 1.5; }
-.explore-notes p { margin: 0 0 8px; }
+.explore-tbl-toggle::before { content: "+"; color: var(--grey); width: 10px; flex: 0 0 auto; }
+.explore-tbl.open .explore-tbl-toggle::before { content: "\2013"; }
+.explore-tbl-toggle span { color: var(--grey); font-size: 11.5px; }
+.explore-tbl ul { list-style: none; margin: 0 0 8px; padding: 0 0 0 18px; }
+.explore-tbl li { font-size: 11.5px; padding: 2px 0; display: flex; gap: 8px; align-items: baseline; }
+.explore-tbl li span { color: var(--grey); }
+.explore-tbl code { font-family: "Courier New", monospace; font-size: 11.5px; }
 
-/* Main column: toolbar, editor, result. */
-.explore-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
+/* Segmented switch: the system's ghost buttons joined into one control,
+   the active half filled ink. Used for Builder/SQL and for Auto/Table/
+   Bars/Line. */
+.seg { display: inline-flex; border: var(--rule) solid var(--black); border-radius: 4px; overflow: hidden; }
+.seg-btn {
+  font-family: var(--font);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-right: var(--rule) solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  cursor: pointer;
 }
-.explore-hint { color: var(--grey); font-size: 11.5px; }
-.explore-viz { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--grey); }
-.explore-viz select { font: inherit; font-size: 12.5px; }
-.explore-status {
-  margin-left: auto;
-  color: var(--grey);
-  font-size: 12.5px;
-  font-variant-numeric: tabular-nums;
-}
+.seg-btn:last-child { border-right: 0; }
+.seg-btn:hover { background: var(--hover-bg); }
+.seg-btn.active { background: var(--black); color: var(--white); }
+.seg-btn:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+.seg-small .seg-btn { height: 30px; padding: 0 10px; font-size: 11px; }
+.btn-small { height: 30px; padding: 0 12px; font-size: 11px; }
+
+.explore-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.explore-status { margin-left: auto; color: var(--grey); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 body.explore-busy .explore-status { color: var(--green); }
 
+/* Builder. */
+.qb { display: flex; flex-direction: column; gap: 12px; }
+.qb-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.qb-field { display: flex; flex-direction: column; gap: 5px; flex: 1 1 160px; min-width: 0; }
+.qb-field-limit { flex: 0 0 90px; }
+.qb-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+  font-weight: 700;
+}
+.qb-filters-label { margin-top: 4px; }
+.qb-select, .qb-input {
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--black);
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  padding: 9px 10px;
+  height: 38px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.qb-select:focus, .qb-input:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+/* Same hand-drawn chevron as .filters select, hardcoded per theme for
+   the same reason recorded there: a data URI cannot read a token. */
+.qb-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2340513b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 10px 6px;
+}
+:root[data-theme="dark"] .qb-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ededec' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.qb-select-inline { width: auto; min-width: 170px; }
+
+.qb-filters { display: flex; flex-direction: column; gap: 8px; }
+.qb-none { color: var(--grey); font-size: 12.5px; }
+.qb-filter {
+  display: grid;
+  grid-template-columns: 110px 78px minmax(0, 1fr) 34px;
+  gap: 8px;
+  align-items: center;
+}
+.qb-filter-name { font-size: 12.5px; font-weight: 700; }
+.qb-filter-op { font-size: 11.5px; color: var(--grey); }
+.qb-filter .ms { min-width: 0; }
+.qb-date { flex: 1 1 140px; }
+.qb-filter:has(.qb-date) { grid-template-columns: 110px 78px minmax(0, 1fr) minmax(0, 1fr) 34px; }
+.qb-remove {
+  height: 34px;
+  width: 34px;
+  border: 1.5px solid var(--grey-line);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--grey);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.qb-remove:hover { border-color: var(--black); color: var(--black); }
+.qb-row-actions { margin-top: 4px; }
+
+/* SQL mode. */
+.sqlmode-note { color: var(--grey); font-size: 11.5px; margin: 0 0 8px; }
 .explore-editor {
   width: 100%;
   box-sizing: border-box;
@@ -2207,16 +2267,20 @@ body.explore-busy .explore-status { color: var(--green); }
   font-size: 12.5px;
   line-height: 1.5;
   padding: 12px 14px;
-  border: var(--rule) solid var(--black);
+  border: 1.5px solid var(--black);
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
   resize: vertical;
-  min-height: 120px;
+  min-height: 140px;
   tab-size: 2;
 }
-.explore-editor:focus { outline: none; border-color: var(--green); }
+.explore-editor:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+.explore-hint { color: var(--grey); font-size: 11.5px; }
 
+/* Results. */
+.explore-result-bar { display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+.explore-result-bar .btn-small { margin-left: auto; }
 .explore-error {
   margin-top: 10px;
   padding: 10px 14px;
@@ -2227,23 +2291,10 @@ body.explore-busy .explore-status { color: var(--green); }
   font-size: 12.5px;
   white-space: pre-wrap;
 }
-
-.explore-result { margin-top: 14px; }
+.explore-result { margin-top: 12px; }
 .explore-empty { color: var(--grey); font-size: 12.5px; }
-
-/* Results table. Wide results scroll inside their own box; the page
-   never scrolls sideways. */
-.explore-table-wrap {
-  overflow-x: auto;
-  border: var(--rule) solid var(--grey-line);
-  border-radius: 4px;
-}
-.explore-table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 12.5px;
-  font-variant-numeric: tabular-nums;
-}
+.explore-table-wrap { overflow-x: auto; border: var(--rule) solid var(--grey-line); border-radius: 4px; }
+.explore-table { border-collapse: collapse; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .explore-table th, .explore-table td {
   text-align: left;
   padding: 6px 10px;
@@ -2267,8 +2318,6 @@ body.explore-busy .explore-status { color: var(--green); }
 .explore-table tbody tr:hover td { background: var(--hover-bg); }
 .explore-table td.num { text-align: right; }
 .explore-table td.null { color: var(--grey); font-style: italic; }
-
-/* Bars reuse .bar-row; only the axis labels are new. */
 .explore-bars .bar-row { grid-template-columns: minmax(120px, 1fr) minmax(120px, 2fr) 64px; }
 .explore-axis {
   display: flex;
@@ -2287,4 +2336,6 @@ body.explore-busy .explore-status { color: var(--green); }
   .explore-side { order: 2; }
   .explore-main { order: 1; }
   .explore-status { margin-left: 0; width: 100%; }
+  .qb-filter, .qb-filter:has(.qb-date) { grid-template-columns: 1fr 34px; }
+  .qb-filter-op { display: none; }
 }
