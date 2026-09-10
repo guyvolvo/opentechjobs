@@ -25,6 +25,7 @@ can hold every page of the previous build for the full hour, which is
 what makes repeat queries free.
 """
 
+import hashlib
 import json
 import sqlite3
 import sys
@@ -39,12 +40,23 @@ sys.path.insert(0, str(_ROOT / "api"))
 
 from job_filters import classify_category  # noqa: E402
 
-KEY = "explore.db"
+# Every build is a new object under this prefix, named by build time
+# and content, and the page finds the current one through the manifest.
+# The file must never change under a URL: CloudFront caches each range
+# separately, so after an in-place upload a browser gets some 4 KB pages
+# from the old file and some from the new, and SQLite reports "database
+# disk image is malformed". Seen live on 2026-09-10, twenty minutes
+# after a rebuild. A new key per build means every cached range of a
+# given URL came from one file, and a session that opened an older copy
+# keeps reading that copy until it reloads.
+PREFIX = "explore/"
+MANIFEST = "explore.json"
+KEEP = 3   # builds left in the bucket: the current one and two hours of open tabs
 
-# Once an hour. A rebuild is cheap; the upload is 70MB, and every rebuild
-# invalidates every cached page at the edge. Fifteen-minute freshness on
-# a file people run ad-hoc analysis against buys nothing a visitor would
-# notice and costs a cold cache four times an hour.
+# Once an hour. A rebuild is cheap; the upload is 100MB, and a visitor
+# who is mid-analysis stays on the copy they opened. Fifteen-minute
+# freshness on a file people run ad-hoc analysis against buys nothing
+# they would notice.
 MAX_AGE_S = 3600
 
 # Matches the runtime's requestChunkSize. A query touching an index
@@ -261,16 +273,26 @@ def _parse(ts):
         return None
 
 
+def db_key(built_at: str, digest: str) -> str:
+    """explore/20260910T1417-0883d1e7.db: sorts by time, unique by content."""
+    stamp = built_at.replace("-", "").replace(":", "")[:13]
+    return f"{PREFIX}{stamp}-{digest[:8]}.db"
+
+
+def stale_keys(keys: list[str], keep: int = KEEP) -> list[str]:
+    """The builds to delete: everything but the newest `keep`, by name."""
+    ours = sorted(k for k in keys if k.startswith(PREFIX) and k.endswith(".db"))
+    return ours[:-keep] if len(ours) > keep else []
+
+
 def _fresh_enough(s3, bucket: str) -> bool:
+    """True when the manifest was written less than MAX_AGE_S ago."""
     try:
-        head = s3.head_object(Bucket=bucket, Key=KEY)
+        head = s3.head_object(Bucket=bucket, Key=MANIFEST)
     except Exception:
         return False
-    age = (datetime.now(timezone.utc) - head["LastModified"]).total_seconds()
-    if age < MAX_AGE_S:
-        print(f"{KEY} is {age:.0f}s old, leaving it", file=sys.stderr)
-        return True
-    return False
+    age = datetime.now(timezone.utc) - head["LastModified"]
+    return age.total_seconds() < MAX_AGE_S
 
 
 def publish(frontend_bucket: str, snapshot: Path, work_dir: Path) -> dict | None:
@@ -287,21 +309,41 @@ def publish(frontend_bucket: str, snapshot: Path, work_dir: Path) -> dict | None
         s3 = boto3.client("s3")
         if _fresh_enough(s3, frontend_bucket):
             return None
-        out = work_dir / KEY
+        out = work_dir / "explore.db"
         summary = build(snapshot, out)
+        digest = hashlib.sha256()
+        with open(out, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                digest.update(chunk)
+        key = db_key(summary["built_at"], digest.hexdigest())
         # application/octet-stream, and it matters: CloudFront compresses
         # compressible types on the fly, and compression and range
         # requests do not mix. A binary type is left alone, so the
-        # runtime's byte offsets mean what it thinks they mean.
+        # runtime's byte offsets mean what it thinks they mean. The key
+        # is unique to this build, so the object can be cached forever.
         s3.upload_file(
-            str(out), frontend_bucket, KEY,
+            str(out), frontend_bucket, key,
             ExtraArgs={"ContentType": "application/octet-stream",
-                       "CacheControl": "public, max-age=3600"},
+                       "CacheControl": "public, max-age=31536000, immutable"},
         )
-        print(f"published {KEY}: {json.dumps(summary)}", file=sys.stderr)
+        manifest = {"url": "/" + key, "bytes": summary["bytes"], **{k: v for k, v in summary.items() if k != "bytes"}}
+        # The one URL that changes. no-cache: the browser revalidates it
+        # on every page load and always lands on the current build.
+        s3.put_object(
+            Bucket=frontend_bucket, Key=MANIFEST,
+            Body=json.dumps(manifest).encode("utf-8"),
+            ContentType="application/json", CacheControl="no-cache",
+        )
+        # Then the builds nobody can reach any more. A tab that opened an
+        # older copy keeps its URL for as long as KEEP builds allow.
+        listing = s3.list_objects_v2(Bucket=frontend_bucket, Prefix=PREFIX)
+        old = stale_keys([o["Key"] for o in listing.get("Contents", [])])
+        if old:
+            s3.delete_objects(Bucket=frontend_bucket, Delete={"Objects": [{"Key": k} for k in old], "Quiet": True})
+        print(f"published {key}: {json.dumps(summary)}; removed {len(old)} older", file=sys.stderr)
         return summary
     except Exception as e:
-        print(f"couldn't build or publish {KEY} (non-fatal): {e!r}", file=sys.stderr)
+        print(f"couldn't build or publish {PREFIX} (non-fatal): {e!r}", file=sys.stderr)
         return None
 
 

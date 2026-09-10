@@ -70,7 +70,8 @@ jobs:
             --exclude "bootstrap.json" \
             --exclude "stats.json" \
             --exclude "facets.json" \
-            --exclude "explore.db" \
+            --exclude "explore.json" \
+            --exclude "explore/*" \
             --cache-control "no-cache"
 
       - name: Invalidate CloudFront cache

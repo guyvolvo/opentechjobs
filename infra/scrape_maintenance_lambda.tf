@@ -111,10 +111,28 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # minutes per open tab.
           "${aws_s3_bucket.frontend.arn}/stats.json",
           "${aws_s3_bucket.frontend.arn}/facets.json",
-          # explore.db: the slim database the Explore page queries in the
-          # browser by HTTP range request. Rebuilt and uploaded hourly.
-          "${aws_s3_bucket.frontend.arn}/explore.db",
+          # explore/: the slim database the Explore page queries in the
+          # browser by HTTP range request. Every hourly build is a new
+          # object (the file must never change under one URL, CloudFront
+          # caches ranges) and explore.json names the current one.
+          "${aws_s3_bucket.frontend.arn}/explore.json",
+          "${aws_s3_bucket.frontend.arn}/explore/*",
         ]
+      },
+      {
+        # Retiring builds nobody can reach any more, which needs to see
+        # what is there. Listing is scoped to that one prefix.
+        Sid      = "RetireExploreBuilds"
+        Effect   = "Allow"
+        Action   = ["s3:DeleteObject"]
+        Resource = ["${aws_s3_bucket.frontend.arn}/explore/*"]
+      },
+      {
+        Sid       = "ListExploreBuilds"
+        Effect    = "Allow"
+        Action    = ["s3:ListBucket"]
+        Resource  = [aws_s3_bucket.frontend.arn]
+        Condition = { StringLike = { "s3:prefix" = ["explore/*"] } }
       },
       {
         Sid      = "Logs"

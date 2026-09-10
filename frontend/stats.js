@@ -22,7 +22,7 @@
 // instantiate an S3 404 document as WebAssembly. Reported live as
 // "expected magic word 00 61 73 6d, found 3c 3f 78 6d", which is
 // "<?xm". The library's own README uses absolute URLs for this reason.
-const DB_URL = "/explore.db";
+const MANIFEST_URL = "/explore.json";   // names the current build; see loader/build_explore.py
 const WORKER_URL = "/vendor/httpvfs/sqlite.worker.js";
 const WASM_URL = "/vendor/httpvfs/sql-wasm.wasm";
 const CHUNK_SIZE = 4096;       // matches PAGE_SIZE in the builder
@@ -169,7 +169,13 @@ function createMultiSelect(container, { placeholder, options = [], searchable = 
 async function openDatabase() {
   const status = $("explore-status");
   status.textContent = "Opening the database…";
-  const config = { from: "inline", config: { serverMode: "full", url: DB_URL, requestChunkSize: CHUNK_SIZE } };
+  // Each hourly build is its own file, so the pages this session caches
+  // all come from one build, whatever gets published while it is open.
+  // Until the first versioned build has been published the manifest is
+  // missing, and the old fixed name still works.
+  const res = await fetch(MANIFEST_URL, { cache: "no-store" });
+  const url = res.ok ? (await res.json()).url : "/explore.db";
+  const config = { from: "inline", config: { serverMode: "full", url, requestChunkSize: CHUNK_SIZE } };
   worker = await createDbWorker([config], WORKER_URL, WASM_URL, MAX_BYTES);  // eslint-disable-line no-undef
 
   const meta = Object.fromEntries((await worker.db.exec("SELECT key, value FROM meta"))[0]?.values || []);
@@ -358,7 +364,12 @@ async function run() {
     writeUrl();
     render(result, ms, read);
   } catch (e) {
-    err.textContent = String(e.message || e);
+    // Should no longer happen now that builds are immutable, but if a
+    // cached page from another build ever does get mixed in, say what
+    // to do rather than quoting SQLite at the reader.
+    err.textContent = /malformed/.test(String(e.message))
+      ? "Some pages of the database came from a different build than the rest. Reload the page to start on the current one."
+      : String(e.message || e);
     err.hidden = false;
     $("explore-result").innerHTML = "";
     metric.textContent = "Failed";

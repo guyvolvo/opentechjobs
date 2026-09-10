@@ -141,6 +141,17 @@ with tempfile.TemporaryDirectory() as td:
     check("a missing copy is always built", build_explore._fresh_enough(Missing(), "b") is False)
     check("publish with no bucket is a no-op", build_explore.publish("", tmp / "snap.db", tmp) is None)
 
+    # Every build is its own object, so a cached range can never come
+    # from a different file than the header did.
+    key = build_explore.db_key("2026-09-10T14:17:03+00:00", "0883d1e7c264d106")
+    check("a build's key carries its time and content", key == "explore/20260910T1417-0883d1e7.db", key)
+    keys = ["explore/20260910T1217-aaaaaaaa.db", "explore/20260910T1417-cccccccc.db",
+            "explore/20260910T1117-99999999.db", "explore/20260910T1317-bbbbbbbb.db", "explore.json"]
+    check("older builds beyond KEEP are the ones removed, newest kept",
+          build_explore.stale_keys(keys, keep=3) == ["explore/20260910T1117-99999999.db"],
+          str(build_explore.stale_keys(keys, keep=3)))
+    check("nothing is removed while there are KEEP or fewer", build_explore.stale_keys(keys[:3]) == [])
+
 print()
 if failures:
     print("%d failed:" % len(failures))
