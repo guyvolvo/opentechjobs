@@ -137,10 +137,15 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
 }
 
 resource "aws_lambda_function" "scrape_fast" {
-  function_name    = "${var.project_name}-scrape-fast"
-  role             = aws_iam_role.scrape_fast_lambda.arn
-  handler          = "scrape_handler.lambda_handler"
-  runtime          = "python3.13"
+  function_name = "${var.project_name}-scrape-fast"
+  role          = aws_iam_role.scrape_fast_lambda.arn
+  handler       = "scrape_handler.lambda_handler"
+  runtime       = "python3.13"
+  # Graviton. Same code, same Python, about 20% less per GB-second, and
+  # every package here is either pure Python or installed for this
+  # architecture explicitly (see deploy-scrape-lambda.yml). Nothing in
+  # this project touches a native x86 dependency.
+  architectures    = ["arm64"]
   filename         = data.archive_file.scrape_fast.output_path
   source_code_hash = data.archive_file.scrape_fast.output_base64sha256
   memory_size      = var.scrape_fast_memory_mb

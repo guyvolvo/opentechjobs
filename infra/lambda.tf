@@ -80,10 +80,15 @@ resource "aws_iam_role_policy" "api_lambda" {
 }
 
 resource "aws_lambda_function" "api" {
-  function_name    = "${var.project_name}-api"
-  role             = aws_iam_role.api_lambda.arn
-  handler          = "handler.lambda_handler"
-  runtime          = "python3.13"
+  function_name = "${var.project_name}-api"
+  role          = aws_iam_role.api_lambda.arn
+  handler       = "handler.lambda_handler"
+  runtime       = "python3.13"
+  # Graviton. Same code, same Python, about 20% less per GB-second, and
+  # every package here is either pure Python or installed for this
+  # architecture explicitly (see deploy-scrape-lambda.yml). Nothing in
+  # this project touches a native x86 dependency.
+  architectures    = ["arm64"]
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
   memory_size      = var.lambda_memory_mb

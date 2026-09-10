@@ -85,10 +85,15 @@ resource "aws_iam_role_policy" "scrape_workday_lambda" {
 }
 
 resource "aws_lambda_function" "scrape_workday" {
-  function_name    = "${var.project_name}-scrape-workday"
-  role             = aws_iam_role.scrape_workday_lambda.arn
-  handler          = "scrape_workday_handler.lambda_handler"
-  runtime          = "python3.13"
+  function_name = "${var.project_name}-scrape-workday"
+  role          = aws_iam_role.scrape_workday_lambda.arn
+  handler       = "scrape_workday_handler.lambda_handler"
+  runtime       = "python3.13"
+  # Graviton. Same code, same Python, about 20% less per GB-second, and
+  # every package here is either pure Python or installed for this
+  # architecture explicitly (see deploy-scrape-lambda.yml). Nothing in
+  # this project touches a native x86 dependency.
+  architectures    = ["arm64"]
   filename         = data.archive_file.scrape_workday.output_path
   source_code_hash = data.archive_file.scrape_workday.output_base64sha256
   memory_size      = var.scrape_workday_memory_mb
