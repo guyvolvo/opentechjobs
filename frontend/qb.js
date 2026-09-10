@@ -38,7 +38,7 @@
     ats:           { label: "ATS",           expr: "j.ats" },
     salary_source: { label: "Pay info",      expr: "COALESCE(j.salary_source, 'none')" },
     company:       { label: "Company",       expr: "COALESCE(c.name, j.company)", join: "companies" },
-    skill:         { label: "Skill",         expr: "j.skill", from: "skills" },
+    skill:         { label: "Skill",         expr: "j.skill", skill: true },
     day:           { label: "Day first seen",   expr: "substr(j.first_seen, 1, 10)" },
     week:          { label: "Week first seen",  expr: "strftime('%Y-W%W', j.first_seen)" },
     month:         { label: "Month first seen", expr: "substr(j.first_seen, 1, 7)" },
@@ -67,17 +67,24 @@
     return "'" + String(v).replace(/'/g, "''") + "'";
   }
 
-  function filterSql(f, idCol) {
+  // One filter as SQL. `on` says what "j" is: the jobs table, or
+  // job_skills, which carries the same filter columns plus the skill.
+  function filterSql(f, on) {
     const spec = FIELDS[f.field];
     if (!spec) return null;
     if (spec.kind === "pick") {
       const vals = (f.values || []).filter((v) => v !== "" && v != null);
       if (!vals.length) return null;
+      const inList = " IN (" + vals.map(lit).join(", ") + ")";
       if (f.field === "skill") {
-        return "EXISTS (SELECT 1 FROM job_skills x WHERE x.job_rowid = " + idCol + " AND x.skill IN ("
-          + vals.map(lit).join(", ") + "))";
+        // On job_skills the skill is right there. On jobs it is the set
+        // of listings that have it, which the skill index answers on its
+        // own. Never a test run once per listing: that was 115,000
+        // lookups into a table read over HTTP, and it did not finish.
+        return on === "skills" ? "j.skill" + inList
+          : "j.rowid IN (SELECT job_rowid FROM job_skills WHERE skill" + inList + ")";
       }
-      return spec.col + " IN (" + vals.map(lit).join(", ") + ")";
+      return (on === "skills" ? "j." + f.field : spec.col) + inList;
     }
     if (spec.kind === "text") {
       const t = (f.text || "").trim();
@@ -85,13 +92,20 @@
       return spec.col + " LIKE " + lit("%" + t + "%");
     }
     if (spec.kind === "date") {
+      const col = on === "skills" ? "j.first_seen" : spec.col;
       const parts = [];
-      if (f.from) parts.push(spec.col + " >= " + lit(f.from));
-      if (f.to) parts.push(spec.col + " < " + lit(f.to));
+      if (f.from) parts.push(col + " >= " + lit(f.from));
+      if (f.to) parts.push(col + " < " + lit(f.to));
       return parts.length ? parts.join(" AND ") : null;
     }
     return null;
   }
+
+  // The columns job_skills copies from the listing. A question that
+  // filters by skill and groups by something else reads the distinct
+  // listings out of these, so nothing has to touch the jobs table.
+  const SKILL_COLS = ["job_rowid", "category", "seniority", "workplace", "ats",
+                      "salary_source", "company", "first_seen", "days_open"];
 
   function buildSql(state) {
     const st = Object.assign(defaultState(), state || {});
@@ -99,45 +113,55 @@
     const group = GROUPS[st.group] || GROUPS.none;
     const metric = METRICS[st.metric] || METRICS.count;
     const limit = Math.max(1, Math.min(5000, parseInt(st.limit, 10) || 25));
+    const filters = st.filters || [];
 
-    // Grouping by skill reads job_skills as "j": it carries every filter
-    // column, so the question never touches the wide jobs table. The
-    // one thing it lacks is the free text (title, location); a text
-    // filter brings the jobs table back in through a join.
-    const textFilter = (st.filters || []).some((f) => (FIELDS[f.field] || {}).kind === "text" && (f.text || "").trim());
-    const skillsAlone = group.from === "skills" && !textFilter;
-    const idCol = skillsAlone ? "j.job_rowid" : "j.rowid";
+    // Which table answers this. job_skills carries every filter column
+    // the listing has, so a question about skills is read entirely from
+    // it. The two things it lacks are the free text and the row-mode
+    // columns, so those questions read jobs instead.
+    const hasText = filters.some((f) => (FIELDS[f.field] || {}).kind === "text" && (f.text || "").trim());
+    const hasSkillFilter = filters.some((f) => f.field === "skill" && (f.values || []).filter((v) => v !== "" && v != null).length);
+    const rowMode = st.group === "none";
+    const skillsMode = !rowMode && !hasText && (group.skill || hasSkillFilter);
+    const on = skillsMode ? "skills" : "jobs";
 
     const where = [];
     if (status.where) where.push(status.where);
-    for (const f of st.filters || []) {
-      const w = filterSql(f, idCol);
+    for (const f of filters) {
+      const w = filterSql(f, on);
       if (w) where.push(w);
     }
-
-    const joins = [];
-    const needCompanies = group.join === "companies" || st.group === "none";
-    if (needCompanies) joins.push("LEFT JOIN companies c ON c.domain = j.company");
-    if (group.from === "skills" && !skillsAlone) joins.push("JOIN job_skills s ON s.job_id = j.id");
-
-    const from = (skillsAlone ? "FROM job_skills j" : "FROM jobs j") + (joins.length ? "\n" + joins.join("\n") : "");
-    const groupExpr = group.from === "skills" && !skillsAlone ? "s.skill" : group.expr;
     const whereSql = where.length ? "\nWHERE " + where.join("\n  AND ") : "";
 
     // Row mode: the listings themselves. The rows to show are chosen in
-    // a subquery the wide index answers on its own; only those few are
-    // then read from the table for their salary text and URL. Written
-    // flat, SQLite would fetch every matching row before sorting.
-    if (st.group === "none") {
-      const pick = "SELECT rowid FROM jobs j" + whereSql.replace(/\n/g, "\n  ") + "\n  ORDER BY j.first_seen DESC LIMIT " + limit;
+    // a subquery an index answers, and only those few are then read from
+    // the table for their salary text and URL. Written flat, SQLite
+    // would fetch every matching row before sorting.
+    if (rowMode) {
+      const pick = "SELECT rowid FROM jobs j" + whereSql.replace(/\n/g, "\n  ")
+        + "\n  ORDER BY j.first_seen DESC LIMIT " + limit;
       return "SELECT j.title, COALESCE(c.name, j.company) AS company, j.location,\n"
         + "       j.seniority, j.salary_text, substr(j.first_seen, 1, 10) AS first_seen, j.url\n"
-        + from + "\nWHERE j.rowid IN (\n  " + pick + "\n)"
+        + "FROM jobs j\nLEFT JOIN companies c ON c.domain = j.company"
+        + "\nWHERE j.rowid IN (\n  " + pick + "\n)"
         + "\nORDER BY j.first_seen DESC";
     }
 
-    // Aggregate mode.
-    const cols = [groupExpr + " AS " + st.group, "COUNT(*) AS listings"];
+    // Grouping by skill counts one row per listing per skill, which is
+    // what "how many listings ask for this" means. Grouping by anything
+    // else has to see each listing once, so the distinct listings come
+    // out of job_skills first.
+    const dedupe = skillsMode && !group.skill;
+    let from;
+    if (dedupe) {
+      from = "FROM (SELECT DISTINCT " + SKILL_COLS.join(", ") + "\n"
+        + "      FROM job_skills j" + whereSql.replace(/\n/g, "\n      ") + ") j";
+    } else {
+      from = "FROM " + (skillsMode ? "job_skills j" : "jobs j");
+    }
+    if (group.join === "companies") from += "\nLEFT JOIN companies c ON c.domain = j.company";
+
+    const cols = [group.expr + " AS " + st.group, "COUNT(*) AS listings"];
     if (st.metric === "avg_days_open") {
       cols.push("ROUND(AVG(j.days_open), 1) AS avg_days_open");
     } else if (st.metric === "share") {
@@ -149,7 +173,7 @@
     const orderCol = st.metric === "count" ? "listings" : metric.col;
     const timeGroup = st.group === "day" || st.group === "week" || st.group === "month";
     const order = timeGroup ? st.group + " ASC" : orderCol + " DESC";
-    return "SELECT " + cols.join(",\n       ") + "\n" + from + whereSql
+    return "SELECT " + cols.join(",\n       ") + "\n" + from + (dedupe ? "" : whereSql)
       + "\nGROUP BY 1\nORDER BY " + order + "\nLIMIT " + limit;
   }
 

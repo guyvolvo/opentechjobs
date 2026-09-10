@@ -157,10 +157,10 @@ CREATE TABLE meta (
 # fetched for the handful a row-mode question finally shows.
 INDEXES = [
     "CREATE INDEX ix_jobs_wide ON jobs(closed_at, category, seniority, workplace, ats, salary_source, company, first_seen, days_open, location, title)",
-    "CREATE INDEX ix_skills_wide ON job_skills(closed_at, skill, category, seniority, workplace, ats, salary_source, company, first_seen, days_open)",
-    # The skill filter: EXISTS by the listing's rowid, answered from the
-    # index entry alone.
-    "CREATE INDEX ix_skills_job ON job_skills(job_rowid, skill)",
+    # Led by skill, so "listings asking for python" seeks to one range
+    # of 14,000 entries instead of reading the whole index, and the
+    # listing columns come along for grouping.
+    "CREATE INDEX ix_skills_wide ON job_skills(skill, closed_at, category, seniority, workplace, ats, salary_source, company, first_seen, days_open, job_rowid)",
     "CREATE INDEX ix_facets_field ON facets(field, n DESC)",
 ]
 

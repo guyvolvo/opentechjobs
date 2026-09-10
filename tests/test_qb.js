@@ -40,11 +40,15 @@ check("'all' status adds no WHERE on closed_at", !/closed_at/.test(sql({ status:
 
 // Every group, including the ones that need a join.
 for (const group of Object.keys(QB.GROUPS)) sql({ group });
-check("grouping by skill reads job_skills on its own", /FROM job_skills j/.test(sql({ group: "skill" })) && !/JOIN/.test(sql({ group: "skill" })), sql({ group: "skill" }));
+check("grouping by skill reads job_skills on its own", /FROM job_skills j/.test(sql({ group: "skill" })) && !/JOIN|FROM jobs/.test(sql({ group: "skill" })), sql({ group: "skill" }));
 q = sql({ group: "skill", filters: [{ field: "seniority", values: ["senior"] }, { field: "skill", values: ["python"] }] });
-check("its filters read the copied columns and the EXISTS keys on the rowid", /j\.seniority IN/.test(q) && /x\.job_rowid = j\.job_rowid/.test(q) && !/FROM jobs/.test(q.split("share")[0].replace(/\(SELECT COUNT[^)]*\)/, "")), q);
-q = sql({ group: "skill", filters: [{ field: "title", text: "backend" }] });
-check("a text filter on a skill question brings the jobs table back", /FROM jobs j/.test(q) && /JOIN job_skills s/.test(q) && /s\.skill AS skill/.test(q), q);
+check("on job_skills every filter is a plain column test", /j\.seniority IN/.test(q) && /j\.skill IN \('python'\)/.test(q) && !/FROM jobs/.test(q), q);
+q = sql({ group: "category", filters: [{ field: "skill", values: ["python"] }] });
+check("a skill filter grouped by something else counts distinct listings", /FROM \(SELECT DISTINCT job_rowid/.test(q) && /FROM job_skills j/.test(q) && !/FROM jobs j/.test(q), q);
+q = sql({ group: "category", filters: [{ field: "skill", values: ["python"] }, { field: "title", text: "backend" }] });
+check("a text filter sends the question back to jobs, matching skills by rowid", /FROM jobs j/.test(q) && /j\.rowid IN \(SELECT job_rowid FROM job_skills WHERE skill IN \('python'\)\)/.test(q) && /j\.title LIKE/.test(q), q);
+q = sql({ group: "company", filters: [{ field: "skill", values: ["python"] }] });
+check("grouping distinct listings by company still joins for the name", /LEFT JOIN companies c/.test(q) && /FROM \(SELECT DISTINCT/.test(q), q);
 check("grouping by company joins companies for the name", /LEFT JOIN companies c/.test(sql({ group: "company" })) && /COALESCE\(c\.name, j\.company\)/.test(sql({ group: "company" })));
 check("time groups order chronologically, not by count", /ORDER BY day ASC/.test(sql({ group: "day" })));
 
@@ -64,7 +68,9 @@ check("row mode picks its rows in a subquery and limits there", /WHERE j\.rowid 
 q = sql({ filters: [{ field: "category", values: ["Software Engineering", "Data & AI"] }] });
 check("a picker becomes IN with quoted values", /j\.category IN \('Software Engineering', 'Data & AI'\)/.test(q), q);
 q = sql({ filters: [{ field: "skill", values: ["python"] }] });
-check("a skill filter is an EXISTS on the rowid, so it does not multiply rows", /EXISTS \(SELECT 1 FROM job_skills x WHERE x\.job_rowid = j\.rowid/.test(q) && !/JOIN job_skills s/.test(q), q);
+check("a skill filter alone reads job_skills, deduped", /FROM \(SELECT DISTINCT job_rowid/.test(q) && !/FROM jobs j/.test(q), q);
+q = sql({ group: "none", filters: [{ field: "skill", values: ["python"] }] });
+check("a skill filter in row mode matches listings by rowid", /j\.rowid IN \(SELECT job_rowid FROM job_skills WHERE skill IN \('python'\)\)/.test(q) && /SELECT j\.title/.test(q), q);
 q = sql({ filters: [{ field: "location", text: "Tel Aviv" }] });
 check("text becomes a LIKE with wildcards both sides", /j\.location LIKE '%Tel Aviv%'/.test(q), q);
 q = sql({ filters: [{ field: "first_seen", from: "2026-09-01", to: "2026-09-08" }] });

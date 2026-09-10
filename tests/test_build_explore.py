@@ -119,7 +119,7 @@ with tempfile.TemporaryDirectory() as td:
           e.execute("SELECT COUNT(*) FROM job_skills s JOIN jobs j ON j.id = s.job_id WHERE s.seniority IS NOT j.seniority OR s.closed_at IS NOT j.closed_at").fetchone()[0] == 0)
     plan = " ".join(r[3] for r in e.execute(
         "EXPLAIN QUERY PLAN SELECT skill, COUNT(*) FROM job_skills j WHERE j.closed_at IS NULL AND j.seniority IN ('senior') GROUP BY 1"))
-    check("skills asked of seniors is a covering index scan", "USING COVERING INDEX ix_skills_wide" in plan, plan)
+    check("skills asked of seniors is a covering index scan", "COVERING INDEX ix_skills_wide" in plan, plan)
     check("a skill row points at its listing's rowid",
           e.execute("SELECT COUNT(*) FROM job_skills s JOIN jobs j ON j.rowid = s.job_rowid WHERE j.id != s.job_id").fetchone()[0] == 0)
     check("timestamps are cut to the second", all(len(v) == 19 for (v,) in e.execute("SELECT first_seen FROM jobs")))
@@ -138,10 +138,10 @@ with tempfile.TemporaryDirectory() as td:
     check("a filter on one column grouped by another never visits the table",
           "USING COVERING INDEX ix_jobs_wide" in plan and "SEARCH" in plan, plan)
     plan = " ".join(r[3] for r in e.execute(
-        "EXPLAIN QUERY PLAN SELECT category, COUNT(*) FROM jobs j WHERE closed_at IS NULL "
-        "AND EXISTS (SELECT 1 FROM job_skills x WHERE x.job_rowid = j.rowid AND x.skill IN ('python')) GROUP BY 1"))
-    check("the skill filter is answered from index entries on both sides",
-          "USING COVERING INDEX ix_jobs_wide" in plan and "USING COVERING INDEX ix_skills_job" in plan, plan)
+        "EXPLAIN QUERY PLAN SELECT category, COUNT(*) FROM "
+        "(SELECT DISTINCT job_rowid, category FROM job_skills j WHERE j.closed_at IS NULL AND j.skill IN ('python')) j GROUP BY 1"))
+    check("a skill filter seeks one range of the skill index and reads no table",
+          "COVERING INDEX ix_skills_wide (skill=?" in plan and "jobs" not in plan, plan)
 
     # And the page can say what it is looking at.
     meta = dict(e.execute("SELECT key, value FROM meta").fetchall())

@@ -25,7 +25,12 @@
 const MANIFEST_URL = "/explore.json";   // names the current build; see loader/build_explore.py
 const WORKER_URL = "/vendor/httpvfs/sqlite.worker.js";
 const WASM_URL = "/vendor/httpvfs/sql-wasm.wasm";
-const CHUNK_SIZE = 4096;       // matches PAGE_SIZE in the builder
+// 64 KB per HTTP read, sixteen database pages at a time. The questions
+// this page asks are index scans of a few megabytes, and at 4 KB that
+// was thousands of round trips: measured against the live file, the
+// opening question took 1,203 ms at 4 KB and 122 ms at 64 KB for the
+// same bytes.
+const CHUNK_SIZE = 65536;
 const MAX_BYTES = 256 * 1024 * 1024;  // per page load, then the worker refuses
 const MAX_ROWS = 2000;         // painted, not computed
 const QUERY_TIMEOUT_MS = 60_000;
