@@ -13,6 +13,7 @@ import sqlite3
 import time
 
 import boto3
+from boto3.s3.transfer import TransferConfig
 
 from job_filters import register_functions
 
@@ -39,8 +40,17 @@ _etag: str | None = None
 _last_checked: float = 0.0
 
 
+# download_file defaults to 10 concurrent 8MB parts, each buffered in
+# memory. On a snapshot this size that is the largest single thing this
+# function allocates, and it is why Max Memory Used sits near the
+# configured ceiling on any invocation that refreshes. Two parts is still
+# plenty of throughput inside a region and costs a fraction of the
+# footprint, which is what lets the memory setting come down.
+_TRANSFER = TransferConfig(max_concurrency=2, multipart_chunksize=8 * 1024 * 1024)
+
+
 def _download() -> str:
-    _s3.download_file(DATA_BUCKET, DATA_KEY, LOCAL_PATH)
+    _s3.download_file(DATA_BUCKET, DATA_KEY, LOCAL_PATH, Config=_TRANSFER)
     return _s3.head_object(Bucket=DATA_BUCKET, Key=DATA_KEY)["ETag"]
 
 
