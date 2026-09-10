@@ -23,12 +23,52 @@ resource "aws_s3_bucket_public_access_block" "data" {
 
 resource "aws_s3_bucket_lifecycle_configuration" "data" {
   bucket = aws_s3_bucket.data.id
+
+  # jobs-read.db is the exception, and it needs its own rule.
+  #
+  # The 30-day rule below was written when an hourly merge rewrote this
+  # file 24 times a day. Delta fragments moved that to every 5 minutes,
+  # and versioning turns every one of those rewrites into a retained
+  # ~790MB object. Measured 2026-09-10, two days after the migration:
+  # 275 versions holding 198GB, on track for roughly 4TB and $100 a
+  # month once the 30-day window actually fills.
+  #
+  # None of that is a usable rollback target. A snapshot from last week
+  # is a snapshot missing a week of listings, so restoring it would be a
+  # worse outage than whatever it was meant to undo. One day is already
+  # 180 versions to choose from.
+  rule {
+    id     = "expire-snapshot-versions"
+    status = "Enabled"
+    filter {
+      prefix = "jobs-read.db"
+    }
+    noncurrent_version_expiration {
+      # Both conditions have to hold before a version goes, so the 3 is
+      # a floor for the case where writes have stopped: a stuck pipeline
+      # must not quietly age out the last good snapshot.
+      newer_noncurrent_versions = 3
+      noncurrent_days           = 1
+    }
+  }
+
   rule {
     id     = "expire-old-jobsdb-versions"
     status = "Enabled"
-    filter {} # applies to every object in the bucket; there's only jobs.db in here
+    filter {} # everything else here is small and rarely rewritten
     noncurrent_version_expiration {
       noncurrent_days = 30 # keep a month of rollback history, not forever
+    }
+  }
+
+  # A 790MB upload_file goes out as multipart. A failed one leaves its
+  # parts behind, billed as storage, invisible to a plain ListObjects.
+  rule {
+    id     = "abort-incomplete-uploads"
+    status = "Enabled"
+    filter {}
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 3
     }
   }
 }
