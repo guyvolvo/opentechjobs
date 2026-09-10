@@ -114,19 +114,21 @@ def publish(bucket: str, db_path: Path, frontend_bucket: str = "") -> list[str]:
     """
     if not bucket:
         return []
-    import boto3
 
-    s3_probe = boto3.client("s3")
-    if _fresh_enough(s3_probe, bucket):
-        return []
-
+    # Everything from here is inside the guard, client construction
+    # included. This is called from a merge that has already pushed a
+    # snapshot, and nothing about a dashboard is worth failing that over.
     try:
+        import boto3
+
+        s3 = boto3.client("s3")
+        if _fresh_enough(s3, bucket):
+            return []
         payloads = build(db_path)
     except Exception as e:
         print(f"precompute failed, API will keep computing live: {e!r}", file=sys.stderr)
         return []
 
-    s3 = s3_probe
     written = []
     for name, payload in payloads.items():
         body = json.dumps(payload, default=str, ensure_ascii=False).encode("utf-8")
