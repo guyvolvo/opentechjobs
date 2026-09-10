@@ -1604,7 +1604,19 @@ footer {
    does is give it room and stop it sitting on the links. */
 .footer-support {
   margin-top: 14px;
-  min-height: 3px; /* holds the line before their script has replaced it */
+  /* Half of the widget's own 60px, because the scale below is a paint
+     transform and leaves the original box behind in layout. Without
+     this the footer keeps a button-sized gap under a half-sized
+     button. */
+  height: 30px;
+}
+/* Their script writes the markup, so there is no class of ours to hang
+   this on and no width to set. transform is the one lever that works on
+   an element you do not control, and it scales the whole thing (image,
+   text, radius) evenly rather than squashing one part of it. */
+.footer-support > * {
+  transform: scale(0.5);
+  transform-origin: left top;
 }
 .footer-support img {
   vertical-align: middle;
