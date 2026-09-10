@@ -2132,7 +2132,17 @@ async function loadGlobalCompanyOptions() {
 // still track new postings without waiting for the next filter click.
 async function refreshFacetOptions() {
   try {
-    const facets = await getJSON(`/facets?${qs(currentFilterParams())}`);
+    // Only the unfiltered case has a static answer, which is also the
+    // one every page load and every timer tick asks for. Any active
+    // filter goes to the API, where the counts are scoped to it.
+    //
+    // confidence is the exception: the board always sends one, so it is
+    // not a filter in the sense that matters here. The static file holds
+    // a variant per value.
+    const active = { ...currentFilterParams(), confidence: "" };
+    const facets = qs(active)
+      ? await getJSON(`/facets?${qs(currentFilterParams())}`)
+      : await getStaticFacets(state.confidence || "verified");
     msDepartment.setOptions(facets.categories.map((r) => ({ value: r.value, label: `${r.value} (${r.n})` })));
     msLocation.setOptions(facets.locations.map((r) => ({ value: r.value, label: `${r.value} (${r.n})` })));
     // Alphabetical, not by count: this list is searchable/typed-into, not
@@ -2241,6 +2251,45 @@ function getCachedStats() {
   }
 }
 
+// The applier publishes /stats.json and /facets.json to the frontend
+// bucket on every write cycle, so CloudFront can hand the browser the
+// same answer the API would compute without invoking anything. Same
+// pattern bootstrap.json has always used.
+//
+// This is where the API's compute bill actually was: the page polls
+// these on a timer per open tab, and each poll was a Lambda cold start
+// downloading a 308MB snapshot to hand back JSON already sitting in S3.
+//
+// The API route stays exactly as it was, both as the fallback here and
+// as the answer anyone calling /api/stats directly still gets. A missing
+// or unreachable static copy is a normal state, not an error: it is what
+// every deploy looks like until the next merge runs.
+// Facets come keyed by confidence, since the board always sends one.
+// An older file without the variant map, or none at all, falls back to
+// the API rather than guessing.
+async function getStaticFacets(confidence) {
+  try {
+    const r = await fetch("/facets.json", { cache: "no-store" });
+    if (r.ok) {
+      const byConfidence = await r.json();
+      if (byConfidence && byConfidence[confidence]) return byConfidence[confidence];
+    }
+  } catch {
+    // Falls through to the API, which is the authority anyway.
+  }
+  return getJSON(`/facets?${qs(currentFilterParams())}`);
+}
+
+async function getStaticOrApi(staticPath, apiPath) {
+  try {
+    const r = await fetch(staticPath, { cache: "no-store" });
+    if (r.ok) return await r.json();
+  } catch {
+    // Falls through to the API, which is the authority anyway.
+  }
+  return getJSON(apiPath);
+}
+
 async function refreshStats() {
   // Cache-first, matching the job list. Without this the Statistics
   // column sat on skeletons for the whole request on every single visit,
@@ -2256,7 +2305,7 @@ async function refreshStats() {
 
   setLoadBar(true);
   try {
-    const stats = await getJSON("/stats");
+    const stats = await getStaticOrApi("/stats.json", "/stats");
     latestStats = stats;
     renderMetrics(stats);
     renderPanels(stats);

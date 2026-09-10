@@ -251,7 +251,7 @@ def lambda_handler(event, context):
     # a listing over. precompute.publish never raises, and the API treats
     # a missing file as "compute it yourself".
     _write_status(s3, "precomputing", "answering /stats and /facets for the new snapshot")
-    written = precompute.publish(BUCKET, snapshot)
+    written = precompute.publish(BUCKET, snapshot, FRONTEND_BUCKET)
     print(f"precomputed: {', '.join(written) if written else '(nothing written)'}")
 
     summary = {"applied": len(results), "fragments": len(keys),

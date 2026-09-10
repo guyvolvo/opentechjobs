@@ -100,10 +100,18 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         # here as a static object CloudFront can serve from the edge with
         # no Lambda in the request path at all. Scoped to that single
         # key: this role has no other business in the frontend bucket.
-        Sid      = "PublishBootstrap"
-        Effect   = "Allow"
-        Action   = ["s3:PutObject"]
-        Resource = "${aws_s3_bucket.frontend.arn}/bootstrap.json"
+        Sid    = "PublishBootstrap"
+        Effect = "Allow"
+        Action = ["s3:PutObject"]
+        Resource = [
+          "${aws_s3_bucket.frontend.arn}/bootstrap.json",
+          # stats.json/facets.json: the same answers the API serves,
+          # published where the browser can fetch them from the edge
+          # without invoking anything. The page polls these every two
+          # minutes per open tab.
+          "${aws_s3_bucket.frontend.arn}/stats.json",
+          "${aws_s3_bucket.frontend.arn}/facets.json",
+        ]
       },
       {
         Sid      = "Logs"
@@ -116,6 +124,10 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
 }
 
 resource "aws_lambda_function" "scrape_maintenance" {
+  # Cost allocation. Without this the whole Lambda line arrives as one
+  # number and splitting it takes a CloudWatch Logs Insights query.
+  tags = { component = "applier" }
+
   function_name = "${var.project_name}-scrape-maintenance"
   role          = aws_iam_role.scrape_maintenance_lambda.arn
   handler       = "scrape_maintenance_handler.lambda_handler"

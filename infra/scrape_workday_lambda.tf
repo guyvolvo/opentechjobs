@@ -85,6 +85,10 @@ resource "aws_iam_role_policy" "scrape_workday_lambda" {
 }
 
 resource "aws_lambda_function" "scrape_workday" {
+  # Cost allocation. Without this the whole Lambda line arrives as one
+  # number and splitting it takes a CloudWatch Logs Insights query.
+  tags = { component = "scraper" }
+
   function_name = "${var.project_name}-scrape-workday"
   role          = aws_iam_role.scrape_workday_lambda.arn
   handler       = "scrape_workday_handler.lambda_handler"
@@ -162,7 +166,13 @@ resource "aws_cloudwatch_event_rule" "scrape_workday_schedule" {
   # Israel-facing postings move on a scale of days, so a 10-minute cadence
   # bought no freshness anyone could observe. Frees ~200,000 GB-s/month
   # for the shard rotation, where churn actually happens.
-  schedule_expression = "rate(30 minutes)"
+  # Hourly, from 30 minutes. Twelve hand-pinned large employers whose
+  # boards move a few times a day: measured over the retained sweep
+  # fragments, none of them changed more than nine times in two hours,
+  # and most not at all. Each run costs a minute of Lambda regardless of
+  # whether anything moved, so halving the frequency halves that for no
+  # loss a visitor could notice.
+  schedule_expression = "rate(1 hour)"
 }
 
 resource "aws_cloudwatch_event_target" "scrape_workday_schedule" {

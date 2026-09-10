@@ -84,6 +84,10 @@ resource "aws_iam_role_policy" "api_lambda" {
 }
 
 resource "aws_lambda_function" "api" {
+  # Cost allocation. Without this the whole Lambda line arrives as one
+  # number and splitting it takes a CloudWatch Logs Insights query.
+  tags = { component = "api" }
+
   function_name = "${var.project_name}-api"
   role          = aws_iam_role.api_lambda.arn
   handler       = "handler.lambda_handler"

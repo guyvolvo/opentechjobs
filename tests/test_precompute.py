@@ -85,10 +85,18 @@ with tempfile.TemporaryDirectory() as td:
           "New York, NY" in everywhere, str(everywhere))
 
     facets = built["facets.json"]
-    check("facets carry all three lists",
-          sorted(facets) == ["categories", "companies", "locations"], str(sorted(facets)))
+    # Keyed by confidence, because the board always sends one and the API
+    # defaults to a different value than the board does. Precomputing
+    # only the API's default shipped an artifact the page never used.
+    check("facets are keyed by confidence",
+          sorted(facets) == ["all", "verified"], str(sorted(facets)))
+    for variant in ("verified", "all"):
+        check(f"the {variant} variant carries all three lists",
+              sorted(facets[variant]) == ["categories", "companies", "locations"],
+              str(sorted(facets[variant])))
     check("facet counts are the unfiltered ones",
-          sum(r["n"] for r in facets["locations"]) == 10, str(facets["locations"]))
+          sum(r["n"] for r in facets["verified"]["locations"]) == 10,
+          str(facets["verified"]["locations"]))
 
     # It has to serialise: it is written as JSON and read back by the API.
     for name, payload in built.items():
@@ -107,18 +115,33 @@ with tempfile.TemporaryDirectory() as td:
           precompute.publish("", tmp / "snap.db") == [])
 
 # The mechanism handler.py uses to decide whether the precomputed answer
-# applies. Comparing generated SQL, not a hand-kept list of parameters.
-unfiltered = build_jobs_where({}, True)
-check("an empty request matches the precomputed question",
-      build_jobs_where({}, True) == unfiltered)
-check("a default-valued request still matches",
-      build_jobs_where({"q": "", "company": "", "location": ""}, True) == unfiltered)
+# applies. Comparing generated SQL, not a hand-kept list of parameters,
+# with confidence held constant because it selects a variant rather than
+# disqualifying the request.
+def unfiltered_confidence(params):
+    confidence = params.get("confidence") or "verified"
+    probe = {**params, "confidence": "verified"}
+    if build_jobs_where(probe, True) != build_jobs_where({"confidence": "verified"}, True):
+        return None
+    return confidence
+
+
+check("an empty request wants the verified variant",
+      unfiltered_confidence({}) == "verified")
+check("a default-valued request still does",
+      unfiltered_confidence({"q": "", "company": "", "location": ""}) == "verified")
+# The one the board actually sends. This is what the first version got
+# wrong: it read as filtered, so the page never touched the artifact.
+check("the board's own confidence=all wants the all variant",
+      unfiltered_confidence({"confidence": "all"}) == "all")
 for param, value in (("company", "acme.com"), ("location", "Tel Aviv, Israel"),
                      ("department", "Engineering"), ("q", "python"),
                      ("israel_only", "1"), ("max_age_days", "7"),
                      ("seniority", "senior"), ("include_closed", "1")):
-    check(f"a request filtered by {param} does not",
-          build_jobs_where({param: value}, True) != unfiltered)
+    check(f"a request filtered by {param} has no precomputed answer",
+          unfiltered_confidence({param: value}) is None)
+check("and neither does a filter combined with confidence",
+      unfiltered_confidence({"confidence": "all", "company": "acme.com"}) is None)
 
 print()
 if failures:

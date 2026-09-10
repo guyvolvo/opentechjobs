@@ -63,6 +63,10 @@ resource "aws_iam_role_policy" "github_auth_lambda" {
 }
 
 resource "aws_lambda_function" "github_auth" {
+  # Cost allocation. Without this the whole Lambda line arrives as one
+  # number and splitting it takes a CloudWatch Logs Insights query.
+  tags = { component = "auth" }
+
   function_name = "${var.project_name}-github-auth"
   role          = aws_iam_role.github_auth_lambda.arn
   handler       = "github_auth_handler.lambda_handler"

@@ -568,27 +568,42 @@ def _precomputed_json(name: str) -> dict | None:
     return value
 
 
-def _is_unfiltered(params: dict) -> bool:
-    """Whether this request asks the question the applier already answered.
+def _unfiltered_confidence(params: dict) -> str | None:
+    """The confidence variant this request wants, or None if it carries
+    any other filter and so has no precomputed answer.
 
-    Compares the generated WHERE rather than listing parameter names.
-    A filter added to build_jobs_where later would otherwise quietly
-    start being served a precomputed answer that ignores it, which is a
-    wrong result rather than a slow one. The FTS flag is held constant
-    on both sides because it only changes the keywords branch, and a
-    request with keywords is filtered regardless.
+    Compares the generated WHERE rather than listing parameter names, so
+    a filter added to build_jobs_where later cannot quietly start being
+    served a precomputed answer that ignores it. Confidence is held
+    constant on both sides and returned separately, because it is the
+    one filter the board always sends: it defaults to "all" where the
+    API defaults to "verified", and treating that as "filtered" meant
+    the precomputed facets were never once used by the page they were
+    built for.
+
+    The FTS flag is constant on both sides too. It only changes the
+    keywords branch, and a request with keywords is filtered regardless.
     """
-    return build_jobs_where(params, True) == build_jobs_where({}, True)
+    confidence = params.get("confidence") or "verified"
+    probe = {**params, "confidence": "verified"}
+    if build_jobs_where(probe, True) != build_jobs_where({"confidence": "verified"}, True):
+        return None
+    return confidence
 
 
 def route_facets(params: dict) -> dict:
     # Facets are filter-dependent by design: each one is counted with
     # every OTHER active filter applied, so only the unfiltered case can
     # be precomputed. That is also the one every page load asks for.
-    if _is_unfiltered(params):
+    variant = _unfiltered_confidence(params)
+    if variant is not None:
         ready = _precomputed_json("facets.json")
-        if ready is not None:
-            return ready
+        # A snapshot written before this was keyed by confidence has the
+        # three lists at the top level instead of a variant map. Falling
+        # through is correct for it, and stops being needed one merge
+        # after this ships.
+        if isinstance(ready, dict) and variant in ready:
+            return ready[variant]
     return compute_facets(get_connection(), params)
 
 

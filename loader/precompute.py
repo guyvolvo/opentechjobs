@@ -51,17 +51,34 @@ def build(db_path: Path) -> dict[str, dict]:
         # connection rather than a second pass over the whole route.
         stats["top_locations_israel"] = compute_stats(
             conn, {"israel_only": "1"})["top_locations"]
-        facets = compute_facets(conn, {})
+        # Keyed by confidence, because that is the one filter the page
+        # always sends and never leaves empty. The board defaults to
+        # "all" (verified plus best-effort, shown with a badge), while
+        # the API defaults to verified only. Precomputing just one of
+        # those meant the artifact existed and the page never used it:
+        # /facets?x=1 answered in 0.34s while the request the browser
+        # actually makes still took 7.18s.
+        facets = {c: compute_facets(conn, {"confidence": c}) for c in ("verified", "all")}
     finally:
         conn.close()
     return {"stats.json": stats, "facets.json": facets}
 
 
-def publish(bucket: str, db_path: Path) -> list[str]:
+def publish(bucket: str, db_path: Path, frontend_bucket: str = "") -> list[str]:
     """Write them to S3. Returns the keys written, [] on any failure.
 
-    Never raises. The caller is a merge that has already pushed a
-    snapshot, and a slow dashboard is not worth failing that over.
+    Two destinations, for two different readers.
+
+    The data bucket copy is what /api/stats and /api/facets serve, so
+    anyone calling the API keeps getting the same answer from the same
+    place. The frontend bucket copy is fetched straight from CloudFront
+    by the browser, which is where the saving is: the page polls these
+    every two minutes per open tab, and every one of those was invoking
+    a Lambda to hand back bytes that were already sitting in S3.
+
+    Same trick bootstrap.json has used all along, and the same posture:
+    best effort, because a merge that has already pushed a snapshot must
+    not fail over a dashboard.
     """
     if not bucket:
         return []
@@ -76,15 +93,24 @@ def publish(bucket: str, db_path: Path) -> list[str]:
     s3 = boto3.client("s3")
     written = []
     for name, payload in payloads.items():
-        try:
-            s3.put_object(
-                Bucket=bucket, Key=f"{PREFIX}{name}",
-                Body=json.dumps(payload, default=str, ensure_ascii=False).encode("utf-8"),
-                ContentType="application/json",
-            )
-            written.append(f"{PREFIX}{name}")
-        except Exception as e:
-            print(f"couldn't write {PREFIX}{name} (non-fatal): {e!r}", file=sys.stderr)
+        body = json.dumps(payload, default=str, ensure_ascii=False).encode("utf-8")
+        for target, key in ((bucket, f"{PREFIX}{name}"),
+                            (frontend_bucket, name) if frontend_bucket else (None, None)):
+            if not target:
+                continue
+            try:
+                # 60s max-age: the browser holds it for less than half a
+                # write cycle, so a reload inside that window costs no
+                # network at all and still cannot show a stale figure for
+                # longer than the data takes to change.
+                s3.put_object(
+                    Bucket=target, Key=key, Body=body,
+                    ContentType="application/json",
+                    CacheControl="public, max-age=60",
+                )
+                written.append(f"{target}/{key}")
+            except Exception as e:
+                print(f"couldn't write {key} to {target} (non-fatal): {e!r}", file=sys.stderr)
     return written
 
 

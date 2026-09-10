@@ -137,6 +137,10 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
 }
 
 resource "aws_lambda_function" "scrape_fast" {
+  # Cost allocation. Without this the whole Lambda line arrives as one
+  # number and splitting it takes a CloudWatch Logs Insights query.
+  tags = { component = "scraper" }
+
   function_name = "${var.project_name}-scrape-fast"
   role          = aws_iam_role.scrape_fast_lambda.arn
   handler       = "scrape_handler.lambda_handler"
