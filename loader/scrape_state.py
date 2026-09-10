@@ -50,9 +50,34 @@ CEILING_S = 1200
 GROWTH = 1.5
 
 # Without jitter, boards that fall quiet together stay in lockstep and
-# come due in one lump, turning a smooth sweep into a thundering herd
-# every 20 minutes. Ten percent either way spreads them permanently.
-JITTER = 0.1
+# come due in one lump.
+#
+# Ten percent was not enough and production said so within ten minutes.
+# The first sweep after migration polled all 3,434 boards at the same
+# instant, so the entire quiet cohort shared a phase; at 10% of a 270s
+# interval the spread is +/-27s, far narrower than the 5-minute tick, so
+# they all landed in the same sweep anyway. Observed: 8 boards, then
+# 202, then 3,238.
+#
+# 35%, and applied downward only. Symmetric jitter would push a board at
+# the ceiling out to 27 minutes, quietly breaking the one guarantee this
+# module makes: nothing waits longer than CEILING_S. Subtracting instead
+# spreads a cohort over the 7 minutes below the ceiling, which is still
+# wider than the tick, while the worst case stays exactly 20 minutes.
+JITTER = 0.35
+
+# A hard ceiling on one sweep, whatever the schedule thinks is due.
+#
+# Jitter makes a herd unlikely; this makes it harmless. probe.py runs
+# under a 200-second subprocess timeout and a full 3,434-board sweep has
+# already blown it once, under contention during the migration. Deferred
+# boards are not dropped: they stay overdue and go to the front of the
+# queue on the next tick, which is 5 minutes away.
+#
+# 1,200 is roughly 25 seconds of sweeping, against that 200-second
+# ceiling. Generous margin, and still well above the ~850 a converged
+# steady state should actually ask for.
+MAX_PER_SWEEP = 1200
 
 _VALIDATORS = ("etag", "last_modified", "content_hash")
 
@@ -158,19 +183,29 @@ def due(state, entries, now=None):
     instead of waiting out someone else's backoff.
     """
     now = now or _now()
-    out = []
+    scored = []
     for e in entries:
         row = state.get(e.get("domain", ""))
         if row is None:
-            out.append(dict(e))
+            # Never seen. Sorts first so a newly discovered company is
+            # never starved by a backlog of merely-overdue boards.
+            scored.append((float("-inf"), dict(e)))
             continue
         nxt = _parse(row.get("next_at"))
         if nxt is not None and nxt > now:
             continue
         merged = dict(e)
         merged.update({k: row[k] for k in _VALIDATORS if k in row})
-        out.append(merged)
-    return out
+        scored.append((nxt.timestamp() if nxt else float("-inf"), merged))
+
+    if len(scored) <= MAX_PER_SWEEP:
+        return [e for _, e in scored]
+    # Most overdue first, so deferring is fair rather than arbitrary and
+    # nothing can be starved indefinitely.
+    scored.sort(key=lambda pair: pair[0])
+    print("%d boards due, sweeping the %d most overdue" % (len(scored), MAX_PER_SWEEP),
+          file=sys.stderr)
+    return [e for _, e in scored[:MAX_PER_SWEEP]]
 
 
 def record(state, results, now=None):
@@ -212,7 +247,7 @@ def record(state, results, now=None):
                 if r.get(k):
                     row[k] = str(r[k])
         row["interval_s"] = round(interval)
-        spread = interval * random.uniform(-JITTER, JITTER)
+        spread = interval * random.uniform(-JITTER, 0)
         row["next_at"] = (now + timedelta(seconds=interval + spread)).isoformat()
         state[domain] = row
     return counts

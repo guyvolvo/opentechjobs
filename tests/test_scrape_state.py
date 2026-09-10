@@ -130,13 +130,47 @@ check("and keeps the fields the prober needs to fetch at all",
       due and due[0].get("token") == "v", str(due))
 
 # Jitter, so boards that fall quiet together do not come due together.
-state = {}
-now = T0
-for d in ("x1.com", "x2.com", "x3.com", "x4.com", "x5.com", "x6.com"):
-    scrape_state.record(state, [result(d, unchanged=True)], now)
-nexts = {r["next_at"] for r in state.values()}
-check("simultaneous boards get spread across different next-poll times",
-      len(nexts) == 6, str(sorted(nexts)))
+# This is the one production corrected within ten minutes: the migration
+# sweep polled every board at the same instant, so the whole quiet
+# cohort shared a phase, and at 10% of a 270s interval the spread was
+# narrower than the 5-minute tick. Sweeps went 8, then 202, then 3,238.
+herd = {}
+scrape_state.record(herd, [result("h%d.com" % i, unchanged=True) for i in range(2000)], T0)
+for _ in range(6):  # drive them all to the ceiling together
+    scrape_state.record(herd, [result(d, unchanged=True) for d in herd], T0)
+spread = [scrape_state._parse(r["next_at"]) for r in herd.values()]
+window = (max(spread) - min(spread)).total_seconds()
+check("a cohort at the ceiling is spread wider than one schedule tick",
+      window > 300, "%.0fs window" % window)
+check("and never scheduled beyond the ceiling itself",
+      max(spread) <= T0 + timedelta(seconds=scrape_state.CEILING_S), str(max(spread)))
+
+# The hard cap, which makes a herd harmless even when jitter does not
+# prevent one. A full sweep has already blown probe.py's 200s timeout.
+many = {}
+scrape_state.record(many, [result("m%d.com" % i, unchanged=True) for i in range(3400)], T0)
+for r in many.values():
+    r["next_at"] = (T0 - timedelta(hours=1)).isoformat()  # everything overdue at once
+due_now = scrape_state.due(many, entries(*many.keys()), T0)
+check("a sweep is capped however many boards are due",
+      len(due_now) == scrape_state.MAX_PER_SWEEP, str(len(due_now)))
+
+# Deferring has to be fair, or the same boards get skipped forever.
+staggered = {}
+for i in range(2000):
+    staggered["s%d.com" % i] = {
+        "interval_s": 1200,
+        "next_at": (T0 - timedelta(seconds=i)).isoformat(),  # s1999 is most overdue
+    }
+picked = {e["domain"] for e in scrape_state.due(staggered, entries(*staggered.keys()), T0)}
+check("the most overdue boards go first",
+      "s1999.com" in picked and "s0.com" not in picked, str(len(picked)))
+
+# A brand-new company must not be starved behind a backlog.
+backlog = dict(staggered)
+due_now = scrape_state.due(backlog, entries(*backlog.keys(), "fresh.com"), T0)
+check("a never-seen board is swept even when the cap binds",
+      "fresh.com" in {e["domain"] for e in due_now}, str(len(due_now)))
 
 # Round trip through S3, gzipped, with the conditional write.
 s3 = FakeS3()
