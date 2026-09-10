@@ -70,8 +70,15 @@ def rebuild(conn: sqlite3.Connection, bucket: str, log=print, s3=None) -> dict:
 
     if s3 is None:
         import boto3
+        from botocore.config import Config
 
-        s3 = boto3.client("s3")
+        # botocore's default connection pool is 10. Running 32 fetch
+        # threads against it means most of them queue for a connection
+        # and the pool churns, which showed up live as a wall of
+        # "Connection pool is full, discarding connection" and a rebuild
+        # on course to blow the function's 10-minute ceiling. Sizing the
+        # pool to the worker count is the whole fix.
+        s3 = boto3.client("s3", config=Config(max_pool_connections=WORKERS))
 
     conn.execute("DROP TABLE IF EXISTS jobs_fts_rebuild")
     conn.execute(f"CREATE VIRTUAL TABLE jobs_fts_rebuild USING fts5(description, {options})")
