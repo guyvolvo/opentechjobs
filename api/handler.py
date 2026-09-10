@@ -568,6 +568,26 @@ def _precomputed_json(name: str) -> dict | None:
     return value
 
 
+def _live_freshness() -> tuple[dict, dict]:
+    """The two clock-shaped fields of a stats response, read now.
+
+    Cheap on purpose: MAX over an indexed column and a six-row table.
+    The expensive part of /api/stats is the aggregates, which stay
+    precomputed.
+    """
+    conn = get_connection()
+    meta = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM meta")}
+    last_checked = conn.execute("SELECT MAX(last_checked) AS latest FROM companies").fetchone()["latest"]
+    minutes = None
+    if last_checked is not None:
+        mins = conn.execute(
+            "SELECT (julianday('now') - julianday(?)) * 1440.0 AS mins", (last_checked,)
+        ).fetchone()["mins"]
+        if mins is not None:
+            minutes = round(mins, 1)
+    return {"last_checked": last_checked, "minutes_since_update": minutes}, meta
+
+
 def _unfiltered_confidence(params: dict) -> str | None:
     """The confidence variant this request wants, or None if it carries
     any other filter and so has no precomputed answer.
@@ -617,6 +637,19 @@ def route_stats(params: dict | None = None) -> dict:
         out = {k: v for k, v in ready.items() if k != "top_locations_israel"}
         if bool_param(params, "israel_only"):
             out["top_locations"] = ready.get("top_locations_israel", out.get("top_locations", []))
+        # Two fields in here are clocks, not aggregates, and freezing a
+        # clock for fifteen minutes makes it wrong rather than stale.
+        # Reported live: the Data Health tile read "19M old" while the
+        # pipeline was four minutes behind, because the artifact carried
+        # the timestamp from when it was built.
+        #
+        # Refreshed from the snapshot on every request. This is one
+        # indexed MAX and a six-row table read, which is nothing like the
+        # aggregates the artifact exists to avoid.
+        try:
+            out["freshness"], out["meta"] = _live_freshness()
+        except Exception as e:
+            print(f"couldn't refresh freshness on precomputed stats: {e!r}")
         return out
     return compute_stats(get_connection(), params)
 
