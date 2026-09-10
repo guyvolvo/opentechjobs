@@ -24,6 +24,7 @@ that code and this ever running.
 import json
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Two layouts to satisfy. In the repo these live under api/; in the
@@ -38,6 +39,19 @@ from aggregates import compute_facets, compute_stats  # noqa: E402
 from job_filters import register_functions  # noqa: E402
 
 PREFIX = "precomputed/"
+
+# How stale these are allowed to get before a run recomputes them.
+#
+# This is the whole cost control. Measured in the applier: building both
+# artifacts takes 26.7 seconds, against a snapshot push that finishes in
+# under one. Running it on every five-minute apply made it three
+# quarters of the applier's entire duration.
+#
+# Nothing here needs five-minute resolution. The panels show 14-day
+# trends, headline counts in the tens of thousands, and facet counts
+# used to populate dropdowns. Fifteen minutes is invisible in all three,
+# and it turns 288 builds a day into 96.
+MAX_AGE_S = 900
 
 
 def build(db_path: Path) -> dict[str, dict]:
@@ -64,6 +78,24 @@ def build(db_path: Path) -> dict[str, dict]:
     return {"stats.json": stats, "facets.json": facets}
 
 
+def _fresh_enough(s3, bucket: str) -> bool:
+    """Whether the existing artifacts are recent enough to leave alone.
+
+    One HEAD against the object we would overwrite. Missing or
+    unreadable means build it, which is the right answer for a first run
+    and for anything that has gone wrong.
+    """
+    try:
+        head = s3.head_object(Bucket=bucket, Key=f"{PREFIX}stats.json")
+    except Exception:
+        return False
+    age = (datetime.now(timezone.utc) - head["LastModified"]).total_seconds()
+    if age < MAX_AGE_S:
+        print(f"precomputed artifacts are {age:.0f}s old, leaving them", file=sys.stderr)
+        return True
+    return False
+
+
 def publish(bucket: str, db_path: Path, frontend_bucket: str = "") -> list[str]:
     """Write them to S3. Returns the keys written, [] on any failure.
 
@@ -84,13 +116,17 @@ def publish(bucket: str, db_path: Path, frontend_bucket: str = "") -> list[str]:
         return []
     import boto3
 
+    s3_probe = boto3.client("s3")
+    if _fresh_enough(s3_probe, bucket):
+        return []
+
     try:
         payloads = build(db_path)
     except Exception as e:
         print(f"precompute failed, API will keep computing live: {e!r}", file=sys.stderr)
         return []
 
-    s3 = boto3.client("s3")
+    s3 = s3_probe
     written = []
     for name, payload in payloads.items():
         body = json.dumps(payload, default=str, ensure_ascii=False).encode("utf-8")

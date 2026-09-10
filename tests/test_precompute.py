@@ -107,6 +107,35 @@ with tempfile.TemporaryDirectory() as td:
             ok, why = False, repr(e)
         check(f"{name} survives a JSON round trip", ok, why)
 
+    # Pacing. Building both artifacts measured 26.7s in the applier,
+    # against a snapshot push under one second, so running it on every
+    # five-minute apply made it three quarters of the whole invocation.
+    class AgedS3:
+        def __init__(self, age_s):
+            from datetime import datetime, timedelta, timezone
+            self.when = datetime.now(timezone.utc) - timedelta(seconds=age_s)
+            self.puts = 0
+
+        def head_object(self, Bucket, Key):
+            return {"LastModified": self.when}
+
+        def put_object(self, **kw):
+            self.puts += 1
+
+    fresh = AgedS3(60)
+    check("a recent artifact is left alone rather than rebuilt",
+          precompute._fresh_enough(fresh, "b") is True)
+    stale = AgedS3(precompute.MAX_AGE_S + 60)
+    check("a stale one is rebuilt",
+          precompute._fresh_enough(stale, "b") is False)
+
+    class NoObject:
+        def head_object(self, Bucket, Key):
+            raise RuntimeError("NoSuchKey")
+
+    check("and a missing one is always rebuilt",
+          precompute._fresh_enough(NoObject(), "b") is False)
+
     # publish() is called from a merge that has already pushed a snapshot.
     # It must never raise, whatever S3 or the file does.
     check("publish on a missing database returns empty rather than raising",
