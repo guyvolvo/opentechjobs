@@ -96,7 +96,7 @@ flat 4px radius. See Shapes below for exactly what stays sharp instead
 - Depth built entirely from 2px hairline grids, never shadows
 - One bold display face for brand moments; Helvetica for everything data-dense
 - Light and dark are two deliberately tuned palettes, not a hex inversion
-- A live-status vocabulary (the ticker, the status-dot torch flicker) borrowed from terminals/dashboards, not marketing sites
+- A live-status vocabulary (the ticker, the status glyph) borrowed from terminals/dashboards and service-health pages, not marketing sites
 
 ## Colors
 
@@ -150,9 +150,33 @@ plain near-black/white inversion.
 
 ### Alert Red (reserved, not decorative)
 - **Alert Red** (`#b8362c`, `--red`): exactly two uses in the whole
-  system, the offline status dot (torch "gone out," animation killed
-  outright) and the error-state banner. Never a third context; adding a
-  red anywhere else would dilute what it means here.
+  system, the offline wordmark treatment and the error-state banner.
+  Never a third context; adding a red anywhere else would dilute what it
+  means here. The pipeline indicator used to be the second use and no
+  longer is, having moved to the status palette below.
+
+### Status Palette (pipeline state only)
+Borrowed wholesale from AWS's service-health vocabulary rather than
+invented, because the states are the same ones and a reader who has seen
+a status page already knows what the shapes mean.
+
+Deliberately outside the two-tone palette and outside the One Voice
+Rule. Signal Green means "this matters more than what is around it,"
+which is a claim about attention. These four mean "operational,"
+"degraded," "disrupted," and nothing else, which is a claim about a
+fact. Reusing `--green` and `--red` for both would make each of them
+mean two things.
+
+- **Operational** (`#248823`, `--aws-operational`; dark mode `#3fb950`)
+- **Degraded** (`#ff9900`, `--aws-degraded`; dark mode `#ffab33`)
+- **Disrupted** (`#d13212`, `--aws-outage`; dark mode `#ff5d47`)
+- **Scheduled** (`#0073bb`, `--aws-maintenance`; dark mode `#539fe5`):
+  unused so far, and defined anyway so a planned pause has somewhere to
+  go rather than borrowing the warning colour.
+
+Dark mode is lifted rather than inverted. AWS tunes these for a white
+page and the green in particular reads closer to black than to a signal
+on `#17181c`.
 
 ### Named Rules
 **The One Voice Rule.** Green marks exactly one "this matters" element at
@@ -251,9 +275,15 @@ depth and separation from spacing and contrast alone, never a shadow.
 ## Elevation & Depth
 
 Flat. Zero `box-shadow` anywhere in the system. The one historical
-exception (a circular, smoothly-pulsing status dot) was corrected back to
-a square block specifically because a rounded, softly-animated shape was
-the one place the system's own flatness/sharp-corner rules were broken.
+exception (a circular, smoothly-pulsing status dot with a soft glow) was
+corrected specifically because the shadow and the easing were where the
+system's own flatness rule got broken.
+
+The status glyph that replaced it is drawn as a ring, which is not a
+walking back of that rule. What was wrong was the shadow and the soft
+pulse, not the curve: the ring is a flat outlined mark with no fill, no
+shadow and no easing, and it is round because a tick inside a circle is
+the shape a reader already recognises as a status mark.
 All depth and grouping comes from the 2px black rule grid (metrics/panel
 cards) and from solid borders, never from a shadow standing in for
 elevation.
@@ -358,12 +388,36 @@ whatever filters are currently active). Built from CSS alone: the item
 list is duplicated once in the DOM, animated `translateX(0)` to
 `translateX(-50%)`, and pauses on hover.
 
-### The Status Dot (signature component)
-A square (not circular) block that "torch-flickers", `steps(1)` timing
-with hand-placed, irregular opacity keyframes, deliberately closer to a
-Minecraft torch/redstone lamp than a smooth pulse. While the pipeline is
-live. Goes offline-red with the animation killed outright (not still
-pulsing) to read as "the light went out," not "warning, still breathing."
+### The Status Glyph (signature component)
+A 13px outlined mark in the topbar and a 24px one on the Data Health
+tile, both drawn from one `<symbol>` sprite defined once per document
+and referenced by `<use>`. One function paints both, so the two places
+the state appears cannot drift apart.
+
+Three states, not two. The snapshot is written every five minutes, so
+one twelve minutes old has missed two cycles while still sitting inside
+the twenty-minute threshold that decides whether the board claims to be
+current at all. A binary indicator had nothing to say about that, which
+is exactly where the interesting failures are.
+
+- **Operational**, a tick in a ring
+- **Degraded**, a bang in a ring, past two missed cycles
+- **Disrupted**, a cross in a ring, past the freshness threshold
+
+**The shape carries the state, not the colour.** A tick, a bang and a
+cross survive greyscale, a red-green colourblind reader, and the 13px
+the topbar renders them at. Colour alone survives none of those, which
+is the whole reason this is not still a coloured square.
+
+Was a square block that "torch-flickered" on `steps(1)` timing with
+hand-placed irregular opacity keyframes, closer to a Minecraft torch
+than a smooth pulse, going offline-red with the animation killed
+outright. The flicker was removed before this change, having read as
+distracting rather than as character on something permanently on screen.
+The stepped motion voice it belonged to still lives in the load bar's
+own history (see Motion), and the square is gone: a ring reads as a
+status mark where a square read as a decoration that happened to change
+colour.
 
 ## Do's and Don'ts
 
@@ -388,12 +442,14 @@ pulsing) to read as "the light went out," not "warning, still breathing."
 ### Don't:
 - **Don't** add a second accent color. Signal Green is the only one; a
   second dilutes what green means everywhere else.
-- **Don't** use Alert Red outside the offline-status dot and the
+- **Don't** use Alert Red outside the error-state banner and the
   error-state banner. It has exactly two meanings today.
 - **Don't** introduce a third typeface without folding it into the
   Two-Voice Rule as a named, scoped exception (see the flagged
   `.api-path`/`.param` monospace usage in Typography above), an
   unscoped one-off is exactly how "two voices" quietly becomes three.
 - **Don't** reach for `box-shadow` for elevation, ever, even subtly. The
-  one prior violation (a smoothly-pulsing circular status dot) was
-  treated as a bug and corrected, not kept as a soft exception.
+  one prior violation (a glowing, smoothly-pulsing status dot) was
+  treated as a bug and corrected, not kept as a soft exception. The
+  status glyph is round now and still obeys this: no fill, no shadow, no
+  easing.
