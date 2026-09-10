@@ -66,6 +66,12 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
           # deltas/*: one fragment per sweep, holding only the companies
           # that changed. Replayed into jobs-read.db by the applier.
           "${aws_s3_bucket.data.arn}/deltas/*",
+          # scrape-state.json.gz: per-board next-poll times and
+          # conditional-GET validators, one object read and
+          # conditionally rewritten once per sweep. 29KB gzipped for
+          # 3,400 boards, against the 286,000 DynamoDB read units a day
+          # it replaces.
+          "${aws_s3_bucket.data.arn}/scrape-state.json.gz",
           "${aws_s3_bucket.data.arn}/known.json",
           # salary-matrix.json: read once per container, never written
           # here. Rebuilt daily by build-salary-matrix.yml, which is why
@@ -93,8 +99,12 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
         Sid    = "ReadWriteScrapeState"
         Effect = "Allow"
         Action = [
-          "dynamodb:BatchGetItem", "dynamodb:BatchWriteItem",
-          "dynamodb:GetItem", "dynamodb:PutItem",
+          # Scan only, and only once: the poll state moved into a single
+          # gzipped S3 object, and this table is now read exactly when
+          # that object is missing, to seed it rather than discard every
+          # validator at once. See loader/scrape_state.py's load().
+          # The table and this grant can both go once the object exists.
+          "dynamodb:Scan",
         ]
         Resource = aws_dynamodb_table.scrape_state.arn
       },

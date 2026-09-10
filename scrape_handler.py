@@ -70,6 +70,7 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / "loader"))
 
 from deltas import put_fragment  # noqa: E402
+import scrape_state  # noqa: E402
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 
@@ -82,91 +83,14 @@ BUCKET = os.environ["DATA_BUCKET"]
 # 300 only for a bare local run outside the Lambda environment.
 SCHEDULE_INTERVAL_S = int(os.environ.get("SCHEDULE_INTERVAL_S", "300"))
 
-# Conditional-poll validators (infra/dynamodb.tf's scrape_state table).
-# Optional on purpose: an unset table name, or any failure reading it,
-# degrades to a normal full fetch rather than failing the run. Losing the
-# optimization is a cost problem; failing the run is a data problem.
+# The old DynamoDB validator table. Read once, only when the S3 poll
+# state is missing, to seed it (see scrape_state.load). Everything else
+# about conditional polling lives in that object now. Unset it and the
+# first run after a wipe just refetches every board once.
 STATE_TABLE = os.environ.get("SCRAPE_STATE_TABLE")
 
-# How many runs it takes to cover every company. 1 is a true global
-# sweep and the destination; anything higher splits the list into that
-# many rotating windows.
-#
-# Not 1 yet, and the reason is measured rather than cautious. A sweep is
-# only cheap when companies answer 304, and that needs a stored
-# validator: right now 1,642 of 3,491 have one (47%), because shards
-# 40-69 spent hours unable to persist anything (see s3_pull's own
-# AccessDenied note). The remaining 1,849 are full fetches, and a global
-# sweep of all of them ran past probe.py's 200s subprocess timeout and
-# killed the run outright, which is worse than the rotation it replaced.
-#
-# 4 windows is ~873 companies per run, full coverage every 20 minutes,
-# still 17x better than the 5.8-hour rotation. Drop this to 1 once
-# validator coverage is high enough that a full sweep fits comfortably;
-# the code path is identical either way.
-SWEEP_WINDOWS = max(1, int(os.environ.get("SWEEP_WINDOWS", "4")))
 
 
-def _load_scrape_state(domains: list[str]) -> dict[str, dict]:
-    """domain -> {etag, last_modified, content_hash} for this shard.
-
-    One BatchGetItem per 100 keys, which at SHARD_SIZE=50 is a single
-    round trip. Kept out of the partition file deliberately: reading a
-    validator out of a 30-90MB S3 object would cost more than the fetch
-    it saves.
-    """
-    if not STATE_TABLE or not domains:
-        return {}
-    try:
-        client = boto3.client("dynamodb")
-        out: dict[str, dict] = {}
-        for i in range(0, len(domains), 100):
-            chunk = domains[i:i + 100]
-            resp = client.batch_get_item(
-                RequestItems={STATE_TABLE: {
-                    "Keys": [{"domain": {"S": d}} for d in chunk],
-                    "ProjectionExpression": "#d, etag, last_modified, content_hash",
-                    "ExpressionAttributeNames": {"#d": "domain"},
-                }}
-            )
-            for item in resp.get("Responses", {}).get(STATE_TABLE, []):
-                out[item["domain"]["S"]] = {
-                    k: item[k]["S"] for k in ("etag", "last_modified", "content_hash") if k in item
-                }
-        return out
-    except Exception as e:
-        print(f"couldn't read scrape state (non-fatal, falling back to full fetches): {e!r}")
-        return {}
-
-
-def _save_scrape_state(results: list[dict]) -> int:
-    """Persist whatever validators this run learned.
-
-    Only rows that actually carry one are written, so an unchanged 304
-    (which carries the same validator it was given) costs no write.
-    """
-    if not STATE_TABLE:
-        return 0
-    puts = []
-    for r in results:
-        if r.get("unchanged") or not r.get("ats"):
-            continue  # nothing new learned, or nothing worth trusting
-        item = {"domain": {"S": r["domain"]}}
-        for key in ("etag", "last_modified", "content_hash"):
-            if r.get(key):
-                item[key] = {"S": str(r[key])}
-        if len(item) > 1:
-            puts.append({"PutRequest": {"Item": item}})
-    if not puts:
-        return 0
-    try:
-        client = boto3.client("dynamodb")
-        for i in range(0, len(puts), 25):  # BatchWriteItem's own hard limit
-            client.batch_write_item(RequestItems={STATE_TABLE: puts[i:i + 25]})
-        return len(puts)
-    except Exception as e:
-        print(f"couldn't save scrape state (non-fatal, next run just refetches): {e!r}")
-        return 0
 
 
 def _write_status(s3, phase: str, detail: str = "") -> None:
@@ -231,33 +155,40 @@ def lambda_handler(event, context):
     # measured live, a 50-company shard where everything answered 304
     # completed in 2.3s, and most of even that was the partition round
     # trip rather than the polling. Sweeping all of them costs seconds.
-    #
-    # SWEEP_WINDOWS controls how much of that is done per run. At 1 this
-    # is the global sweep; above 1 it rotates through equal windows, in
-    # the same stable domain order the shard map uses, so coverage is
-    # complete every SWEEP_WINDOWS runs rather than every 70.
     num_shards = num_shards_for(len(known))
-    if SWEEP_WINDOWS == 1:
-        sweep = known
-        window_desc = "all"
-    else:
-        by_domain = {e.get("domain", ""): e for e in known}
-        domains = ordered_domains(known)
-        window = current_shard_index(SWEEP_WINDOWS, SCHEDULE_INTERVAL_S)
-        size = -(-len(domains) // SWEEP_WINDOWS)  # ceil
-        sweep = [by_domain[d] for d in domains[window * size:(window + 1) * size]]
-        window_desc = f"window {window + 1}/{SWEEP_WINDOWS} of"
+    # Every board is a candidate; scrape_state.due decides which are
+    # actually polled. The old fixed-window rotation is gone: it split
+    # the list by position, which is unrelated to whether a board has
+    # anything new, so it delayed busy boards and still polled dead ones
+    # on a schedule.
+    sweep = known
 
-    # Whatever validators we already hold. refetch_known sends them as
-    # If-None-Match, and ~88% of tracked companies sit on an ATS that
-    # answers 304 to one.
-    state = _load_scrape_state([e["domain"] for e in sweep])
-    for e in sweep:
-        e.update(state.get(e["domain"], {}))
+    # Poll state: which boards are due, and the validators to send them.
+    #
+    # Both used to be separate problems. The validators lived in
+    # DynamoDB (~286,000 reads a day for 200KB of mostly-static text) and
+    # every board was polled every five minutes regardless of whether it
+    # had ever changed. Measured over 27 consecutive sweeps, 101 of 3,434
+    # boards changed at all. The other 97% answered "nothing changed"
+    # twenty-seven times in a row.
+    #
+    # Now one gzipped S3 object holds both, and each board carries its
+    # own interval: reset to 3 minutes by a change, backed off by 1.5x
+    # per quiet poll up to 20. See loader/scrape_state.py.
+    poll_state, state_etag = scrape_state.load(BUCKET, s3, STATE_TABLE)
+    sweep = scrape_state.due(poll_state, sweep)
+    if not sweep:
+        # Everything is inside its own interval. Nothing to do, and
+        # saying so costs a second rather than a full sweep.
+        _write_status(s3, "idle", "no boards due this tick")
+        print("no boards due")
+        return {"swept": 0, "unchanged": 0, "changed": 0, "fragment": None,
+                "num_shards": 0, "hits": 0, "errors": 0, "jobs": 0}
+
     shard_path = TMP / "known-shard.json"
     shard_path.write_text(json.dumps(sweep, ensure_ascii=False), encoding="utf-8")
 
-    _write_status(s3, "scraping", f"sweeping {window_desc} {len(sweep)} of {len(known)} companies")
+    _write_status(s3, "scraping", f"sweeping {len(sweep)} of {len(known)} companies due now")
 
     # 200s ceiling carried over from the pre-sharding design (see git
     # history) -- comfortably more than a ~50-company shard needs, but
@@ -281,10 +212,13 @@ def lambda_handler(event, context):
     errors = [r["domain"] for r in data if r.get("error")]
     unchanged = [r for r in data if r.get("unchanged")]
     n_jobs = sum(r["job_count"] for r in hits)
-    saved = _save_scrape_state(data)
+    sched = scrape_state.record(poll_state, data)
+    saved = scrape_state.save(BUCKET, s3, poll_state, state_etag)
     changed = [r for r in data if r.get("ats") and not r.get("unchanged")]
     print(f"sweep: {len(hits)}/{len(data)} re-verified, {n_jobs} jobs, "
-          f"{len(unchanged)} unchanged, {saved} validators stored")
+          f"{len(unchanged)} unchanged, poll state {'saved' if saved else 'NOT saved'} "
+          f"({sched['changed']} reset to floor, {sched['unchanged']} backed off, "
+          f"{sched['errored']} held)")
     if errors:
         print(f"{len(errors)} known boards failed to re-poll: {len(errors)} companies")
 

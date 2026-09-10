@@ -57,7 +57,7 @@ jobs:
           mkdir -p fast/loader fast/db
           cp probe.py scrape_handler.py alerts.py sharding.py salary_model.py fast/
           cp api/job_filters.py fast/
-          cp loader/load_to_sqlite.py loader/descriptions.py loader/deltas.py fast/loader/
+          cp loader/load_to_sqlite.py loader/descriptions.py loader/deltas.py loader/scrape_state.py fast/loader/
           cp db/schema.sql fast/db/
           pip install --target fast requests
           cd fast && zip -r ../scrape-fast.zip . -x "__pycache__/*" && cd ..
