@@ -1596,6 +1596,20 @@ footer {
   font-size: 12.5px;
 }
 
+/* Buy Me a Coffee's own row, under the footer links.
+   The widget's script writes its own button and owns every pixel of it:
+   their yellow, their Poppins, their radius. Nothing here tries to pull
+   it onto the palette or the type ramp, because a half-matched
+   third-party button reads worse than an obviously foreign one. All this
+   does is give it room and stop it sitting on the links. */
+.footer-support {
+  margin-top: 14px;
+  min-height: 3px; /* holds the line before their script has replaced it */
+}
+.footer-support img {
+  vertical-align: middle;
+}
+
 /* privacy.html only -- a plain reading column, not the board/stats
    two-up layout .workspace otherwise implies. */
 .legal .container { max-width: 640px; padding-top: 32px; }
