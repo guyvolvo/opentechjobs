@@ -102,6 +102,17 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
 }
 
 resource "aws_lambda_function" "scrape_maintenance" {
+  # Reserved concurrency as a blast radius, not a performance tuning knob.
+  # The account ceiling is 10, so without per-function caps a scraper stuck
+  # in a retry loop can take the whole pool and run it flat out. This is
+  # the cheap half of a kill-switch: preventive, instant, free, and it
+  # needs no alarm, no SNS topic and no Lambda to do the killing. A budget
+  # alert is the other half, and it lags spend by up to a day.
+  #
+  # Capped at what the schedule actually needs. One applier run per tick, plus room for one to overlap a slow
+  # predecessor.
+  reserved_concurrent_executions = 2
+
   function_name = "${var.project_name}-scrape-maintenance"
   role          = aws_iam_role.scrape_maintenance_lambda.arn
   handler       = "scrape_maintenance_handler.lambda_handler"
