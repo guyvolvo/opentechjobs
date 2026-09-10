@@ -29,7 +29,7 @@ import sqlite3
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
-from descriptions import get_one
+from descriptions import PREFIX, get_one
 
 # Blobs fetched and indexed per batch. Descriptions average about 10KB,
 # so holding all 102,000 at once is a gigabyte and holding a thousand is
@@ -86,20 +86,35 @@ def rebuild(conn: sqlite3.Connection, bucket: str, log=print, s3=None) -> dict:
     conn.execute("DROP TABLE IF EXISTS jobs_fts_rebuild")
     conn.execute(f"CREATE VIRTUAL TABLE jobs_fts_rebuild USING fts5(description, {options})")
 
-    # Every row, and index whatever turns out to have a blob.
+    # Ask S3 which listings have text, then index exactly those.
     #
-    # The first version keyed on description_sha, on the reasoning that a
-    # listing without one never had a description to index. That was
-    # wrong by 27,937 rows: the column was added after indexing already
-    # existed, so listings scraped before it have a blob in S3 and an
-    # entry in the old index but no hash. Targeting on the hash dropped
-    # every one of them, and live search for "kubernetes" fell from 6,190
-    # hits to 5,068 before this was caught.
+    # Two wrong answers came before this one. Keying on description_sha
+    # missed 27,937 rows, because that column was added after indexing
+    # already existed, so older listings have a blob and an index entry
+    # but no hash: live search for "kubernetes" fell from 6,190 hits to
+    # 5,068. Trying every row instead was correct but slow, because two
+    # thirds of those fetches are for blobs that do not exist and each
+    # one still costs a round trip. That run managed 180 rows a second
+    # and was on course to pass the function's ceiling at 143,361 rows.
     #
-    # The blob is the only authority on whether text exists. Asking for
-    # it costs a GET that returns nothing, which is cheaper than being
-    # clever about which rows deserve one.
-    targets = conn.execute("SELECT rowid, id FROM jobs").fetchall()
+    # Listing the prefix costs about a hundred calls and answers the
+    # question exactly: every id it returns has text, and no id it omits
+    # does. No wasted GETs, no cleverness about which rows deserve one.
+    with_text = set()
+    token = None
+    while True:
+        kw = {"Bucket": bucket, "Prefix": PREFIX, "MaxKeys": 1000}
+        if token:
+            kw["ContinuationToken"] = token
+        page = s3.list_objects_v2(**kw)
+        for obj in page.get("Contents", []):
+            with_text.add(obj["Key"][len(PREFIX):].removesuffix(".json"))
+        token = page.get("NextContinuationToken")
+        if not page.get("IsTruncated"):
+            break
+    log(f"{len(with_text):,} listings have a description in S3")
+    targets = [r for r in conn.execute("SELECT rowid, id FROM jobs")
+               if r["id"] in with_text]
     log(f"rebuilding search index over {len(targets):,} listings")
 
     indexed = missing = 0

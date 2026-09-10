@@ -47,6 +47,13 @@ class FakeS3:
         body = json.dumps({"id": jid, "description": self.texts[jid]}).encode()
         return {"Body": type("B", (), {"read": lambda _s, b=body: b})()}
 
+    def list_objects_v2(self, Bucket, Prefix, MaxKeys=1000, ContinuationToken=None):
+        # Every listing with text, including the ones this instance is
+        # about to refuse: a blob that exists but cannot be read is a
+        # different case from one that was never written.
+        return {"Contents": [{"Key": f"{Prefix}{jid}.json"} for jid in self.texts],
+                "IsTruncated": False}
+
 
 def seed(tmp: Path):
     conn = open_db(tmp / "s.db")
