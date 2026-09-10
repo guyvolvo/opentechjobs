@@ -74,41 +74,36 @@ def prune(conn, s3, bucket: str, retain_days: int = RETAIN_DAYS,
     direction. A snapshot carrying too much history is a cost problem; a
     snapshot missing listings is a correctness one.
     """
-    # The FTS index is contentless: it can only drop a row by rowid, and
-    # only if the table was created with contentless_delete=1 on SQLite
-    # 3.43+. This snapshot's was not, and 12,278 closed listings carry an
-    # entry, so their terms would outlive their rows.
+    # Never retire the row holding the largest rowid, and the search
+    # index cannot lie about a listing even when its entry outlives it.
     #
-    # A dangling entry matches nothing on its own, because the keyword
-    # filter joins jobs.rowid against it. The hazard is rowid REUSE: a
-    # later insert taking a freed rowid inherits the old listing's
-    # indexed words and becomes findable by text it does not contain.
-    # SQLite hands out max(rowid)+1 and we only ever retire old rows, so
-    # that is unlikely rather than impossible, and this project has
-    # already been bitten once by exactly this class of silent FTS bug.
+    # The index is contentless: an entry can only be dropped by rowid,
+    # and only where the table carries contentless_delete on SQLite
+    # 3.43+. The Lambda runtime ships 3.40, so most of the time the entry
+    # stays behind. On its own that is inert, because the keyword filter
+    # joins jobs.rowid against the index and a freed rowid matches no
+    # live listing. The hazard is rowid REUSE: a later insert taking a
+    # freed rowid would inherit the old listing's words and become
+    # findable by text it does not contain.
     #
-    # So where the index cannot be cleaned, those rows stay. The snapshot
-    # is still capped by everything else, and the moment jobs_fts is
-    # rebuilt with contentless_delete they become eligible on their own.
-    skip_indexed = "" if fts_rowid_delete else """
-              AND rowid NOT IN (SELECT id FROM jobs_fts_docsize)"""
+    # SQLite assigns max(rowid)+1. So reuse is possible in exactly one
+    # case, deleting the row that holds the maximum, and excluding that
+    # single row makes max(rowid) non-decreasing and every future rowid
+    # strictly larger than any ever issued. That is a proof rather than a
+    # probability, which matters because this project has already been
+    # bitten once by a silent FTS aliasing bug.
+    #
+    # The maximum row is the most recently inserted listing, which is
+    # open by definition, so this excludes nothing a prune would want.
     rows = conn.execute(
         f"""SELECT rowid, {_COLUMNS} FROM jobs
             WHERE closed_at IS NOT NULL
-              AND julianday('now') - julianday(closed_at) > ?{skip_indexed}""",
+              AND julianday('now') - julianday(closed_at) > ?
+              AND rowid < (SELECT MAX(rowid) FROM jobs)""",
         (retain_days,),
     ).fetchall()
-    held_back = 0
-    if not fts_rowid_delete:
-        held_back = conn.execute(
-            """SELECT COUNT(*) FROM jobs
-               WHERE closed_at IS NOT NULL
-                 AND julianday('now') - julianday(closed_at) > ?
-                 AND rowid IN (SELECT id FROM jobs_fts_docsize)""",
-            (retain_days,),
-        ).fetchone()[0]
     if not rows:
-        return {"archived": 0, "objects": 0, "held_back_indexed": held_back}
+        return {"archived": 0, "objects": 0, "orphaned_index_rows": 0}
 
     # Grouped by the month a listing closed in, so the archive is
     # browsable and a reader can fetch one period without scanning all.
@@ -158,5 +153,10 @@ def prune(conn, s3, bucket: str, retain_days: int = RETAIN_DAYS,
         # sooner than needed, which finds nothing and writes nothing.
         print(f"couldn't write the prune marker (non-fatal): {e!r}", file=sys.stderr)
 
+    # Entries the runtime could not remove. Inert, but they accumulate at
+    # roughly 2.9KB each, so rebuild_fts.py exists to clear them.
+    orphaned = 0 if fts_rowid_delete else conn.execute(
+        "SELECT COUNT(*) FROM jobs_fts_docsize WHERE id NOT IN (SELECT rowid FROM jobs)"
+    ).fetchone()[0]
     return {"archived": len(rows), "objects": len(written), "months": sorted(by_month),
-            "held_back_indexed": held_back}
+            "orphaned_index_rows": orphaned}

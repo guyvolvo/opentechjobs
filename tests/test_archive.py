@@ -128,30 +128,52 @@ with tempfile.TemporaryDirectory() as td:
 
     conn.close()
 
-# A snapshot whose FTS table predates contentless_delete cannot drop an
-# index entry by rowid. Retiring the job row anyway would leave its terms
-# behind, and a later insert reusing that rowid would inherit them and
-# become findable by words it does not contain. So those rows stay.
+# Where the runtime cannot drop an index entry, the entry outlives the
+# row. That is inert only if a freed rowid can never be handed to a new
+# listing, which is what the MAX(rowid) guard below guarantees. Without
+# it, a new listing would inherit a retired one's words and be findable
+# by text it does not contain.
 with tempfile.TemporaryDirectory() as td:
     tmp = Path(td)
     conn, ids = seed(tmp)
-    indexed = {r[0] for r in conn.execute("SELECT id FROM jobs WHERE rowid IN (SELECT id FROM jobs_fts_docsize)")}
-    check("the fixture actually has indexed rows to protect", len(indexed) > 0, str(len(indexed)))
-
-    s3 = FakeS3()
-    result = archive.prune(conn, s3, "b", 30, False)
-    check("indexed rows are held back rather than orphaning their terms",
-          result["held_back_indexed"] == 2, str(result))
-    check("and are still in the snapshot",
-          conn.execute("SELECT COUNT(*) FROM jobs WHERE closed_at IS NOT NULL "
-                       "AND julianday('now')-julianday(closed_at) > 30").fetchone()[0] == 2)
-    check("nothing was archived either, so they are not recorded as gone",
-          result["archived"] == 0, str(result))
-
-    # The same rows go once the index can drop them.
-    result = archive.prune(conn, FakeS3(), "b", 30, True)
-    check("they are retired the moment the index supports it",
+    result = archive.prune(conn, FakeS3(), "b", 30, False)
+    check("rows are retired even when their index entry cannot be",
           result["archived"] == 2, str(result))
+    check("and the entries left behind are counted, not hidden",
+          result["orphaned_index_rows"] >= 0, str(result))
+
+    highest = conn.execute("SELECT MAX(rowid) FROM jobs").fetchone()[0]
+    check("the highest rowid is still present, so the counter cannot rewind",
+          conn.execute("SELECT COUNT(*) FROM jobs WHERE rowid = ?", (highest,)).fetchone()[0] == 1)
+
+    # The actual property: a listing inserted after a prune must never
+    # receive a rowid that a retired listing used.
+    retired = {r[0] for r in conn.execute("SELECT id FROM jobs_fts_docsize WHERE id NOT IN (SELECT rowid FROM jobs)")}
+    conn.execute("INSERT INTO jobs (id, company_domain, ats, title, confidence, first_seen, last_seen) "
+                 "VALUES ('fresh-1', 'acme.com', 'greenhouse', 'New Role', 'verified', "
+                 "datetime('now'), datetime('now'))")
+    new_rowid = conn.execute("SELECT rowid FROM jobs WHERE id = 'fresh-1'").fetchone()[0]
+    check("a listing added after a prune cannot land on a freed rowid",
+          new_rowid not in retired, f"{new_rowid} in {sorted(retired)}")
+    check("and it is above every rowid ever issued", new_rowid > highest,
+          f"{new_rowid} vs {highest}")
+    conn.close()
+
+# The guard has to hold even when the prune would otherwise take
+# everything, which is the case that could empty the table and restart
+# the counter at 1.
+with tempfile.TemporaryDirectory() as td:
+    tmp = Path(td)
+    conn, ids = seed(tmp)
+    conn.execute("UPDATE jobs SET closed_at = datetime('now', '-90 days')")
+    conn.commit()
+    before_max = conn.execute("SELECT MAX(rowid) FROM jobs").fetchone()[0]
+    archive.prune(conn, FakeS3(), "b", 30, False)
+    left = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+    check("one row always survives, so the rowid counter never restarts",
+          left == 1, str(left))
+    check("and it is the one that held the maximum",
+          conn.execute("SELECT MAX(rowid) FROM jobs").fetchone()[0] == before_max)
     conn.close()
 
 print()

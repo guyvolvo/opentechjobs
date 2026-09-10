@@ -49,12 +49,24 @@ def rebuild(conn: sqlite3.Connection, bucket: str, log=print, s3=None) -> dict:
     """Returns a summary. Raises only if the swap itself fails, which is
     the one point where the old index is already gone.
     """
-    if already_supported(conn):
-        return {"skipped": "jobs_fts already supports contentless_delete"}
     if not bucket:
         return {"skipped": "no bucket configured"}
-    if sqlite3.sqlite_version_info < (3, 43):
-        return {"skipped": f"sqlite {sqlite3.sqlite_version} predates contentless_delete"}
+
+    # Two jobs, and only one of them needs a modern SQLite.
+    #
+    # Where contentless_delete is available the rebuilt table gets it,
+    # and pruning can drop an entry outright from then on. Where it is
+    # not (the Lambda runtime ships 3.40), the rebuild still earns its
+    # keep: archive.py retires listings whose index entries it cannot
+    # remove, and those entries pile up at about 2.9KB each. Rebuilding
+    # from the live rows is what clears them.
+    supported = sqlite3.sqlite_version_info >= (3, 43)
+    options = "content='', contentless_delete=1" if supported else "content=''"
+    orphans = conn.execute(
+        "SELECT COUNT(*) FROM jobs_fts_docsize WHERE id NOT IN (SELECT rowid FROM jobs)"
+    ).fetchone()[0]
+    if already_supported(conn) and not orphans:
+        return {"skipped": "index already supports deletion and carries no orphans"}
 
     if s3 is None:
         import boto3
@@ -62,8 +74,7 @@ def rebuild(conn: sqlite3.Connection, bucket: str, log=print, s3=None) -> dict:
         s3 = boto3.client("s3")
 
     conn.execute("DROP TABLE IF EXISTS jobs_fts_rebuild")
-    conn.execute("CREATE VIRTUAL TABLE jobs_fts_rebuild USING fts5("
-                 "description, content='', contentless_delete=1)")
+    conn.execute(f"CREATE VIRTUAL TABLE jobs_fts_rebuild USING fts5(description, {options})")
 
     # description_sha is the marker that a blob was ever written for this
     # listing. Rows without one never had a description to index.
@@ -88,8 +99,10 @@ def rebuild(conn: sqlite3.Connection, bucket: str, log=print, s3=None) -> dict:
     # The only irreversible moment. Everything above can fail harmlessly.
     conn.execute("DROP TABLE jobs_fts")
     conn.execute("ALTER TABLE jobs_fts_rebuild RENAME TO jobs_fts")
-    log(f"search index rebuilt: {indexed:,} indexed, {missing:,} with no blob to read")
-    return {"indexed": indexed, "missing_blobs": missing, "targets": len(targets)}
+    log(f"search index rebuilt: {indexed:,} indexed, {missing:,} with no blob to read, "
+        f"{orphans:,} stale entries cleared, deletable={supported}")
+    return {"indexed": indexed, "missing_blobs": missing, "targets": len(targets),
+            "orphans_cleared": orphans, "supports_delete": supported}
 
 
 if __name__ == "__main__":
