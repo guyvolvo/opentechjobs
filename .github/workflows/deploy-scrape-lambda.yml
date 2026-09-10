@@ -85,7 +85,7 @@ jobs:
         run: |
           mkdir -p maintenance/loader maintenance/db
           cp scrape_maintenance_handler.py sharding.py maintenance/
-          cp loader/load_to_sqlite.py loader/merge_partitions.py loader/bootstrap.py loader/descriptions.py loader/deltas.py loader/precompute.py loader/archive.py maintenance/loader/
+          cp loader/load_to_sqlite.py loader/merge_partitions.py loader/bootstrap.py loader/descriptions.py loader/deltas.py loader/precompute.py loader/archive.py loader/rebuild_fts.py maintenance/loader/
           # bootstrap.py needs FRESH_CLAUSE and category_of() so its
           # first page matches what /api/jobs would return exactly.
           cp api/job_filters.py maintenance/

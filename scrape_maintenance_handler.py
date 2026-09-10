@@ -117,7 +117,64 @@ def _publish_bootstrap(s3) -> None:
         print(f"bootstrap publish failed (non-fatal, site falls back to the API): {e!r}")
 
 
+def _rebuild_search_index(s3) -> dict:
+    """One-shot: recreate jobs_fts so retiring a listing can also remove
+    its terms. See loader/rebuild_fts.py for why that is not possible on
+    the table this snapshot currently carries.
+
+    Runs on its own rather than alongside a delta apply. It reads back
+    every description from S3, which takes minutes, and pending fragments
+    are better left for the next ordinary cycle than dragged through a
+    long-running invocation.
+
+    The conditional push is what makes this safe to run against a live
+    5-minute pipeline: if an ordinary apply lands first, this loses the
+    race and changes nothing, and can simply be run again.
+    """
+    import sqlite3
+
+    from load_to_sqlite import s3_pull, s3_push_conditional
+    import rebuild_fts
+
+    snapshot = TMP / "jobs-read.db"
+    if snapshot.exists():
+        snapshot.unlink()
+    existed, etag = s3_pull(BUCKET, "jobs-read.db", snapshot)
+    if not existed:
+        return {"ok": False, "error": "no snapshot to rebuild"}
+
+    _write_status(s3, "rebuilding index", "re-indexing descriptions from S3")
+    conn = sqlite3.connect(snapshot)
+    conn.row_factory = sqlite3.Row
+    try:
+        result = rebuild_fts.rebuild(conn, BUCKET)
+        conn.commit()
+        # The old index's pages are now free, and this file gets pushed
+        # whole every five minutes, so reclaiming them is worth the once.
+        conn.execute("VACUUM")
+    finally:
+        conn.close()
+
+    if result.get("skipped"):
+        print(f"nothing to do: {result['skipped']}")
+        _write_status(s3, "idle", "search index already supports row deletion")
+        return {"ok": True, **result}
+
+    if not s3_push_conditional(BUCKET, "jobs-read.db", snapshot, etag):
+        _write_status(s3, "idle", "index rebuild lost a write race, safe to retry")
+        return {"ok": False, "error": "snapshot changed during rebuild, nothing written"}
+
+    print(f"search index rebuilt: {json.dumps(result, default=str)}")
+    _write_status(s3, "idle", f"search index rebuilt over {result.get('indexed', 0)} listings")
+    return {"ok": True, **result}
+
+
 def lambda_handler(event, context):
+    # Manual, one-shot, and deliberately not on any schedule:
+    #   aws lambda invoke --function-name iljobs-scrape-maintenance     #     --payload '{"rebuild_fts": true}' out.json
+    if (event or {}).get("rebuild_fts"):
+        return _rebuild_search_index(boto3.client("s3"))
+
     """Apply pending delta fragments to the live snapshot.
 
     Was a merge of every jobs-partition-*.db into a fresh jobs-read.db.
