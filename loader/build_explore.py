@@ -88,6 +88,19 @@ CREATE TABLE companies (
   open_jobs  INTEGER NOT NULL DEFAULT 0
 );
 
+-- Distinct values per filterable field over open listings, with
+-- counts. The builder's pickers read this, one tiny indexed query
+-- each, instead of grouping 111,000 rows per field on every page load.
+-- Reported live: the page sat with blank controls for as long as it
+-- took seven such scans to pull most of the file through range
+-- requests on a cold cache.
+CREATE TABLE facets (
+  field TEXT NOT NULL,
+  value TEXT NOT NULL,
+  label TEXT,               -- companies: the display name; else NULL
+  n     INTEGER NOT NULL
+);
+
 -- One row. What the page shows as "data as of".
 CREATE TABLE meta (
   key   TEXT PRIMARY KEY,
@@ -96,6 +109,24 @@ CREATE TABLE meta (
 """
 
 INDEXES = [
+    # Partial covering indexes over open listings, one per column the
+    # builder groups by. "WHERE closed_at IS NULL GROUP BY category" is
+    # the shape of nearly every question the page asks, and without
+    # these SQLite walks the closed_at index to 111,000 rowids and then
+    # fetches each row for its category, which through range requests
+    # is the whole table. With them the query is a scan of a small
+    # index and nothing else is touched. closed_at rides along in each
+    # (always NULL, so nearly free) because the planner only calls an
+    # index covering when every column the query names is in it, and
+    # the WHERE names closed_at.
+    "CREATE INDEX ix_open_category ON jobs(category, closed_at) WHERE closed_at IS NULL",
+    "CREATE INDEX ix_open_seniority ON jobs(seniority, closed_at) WHERE closed_at IS NULL",
+    "CREATE INDEX ix_open_workplace ON jobs(workplace, closed_at) WHERE closed_at IS NULL",
+    "CREATE INDEX ix_open_ats ON jobs(ats, closed_at) WHERE closed_at IS NULL",
+    "CREATE INDEX ix_open_salary_source ON jobs(salary_source, closed_at) WHERE closed_at IS NULL",
+    "CREATE INDEX ix_open_company ON jobs(company, closed_at) WHERE closed_at IS NULL",
+    "CREATE INDEX ix_open_first_seen ON jobs(first_seen, closed_at) WHERE closed_at IS NULL",
+    "CREATE INDEX ix_facets_field ON facets(field, n DESC)",
     "CREATE INDEX ix_jobs_company ON jobs(company)",
     "CREATE INDEX ix_jobs_category ON jobs(category)",
     "CREATE INDEX ix_jobs_seniority ON jobs(seniority)",
@@ -163,6 +194,26 @@ def build(snapshot: Path, out: Path) -> dict:
             "SELECT company, COUNT(*) FROM jobs WHERE closed_at IS NULL GROUP BY company")],
     )
 
+    # The pickers' values. Computed once here, where it is one grouped
+    # pass over a local file, rather than on every page load.
+    for field in ("category", "seniority", "workplace", "ats", "salary_source"):
+        dst.execute(
+            f"""INSERT INTO facets (field, value, label, n)
+                SELECT ?, {field}, NULL, COUNT(*) FROM jobs
+                WHERE closed_at IS NULL AND {field} IS NOT NULL GROUP BY {field}""",
+            (field,),
+        )
+    dst.execute(
+        """INSERT INTO facets (field, value, label, n)
+           SELECT 'skill', s.skill, NULL, COUNT(*) FROM job_skills s
+           JOIN jobs j ON j.id = s.job_id WHERE j.closed_at IS NULL GROUP BY s.skill"""
+    )
+    dst.execute(
+        """INSERT INTO facets (field, value, label, n)
+           SELECT 'company', domain, COALESCE(name, domain), open_jobs
+           FROM companies WHERE open_jobs > 0"""
+    )
+
     open_jobs = sum(1 for r in job_rows if r[15] is None)
     meta = {
         "built_at": now.isoformat(),
@@ -174,6 +225,13 @@ def build(snapshot: Path, out: Path) -> dict:
     }
     dst.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
     dst.commit()
+    # Without statistics the planner guesses that "closed_at IS NULL"
+    # matches a handful of rows, seeks the plain closed_at index, and
+    # then walks the table for every one of the 111,000 it actually
+    # matches. With them it knows better and scans the partial covering
+    # index instead. The stat table travels inside the file, so the
+    # browser's planner sees the same numbers.
+    dst.execute("ANALYZE")
     dst.execute("VACUUM")
     dst.close()
     src.close()

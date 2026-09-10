@@ -178,12 +178,36 @@ async function openDatabase() {
   $("explore-note").textContent = `The file covers every verified listing seen since ${meta.corpus_since || "1 September 2026"} and is rebuilt every hour. `
     + `Your queries fetch only what they touch; a page load may read up to ${fmtBytes(MAX_BYTES)} before it stops itself.`;
 
-  // The pickers' options come from the data, not a hard-coded list, so a
-  // new ATS or category shows up on its own. Each is one indexed query.
-  const cols = { category: "category", seniority: "seniority", workplace: "workplace", ats: "ats", salary_source: "salary_source" };
-  for (const [field, col] of Object.entries(cols)) {
+}
+
+// The pickers' options come from the data, so a new ATS or category
+// shows up on its own. They are read from the facets table the builder
+// precomputes: one small indexed query for everything, not one GROUP BY
+// over 111,000 rows per field. Reported live: the page sat with blank
+// controls until seven such scans had pulled most of the file through
+// range requests on a cold cache, and toggling modes in the meantime
+// read the empty controls back into state.
+//
+// This runs after the builder is on screen, and each multi-select picks
+// its options up when it is next rendered. A file built before the
+// facets table existed falls back to the scans, which is slow but
+// correct, and only for the hour until the next build.
+async function loadPickerValues() {
+  const label = (field, v, name) => `${name || (LABELS[field] || {})[v] || v}`;
+  try {
+    const r = await worker.db.exec("SELECT field, value, label, n FROM facets ORDER BY field, n DESC");
+    const by = {};
+    for (const [field, v, name, n] of r[0]?.values || []) {
+      (by[field] ||= []).push({ value: v, label: `${label(field, v, name)} (${fmtInt(n)})` });
+    }
+    if (Object.keys(by).length) { pickerValues = by; return; }
+  } catch {
+    // No facets table in this build of the file. Fall through.
+  }
+  const cols = ["category", "seniority", "workplace", "ats", "salary_source"];
+  for (const col of cols) {
     const r = await worker.db.exec(`SELECT ${col}, COUNT(*) n FROM jobs WHERE closed_at IS NULL AND ${col} IS NOT NULL GROUP BY 1 ORDER BY n DESC`);
-    pickerValues[field] = (r[0]?.values || []).map(([v, n]) => ({ value: v, label: `${(LABELS[field] || {})[v] || v} (${fmtInt(n)})` }));
+    pickerValues[col] = (r[0]?.values || []).map(([v, n]) => ({ value: v, label: `${label(col, v)} (${fmtInt(n)})` }));
   }
   const sk = await worker.db.exec("SELECT skill, COUNT(*) n FROM job_skills GROUP BY 1 ORDER BY n DESC");
   pickerValues.skill = (sk[0]?.values || []).map(([v, n]) => ({ value: v, label: `${v} (${fmtInt(n)})` }));
@@ -244,10 +268,13 @@ function syncSqlFromBuilder() {
 }
 
 function readBuilder() {
-  state.status = $("qb-status").value;
-  state.group = $("qb-group").value;
-  state.metric = $("qb-metric").value;
-  state.limit = parseInt($("qb-limit").value, 10) || 25;
+  // A control with no options yet has value "", and copying that into
+  // state would replace a real default with nothing. Keep what we had.
+  const pick = (id, current) => $(id).value || current;
+  state.status = pick("qb-status", state.status);
+  state.group = pick("qb-group", state.group);
+  state.metric = pick("qb-metric", state.metric);
+  state.limit = parseInt($("qb-limit").value, 10) || state.limit || 25;
   $("qb-filters").querySelectorAll("input.qb-input").forEach((inp) => {
     const f = state.filters[Number(inp.dataset.i)];
     if (f) f[inp.dataset.k] = inp.value;
@@ -513,7 +540,11 @@ async function boot() {
     if (!fromUrl) { state = Object.assign(QB.defaultState(), JSON.parse(JSON.stringify(TEMPLATES[0].state))); document.querySelector(".explore-template").classList.add("active"); }
     setMode("builder");
   }
-  run();
+  // The first answer first. Picker values load behind it and any
+  // multi-select already on screen picks them up on its next render.
+  await run();
+  await loadPickerValues();
+  if (mode === "builder") renderFilters();
 }
 
 boot();

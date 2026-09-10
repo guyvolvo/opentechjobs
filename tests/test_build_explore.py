@@ -101,6 +101,24 @@ with tempfile.TemporaryDirectory() as td:
     check("companies.open_jobs counts open listings only",
           e.execute("SELECT open_jobs FROM companies WHERE domain='acme.com'").fetchone()[0] == 2)
 
+    # The pickers' values, precomputed. One field's worth is enough to
+    # prove the shape; the counts have to agree with the rows they
+    # summarise, or a picker would advertise listings a filter cannot find.
+    facets = {(r["field"], r["value"]): r["n"] for r in e.execute("SELECT field, value, n FROM facets")}
+    check("facets carry the open listings' seniorities with counts",
+          facets.get(("seniority", "senior")) == 1 and facets.get(("seniority", "mid")) == 1, str(facets))
+    check("a closed listing is not in the facets",
+          ("seniority", None) not in facets and sum(n for (f, _), n in facets.items() if f == "seniority") == 2, str(facets))
+    check("skills are faceted from open listings only",
+          facets.get(("skill", "python")) == 2 and facets.get(("skill", "sql")) == 1, str(facets))
+    check("companies are faceted with their display name",
+          e.execute("SELECT label, n FROM facets WHERE field='company'").fetchone() is not None)
+    # The builder's default question must be answerable from an index alone.
+    plan = " ".join(r[3] for r in e.execute(
+        "EXPLAIN QUERY PLAN SELECT category, COUNT(*) FROM jobs WHERE closed_at IS NULL GROUP BY 1"))
+    check("an open-listings group-by is a covering index scan, not a table walk",
+          "ix_open_category" in plan and "USING COVERING INDEX" in plan, plan)
+
     # And the page can say what it is looking at.
     meta = dict(e.execute("SELECT key, value FROM meta").fetchall())
     check("meta records when and how much", "built_at" in meta and meta["jobs"] == "3", str(meta))
