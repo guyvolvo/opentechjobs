@@ -15,9 +15,16 @@
 
 "use strict";
 
+// Absolute from the site root, all three, and it matters for the last
+// one: the worker resolves the wasm path relative to ITS location, not
+// the page's, so a page-relative "vendor/httpvfs/sql-wasm.wasm" became
+// /vendor/httpvfs/vendor/httpvfs/sql-wasm.wasm and the browser tried to
+// instantiate an S3 404 document as WebAssembly. Reported live as
+// "expected magic word 00 61 73 6d, found 3c 3f 78 6d", which is
+// "<?xm". The library's own README uses absolute URLs for this reason.
 const DB_URL = "/explore.db";
-const WORKER_URL = "vendor/httpvfs/sqlite.worker.js";
-const WASM_URL = "vendor/httpvfs/sql-wasm.wasm";
+const WORKER_URL = "/vendor/httpvfs/sqlite.worker.js";
+const WASM_URL = "/vendor/httpvfs/sql-wasm.wasm";
 const CHUNK_SIZE = 4096;       // matches PAGE_SIZE in the builder
 const MAX_BYTES = 256 * 1024 * 1024;  // per page load, then the worker refuses
 const MAX_ROWS = 2000;         // painted, not computed
