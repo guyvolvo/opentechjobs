@@ -26,7 +26,7 @@ archive would recreate the exact problem this is here to solve.
 import gzip
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 PREFIX = "archive/closed/"
 MARKER_KEY = "archive/last-prune.json"
@@ -65,6 +65,23 @@ def due(s3, bucket: str) -> bool:
     return hours >= MIN_HOURS_BETWEEN_RUNS
 
 
+def _mark(s3, bucket: str, archived: int, objects: list) -> None:
+    """Record that a prune ran, whether or not it took anything.
+
+    The marker only paces this. Losing it means running again sooner
+    than needed, which is a wasted scan rather than a wrong answer.
+    """
+    try:
+        s3.put_object(
+            Bucket=bucket, Key=MARKER_KEY,
+            Body=json.dumps({"ran_at": datetime.now(timezone.utc).isoformat(),
+                             "archived": archived, "objects": objects}).encode("utf-8"),
+            ContentType="application/json",
+        )
+    except Exception as e:
+        print(f"couldn't write the prune marker (non-fatal): {e!r}", file=sys.stderr)
+
+
 def prune(conn, s3, bucket: str, retain_days: int = RETAIN_DAYS,
           fts_rowid_delete: bool = True) -> dict:
     """Archive and remove listings closed longer than retain_days ago.
@@ -95,14 +112,26 @@ def prune(conn, s3, bucket: str, retain_days: int = RETAIN_DAYS,
     #
     # The maximum row is the most recently inserted listing, which is
     # open by definition, so this excludes nothing a prune would want.
+    # A string comparison against a precomputed cutoff, not julianday()
+    # per row. closed_at is ISO 8601, which sorts lexicographically, so
+    # this can use idx_jobs_closed_at instead of computing a Julian day
+    # for all 143,000 rows on every single apply.
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=retain_days)).isoformat()
+    ceiling = conn.execute("SELECT MAX(rowid) FROM jobs").fetchone()[0] or 0
     rows = conn.execute(
         f"""SELECT rowid, {_COLUMNS} FROM jobs
             WHERE closed_at IS NOT NULL
-              AND julianday('now') - julianday(closed_at) > ?
-              AND rowid < (SELECT MAX(rowid) FROM jobs)""",
-        (retain_days,),
+              AND closed_at < ?
+              AND rowid < ?""",
+        (cutoff, ceiling),
     ).fetchall()
     if not rows:
+        # Record that the check happened. Without this the marker is
+        # never written until something is actually archived, so due()
+        # stays true and the scan above runs on every apply rather than
+        # once a day. Measured: it took the applier from 17s to 35s, on
+        # runs handling nine changed companies.
+        _mark(s3, bucket, 0, [])
         return {"archived": 0, "objects": 0, "orphaned_index_rows": 0}
 
     # Grouped by the month a listing closed in, so the archive is
@@ -141,17 +170,7 @@ def prune(conn, s3, bucket: str, retain_days: int = RETAIN_DAYS,
             conn.execute(f"DELETE FROM jobs_fts WHERE rowid IN ({marks})", chunk)
         conn.execute(f"DELETE FROM jobs WHERE rowid IN ({marks})", chunk)
 
-    try:
-        s3.put_object(
-            Bucket=bucket, Key=MARKER_KEY,
-            Body=json.dumps({"ran_at": datetime.now(timezone.utc).isoformat(),
-                             "archived": len(rows), "objects": written}).encode("utf-8"),
-            ContentType="application/json",
-        )
-    except Exception as e:
-        # The marker only paces this. Losing it means running again
-        # sooner than needed, which finds nothing and writes nothing.
-        print(f"couldn't write the prune marker (non-fatal): {e!r}", file=sys.stderr)
+    _mark(s3, bucket, len(rows), written)
 
     # Entries the runtime could not remove. Inert, but they accumulate at
     # roughly 2.9KB each, so rebuild_fts.py exists to clear them.

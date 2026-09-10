@@ -121,6 +121,18 @@ with tempfile.TemporaryDirectory() as td:
     check("a fresh marker holds the next run off", archive.due(s3, "b") is False)
     check("a missing marker does not", archive.due(FakeS3(), "b") is True)
 
+    # The regression that cost the applier 18 seconds on every run: a
+    # prune that found nothing skipped the marker, so due() stayed true
+    # and the full scan repeated every five minutes instead of daily.
+    empty = FakeS3()
+    conn2, _ = seed(tmp / "nowt" if (tmp / "nowt").mkdir() or True else tmp)
+    conn2.execute("UPDATE jobs SET closed_at = NULL")
+    conn2.commit()
+    result = archive.prune(conn2, empty, "b", 30, True)
+    check("a prune that finds nothing still records that it ran",
+          result["archived"] == 0 and archive.due(empty, "b") is False, str(result))
+    conn2.close()
+
     # Idempotent: nothing left to take.
     again = archive.prune(conn, s3, "b", 30, True)
     check("a second pass finds nothing and writes nothing",
