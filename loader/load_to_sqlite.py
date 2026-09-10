@@ -936,6 +936,29 @@ def export_known(conn: sqlite3.Connection, path: Path) -> int:
     return len(known)
 
 
+# Freed pages are reused by later writes, so a file full of them stops
+# growing but never shrinks, and we upload every byte of it every five
+# minutes. This is the escape hatch for callers that skip VACUUM on
+# principle: they still skip it in the ordinary case, and stop skipping
+# it once the file is mostly holes.
+#
+# It exists because dropping the duplicated description column freed
+# about half the snapshot in one pass and nothing on the frequent path
+# would ever have reclaimed it.
+VACUUM_FREE_RATIO = 0.2
+
+
+def _mostly_free_pages(conn: sqlite3.Connection) -> bool:
+    total = conn.execute("PRAGMA page_count").fetchone()[0]
+    if not total:
+        return False
+    free = conn.execute("PRAGMA freelist_count").fetchone()[0]
+    if free / total <= VACUUM_FREE_RATIO:
+        return False
+    print(f"{free:,}/{total:,} pages free: vacuuming despite --skip-vacuum", file=sys.stderr)
+    return True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--resolved", required=True, type=Path,
@@ -1008,7 +1031,7 @@ def main() -> int:
 
         known_out = args.known_out or args.out.with_name("known.json")
         n_known = None if args.skip_known else export_known(conn, known_out)
-        if not args.skip_vacuum:
+        if not args.skip_vacuum or _mostly_free_pages(conn):
             conn.execute("VACUUM")
         conn.close()
 
