@@ -124,11 +124,34 @@ with tempfile.TemporaryDirectory() as td:
     # Idempotent: nothing left to take.
     again = archive.prune(conn, s3, "b", 30, True)
     check("a second pass finds nothing and writes nothing",
-          again == {"archived": 0, "objects": 0}, str(again))
+          again["archived"] == 0 and again["objects"] == 0, str(again))
 
-    # A snapshot whose FTS cannot delete by rowid must still prune rows.
-    check("rows still go when the FTS index cannot drop them",
-          archive.prune(conn, s3, "b", 0, False)["archived"] > 0)
+    conn.close()
+
+# A snapshot whose FTS table predates contentless_delete cannot drop an
+# index entry by rowid. Retiring the job row anyway would leave its terms
+# behind, and a later insert reusing that rowid would inherit them and
+# become findable by words it does not contain. So those rows stay.
+with tempfile.TemporaryDirectory() as td:
+    tmp = Path(td)
+    conn, ids = seed(tmp)
+    indexed = {r[0] for r in conn.execute("SELECT id FROM jobs WHERE rowid IN (SELECT id FROM jobs_fts_docsize)")}
+    check("the fixture actually has indexed rows to protect", len(indexed) > 0, str(len(indexed)))
+
+    s3 = FakeS3()
+    result = archive.prune(conn, s3, "b", 30, False)
+    check("indexed rows are held back rather than orphaning their terms",
+          result["held_back_indexed"] == 2, str(result))
+    check("and are still in the snapshot",
+          conn.execute("SELECT COUNT(*) FROM jobs WHERE closed_at IS NOT NULL "
+                       "AND julianday('now')-julianday(closed_at) > 30").fetchone()[0] == 2)
+    check("nothing was archived either, so they are not recorded as gone",
+          result["archived"] == 0, str(result))
+
+    # The same rows go once the index can drop them.
+    result = archive.prune(conn, FakeS3(), "b", 30, True)
+    check("they are retired the moment the index supports it",
+          result["archived"] == 2, str(result))
     conn.close()
 
 print()
