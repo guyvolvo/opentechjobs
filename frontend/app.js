@@ -419,16 +419,15 @@ function setLastCheckedAt(iso) {
   if (lastCheckedAt === null || t > lastCheckedAt) lastCheckedAt = t;
 }
 
-// Partition & Merge (2026-09-08): stats.meta.last_loaded -- when
-// jobs-read.db was last actually rebuilt (scrape-maintenance's hourly
-// merge, see loader/merge_partitions.py), NOT when any one company was
-// last re-polled. Used for the sync countdown specifically (see
-// nextSyncText below); lastCheckedAt above stays what it was for the
-// LIVE/OFFLINE freshness read itself. Only set from /stats -- /health
-// doesn't carry this field, and the 60-minute cycle this predicts
-// doesn't need better than the existing 2-min /stats poll's own
-// resolution to stay meaningful (unlike the old 5-minute cycle, where a
-// stale /health sample was a real fraction of the whole interval).
+// stats.meta.last_loaded: when jobs-read.db last took a write, NOT when
+// any one company was last re-polled. Used for the sync countdown
+// specifically (see nextSyncText below); lastCheckedAt above stays what
+// it was for the LIVE/OFFLINE freshness read itself. Only set from
+// /stats, since /health doesn't carry this field.
+//
+// The /stats poll runs every 2 minutes against a 5-minute write cycle,
+// so this sample can be most of a cycle behind on its own. That is why
+// nextSyncText clamps below rather than trusting the arithmetic.
 let lastLoadedAt = null;
 function setLastLoadedAt(iso) {
   if (!iso) return;
@@ -436,31 +435,32 @@ function setLastLoadedAt(iso) {
   if (lastLoadedAt === null || t > lastLoadedAt) lastLoadedAt = t;
 }
 
-// Partition & Merge (2026-09-08): jobs-read.db, what the API actually
-// reads, is now rebuilt by an hourly merge (scrape-maintenance-schedule,
-// infra/scrape_maintenance_lambda.tf) instead of being written directly
-// by the 5-minute fast-poll -- see loader/merge_partitions.py's own
-// docstring for the full "why." lastLoadedAt + 60m is a close read on
-// when the next merge should land. Not a guarantee, same caveat as
-// before: a slow or skipped cycle pushes the real next update later.
-const SYNC_INTERVAL_MINUTES = 60;
+// How often jobs-read.db, what the API actually reads, takes a write.
+// Matches scrape-maintenance-schedule in infra/scrape_maintenance_lambda.tf.
+// Change one and change the other.
+//
+// This was 60 for the Partition & Merge era, when the snapshot was
+// rebuilt whole by an hourly merge. Delta fragments replaced that: the
+// maintenance Lambda now replays only the companies that changed, every
+// 5 minutes, so a full rebuild never happens and the hour it waited for
+// never comes. Reported live, and the arithmetic was the giveaway: the
+// card read "4M old" next to "next sync: 56:10", which is the site
+// promising to update an hour after it already had.
+const SYNC_INTERVAL_MINUTES = 5;
 
 // Shared by the topbar status dot/text and the API Status card: past
 // this, both flip from LIVE (green) to OFFLINE (red) together.
 //
-// Was 8 (1.6x a 5-minute cycle), calibrated for when the fast-poll wrote
-// jobs.db directly and lastCheckedAt tracked that same cadence. Reported
-// live (2026-09-08), the same day Partition & Merge shipped: lastCheckedAt
-// is now a snapshot frozen at the last hourly merge, not a live-updating
-// value, so it grows toward ~60 minutes stale between merges under
-// completely healthy operation -- the old 8-minute threshold meant this
-// showed OFFLINE for roughly 50 of every 60 minutes, looking broken to
-// every real visitor regardless of actual system health. 75 (1.25x the
-// new 60-minute cycle -- less slack than the old 1.6x multiplier, since
-// the merge itself only takes ~40-50s: real generous margin for one
-// slow/skipped cycle without also hiding a genuinely stuck pipeline for
-// almost two full cycles).
-const FRESH_THRESHOLD_MINUTES = 75;
+// This tracked the write cycle up to 75 while the merge was hourly. It
+// has to come down with it, or the site claims LIVE through fifteen
+// consecutive missed cycles, which is most of a morning of stale data
+// wearing a green light.
+//
+// 20 is four cycles rather than the 1.25x the hourly threshold used,
+// because at five minutes a single slow cycle is a much larger share of
+// the budget and the countdown poll itself is 2 minutes wide. Anything
+// tighter flaps on ordinary jitter.
+const FRESH_THRESHOLD_MINUTES = 20;
 
 // The number here is MAX(companies.last_checked) from the current
 // snapshot, so it answers "how old is the freshest listing data I'm
@@ -469,8 +469,9 @@ const FRESH_THRESHOLD_MINUTES = 75;
 // present the first as if it were the second: a heading of "API Status"
 // over "29M AGO" reads as the API having been unreachable for half an
 // hour, which is alarming and wrong, since the API answers in
-// milliseconds and the figure is really bounded by the hourly merge.
-// Reported live, asking whether the sync was actually hourly. It was.
+// milliseconds and the figure is really bounded by the write cycle.
+// Reported live, asking whether the sync cadence was what the card
+// implied. It was not, and it has been wrong in this spot twice since.
 function apiStatusFields() {
   const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
   const fresh = (minutesSince ?? 9999) <= FRESH_THRESHOLD_MINUTES;
@@ -499,14 +500,29 @@ function nextSyncText() {
     return merge.detail ? `${merge.phase}: ${merge.detail}` : merge.phase;
   }
   // lastLoadedAt (meta.last_loaded), not lastCheckedAt: this predicts the
-  // next jobs-read.db REBUILD, which only happens on the hourly merge --
-  // see lastLoadedAt's own comment above for why lastCheckedAt (frozen
-  // at whatever company was freshest AS OF that same last merge) isn't
-  // the right anchor for this specific countdown anymore.
+  // next write to jobs-read.db, which is what actually changes the data
+  // a visitor sees. lastCheckedAt answers a different question, how old
+  // the freshest listing in the snapshot is, and the two drift apart
+  // whenever a sweep finds nothing worth writing.
   if (lastLoadedAt === null) return null;
-  const remainingMs = lastLoadedAt + SYNC_INTERVAL_MINUTES * 60_000 - Date.now();
-  if (remainingMs <= 0) return "next sync: syncing";
-  const totalSeconds = Math.floor(remainingMs / 1000);
+  const intervalMs = SYNC_INTERVAL_MINUTES * 60_000;
+  // Math.max guards a client clock running ahead of the server's, where
+  // a negative elapsed would send the modulo below negative too.
+  const elapsedMs = Math.max(0, Date.now() - lastLoadedAt);
+  // Past the freshness threshold the pipeline is not keeping its
+  // schedule, so there is no honest next cycle to name. The card reads
+  // OFFLINE by then, and this would be the one line left on it still
+  // promising an update.
+  if (elapsedMs > FRESH_THRESHOLD_MINUTES * 60_000) return null;
+  // Modulo rather than one subtraction. lastLoadedAt arrives from a
+  // 2-minute poll of a 60-second-cached endpoint, measured against a
+  // 5-minute cycle, so it is routinely a whole cycle behind. Subtracting
+  // once goes negative and parks on "syncing" for minutes at a stretch,
+  // which is a different piece of wrong information in the same spot.
+  // Rolling forward keeps the estimate inside one interval, which is all
+  // it ever claimed to be.
+  const remainingMs = intervalMs - (elapsedMs % intervalMs);
+  const totalSeconds = Math.round(remainingMs / 1000);
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `next sync: ${m}:${String(s).padStart(2, "0")}`;
