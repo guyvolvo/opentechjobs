@@ -126,13 +126,27 @@ INDEXES = [
     "CREATE INDEX ix_open_salary_source ON jobs(salary_source, closed_at) WHERE closed_at IS NULL",
     "CREATE INDEX ix_open_company ON jobs(company, closed_at) WHERE closed_at IS NULL",
     "CREATE INDEX ix_open_first_seen ON jobs(first_seen, closed_at) WHERE closed_at IS NULL",
+    # The closed half, the same way, with days_open along for the ride
+    # so "days open before closing, by category" is covered too.
+    "CREATE INDEX ix_closed_category ON jobs(category, closed_at, days_open) WHERE closed_at IS NOT NULL",
+    "CREATE INDEX ix_closed_seniority ON jobs(seniority, closed_at, days_open) WHERE closed_at IS NOT NULL",
+    "CREATE INDEX ix_closed_workplace ON jobs(workplace, closed_at, days_open) WHERE closed_at IS NOT NULL",
+    "CREATE INDEX ix_closed_ats ON jobs(ats, closed_at, days_open) WHERE closed_at IS NOT NULL",
+    "CREATE INDEX ix_closed_salary_source ON jobs(salary_source, closed_at, days_open) WHERE closed_at IS NOT NULL",
+    "CREATE INDEX ix_closed_company ON jobs(company, closed_at, days_open) WHERE closed_at IS NOT NULL",
+    "CREATE INDEX ix_closed_first_seen ON jobs(first_seen, closed_at, days_open) WHERE closed_at IS NOT NULL",
     "CREATE INDEX ix_facets_field ON facets(field, n DESC)",
     "CREATE INDEX ix_jobs_company ON jobs(company)",
     "CREATE INDEX ix_jobs_category ON jobs(category)",
     "CREATE INDEX ix_jobs_seniority ON jobs(seniority)",
     "CREATE INDEX ix_jobs_workplace ON jobs(workplace)",
     "CREATE INDEX ix_jobs_ats ON jobs(ats)",
-    "CREATE INDEX ix_jobs_closed ON jobs(closed_at)",
+    # Deliberately not a plain index on closed_at. With one, the
+    # planner's statistics (an average over mostly-distinct timestamps)
+    # tell it "closed_at = NULL" matches five rows, so it seeks that
+    # index and walks the table for the 111,000 it really matches,
+    # ignoring the covering indexes above. Without it, they win.
+    "CREATE INDEX ix_jobs_closed ON jobs(closed_at) WHERE closed_at IS NOT NULL",
     "CREATE INDEX ix_jobs_first_seen ON jobs(first_seen)",
     "CREATE INDEX ix_jobs_salary_source ON jobs(salary_source)",
     "CREATE INDEX ix_skills_skill ON job_skills(skill)",

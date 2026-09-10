@@ -118,6 +118,10 @@ with tempfile.TemporaryDirectory() as td:
         "EXPLAIN QUERY PLAN SELECT category, COUNT(*) FROM jobs WHERE closed_at IS NULL GROUP BY 1"))
     check("an open-listings group-by is a covering index scan, not a table walk",
           "ix_open_category" in plan and "USING COVERING INDEX" in plan, plan)
+    plan = " ".join(r[3] for r in e.execute(
+        "EXPLAIN QUERY PLAN SELECT category, AVG(days_open) FROM jobs WHERE closed_at IS NOT NULL GROUP BY 1"))
+    check("a closed-listings average is covered as well",
+          "ix_closed_category" in plan and "USING COVERING INDEX" in plan, plan)
 
     # And the page can say what it is looking at.
     meta = dict(e.execute("SELECT key, value FROM meta").fetchall())
