@@ -40,7 +40,11 @@ check("'all' status adds no WHERE on closed_at", !/closed_at/.test(sql({ status:
 
 // Every group, including the ones that need a join.
 for (const group of Object.keys(QB.GROUPS)) sql({ group });
-check("grouping by skill joins job_skills", /JOIN job_skills s/.test(sql({ group: "skill" })));
+check("grouping by skill reads job_skills on its own", /FROM job_skills j/.test(sql({ group: "skill" })) && !/JOIN/.test(sql({ group: "skill" })), sql({ group: "skill" }));
+q = sql({ group: "skill", filters: [{ field: "seniority", values: ["senior"] }, { field: "skill", values: ["python"] }] });
+check("its filters read the copied columns and the EXISTS keys on the rowid", /j\.seniority IN/.test(q) && /x\.job_rowid = j\.job_rowid/.test(q) && !/FROM jobs/.test(q.split("share")[0].replace(/\(SELECT COUNT[^)]*\)/, "")), q);
+q = sql({ group: "skill", filters: [{ field: "title", text: "backend" }] });
+check("a text filter on a skill question brings the jobs table back", /FROM jobs j/.test(q) && /JOIN job_skills s/.test(q) && /s\.skill AS skill/.test(q), q);
 check("grouping by company joins companies for the name", /LEFT JOIN companies c/.test(sql({ group: "company" })) && /COALESCE\(c\.name, j\.company\)/.test(sql({ group: "company" })));
 check("time groups order chronologically, not by count", /ORDER BY day ASC/.test(sql({ group: "day" })));
 
@@ -53,13 +57,14 @@ check("share divides by the same status, not the filtered set", /\(SELECT COUNT\
 // Row mode.
 q = sql({ group: "none", filters: [{ field: "seniority", values: ["senior"] }] });
 check("no grouping lists the rows themselves with a company name", /SELECT j\.title, COALESCE\(c\.name, j\.company\)/.test(q) && !/GROUP BY/.test(q), q);
-check("row mode orders newest first", /ORDER BY j\.first_seen DESC/.test(q), q);
+check("row mode orders newest first", /ORDER BY j\.first_seen DESC$/.test(q), q);
+check("row mode picks its rows in a subquery and limits there", /WHERE j\.rowid IN \(\n  SELECT rowid FROM jobs j[\s\S]*LIMIT 25\n\)/.test(q) && /seniority IN \('senior'\)/.test(q.split("rowid IN")[1]), q);
 
 // Filters, one of each kind.
 q = sql({ filters: [{ field: "category", values: ["Software Engineering", "Data & AI"] }] });
 check("a picker becomes IN with quoted values", /j\.category IN \('Software Engineering', 'Data & AI'\)/.test(q), q);
 q = sql({ filters: [{ field: "skill", values: ["python"] }] });
-check("a skill filter is an EXISTS, so it does not multiply rows", /EXISTS \(SELECT 1 FROM job_skills x/.test(q) && !/JOIN job_skills s/.test(q), q);
+check("a skill filter is an EXISTS on the rowid, so it does not multiply rows", /EXISTS \(SELECT 1 FROM job_skills x WHERE x\.job_rowid = j\.rowid/.test(q) && !/JOIN job_skills s/.test(q), q);
 q = sql({ filters: [{ field: "location", text: "Tel Aviv" }] });
 check("text becomes a LIKE with wildcards both sides", /j\.location LIKE '%Tel Aviv%'/.test(q), q);
 q = sql({ filters: [{ field: "first_seen", from: "2026-09-01", to: "2026-09-08" }] });

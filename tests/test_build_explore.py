@@ -111,17 +111,37 @@ with tempfile.TemporaryDirectory() as td:
           ("seniority", None) not in facets and sum(n for (f, _), n in facets.items() if f == "seniority") == 2, str(facets))
     check("skills are faceted from open listings only",
           facets.get(("skill", "python")) == 2 and facets.get(("skill", "sql")) == 1, str(facets))
+    # job_skills carries the listing's filter columns, and the common
+    # skill questions are covering scans that never touch jobs.
+    cols = [c[1] for c in e.execute("PRAGMA table_info(job_skills)")]
+    check("job_skills carries the filter columns", all(c in cols for c in ("seniority", "category", "closed_at", "days_open")), str(cols))
+    check("a skill row agrees with its listing",
+          e.execute("SELECT COUNT(*) FROM job_skills s JOIN jobs j ON j.id = s.job_id WHERE s.seniority IS NOT j.seniority OR s.closed_at IS NOT j.closed_at").fetchone()[0] == 0)
+    plan = " ".join(r[3] for r in e.execute(
+        "EXPLAIN QUERY PLAN SELECT skill, COUNT(*) FROM job_skills j WHERE j.closed_at IS NULL AND j.seniority IN ('senior') GROUP BY 1"))
+    check("skills asked of seniors is a covering index scan", "USING COVERING INDEX ix_skills_wide" in plan, plan)
+    check("a skill row points at its listing's rowid",
+          e.execute("SELECT COUNT(*) FROM job_skills s JOIN jobs j ON j.rowid = s.job_rowid WHERE j.id != s.job_id").fetchone()[0] == 0)
+    check("timestamps are cut to the second", all(len(v) == 19 for (v,) in e.execute("SELECT first_seen FROM jobs")))
     check("companies are faceted with their display name",
           e.execute("SELECT label, n FROM facets WHERE field='company'").fetchone() is not None)
     # The builder's default question must be answerable from an index alone.
     plan = " ".join(r[3] for r in e.execute(
         "EXPLAIN QUERY PLAN SELECT category, COUNT(*) FROM jobs WHERE closed_at IS NULL GROUP BY 1"))
     check("an open-listings group-by is a covering index scan, not a table walk",
-          "ix_open_category" in plan and "USING COVERING INDEX" in plan, plan)
+          "USING COVERING INDEX ix_jobs_wide" in plan, plan)
     plan = " ".join(r[3] for r in e.execute(
         "EXPLAIN QUERY PLAN SELECT category, AVG(days_open) FROM jobs WHERE closed_at IS NOT NULL GROUP BY 1"))
-    check("a closed-listings average is covered as well",
-          "ix_closed_category" in plan and "USING COVERING INDEX" in plan, plan)
+    check("a closed-listings average is covered as well", "USING COVERING INDEX ix_jobs_wide" in plan, plan)
+    plan = " ".join(r[3] for r in e.execute(
+        "EXPLAIN QUERY PLAN SELECT ats, COUNT(*) FROM jobs WHERE closed_at IS NULL AND salary_source IN ('disclosed') GROUP BY 1"))
+    check("a filter on one column grouped by another never visits the table",
+          "USING COVERING INDEX ix_jobs_wide" in plan and "SEARCH" in plan, plan)
+    plan = " ".join(r[3] for r in e.execute(
+        "EXPLAIN QUERY PLAN SELECT category, COUNT(*) FROM jobs j WHERE closed_at IS NULL "
+        "AND EXISTS (SELECT 1 FROM job_skills x WHERE x.job_rowid = j.rowid AND x.skill IN ('python')) GROUP BY 1"))
+    check("the skill filter is answered from index entries on both sides",
+          "USING COVERING INDEX ix_jobs_wide" in plan and "USING COVERING INDEX ix_skills_job" in plan, plan)
 
     # And the page can say what it is looking at.
     meta = dict(e.execute("SELECT key, value FROM meta").fetchall())

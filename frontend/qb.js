@@ -38,7 +38,7 @@
     ats:           { label: "ATS",           expr: "j.ats" },
     salary_source: { label: "Pay info",      expr: "COALESCE(j.salary_source, 'none')" },
     company:       { label: "Company",       expr: "COALESCE(c.name, j.company)", join: "companies" },
-    skill:         { label: "Skill",         expr: "s.skill", join: "skills" },
+    skill:         { label: "Skill",         expr: "j.skill", from: "skills" },
     day:           { label: "Day first seen",   expr: "substr(j.first_seen, 1, 10)" },
     week:          { label: "Week first seen",  expr: "strftime('%Y-W%W', j.first_seen)" },
     month:         { label: "Month first seen", expr: "substr(j.first_seen, 1, 7)" },
@@ -67,14 +67,14 @@
     return "'" + String(v).replace(/'/g, "''") + "'";
   }
 
-  function filterSql(f) {
+  function filterSql(f, idCol) {
     const spec = FIELDS[f.field];
     if (!spec) return null;
     if (spec.kind === "pick") {
       const vals = (f.values || []).filter((v) => v !== "" && v != null);
       if (!vals.length) return null;
       if (f.field === "skill") {
-        return "EXISTS (SELECT 1 FROM job_skills x WHERE x.job_id = j.id AND x.skill IN ("
+        return "EXISTS (SELECT 1 FROM job_skills x WHERE x.job_rowid = " + idCol + " AND x.skill IN ("
           + vals.map(lit).join(", ") + "))";
       }
       return spec.col + " IN (" + vals.map(lit).join(", ") + ")";
@@ -100,31 +100,44 @@
     const metric = METRICS[st.metric] || METRICS.count;
     const limit = Math.max(1, Math.min(5000, parseInt(st.limit, 10) || 25));
 
+    // Grouping by skill reads job_skills as "j": it carries every filter
+    // column, so the question never touches the wide jobs table. The
+    // one thing it lacks is the free text (title, location); a text
+    // filter brings the jobs table back in through a join.
+    const textFilter = (st.filters || []).some((f) => (FIELDS[f.field] || {}).kind === "text" && (f.text || "").trim());
+    const skillsAlone = group.from === "skills" && !textFilter;
+    const idCol = skillsAlone ? "j.job_rowid" : "j.rowid";
+
     const where = [];
     if (status.where) where.push(status.where);
     for (const f of st.filters || []) {
-      const w = filterSql(f);
+      const w = filterSql(f, idCol);
       if (w) where.push(w);
     }
 
     const joins = [];
     const needCompanies = group.join === "companies" || st.group === "none";
     if (needCompanies) joins.push("LEFT JOIN companies c ON c.domain = j.company");
-    if (group.join === "skills") joins.push("JOIN job_skills s ON s.job_id = j.id");
+    if (group.from === "skills" && !skillsAlone) joins.push("JOIN job_skills s ON s.job_id = j.id");
 
-    const from = "FROM jobs j" + (joins.length ? "\n" + joins.join("\n") : "");
+    const from = (skillsAlone ? "FROM job_skills j" : "FROM jobs j") + (joins.length ? "\n" + joins.join("\n") : "");
+    const groupExpr = group.from === "skills" && !skillsAlone ? "s.skill" : group.expr;
     const whereSql = where.length ? "\nWHERE " + where.join("\n  AND ") : "";
 
-    // Row mode: the listings themselves.
+    // Row mode: the listings themselves. The rows to show are chosen in
+    // a subquery the wide index answers on its own; only those few are
+    // then read from the table for their salary text and URL. Written
+    // flat, SQLite would fetch every matching row before sorting.
     if (st.group === "none") {
+      const pick = "SELECT rowid FROM jobs j" + whereSql.replace(/\n/g, "\n  ") + "\n  ORDER BY j.first_seen DESC LIMIT " + limit;
       return "SELECT j.title, COALESCE(c.name, j.company) AS company, j.location,\n"
         + "       j.seniority, j.salary_text, substr(j.first_seen, 1, 10) AS first_seen, j.url\n"
-        + from + whereSql
-        + "\nORDER BY j.first_seen DESC\nLIMIT " + limit;
+        + from + "\nWHERE j.rowid IN (\n  " + pick + "\n)"
+        + "\nORDER BY j.first_seen DESC";
     }
 
     // Aggregate mode.
-    const cols = [group.expr + " AS " + st.group, "COUNT(*) AS listings"];
+    const cols = [groupExpr + " AS " + st.group, "COUNT(*) AS listings"];
     if (st.metric === "avg_days_open") {
       cols.push("ROUND(AVG(j.days_open), 1) AS avg_days_open");
     } else if (st.metric === "share") {

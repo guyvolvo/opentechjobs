@@ -88,9 +88,27 @@ CREATE TABLE jobs (
 -- skills is comma-joined text on jobs, up to five terms. Split out so
 -- "which skills appear most in senior roles" is a GROUP BY rather than
 -- string surgery.
+-- One row per skill per listing, carrying the listing's filter columns
+-- so a question about skills never has to visit the jobs table. That
+-- table is 60 MB of titles and URLs spread over 15,000 pages, and a
+-- join from 116,000 skill rows touched nearly all of them through 4 KB
+-- range requests: thousands of requests, some of which failed, and a
+-- failed read surfaces as "database disk image is malformed". Seen live
+-- on every starter query about skills. Ten extra megabytes here, read
+-- through a few covering indexes, is the cheaper shape.
 CREATE TABLE job_skills (
-  job_id TEXT NOT NULL,
-  skill  TEXT NOT NULL
+  job_rowid     INTEGER NOT NULL, -- jobs.rowid; every jobs index entry carries it, so the skill filter needs no row
+  job_id        TEXT NOT NULL,
+  skill         TEXT NOT NULL,
+  company       TEXT NOT NULL,
+  ats           TEXT NOT NULL,
+  category      TEXT,
+  seniority     TEXT,
+  workplace     TEXT,
+  salary_source TEXT,
+  first_seen    TEXT NOT NULL,
+  closed_at     TEXT,
+  days_open     REAL
 );
 
 CREATE TABLE companies (
@@ -120,49 +138,30 @@ CREATE TABLE meta (
 );
 """
 
+# One wide covering index per table, and almost nothing else.
+#
+# This file is read by HTTP range request, 4 KB at a time, and the
+# planner's cost model has no idea. Given a small index on the filter
+# column it seeks it and then fetches each matching row from the
+# table, which over HTTP is thousands of random requests into 60 MB of
+# titles and URLs. Some fail, and a failed read comes back as "database
+# disk image is malformed". Every starter query about skills or pay did
+# this live.
+#
+# So the table is never the plan. Every column the builder can filter
+# or group by sits in one index, led by closed_at so the open half is a
+# contiguous range, and there is no narrower index to tempt the planner
+# into lookups. A question reads that index (about 22 MB, sequential,
+# which the runtime coalesces into a few dozen requests) and the runtime
+# keeps those pages, so the next question is mostly free. Rows are only
+# fetched for the handful a row-mode question finally shows.
 INDEXES = [
-    # Partial covering indexes over open listings, one per column the
-    # builder groups by. "WHERE closed_at IS NULL GROUP BY category" is
-    # the shape of nearly every question the page asks, and without
-    # these SQLite walks the closed_at index to 111,000 rowids and then
-    # fetches each row for its category, which through range requests
-    # is the whole table. With them the query is a scan of a small
-    # index and nothing else is touched. closed_at rides along in each
-    # (always NULL, so nearly free) because the planner only calls an
-    # index covering when every column the query names is in it, and
-    # the WHERE names closed_at.
-    "CREATE INDEX ix_open_category ON jobs(category, closed_at) WHERE closed_at IS NULL",
-    "CREATE INDEX ix_open_seniority ON jobs(seniority, closed_at) WHERE closed_at IS NULL",
-    "CREATE INDEX ix_open_workplace ON jobs(workplace, closed_at) WHERE closed_at IS NULL",
-    "CREATE INDEX ix_open_ats ON jobs(ats, closed_at) WHERE closed_at IS NULL",
-    "CREATE INDEX ix_open_salary_source ON jobs(salary_source, closed_at) WHERE closed_at IS NULL",
-    "CREATE INDEX ix_open_company ON jobs(company, closed_at) WHERE closed_at IS NULL",
-    "CREATE INDEX ix_open_first_seen ON jobs(first_seen, closed_at) WHERE closed_at IS NULL",
-    # The closed half, the same way, with days_open along for the ride
-    # so "days open before closing, by category" is covered too.
-    "CREATE INDEX ix_closed_category ON jobs(category, closed_at, days_open) WHERE closed_at IS NOT NULL",
-    "CREATE INDEX ix_closed_seniority ON jobs(seniority, closed_at, days_open) WHERE closed_at IS NOT NULL",
-    "CREATE INDEX ix_closed_workplace ON jobs(workplace, closed_at, days_open) WHERE closed_at IS NOT NULL",
-    "CREATE INDEX ix_closed_ats ON jobs(ats, closed_at, days_open) WHERE closed_at IS NOT NULL",
-    "CREATE INDEX ix_closed_salary_source ON jobs(salary_source, closed_at, days_open) WHERE closed_at IS NOT NULL",
-    "CREATE INDEX ix_closed_company ON jobs(company, closed_at, days_open) WHERE closed_at IS NOT NULL",
-    "CREATE INDEX ix_closed_first_seen ON jobs(first_seen, closed_at, days_open) WHERE closed_at IS NOT NULL",
+    "CREATE INDEX ix_jobs_wide ON jobs(closed_at, category, seniority, workplace, ats, salary_source, company, first_seen, days_open, location, title)",
+    "CREATE INDEX ix_skills_wide ON job_skills(closed_at, skill, category, seniority, workplace, ats, salary_source, company, first_seen, days_open)",
+    # The skill filter: EXISTS by the listing's rowid, answered from the
+    # index entry alone.
+    "CREATE INDEX ix_skills_job ON job_skills(job_rowid, skill)",
     "CREATE INDEX ix_facets_field ON facets(field, n DESC)",
-    "CREATE INDEX ix_jobs_company ON jobs(company)",
-    "CREATE INDEX ix_jobs_category ON jobs(category)",
-    "CREATE INDEX ix_jobs_seniority ON jobs(seniority)",
-    "CREATE INDEX ix_jobs_workplace ON jobs(workplace)",
-    "CREATE INDEX ix_jobs_ats ON jobs(ats)",
-    # Deliberately not a plain index on closed_at. With one, the
-    # planner's statistics (an average over mostly-distinct timestamps)
-    # tell it "closed_at = NULL" matches five rows, so it seeks that
-    # index and walks the table for the 111,000 it really matches,
-    # ignoring the covering indexes above. Without it, they win.
-    "CREATE INDEX ix_jobs_closed ON jobs(closed_at) WHERE closed_at IS NOT NULL",
-    "CREATE INDEX ix_jobs_first_seen ON jobs(first_seen)",
-    "CREATE INDEX ix_jobs_salary_source ON jobs(salary_source)",
-    "CREATE INDEX ix_skills_skill ON job_skills(skill)",
-    "CREATE INDEX ix_skills_job ON job_skills(job_id)",
 ]
 
 
@@ -184,7 +183,11 @@ def build(snapshot: Path, out: Path) -> dict:
            FROM jobs WHERE confidence = 'verified'"""
     ).fetchall()
 
-    job_rows, skill_rows = [], []
+    # Timestamps to the second. The snapshot's carry microseconds and an
+    # offset, thirteen bytes a row that would sit in the wide index too.
+    short = lambda t: t[:19] if t else t
+
+    job_rows, skills_of = [], {}
     for r in rows:
         end = _parse(r["closed_at"]) or now
         start = _parse(r["first_seen"])
@@ -193,16 +196,21 @@ def build(snapshot: Path, out: Path) -> dict:
             r["id"], r["company_domain"], r["ats"], r["title"],
             classify_category(r["department"], r["title"]), r["department"],
             r["seniority"], r["workplace_type"], r["location"],
-            r["salary_text"], r["salary_source"], r["url"], r["posted_at"],
-            r["first_seen"], r["last_seen"], r["closed_at"], days_open,
+            r["salary_text"], r["salary_source"], r["url"], short(r["posted_at"]),
+            short(r["first_seen"]), short(r["last_seen"]), short(r["closed_at"]), days_open,
         ))
-        for term in (r["skills"] or "").split(","):
-            term = term.strip().lower()
-            if term:
-                skill_rows.append((r["id"], term))
+        terms = {t.strip().lower() for t in (r["skills"] or "").split(",")}
+        terms.discard("")
+        if terms:
+            skills_of[r["id"]] = (terms, job_rows[-1])
 
     dst.executemany("INSERT INTO jobs VALUES (%s)" % ",".join("?" * 17), job_rows)
-    dst.executemany("INSERT INTO job_skills VALUES (?, ?)", skill_rows)
+    rowid_of = dict(dst.execute("SELECT id, rowid FROM jobs").fetchall())
+    skill_rows = [
+        (rowid_of[jid], jid, term, jr[1], jr[2], jr[4], jr[6], jr[7], jr[10], jr[13], jr[15], jr[16])
+        for jid, (terms, jr) in skills_of.items() for term in sorted(terms)
+    ]
+    dst.executemany("INSERT INTO job_skills VALUES (%s)" % ",".join("?" * 12), skill_rows)
     dst.executemany(
         "INSERT INTO companies VALUES (?, ?, ?, 0)",
         [(c["domain"], c["company_name"], c["ats"])
@@ -231,8 +239,8 @@ def build(snapshot: Path, out: Path) -> dict:
         )
     dst.execute(
         """INSERT INTO facets (field, value, label, n)
-           SELECT 'skill', s.skill, NULL, COUNT(*) FROM job_skills s
-           JOIN jobs j ON j.id = s.job_id WHERE j.closed_at IS NULL GROUP BY s.skill"""
+           SELECT 'skill', skill, NULL, COUNT(*) FROM job_skills
+           WHERE closed_at IS NULL GROUP BY skill"""
     )
     dst.execute(
         """INSERT INTO facets (field, value, label, n)
@@ -251,12 +259,9 @@ def build(snapshot: Path, out: Path) -> dict:
     }
     dst.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
     dst.commit()
-    # Without statistics the planner guesses that "closed_at IS NULL"
-    # matches a handful of rows, seeks the plain closed_at index, and
-    # then walks the table for every one of the 111,000 it actually
-    # matches. With them it knows better and scans the partial covering
-    # index instead. The stat table travels inside the file, so the
-    # browser's planner sees the same numbers.
+    # Statistics travel inside the file, so the browser's planner sees
+    # the same numbers this one does and picks the same plans the tests
+    # check.
     dst.execute("ANALYZE")
     dst.execute("VACUUM")
     dst.close()
