@@ -1859,18 +1859,24 @@ footer {
 }
 .load-bar.active { opacity: 1; }
 /* Two changes here, and only one of them is the frame rate.
-   steps(26) over 0.85s is ~30fps, up from steps(13)'s ~15. The stepped
-   cadence is deliberate and stays (see DESIGN.md's motion language, the
-   same steps() the status dot flickers on), but 15fps reads as a stutter
-   on something sweeping across the screen rather than as character.
-   A dot ticking is a choice; a bar juddering is a bug.
 
-   The judder was not only the step count though. This animated `left`,
+   This swept on steps() for a while, first 13 and then 26, borrowing the
+   cadence the status dot flickers on. Stepping caps the bar at whatever
+   number sits in the parentheses, and hitting 60 would need steps(51),
+   where each step moves the bar 2% of its travel. Nobody can see a step
+   that small, so it buys a nominal voice and costs real smoothness.
+   Linear instead: on a composited property that means the bar redraws at
+   whatever the display runs at, 60Hz or 120Hz, rather than at a rate this
+   file picked. The ticker already sweeps this way. steps() stays where it
+   reads as character, on the status dot.
+
+   The judder was never only the step count though. This animated `left`,
    which is a layout property: every frame the browser recomputes
    geometry, so on a main thread busy parsing a jobs response, the very
    moment this bar is on screen, frames get dropped and the real rate
    falls below the nominal one. transform is composited and runs off the
-   main thread, so 30 nominal frames are 30 actual frames.
+   main thread. will-change promotes the layer before the bar is needed,
+   so the first frames after .active go to moving it, not building it.
 
    Percentages differ between the two because they are measured against
    different boxes: `left` against the parent, `translateX` against the
@@ -1884,7 +1890,8 @@ footer {
   left: 0;
   width: 26%;
   background: var(--green);
-  animation: load-bar-sweep 0.85s steps(26, end) infinite;
+  will-change: transform;
+  animation: load-bar-sweep 0.85s linear infinite;
 }
 @keyframes load-bar-sweep {
   from { transform: translateX(-108%); }
