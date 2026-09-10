@@ -1677,6 +1677,9 @@ footer {
 .legal p { margin: 0 0 12px; }
 .legal-updated { color: var(--grey); font-size: 12.5px; margin-top: -4px; }
 .legal-back { margin-top: 32px; }
+/* A link on its own line is a target, not prose. The text is 17px tall;
+   the padding takes the tappable box to 33px without moving anything. */
+.legal-back .link { display: inline-block; padding: 8px 0; }
 
 /* Responsive */
 
@@ -2203,7 +2206,9 @@ footer {
   line-height: 1.3;
 }
 .explore-template:hover { background: var(--hover-bg); }
-.explore-template.active { border-left-color: var(--green); color: var(--green); font-weight: 700; }
+/* The mark is the rule, not the text: green on the light ground is
+   under 3:1 at this size, and the board's One Voice is one mark anyway. */
+.explore-template.active { border-left-color: var(--green); font-weight: 700; }
 
 /* Segmented switch: the system's ghost buttons joined into one control,
    the active half filled ink. Used for Builder/SQL and for Auto/Table/
@@ -2446,8 +2451,24 @@ body.explore-busy .explore-metric { color: var(--green); }
   .explore-main { order: 1; }
   .panel-head { flex-wrap: wrap; }
   .explore-status { margin-left: 0; width: 100%; text-align: left; }
-  .qb-filter, .qb-filter:has(.qb-date) { grid-template-columns: 1fr 30px; }
+  /* Name and the remove button on the first line, the control full
+     width under them. Reported live: the picker was landing in the
+     30px column meant for the remove button, cut to "A...". */
+  .qb-filter, .qb-filter:has(.qb-date) { grid-template-columns: minmax(0, 1fr) 36px; }
   .qb-filter-op { display: none; }
+  /* Density is for a desk. Under a thumb every control grows to a
+     target you can hit: 38px inputs, 36px buttons, 36px list rows. */
+  .qb-select, .qb-input, .qb .ms-toggle { height: 38px; padding-top: 8px; padding-bottom: 8px; }
+  .seg-btn { height: 36px; padding: 0 12px; }
+  .btn-small, .qb-remove { height: 36px; }
+  .qb-remove { width: 36px; }
+  .explore-template { padding: 9px 10px 9px 22px; }
+  .sx-toggle { padding: 9px 10px 9px 24px; }
+  .sx-toggle::before { top: 9px; }
+  .sx li { padding: 4px 10px 4px 24px; }
+  .qb-filter-name { grid-column: 1; grid-row: 1; }
+  .qb-remove { grid-column: 2; grid-row: 1; }
+  .qb-filter .ms, .qb-filter .qb-input, .qb-filter .qb-date { grid-column: 1 / -1; }
   .explore-metric { margin-left: 0; width: 100%; text-align: left; }
   .xbar { grid-template-columns: minmax(72px, 36%) minmax(0, 1fr) 52px; }
   /* Five ticks do not fit a phone-width track; keep the two ends. */

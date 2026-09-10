@@ -1,1 +1,3 @@
-sql.js-httpvfs 0.8.12, vendored verbatim from the npm dist. Three files, unmodified: the UMD entry, the worker, and the wasm the worker loads from beside itself. Pinned because the site has no bundler and no build step, so this is the dependency.
+sql.js-httpvfs 0.8.12, vendored from the npm dist. Three files: the UMD entry, the worker, and the wasm the worker loads from beside itself. Pinned because the site has no bundler and no build step, so this is the dependency.
+
+One edit to index.js: createDbWorker also returns the Worker itself as `raw`, so the page can terminate a query that will not finish. The upstream return is {db, worker, configs}; search for "raw:o".

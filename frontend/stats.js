@@ -79,7 +79,9 @@ const SCHEMA = [
       ["salary_text", "text", "as shown on the board"], ["salary_source", "text", "disclosed, table, estimated, or NULL"], ["url", "text", ""],
       ["posted_at", "text", "employer's date, if given"], ["first_seen", "text", "when we first saw it"], ["last_seen", "text", ""],
       ["closed_at", "text", "NULL while open"], ["days_open", "real", "closed minus first seen, or age so far"]] },
-  { table: "job_skills", note: "One row per skill per listing.", columns: [["job_id", "text", ""], ["skill", "text", "lower-cased"]] },
+  { table: "job_skills", note: "One row per skill per listing, with the listing's filter columns.",
+    columns: [["job_rowid", "integer", "jobs.rowid"], ["job_id", "text", ""], ["skill", "text", "lower-cased"], ["company", "text", ""], ["ats", "text", ""], ["category", "text", ""],
+      ["seniority", "text", ""], ["workplace", "text", ""], ["salary_source", "text", ""], ["first_seen", "text", ""], ["closed_at", "text", "NULL while open"], ["days_open", "real", ""]] },
   { table: "companies", note: "One row per tracked company.", columns: [["domain", "text", ""], ["name", "text", "as the ATS reports it"], ["ats", "text", ""], ["open_jobs", "integer", ""]] },
   { table: "facets", note: "Distinct values per filter, with counts.", columns: [["field", "text", ""], ["value", "text", ""], ["label", "text", "companies only"], ["n", "integer", "open listings"]] },
   { table: "meta", note: "When this file was built.", columns: [["key", "text", ""], ["value", "text", ""]] },
@@ -134,7 +136,7 @@ function createMultiSelect(container, { placeholder, options = [], searchable = 
       <label class="ms-option">
         <input type="checkbox" value="${escapeHtml(o.value)}" ${selected.has(o.value) ? "checked" : ""} />
         ${escapeHtml(o.label)}
-      </label>`).join("") || '<div class="ms-empty">No matches.</div>';
+      </label>`).join("") || `<div class="ms-empty">${options.length ? "No matches." : "Loading values…"}</div>`;
   }
   function updateLabel() {
     if (selected.size === 0) toggle.textContent = placeholder;
@@ -186,6 +188,15 @@ async function openDatabase() {
   $("explore-note").textContent = `The file covers every verified listing seen since ${meta.corpus_since || "1 September 2026"} and is rebuilt every hour. `
     + `Your queries fetch only what they touch; a page load may read up to ${fmtBytes(MAX_BYTES)} before it stops itself.`;
 
+}
+
+// Throw the worker away and start another. The old one may still be
+// grinding through a query nobody wants; terminating it is the only
+// way to stop it, and the new one starts with an empty page cache.
+async function reopenDatabase() {
+  try { worker?.raw?.terminate(); } catch { /* already gone */ }
+  worker = null;
+  try { await openDatabase(); } catch (e) { $("explore-status").textContent = "The database could not be reopened. Reload the page."; }
 }
 
 // The pickers' options come from the data, so a new ATS or category
@@ -364,12 +375,20 @@ async function run() {
     writeUrl();
     render(result, ms, read);
   } catch (e) {
-    // Should no longer happen now that builds are immutable, but if a
-    // cached page from another build ever does get mixed in, say what
-    // to do rather than quoting SQLite at the reader.
-    err.textContent = /malformed/.test(String(e.message))
-      ? "Some pages of the database came from a different build than the rest. Reload the page to start on the current one."
-      : String(e.message || e);
+    // A query that timed out is still running inside the worker, and
+    // every later query would queue behind it. A read the network
+    // dropped leaves the runtime holding a page it should not trust,
+    // which SQLite reports as a malformed file. Either way: throw the
+    // worker away and open the database again, and say so in words a
+    // reader can act on.
+    const msg = String(e.message || e);
+    const broken = /malformed|XMLHttpRequest|Failed to load/.test(msg);
+    const timedOut = /Still running/.test(msg);
+    err.textContent = timedOut
+      ? `Stopped after ${QUERY_TIMEOUT_MS / 1000} s. Narrow it with a filter or an indexed column; the database has been reopened.`
+      : broken ? "The network did not deliver every page this query needed. It has been reopened; run it again, or narrow it with a filter."
+      : msg;
+    if (timedOut || broken) await reopenDatabase();
     err.hidden = false;
     $("explore-result").innerHTML = "";
     metric.textContent = "Failed";
@@ -409,9 +428,19 @@ function pickViz(columns, rows) {
   if (viz !== "auto") return viz;
   if (columns.length < 2 || rows.length < 2 || rows.length > 60) return "table";
   const firstIsDate = rows.every((r) => /^\d{4}-(\d{2}|W\d{2})(-\d{2})?/.test(String(r[0] ?? "")));
-  const secondIsNumber = rows.every((r) => typeof r[1] === "number");
-  if (!secondIsNumber) return "table";
+  if (valueColumn(columns, rows) < 0) return "table";
   return firstIsDate ? "line" : "bar";
+}
+
+// The column a chart draws: the last one that is a number in every
+// row. The builder's share metric returns the count and the share side
+// by side, and the share, the thing that was asked for, is the last.
+// A bare count, or a hand-written query, still gets its second column.
+function valueColumn(columns, rows) {
+  for (let i = columns.length - 1; i >= 1; i--) {
+    if (rows.every((r) => typeof r[i] === "number")) return i;
+  }
+  return -1;
 }
 
 function renderTable(columns, rows) {
@@ -432,18 +461,20 @@ function cell(v, col) {
 // quarters and their values ticked underneath. First row green, One
 // Voice: the largest is the one thing the chart is saying.
 function renderBars(columns, rows) {
-  const max = Math.max(1, ...rows.map((r) => Number(r[1]) || 0));
+  const vi = Math.max(1, valueColumn(columns, rows));
+  const v = (r) => r[vi];
+  const max = Math.max(1, ...rows.map((r) => Number(v(r)) || 0));
   const tick = (f) => (Number.isInteger(max) ? fmtInt(Math.round(max * f)) : (max * f).toFixed(1));
   return `<div class="xbars">${rows.map((r) => `
     <div class="xbar">
       <div class="xbar-name" title="${escapeHtml(r[0])}">${escapeHtml(r[0] ?? "NULL")}</div>
-      <div class="xbar-track"><div class="xbar-fill" style="width:${((Number(r[1]) || 0) / max) * 100}%"></div></div>
-      <div class="xbar-n">${Number.isInteger(r[1]) ? fmtInt(r[1]) : r[1]}</div>
+      <div class="xbar-track"><div class="xbar-fill" style="width:${((Number(v(r)) || 0) / max) * 100}%"></div></div>
+      <div class="xbar-n">${Number.isInteger(v(r)) ? fmtInt(v(r)) : v(r)}</div>
     </div>`).join("")}
     <div class="xbar xbar-axis">
       <div class="xbar-name">${escapeHtml(columns[0])}</div>
       <div class="xbar-ticks">${[0, 0.25, 0.5, 0.75, 1].map((f) => `<span style="left:${f * 100}%">${tick(f)}</span>`).join("")}</div>
-      <div class="xbar-n">${escapeHtml(columns[1])}</div>
+      <div class="xbar-n">${escapeHtml(columns[vi])}</div>
     </div>
   </div>`;
 }
@@ -453,7 +484,8 @@ function renderBars(columns, rows) {
 // labels live outside it in HTML and stay crisp.
 function renderLine(columns, rows) {
   const w = 640, h = 160, pad = 2;
-  const ys = rows.map((r) => Number(r[1]) || 0);
+  const vi = Math.max(1, valueColumn(columns, rows));
+  const ys = rows.map((r) => Number(r[vi]) || 0);
   const max = Math.max(1, ...ys);
   const step = rows.length > 1 ? (w - pad * 2) / (rows.length - 1) : 0;
   const yOf = (y) => (h - pad - (y / max) * (h - pad * 2)).toFixed(1);
@@ -462,10 +494,10 @@ function renderLine(columns, rows) {
   const mid = rows[Math.floor(rows.length / 2)][0];
   return `<div class="xline">
     <div class="xline-y">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${tick(f)}</span>`).join("")}</div>
-    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="xline-svg" aria-label="${escapeHtml(columns[1])} over ${escapeHtml(columns[0])}">
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="xline-svg" aria-label="${escapeHtml(columns[vi])} over ${escapeHtml(columns[0])}">
       ${[1, 0.75, 0.5, 0.25].map((f) => `<line class="xline-grid" x1="0" x2="${w}" y1="${yOf(max * f)}" y2="${yOf(max * f)}"/>`).join("")}
       <line class="xline-base" x1="0" x2="${w}" y1="${h - pad}" y2="${h - pad}"/>
-      <path class="xline-path" d="${d}"><title>${escapeHtml(columns[1])}</title></path>
+      <path class="xline-path" d="${d}"><title>${escapeHtml(columns[vi])}</title></path>
     </svg>
     <div class="xline-x"><span>${escapeHtml(rows[0][0])}</span><span>${escapeHtml(mid)}</span><span>${escapeHtml(rows[rows.length - 1][0])}</span></div>
   </div>`;
