@@ -78,6 +78,10 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # once per merge so the API reads a finished number instead of
           # deriving it on every page load.
           "${aws_s3_bucket.data.arn}/precomputed/*",
+          # archive/*: closed listings retired out of the snapshot, plus
+          # the marker that paces the prune to once a day. Written here
+          # and read by nothing in the live path: this is the cold copy.
+          "${aws_s3_bucket.data.arn}/archive/*",
           # descriptions/*: the applier now runs the loader, so it writes
           # description blobs too.
           "${aws_s3_bucket.data.arn}/descriptions/*",

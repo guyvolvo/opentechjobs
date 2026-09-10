@@ -974,6 +974,14 @@ def main() -> int:
                      help="demote any resolved company whose domain isn't in this run's --resolved data "
                           "(see prune_stale_companies) -- only correct for a full --batch domains.txt run, "
                           "never for --known's own partial re-poll, so scrape-fast.yml must never pass this")
+    ap.add_argument("--archive-closed-days", type=int, default=0,
+                     help="Move listings closed longer ago than this out of the snapshot and into "
+                          "S3, then delete them. 0 disables it. Nothing ever removed a job, so the "
+                          "snapshot only grew: 3,140 close a day while open holds flat near 115k, "
+                          "which reaches 1.25M rows and 3.29GB within a year with nine rows in ten "
+                          "being listings nobody can apply to. The API downloads this whole file on "
+                          "a cold start against a fixed 29s API Gateway ceiling, so that curve ends "
+                          "in a wall rather than a slow bill. Needs --bucket; see loader/archive.py.")
     ap.add_argument("--skip-vacuum", action="store_true",
                      help="scrape_handler.py's sharded re-poll passes this: VACUUM rewrites the WHOLE DB file "
                           "regardless of how few rows this run touched, so paying that cost on every ~5-minute "
@@ -1027,6 +1035,20 @@ def main() -> int:
                 n_pruned = prune_stale_companies(conn, current_domains, ts)
                 if n_pruned:
                     print(f"pruned {n_pruned} companies no longer in domains.txt/companies.yml", file=sys.stderr)
+            if args.archive_closed_days and args.bucket:
+                # Before update_meta so the recorded totals describe the
+                # snapshot that actually ships, and inside this
+                # transaction so a failure anywhere later rolls the
+                # deletions back along with everything else.
+                import boto3
+
+                import archive
+                s3 = boto3.client("s3")
+                if archive.due(s3, args.bucket):
+                    result = archive.prune(conn, s3, args.bucket,
+                                           args.archive_closed_days,
+                                           _fts_supports_rowid_delete(conn))
+                    print(f"archive: {json.dumps(result, default=str)}", file=sys.stderr)
             update_meta(conn)
 
         known_out = args.known_out or args.out.with_name("known.json")

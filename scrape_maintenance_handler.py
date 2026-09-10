@@ -50,6 +50,12 @@ sys.path.insert(0, str(ROOT / "loader"))
 from alerts import evaluate_alerts  # noqa: E402
 from deltas import delete_fragments, list_fragments, read_fragments  # noqa: E402
 import precompute
+
+# Listings closed longer ago than this leave the snapshot for S3. Every
+# reader of a closed job works inside 14 days (the 24h/7d throughput
+# counters, time-to-fill, the reconstructed history), so 30 is well past
+# all of them. See loader/archive.py for what this is protecting against.
+ARCHIVE_CLOSED_DAYS = 30
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 # Where bootstrap.json goes. Optional: unset just means the site keeps
@@ -152,7 +158,10 @@ def lambda_handler(event, context):
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
          "--resolved", str(resolved), "--out", str(snapshot),
          "--bucket", BUCKET, "--key", "jobs-read.db",
-         "--drop-description", "--skip-vacuum", "--skip-known"],
+         "--drop-description", "--skip-vacuum", "--skip-known",
+         # Caps the snapshot instead of letting it grow forever. Paced
+         # to once a day inside archive.py, not once per apply.
+         "--archive-closed-days", str(ARCHIVE_CLOSED_DAYS)],
         capture_output=True, text=True, timeout=550,
     )
     if load.stderr:

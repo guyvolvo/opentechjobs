@@ -64,7 +64,7 @@ HELP_HTML = """<!doctype html>
               <tr><td><span class="param">workplace</span></td><td>Comma-separated workplace types: <span class="param">remote</span>, <span class="param">hybrid</span>, <span class="param">onsite</span>.</td></tr>
               <tr><td><span class="param">confidence</span></td><td><span class="param">verified</span> (default), <span class="param">best_effort</span>, or <span class="param">all</span>.</td></tr>
               <tr><td><span class="param">israel_only</span></td><td><span class="param">1</span> to restrict to Israeli locations. Default is global, every location.</td></tr>
-              <tr><td><span class="param">include_closed</span></td><td><span class="param">1</span> to include closed listings. Default excludes them.</td></tr>
+              <tr><td><span class="param">include_closed</span></td><td><span class="param">1</span> to include closed listings. Default excludes them. Reaches back 30 days: a listing closed longer ago than that has left the served snapshot, so this returns a month of history rather than all of it.</td></tr>
               <tr><td><span class="param">include_outdated</span></td><td><span class="param">1</span> to include listings past the freshness window. Default excludes them.</td></tr>
               <tr><td><span class="param">min_age_days</span> / <span class="param">max_age_days</span></td><td>Filter by days since posting.</td></tr>
               <tr><td><span class="param">sort</span></td><td><span class="param">age</span> (default), <span class="param">company</span>, <span class="param">title</span>, <span class="param">location</span>, <span class="param">ats</span>.</td></tr>
