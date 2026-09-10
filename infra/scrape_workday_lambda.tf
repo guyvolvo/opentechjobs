@@ -65,9 +65,13 @@ resource "aws_iam_role_policy" "scrape_workday_lambda" {
           # description is new or changed (loader/descriptions.py).
           "${aws_s3_bucket.data.arn}/descriptions/*",
           "${aws_s3_bucket.data.arn}/status.json",
-          # descriptions/*: written by load_to_sqlite.py when a job's
-          # description is new or changed (loader/descriptions.py).
-          "${aws_s3_bucket.data.arn}/descriptions/*",
+          # deltas/*: how this Lambda's results actually reach
+          # jobs-read.db. The partition above is only its own memory of
+          # which listings it has already fetched descriptions for;
+          # nothing has merged partitions since delta fragments replaced
+          # that step, so without this grant a run scrapes correctly and
+          # delivers nowhere. Which is exactly what it was doing.
+          "${aws_s3_bucket.data.arn}/deltas/*",
         ]
       },
       {
