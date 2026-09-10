@@ -654,11 +654,22 @@ button, input, select {
    just a second one, so it introduces no new type-ramp step.
    tabular-nums keeps the countdown's digits from jittering in width
    as it ticks down every second. */
+/* The pipeline activity line. Was a countdown to the next sync, which
+   is why the class is named for one; it now carries whatever stage the
+   pipeline reports it is in. Renaming the class would touch three files
+   to say the same thing, so the comment carries it instead.
+
+   tabular-nums stays because most of these read "sweeping 1,100 of
+   3,434 companies due now" and the digits should not jitter as the
+   counts change. overflow-wrap because a stage detail is a sentence,
+   not a timer, and the tile is narrow. */
 .metric-card .sync-countdown {
   font-size: 11.5px;
   color: var(--grey);
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 /* Market-insight panels: who's hiring, what for, where. No ATS-vendor

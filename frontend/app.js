@@ -419,34 +419,7 @@ function setLastCheckedAt(iso) {
   if (lastCheckedAt === null || t > lastCheckedAt) lastCheckedAt = t;
 }
 
-// stats.meta.last_loaded: when jobs-read.db last took a write, NOT when
-// any one company was last re-polled. Used for the sync countdown
-// specifically (see nextSyncText below); lastCheckedAt above stays what
-// it was for the LIVE/OFFLINE freshness read itself. Only set from
-// /stats, since /health doesn't carry this field.
-//
-// The /stats poll runs every 2 minutes against a 5-minute write cycle,
-// so this sample can be most of a cycle behind on its own. That is why
-// nextSyncText clamps below rather than trusting the arithmetic.
-let lastLoadedAt = null;
-function setLastLoadedAt(iso) {
-  if (!iso) return;
-  const t = new Date(iso).getTime();
-  if (lastLoadedAt === null || t > lastLoadedAt) lastLoadedAt = t;
-}
 
-// How often jobs-read.db, what the API actually reads, takes a write.
-// Matches scrape-maintenance-schedule in infra/scrape_maintenance_lambda.tf.
-// Change one and change the other.
-//
-// This was 60 for the Partition & Merge era, when the snapshot was
-// rebuilt whole by an hourly merge. Delta fragments replaced that: the
-// maintenance Lambda now replays only the companies that changed, every
-// 5 minutes, so a full rebuild never happens and the hour it waited for
-// never comes. Reported live, and the arithmetic was the giveaway: the
-// card read "4M old" next to "next sync: 56:10", which is the site
-// promising to update an hour after it already had.
-const SYNC_INTERVAL_MINUTES = 5;
 
 // Shared by the topbar status dot/text and the API Status card: past
 // this, both flip from LIVE (green) to OFFLINE (red) together.
@@ -527,48 +500,35 @@ function statusIconHtml(level) {
     + `<use href="#${spec.symbol}"></use></svg>`;
 }
 
-function nextSyncText() {
-  // A real reported phase beats a guessed countdown whenever there is
-  // one: "merging: combining 41 partitions" is something concrete,
-  // "next sync: 34:07" is only ever an estimate of the next ROUTINE
-  // cycle. pipelinePhase.merge specifically (see route_pipeline_status's
-  // own docstring for the scrape/merge split) -- this card is about
-  // DATA freshness, which only ever moves on the merge, not about
-  // whether anything in the pipeline is doing something at all: the
-  // fast-poll/workday side is active on its own much faster 5-10 minute
-  // cadence essentially all the time, so surfacing IT here wouldn't
-  // actually answer "when does the site next update."
-  const merge = pipelinePhase && pipelinePhase.merge;
-  if (merge && merge.phase && !["idle", "unknown"].includes(merge.phase)) {
-    return merge.detail ? `${merge.phase}: ${merge.detail}` : merge.phase;
+// What the pipeline is doing, in its own words.
+//
+// Replaced a countdown to the next sync. That was always an estimate of
+// a routine cycle rather than an observation, and an estimate of
+// something that already happened five minutes ago is not information.
+// Every stage of the pipeline already writes what it is doing to S3
+// (see _write_status in the three handlers), so this shows that instead.
+//
+// Both sides, not just the merge. The old version deliberately ignored
+// the scrape side on the grounds that this card is about data freshness
+// and only the merge moves it. That was the right call for a countdown
+// and the wrong one here: "sweeping 1,100 of 3,434 companies due now" is
+// exactly the kind of thing worth seeing, and it is true far more of the
+// time than the merge is busy.
+//
+// The merge wins a tie because it is the stage that changes what a
+// visitor is looking at.
+function pipelineActivityText() {
+  if (!pipelinePhase) return null;
+  const quiet = (p) => !p || !p.phase || ["idle", "unknown"].includes(p.phase);
+  const describe = (p) => (p.detail ? `${p.phase}: ${p.detail}` : p.phase);
+
+  for (const side of [pipelinePhase.merge, pipelinePhase.scrape]) {
+    if (!quiet(side)) return describe(side);
   }
-  // lastLoadedAt (meta.last_loaded), not lastCheckedAt: this predicts the
-  // next write to jobs-read.db, which is what actually changes the data
-  // a visitor sees. lastCheckedAt answers a different question, how old
-  // the freshest listing in the snapshot is, and the two drift apart
-  // whenever a sweep finds nothing worth writing.
-  if (lastLoadedAt === null) return null;
-  const intervalMs = SYNC_INTERVAL_MINUTES * 60_000;
-  // Math.max guards a client clock running ahead of the server's, where
-  // a negative elapsed would send the modulo below negative too.
-  const elapsedMs = Math.max(0, Date.now() - lastLoadedAt);
-  // Past the freshness threshold the pipeline is not keeping its
-  // schedule, so there is no honest next cycle to name. The card reads
-  // OFFLINE by then, and this would be the one line left on it still
-  // promising an update.
-  if (elapsedMs > FRESH_THRESHOLD_MINUTES * 60_000) return null;
-  // Modulo rather than one subtraction. lastLoadedAt arrives from a
-  // 2-minute poll of a 60-second-cached endpoint, measured against a
-  // 5-minute cycle, so it is routinely a whole cycle behind. Subtracting
-  // once goes negative and parks on "syncing" for minutes at a stretch,
-  // which is a different piece of wrong information in the same spot.
-  // Rolling forward keeps the estimate inside one interval, which is all
-  // it ever claimed to be.
-  const remainingMs = intervalMs - (elapsedMs % intervalMs);
-  const totalSeconds = Math.round(remainingMs / 1000);
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `next sync: ${m}:${String(s).padStart(2, "0")}`;
+  // Nothing running. The idle detail says what the last run actually
+  // did, which beats inventing a prediction about the next one.
+  const last = pipelinePhase.merge || pipelinePhase.scrape;
+  return last && last.detail ? last.detail : null;
 }
 
 function tickApiStatus() {
@@ -579,7 +539,7 @@ function tickApiStatus() {
   card.querySelector(".value").innerHTML = `${statusIconHtml(level)}${escapeHtml(value)}`;
   card.querySelector(".sub").textContent = sub;
   const syncEl = card.querySelector(".sync-countdown");
-  if (syncEl) syncEl.textContent = nextSyncText() ?? "";
+  if (syncEl) syncEl.textContent = pipelineActivityText() ?? "";
   paintStatusIcon(document.getElementById("status-dot"), level);
   document.getElementById("status-text").textContent = STATUS_LEVELS[level].text;
 }
@@ -587,7 +547,6 @@ function tickApiStatus() {
 function renderMetrics(stats) {
   const el = document.getElementById("metrics-grid");
   setLastCheckedAt(stats.freshness.last_checked);
-  setLastLoadedAt(stats.meta.last_loaded);
   const { fresh } = apiStatusFields();
 
   const cards = [
@@ -626,7 +585,7 @@ function renderMetrics(stats) {
       // a formatted number, never anything a listing supplied.
       value: `${statusIconHtml(apiStatusFields().level)}${escapeHtml(apiStatusFields().value)}`,
       sub: apiStatusFields().sub,
-      sub2: nextSyncText(),
+      sub2: pipelineActivityText(),
       hl: fresh,
     },
   ];
@@ -2360,7 +2319,7 @@ async function refreshFreshness() {
 // (api/handler.py's route_pipeline_status), which now reports BOTH
 // halves of the pipeline separately -- {scrape: {...}, merge: {...}} --
 // since they run on genuinely different schedules (fast-poll/workday
-// every 5-10 min, the merge hourly). nextSyncText() above only reads
+// every 5-10 min, the merge every 5). pipelineActivityText() above reads
 // .merge: see its own comment for why the scrape half, active almost
 // continuously, wouldn't actually answer "when does the site next
 // update."
@@ -2371,7 +2330,7 @@ async function refreshPipelineStatus() {
     pipelinePhase = await getJSON("/pipeline-status");
     tickApiStatus();
   } catch {
-    // Non-fatal: nextSyncText() falls back to the countdown when this is null.
+    // Non-fatal: the activity line simply stays empty when this is null.
   }
 }
 
