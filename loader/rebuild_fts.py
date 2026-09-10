@@ -35,7 +35,10 @@ from descriptions import get_one
 # so holding all 102,000 at once is a gigabyte and holding a thousand is
 # ten megabytes. The batch is the whole reason this fits in a Lambda.
 BATCH = 1000
-WORKERS = 32
+# Raised from 32 when the target set went from 75,000 rows to all
+# 142,000: the run has to finish inside the function's 10-minute ceiling,
+# and the fetch is pure network wait.
+WORKERS = 48
 
 
 def already_supported(conn: sqlite3.Connection) -> bool:
@@ -83,11 +86,20 @@ def rebuild(conn: sqlite3.Connection, bucket: str, log=print, s3=None) -> dict:
     conn.execute("DROP TABLE IF EXISTS jobs_fts_rebuild")
     conn.execute(f"CREATE VIRTUAL TABLE jobs_fts_rebuild USING fts5(description, {options})")
 
-    # description_sha is the marker that a blob was ever written for this
-    # listing. Rows without one never had a description to index.
-    targets = conn.execute(
-        "SELECT rowid, id FROM jobs WHERE description_sha IS NOT NULL AND description_sha != ''"
-    ).fetchall()
+    # Every row, and index whatever turns out to have a blob.
+    #
+    # The first version keyed on description_sha, on the reasoning that a
+    # listing without one never had a description to index. That was
+    # wrong by 27,937 rows: the column was added after indexing already
+    # existed, so listings scraped before it have a blob in S3 and an
+    # entry in the old index but no hash. Targeting on the hash dropped
+    # every one of them, and live search for "kubernetes" fell from 6,190
+    # hits to 5,068 before this was caught.
+    #
+    # The blob is the only authority on whether text exists. Asking for
+    # it costs a GET that returns nothing, which is cheaper than being
+    # clever about which rows deserve one.
+    targets = conn.execute("SELECT rowid, id FROM jobs").fetchall()
     log(f"rebuilding search index over {len(targets):,} listings")
 
     indexed = missing = 0
