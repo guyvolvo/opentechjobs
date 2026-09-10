@@ -46,17 +46,19 @@ def key_for(job_id: str) -> str:
     return f"{PREFIX}{job_id}.json"
 
 
-def put_many(bucket: str, items: list[tuple[str, str]]) -> int:
-    """Upload [(job_id, description)] concurrently. Returns the count written.
+def put_many(bucket: str, items: list[tuple[str, str]]) -> set[str]:
+    """Upload [(job_id, description)] concurrently. Returns the ids that
+    landed, so a caller about to clear its own copy can tell which ones
+    it is still the last holder of.
 
-    Best-effort by design: a failed upload leaves the row's description
-    in the database column (which this commit still populates) and the
-    next load retries, so the worst case is a stale-but-present blob
-    rather than a lost description. Never raises into the loader, since
-    a description is not worth failing an ingest over.
+    Best-effort by design: never raises into the loader, since a
+    description is not worth failing an ingest over. It used to return a
+    bare count, which was enough while the loader kept the text in the
+    column regardless. It no longer does, so "how many" stopped being
+    the useful answer and "which ones" started.
     """
     if not bucket or not items:
-        return 0
+        return set()
     s3 = boto3.client("s3")
 
     def put(item: tuple[str, str]) -> bool:
@@ -74,7 +76,8 @@ def put_many(bucket: str, items: list[tuple[str, str]]) -> int:
             return False
 
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        return sum(1 for ok in pool.map(put, items) if ok)
+        results = list(pool.map(put, items))
+    return {job_id for (job_id, _), ok in zip(items, results) if ok}
 
 
 def get_one(bucket: str, job_id: str, s3=None) -> str | None:

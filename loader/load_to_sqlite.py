@@ -414,17 +414,41 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
 
     close_missing_jobs(conn, seen_ids_by_domain, ts)
 
-    # After the DB work, never during it. This commit still writes the
-    # description column as well, so a failure here costs nothing yet.
-    if drop_description and changed_descriptions:
-        # Order matters: the FTS row and the S3 blob are both written
-        # above, from the text, before this removes it from the column.
-        conn.executemany("UPDATE jobs SET description = NULL WHERE id = ?",
-                         [(jid,) for jid, _ in changed_descriptions])
-
+    # After the DB work, never during it. Upload first, then clear: once
+    # the column is NULL the blob is the only copy, so clearing before
+    # the PUT lands is how text gets lost outright.
+    uploaded: set[str] = set()
     if changed_descriptions and DESCRIPTIONS_BUCKET:
-        n = put_many(DESCRIPTIONS_BUCKET, changed_descriptions)
-        print(f"uploaded {n}/{len(changed_descriptions)} changed descriptions", file=sys.stderr)
+        uploaded = put_many(DESCRIPTIONS_BUCKET, changed_descriptions)
+        print(f"uploaded {len(uploaded)}/{len(changed_descriptions)} changed descriptions",
+              file=sys.stderr)
+
+    if drop_description:
+        # Every row, not just the ones that changed this run.
+        #
+        # The narrow version of this was the whole reason the column came
+        # back. upsert_job writes `description` for every job in the
+        # payload, but only rows whose text CHANGED were ever cleared, so
+        # each poll of a company refilled the column for all of its
+        # unchanged listings. Measured 2026-09-10: 60,396 rows holding
+        # 337MB, in a file whose entire purpose was to not hold that. All
+        # 60,396 had their blob in S3 already, so the column was pure
+        # duplication, re-uploaded and re-versioned every 5 minutes.
+        #
+        # Anything that failed to upload keeps its text and loses its
+        # stored hash, which makes the next poll see it as changed and
+        # try the upload again. That is what keeps a bad PUT from
+        # becoming a permanently missing description.
+        failed = [jid for jid, _ in changed_descriptions if jid not in uploaded]
+        if failed:
+            conn.executemany("UPDATE jobs SET description_sha = NULL WHERE id = ?",
+                             [(jid,) for jid in failed])
+        placeholders = ",".join("?" * len(failed))
+        conn.execute(
+            "UPDATE jobs SET description = NULL WHERE description IS NOT NULL"
+            + (f" AND id NOT IN ({placeholders})" if failed else ""),
+            failed,
+        )
 
     return {r["domain"] for r in data}
 

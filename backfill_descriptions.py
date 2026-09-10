@@ -80,7 +80,7 @@ def main() -> int:
     started = time.time()
     for i in range(0, len(todo), args.batch):
         chunk = todo[i:i + args.batch]
-        done += put_many(args.bucket, chunk)
+        done += len(put_many(args.bucket, chunk))
         rate = done / max(1e-9, time.time() - started)
         print(f"  {done:,}/{len(todo):,} uploaded ({rate:.0f}/s)", file=sys.stderr)
     print(f"backfilled {done:,} descriptions in {time.time()-started:.0f}s", file=sys.stderr)
