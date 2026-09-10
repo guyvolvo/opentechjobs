@@ -54,7 +54,7 @@ variable "github_deploy_branch" {
 
 variable "lambda_memory_mb" {
   type        = number
-  default     = 2048
+  default     = 1536
   description = "Was 256 (\"SQLite reads on a ~2MB DB are light\") until 2026-09-08: jobs.db grew to ~197MB via the overnight Common-Crawl merge, and /api/stats' own heavy aggregates (median age, ghost-job rate, 14-day daily history) started timing out outright at 10s against a DB nearly 100x the size this Lambda was sized for. Bumped 1024->2048 the same day after jobs.db grew again, to 639MB in one large discovery-pipeline batch (Max Memory Used was already 700-720MB against the smaller cached version) -- real margin above a number that's proven it can jump hundreds of MB in a single merge, not just today's usage. More memory also means more CPU/network allocation in Lambda, directly helping the query speed itself, not just headroom."
 }
 
