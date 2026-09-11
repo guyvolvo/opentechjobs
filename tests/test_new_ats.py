@@ -139,6 +139,57 @@ check("a site with no www is unchanged",
       discover_companies._domain_of("http://tomax.io") == "tomax.io")
 check("an empty website is an empty domain", discover_companies._domain_of("") == "")
 
+# Niloosoft/Hunter. The token carries the board host and the action slug
+# because neither is derivable from the other: Iscar's board is
+# iscar-fr.hunterhrms.com and posts to actions-iscar-hamah.
+NILOO = [
+    {"jobId": 4658, "jobTitle": "Software Engineer", "openDate": "2026-09-06T04:50:00",
+     "locationAddress": None, "area": "North", "status": 1,
+     "description": "<b>Build things</b>", "requirements": "C++",
+     "employerName": "a production line, not a department"},
+    {"jobId": 4659, "jobTitle": "QA Engineer", "openDate": "2026-09-01T10:00:00",
+     "locationAddress": "Tel Aviv", "area": "Center", "status": 1,
+     "description": "", "requirements": "", "employerName": "Dror Mizrahi"},
+    {"jobId": 4660, "jobTitle": "Closed Role", "openDate": "2025-01-01T10:00:00",
+     "locationAddress": None, "area": "South", "status": 7,
+     "description": "", "requirements": "", "employerName": ""},
+]
+
+
+def fetch_post(token, payload, ok=None):
+    sess = FakeSession(payload)
+    orig = probe.get_json_post
+    probe.get_json_post = lambda s, url, body, ok_statuses=(200,): payload
+    try:
+        return probe.FETCHERS["niloosoft"](sess, token)
+    finally:
+        probe.get_json_post = orig
+
+
+jobs = fetch_post("iscar-fr.hunterhrms.com:iscar-hamah", NILOO)
+check("a Hunter board comes through", jobs is not None and len(jobs) == 2,
+      repr(jobs and len(jobs)))
+check("a job with no address falls back to its region",
+      jobs[0].location == "North", jobs[0].location)
+check("and a real address wins over the region",
+      jobs[1].location == "Tel Aviv", jobs[1].location)
+check("anything not status 1 is dropped",
+      all(j.title != "Closed Role" for j in jobs))
+check("the job URL is built from the board host, not the API host",
+      jobs[0].url == "https://iscar-fr.hunterhrms.com/?jobId=4658", jobs[0].url)
+check("employerName is not treated as a department",
+      all(j.department is None for j in jobs))
+check("description and requirements are joined",
+      "Build things" in (jobs[0].description or "") and "C++" in (jobs[0].description or ""),
+      repr(jobs[0].description))
+
+check("a token with no slug is refused outright",
+      fetch_post("iscar-fr.hunterhrms.com", NILOO) is None)
+check("an empty board is not a board",
+      fetch_post("x.hunterhrms.com:x", []) is None)
+check("a board where every job is closed is not a board",
+      fetch_post("x.hunterhrms.com:x", [NILOO[2]]) is None)
+
 print()
 if failures:
     print("%d failed:" % len(failures))

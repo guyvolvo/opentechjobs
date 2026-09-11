@@ -283,15 +283,23 @@ def get_json(sess: requests.Session, url: str) -> Any:
     return _request_json(lambda: sess.get(url, timeout=TIMEOUT, headers=headers), url, "get_json")
 
 
-def get_json_post(sess: requests.Session, url: str, body: dict) -> Any:
+def get_json_post(sess: requests.Session, url: str, body: dict,
+                  ok_statuses: tuple[int, ...] = (200,)) -> Any:
     """POST variant of get_json. Workday's CXS API takes search params
     as a JSON body, not a query string. Same retry/logging behavior.
+
+    ok_statuses is for Niloosoft, which answers a read with 201. Passed
+    per call rather than widened for everyone: for every other ATS here
+    a 201 to a list request would mean something had gone wrong, and
+    silently parsing it would hide that.
     """
     headers = _cond_headers()
-    return _request_json(lambda: sess.post(url, json=body, timeout=TIMEOUT, headers=headers), url, "get_json_post")
+    return _request_json(lambda: sess.post(url, json=body, timeout=TIMEOUT, headers=headers),
+                         url, "get_json_post", ok_statuses)
 
 
-def _request_json(do_request, url: str, label: str) -> Any:
+def _request_json(do_request, url: str, label: str,
+                  ok_statuses: tuple[int, ...] = (200,)) -> Any:
     for attempt in (1, 2):
         try:
             r = do_request()
@@ -347,14 +355,14 @@ def _request_json(do_request, url: str, label: str) -> Any:
     if r.status_code == 200:
         _cond.new_etag = r.headers.get("ETag")
         _cond.new_last_modified = r.headers.get("Last-Modified")
-    if r.status_code != 200:
+    if r.status_code not in ok_statuses:
         if VERBOSE:
             print(f"    [{label}] {url} -> status={r.status_code} type={ctype!r}",
                   file=sys.stderr)
         return None
     if "json" not in ctype.lower():
         if VERBOSE:
-            print(f"    [{label}] {url} -> status=200 but non-json type={ctype!r}",
+            print(f"    [{label}] {url} -> status={r.status_code} but non-json type={ctype!r}",
                   file=sys.stderr)
         return None
     try:
@@ -1557,6 +1565,89 @@ def f_breezy(sess, token):
                 _txt(j.get("department")) or None) for j in d]
 
 
+# Niloosoft's Hunter, the ATS most of Israel's large traditional
+# employers run. It took a while to find because nothing about it is
+# guessable: the boards live on <tenant>.hunterhrms.com, render entirely
+# client side, and the data comes from a single shared API host that
+# routes by a per-tenant path, not a query parameter.
+#
+# The path is "actions-<slug>", and the slug is not derivable from the
+# tenant name: Iscar's board is iscar-fr.hunterhrms.com and posts to
+# actions-iscar-hamah; Elbit's is elbit-fr and posts to
+# actions-elbit-friend. It is recoverable, though, from the board's own
+# JavaScript bundle, which is what discover_niloosoft_slug() below does.
+# So the token carries both halves, the same way Comeet's carries uid
+# and token and Workday's carries three parts.
+#
+# Found live 2026-09-11 across the 117 hunterhrms.com hosts in
+# certificate transparency: 7 live routes over 6 companies (Elbit
+# answers on two), 736 distinct jobs, Elbit alone 594 of them. 56 of the
+# 117 no longer serve at all, and 42 run an older WordPress board that
+# has no equivalent endpoint.
+NILOOSOFT_API = "https://niloo-server.herokuapp.com/"
+_NILOOSOFT_CHUNK_RE = re.compile(r"/_next/static/chunks/[A-Za-z0-9./_-]+\.js")
+_NILOOSOFT_SLUG_RE = re.compile(r"[\"'](/actions-[a-z0-9-]{2,40})[\"']")
+
+
+def discover_niloosoft_slug(sess, host: str) -> str | None:
+    """The action path <host>'s board posts to, read out of its bundle.
+
+    Only for discovery and for re-pinning a board that moved. A fetch
+    never does this: the slug is half the stored token.
+    """
+    base = f"https://{host}"
+    try:
+        html = sess.get(base + "/", timeout=25).text
+    except requests.RequestException:
+        return None
+    for chunk in sorted(set(_NILOOSOFT_CHUNK_RE.findall(html))):
+        try:
+            m = _NILOOSOFT_SLUG_RE.search(sess.get(base + chunk, timeout=20).text)
+        except requests.RequestException:
+            continue
+        if m:
+            return m.group(1).removeprefix("/actions-")
+    return None
+
+
+def _niloosoft_location(j: dict) -> str:
+    # locationAddress is set on about one job in fifteen. `area` is
+    # always there and is a real region name (North, Sharon, Haifa),
+    # which is worth more than an empty string to the Israel filter.
+    return _txt(j.get("locationAddress")) or _txt(j.get("area"))
+
+
+def f_niloosoft(sess, token):
+    host, _, slug = token.partition(":")
+    if not slug:
+        return None
+    d = get_json_post(sess, NILOOSOFT_API + "actions-" + slug,
+                      {"cmd": "get-jobs", "data": {}}, ok_statuses=(200, 201))
+    if not isinstance(d, list) or not d:
+        return None
+    out = []
+    for j in d:
+        # status 1 is open. Every job on every live board carried it, so
+        # this is a guard against a future value rather than an observed
+        # one.
+        if j.get("status") not in (1, "1", None):
+            continue
+        body = " ".join(x for x in [_txt(j.get("description")), _txt(j.get("requirements"))] if x)
+        out.append(Job("niloosoft", token, str(j.get("jobId")), _txt(j.get("jobTitle")),
+                       _niloosoft_location(j),
+                       f"https://{host}/?jobId={j.get('jobId')}",
+                       _normalize_date(j.get("openDate")),
+                       # No department. employerName looks like one on
+                       # Elbit, where it is the business unit, but across
+                       # the six live boards it is also a production line
+                       # (Iscar) and a hiring manager's own name (Toga).
+                       # A field that means three things is worse than an
+                       # empty one once the site facets on it.
+                       None,
+                       len(body), _clean_text(body)))
+    return out or None
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -1613,6 +1704,7 @@ FETCHERS: dict[str, Callable] = {
     "teamtailor": f_teamtailor,
     "bamboohr": f_bamboohr,
     "breezy": f_breezy,
+    "niloosoft": f_niloosoft,
 }
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
