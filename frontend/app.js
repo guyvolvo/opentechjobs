@@ -1150,12 +1150,18 @@ async function loadJobs() {
   }
 }
 
+// Every empty state says the same two things: that there is nothing to
+// show, then why.
+function emptyState(line) {
+  return `<strong>No results</strong><span>${line}</span>`;
+}
+
 function renderStarredOnly(starred) {
   document.getElementById("jobs-loading").textContent = "";
   document.getElementById("jobs-error").style.display = "none";
   const rows = lastJobsResponse?.jobs?.filter((j) => starred.has(j.id)) || [];
   if (!rows.length) {
-    document.getElementById("jobs-empty").textContent = "No starred jobs.";
+    document.getElementById("jobs-empty").innerHTML = emptyState("You have not starred any listings yet.");
     document.getElementById("jobs-empty").style.display = "block";
     document.getElementById("jobs-body").innerHTML = "";
     document.getElementById("result-count").innerHTML = "";
@@ -1170,6 +1176,7 @@ function renderStarredOnly(starred) {
 function renderJobs(data, starred) {
   document.getElementById("pagination").style.display = "flex";
   if (!data.jobs.length) {
+    document.getElementById("jobs-empty").innerHTML = emptyState("No listings match these filters.");
     document.getElementById("jobs-empty").style.display = "block";
     document.getElementById("jobs-body").innerHTML = "";
     document.getElementById("result-count").innerHTML = "";

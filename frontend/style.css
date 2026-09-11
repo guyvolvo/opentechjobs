@@ -1547,6 +1547,8 @@ table.jobs thead th[data-sort="age"] { text-align: center; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+.empty-state strong { display: block; color: var(--black); font-weight: 700; }
+.empty-state span { display: block; margin-top: 8px; text-transform: none; letter-spacing: 0; font-size: 12.5px; }
 .error-state { border-color: var(--red); color: var(--red); }
 
 /* Footer */
@@ -2348,7 +2350,6 @@ body.explore-busy .explore-metric { color: var(--green); }
   font-size: 12px;
   white-space: pre-wrap;
 }
-.explore-empty { color: var(--grey); font-size: 12px; }
 .explore-table-wrap { overflow-x: auto; border: 1px solid var(--grey-line); border-radius: 4px; max-height: 70vh; overflow-y: auto; }
 .explore-table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
 .explore-table th, .explore-table td {

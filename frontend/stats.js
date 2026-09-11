@@ -404,7 +404,8 @@ function render(result, ms, read) {
   const metric = $("explore-metric");
   const out = $("explore-result");
   if (!result.length) {
-    out.innerHTML = '<div class="explore-empty">No rows.</div>';
+    const why = mode === "builder" ? "No listings match these filters." : "The query returned no rows.";
+    out.innerHTML = `<div class="empty-state"><strong>No results</strong><span>${why}</span></div>`;
     metric.textContent = `0 rows in ${ms} ms, ${fmtBytes(read)} fetched`;
     lastResult = null;
     $("explore-csv").disabled = true;
