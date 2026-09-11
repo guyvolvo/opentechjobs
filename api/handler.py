@@ -705,21 +705,58 @@ def route_create_alert(claims: dict, body: dict) -> dict:
     return item
 
 
-def route_update_alert(user_id: str, alert_id: str, body: dict) -> dict | None:
-    """Pause/resume only -- not a general PATCH. Changing the filter
-    itself is a delete-and-recreate from the caller's side, simpler than
-    reconciling a partial update against an in-flight evaluator scan.
+def _alert_update_args(user_id: str, alert_id: str, body: dict) -> dict:
+    """The update_item() call for a PATCH, built and validated without
+    touching DynamoDB, so the expression itself is testable.
     """
-    if "active" not in body:
-        raise ValueError("body must include 'active': true or false")
+    sets = {}
+    if "active" in body:
+        sets[":a"] = ("active = :a", bool(body["active"]))
+    if "filter" in body:
+        filter_params = body["filter"]
+        if not isinstance(filter_params, dict):
+            raise ValueError("filter must be an object of the same query params /api/jobs accepts")
+        unknown = set(filter_params) - _ALLOWED_FILTER_KEYS
+        if unknown:
+            raise ValueError(f"unknown filter key(s): {', '.join(sorted(unknown))}")
+        sets[":f"] = ("#f = :f", filter_params)
+        sets[":n"] = ("last_notified_at = :n", datetime.now(timezone.utc).isoformat())
+    if not sets:
+        raise ValueError("body must include 'active' and/or 'filter'")
+
+    args = {
+        "Key": {"user_id": user_id, "alert_id": alert_id},
+        "UpdateExpression": "SET " + ", ".join(expr for expr, _ in sets.values()),
+        "ConditionExpression": "attribute_exists(alert_id)",
+        "ExpressionAttributeValues": {k: v for k, (_, v) in sets.items()},
+        "ReturnValues": "ALL_NEW",
+    }
+    # `filter` is a DynamoDB reserved word, so it can only appear in an
+    # UpdateExpression behind a name placeholder. Passing the names map
+    # when it is empty is itself an error, hence the conditional.
+    if ":f" in sets:
+        args["ExpressionAttributeNames"] = {"#f": "filter"}
+    return args
+
+
+def route_update_alert(user_id: str, alert_id: str, body: dict) -> dict | None:
+    """Pause/resume, edit the filter, or both in one call.
+
+    This used to be pause/resume only, on the grounds that a filter edit
+    could race the evaluator mid-scan. It can, and the cost of losing
+    that race is that one 5-minute cycle evaluates the old filter. That
+    is a smaller problem than the one it created: the only way to change
+    an alert was to delete it and build it again from scratch, which
+    loses the alert_id, the created_at, and any chance of the owner
+    recognising it in the list.
+
+    A filter edit moves last_notified_at to now, for the same reason
+    creation seeds it: widening an alert should start watching from here,
+    not mail out every already-open job the new filter happens to match.
+    """
+    args = _alert_update_args(user_id, alert_id, body)
     try:
-        resp = _alerts_table.update_item(
-            Key={"user_id": user_id, "alert_id": alert_id},
-            UpdateExpression="SET active = :a",
-            ConditionExpression="attribute_exists(alert_id)",
-            ExpressionAttributeValues={":a": bool(body["active"])},
-            ReturnValues="ALL_NEW",
-        )
+        resp = _alerts_table.update_item(**args)
     except _alerts_table.meta.client.exceptions.ConditionalCheckFailedException:
         return None
     return resp["Attributes"]

@@ -413,6 +413,8 @@ function debounce(fn, ms) {
 // whatever the last poll said.
 let lastCheckedAt = null;
 
+let lastReadingAt = null;
+
 // last_checked only ever moves forward (MAX(companies.last_checked) in
 // the DB), so two independently-cached samples of it (/stats and
 // /health are separate CloudFront cache entries, each up to 120s stale
@@ -422,6 +424,10 @@ let lastCheckedAt = null;
 // newer of the two instead.
 function setLastCheckedAt(iso) {
   if (!iso) return;
+  // When we last actually heard back, as opposed to how old the data was
+  // when we heard. Set before the monotonic guard below, because a poll
+  // that returns the same timestamp still proves the API answered.
+  lastReadingAt = Date.now();
   const t = new Date(iso).getTime();
   if (lastCheckedAt === null || t > lastCheckedAt) lastCheckedAt = t;
 }
@@ -472,7 +478,20 @@ const STATUS_LEVELS = {
 };
 
 function apiStatusFields() {
-  const minutesSince = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
+  // The age is only meaningful if our own reading is current. Both polls
+  // are gated on the tab being visible, and a sleeping machine misses
+  // them with the tab still in front, while the one-second tick counts up
+  // regardless. So an idle tab walks itself to OFFLINE while every cycle
+  // behind it ran on time: CloudWatch shows both halves of the pipeline
+  // firing every 5 minutes, 48 for 48, through the window a tile claimed
+  // 20 minutes of silence.
+  //
+  // Freeze the clock at the last reading we actually took rather than
+  // counting past it. Staleness we have not observed is not evidence.
+  // The next successful poll unfreezes it.
+  const stale = lastReadingAt === null || Date.now() - lastReadingAt > HEALTH_POLL_MS * 2;
+  const readAt = stale ? lastReadingAt : Date.now();
+  const minutesSince = lastCheckedAt === null || readAt === null ? null : (readAt - lastCheckedAt) / 60000;
   const age = minutesSince ?? 9999;
   const fresh = age <= FRESH_THRESHOLD_MINUTES;
   const level = !fresh ? "outage" : age > DEGRADED_AFTER_MINUTES ? "degraded" : "operational";
@@ -2621,8 +2640,8 @@ function renderAuthState() {
       <div class="alerts-header">My Alerts</div>
       <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
 
-      <div class="alert-create">
-        <div class="alerts-header">New Alert</div>
+      <div class="alert-create" id="alert-create">
+        <div class="alerts-header" id="alert-form-title">New Alert</div>
         <div class="alert-create-fields">
           <input type="text" id="alert-f-q" placeholder="SEARCH TITLE, COMPANY, LOCATION…" />
           <div class="ms" id="alert-ms-department"></div>
@@ -2632,7 +2651,10 @@ function renderAuthState() {
           <div class="ms" id="alert-ms-workplace"></div>
           <label class="toggle"><input type="checkbox" id="alert-f-israel" /> Israel only</label>
         </div>
-        <button class="btn" id="create-alert-btn" type="button">Create Alert</button>
+        <div class="alert-form-actions">
+          <button class="btn" id="create-alert-btn" type="button">Create Alert</button>
+          <button class="btn btn-quiet" id="cancel-edit-btn" type="button" hidden>Cancel</button>
+        </div>
         <p class="create-alert-feedback" id="create-alert-feedback" hidden></p>
       </div>
 
@@ -2799,6 +2821,9 @@ function describeAlertFilter(filter) {
 function renderAlertsList(alerts) {
   const container = document.getElementById("alerts-list");
   if (!container) return; // signed out (or panel re-rendered) before this resolved
+  myAlerts = alerts;
+  // An alert deleted from under an open edit leaves nothing to save to.
+  if (editingAlertId && !alerts.some((a) => a.alert_id === editingAlertId)) resetAlertForm();
   if (!alerts.length) {
     container.innerHTML = `<p class="alerts-empty">No alerts yet. Pick some filters below and create one.</p>`;
     return;
@@ -2806,8 +2831,8 @@ function renderAlertsList(alerts) {
   container.innerHTML = alerts
     .map(
       (a) => `
-      <div class="alert-row ${a.active ? "" : "paused"}">
-        <span class="alert-summary" title="${escapeHtml(describeAlertFilter(a.filter))}">${escapeHtml(describeAlertFilter(a.filter))}</span>
+      <div class="alert-row ${a.active ? "" : "paused"} ${a.alert_id === editingAlertId ? "editing" : ""}">
+        <button type="button" class="alert-summary" data-id="${a.alert_id}" title="Edit this alert">${escapeHtml(describeAlertFilter(a.filter))}</button>
         <span class="alert-actions">
           <button class="alert-toggle" data-id="${a.alert_id}" data-active="${a.active}">${a.active ? "Pause" : "Resume"}</button>
           <button class="alert-delete" data-id="${a.alert_id}" aria-label="Delete alert" title="Delete alert">✕</button>
@@ -2816,6 +2841,9 @@ function renderAlertsList(alerts) {
     )
     .join("");
 
+  container.querySelectorAll(".alert-summary").forEach((btn) => {
+    btn.addEventListener("click", () => startEditAlert(btn.dataset.id));
+  });
   container.querySelectorAll(".alert-toggle").forEach((btn) => {
     btn.addEventListener("click", async () => {
       btn.disabled = true;
@@ -2874,6 +2902,65 @@ const alertFormState = {
   israel_only: false,
 };
 
+// The alert being edited, or null for "create a new one". The form below
+// is the same set of controls either way, so this is the only thing that
+// distinguishes the two modes.
+let editingAlertId = null;
+
+// The last list we rendered, so clicking a row can reload that alert's
+// filter without asking the API for it again.
+let myAlerts = [];
+
+// Turns a saved filter back into the form's own state shape. The stored
+// form is what /api/jobs takes, where the multi-value fields are
+// comma-joined strings.
+function fillAlertForm(filter) {
+  const list = (v) => (v ? String(v).split(",").filter(Boolean) : []);
+  alertFormState.q = filter.q || "";
+  alertFormState.department = list(filter.department);
+  alertFormState.seniority = list(filter.seniority);
+  alertFormState.company = list(filter.company);
+  alertFormState.location = list(filter.location);
+  alertFormState.workplace = list(filter.workplace);
+  alertFormState.israel_only = filter.israel_only === "1";
+
+  document.getElementById("alert-f-q").value = alertFormState.q;
+  document.getElementById("alert-f-israel").checked = alertFormState.israel_only;
+  alertMsDepartment.setSelected(alertFormState.department);
+  alertMsSeniority.setSelected(alertFormState.seniority);
+  alertMsCompany.setSelected(alertFormState.company);
+  alertMsLocation.setSelected(alertFormState.location);
+  alertMsWorkplace.setSelected(alertFormState.workplace);
+}
+
+// Both modes paint from here, so the heading, the button and the Cancel
+// affordance can never disagree about which one we are in.
+function paintAlertFormMode() {
+  const title = document.getElementById("alert-form-title");
+  const submit = document.getElementById("create-alert-btn");
+  const cancel = document.getElementById("cancel-edit-btn");
+  if (!title || !submit || !cancel) return;
+  title.textContent = editingAlertId ? "Edit Alert" : "New Alert";
+  submit.textContent = editingAlertId ? "Save Changes" : "Create Alert";
+  cancel.hidden = !editingAlertId;
+  document.getElementById("alert-create").classList.toggle("editing", !!editingAlertId);
+}
+
+function startEditAlert(alertId) {
+  const alert = myAlerts.find((a) => a.alert_id === alertId);
+  if (!alert) return;
+  editingAlertId = alertId;
+  fillAlertForm(alert.filter || {});
+  paintAlertFormMode();
+  renderAlertsList(myAlerts);
+  document.getElementById("alert-create").scrollIntoView({ block: "nearest" });
+}
+
+function cancelEditAlert() {
+  resetAlertForm();
+  renderAlertsList(myAlerts);
+}
+
 function resetAlertForm() {
   alertFormState.q = "";
   alertFormState.department = [];
@@ -2889,6 +2976,8 @@ function resetAlertForm() {
   alertMsCompany.reset();
   alertMsLocation.reset();
   alertMsWorkplace.reset();
+  editingAlertId = null;
+  paintAlertFormMode();
 }
 
 // Deliberately global, not board-scoped: an alert is a standing filter
@@ -2899,6 +2988,11 @@ function resetAlertForm() {
 // latestCompanyOptions/msDepartment/msLocation's board-scoped values.
 function populateAlertFilterOptions() {
   if (!alertMsDepartment) return; // signed out, or panel not built yet
+  // Not while someone is editing. setOptions drops any selection missing
+  // from the new list and reports it through onChange, which would
+  // rewrite the form under the user mid-edit. These lists barely move in
+  // the two minutes between polls, and the next save repaints anyway.
+  if (editingAlertId) return;
   if (latestStats) {
     alertMsDepartment.setOptions(
       latestStats.top_departments.map((r) => ({ value: r.department, label: `${r.department} (${r.n})` }))
@@ -2913,6 +3007,12 @@ function populateAlertFilterOptions() {
 }
 
 function wireAlertCreateForm() {
+  // Sign-out tears the panel down and sign-in builds a fresh one, but
+  // editingAlertId lives above both. Left set, the rebuilt form would
+  // read "New Alert" while still holding a pointer to someone's
+  // existing alert, and Create would quietly overwrite it.
+  editingAlertId = null;
+
   document.getElementById("alert-f-q").addEventListener("input", (e) => {
     alertFormState.q = e.target.value.trim();
   });
@@ -2947,6 +3047,9 @@ function wireAlertCreateForm() {
     alertFormState.israel_only = e.target.checked;
   });
 
+  document.getElementById("cancel-edit-btn").addEventListener("click", cancelEditAlert);
+  paintAlertFormMode();
+
   document.getElementById("create-alert-btn").addEventListener("click", async (e) => {
     // Localized to the button, not a page-level spinner: the user
     // clicked one control and that control is what should look busy.
@@ -2964,13 +3067,21 @@ function wireAlertCreateForm() {
       israel_only: alertFormState.israel_only ? "1" : "",
     };
     const filter = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== "" && v != null));
+    // Read once: the request is awaited below, and a click on another row
+    // in the meantime would otherwise redirect the save.
+    const editing = editingAlertId;
     try {
-      await authedFetch("/me/alerts", { method: "POST", body: JSON.stringify({ filter }) });
-      showCreateAlertFeedback("Alert created.");
+      if (editing) {
+        await authedFetch(`/me/alerts/${editing}`, { method: "PATCH", body: JSON.stringify({ filter }) });
+      } else {
+        await authedFetch("/me/alerts", { method: "POST", body: JSON.stringify({ filter }) });
+      }
+      showCreateAlertFeedback(editing ? "Alert saved." : "Alert created.");
       resetAlertForm();
       renderAlertsList(await loadMyAlerts());
     } catch (err) {
-      showCreateAlertFeedback(err.message || "Could not create alert.", true);
+      const fallback = editing ? "Could not save alert." : "Could not create alert.";
+      showCreateAlertFeedback(err.message || fallback, true);
     } finally {
       // The panel is torn down and rebuilt on sign-out, so this button
       // can be gone by the time the request settles.

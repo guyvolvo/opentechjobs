@@ -330,6 +330,11 @@ button, input, select {
 }
 .alert-row:last-child { border-bottom: none; }
 
+/* A button, not a span: clicking the summary is how you edit the alert,
+   so it has to be reachable by keyboard and announce itself as a
+   control. Styled back down to look like the line of text it replaced,
+   with the underline on hover as the only affordance it needs at this
+   size. */
 .alert-summary {
   font-size: 12px;
   flex: 1 1 auto;
@@ -337,8 +342,21 @@ button, input, select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.alert-summary:hover { text-decoration: underline; }
+.alert-summary:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .alert-row.paused .alert-summary { color: var(--grey); }
+/* Which row the form below is currently holding. */
+.alert-row.editing .alert-summary { font-weight: 700; text-decoration: underline; }
 
 .alert-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 
@@ -411,7 +429,17 @@ button, input, select {
   cursor: pointer;
 }
 .alert-create-fields label.toggle input { accent-color: var(--green); }
+.alert-form-actions { display: flex; gap: 8px; }
 .alert-create .btn { width: 100%; }
+/* Cancel sits beside Save, and must not compete with it. */
+.alert-create .btn-quiet {
+  width: auto;
+  flex: 0 0 auto;
+  background: none;
+  color: var(--black);
+  border: var(--rule) solid var(--black);
+}
+.alert-create .btn-quiet:hover { background: var(--black); color: var(--white); }
 
 /* 4px radius -- same scoped exception as .job-detail/.ms-menu above. */
 .auth-panel {
