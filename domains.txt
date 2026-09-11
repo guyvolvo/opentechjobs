@@ -4172,3 +4172,21 @@ booksy-1.com
 prosper.ai
 stratum.ai
 tycho.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+queue.com
+runsybil.com
+shiftkey.co
+teza.com
+tgc.co
+progress.com
+prophetic.com
+swap.com
+trovy.com
+turion.ai
+momentus.org
+quanta.com
+stacks.ai
+unwrap.ai
+transgridenergy.com
+racapitalmanagement.com
