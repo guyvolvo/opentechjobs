@@ -77,6 +77,9 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # resolve-company-names.yml; this Lambda only applies it to the
           # snapshot it just built (see apply_company_names).
           "${aws_s3_bucket.data.arn}/company-names.json",
+          # company-logos.json: read-only here too, for the same reason.
+          # The merge reads it; resolve-company-logos.yml writes it.
+          "${aws_s3_bucket.data.arn}/company-logos.json",
           # deltas/*: read and then deleted once a snapshot containing
           # them has been pushed. See loader/deltas.py.
           "${aws_s3_bucket.data.arn}/deltas/*",

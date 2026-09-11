@@ -217,6 +217,12 @@ resource "aws_iam_role_policy" "data_deploy" {
           # writes the result here. The merge picks it up on its next run
           # and stamps the names onto jobs-read.db.
           "${aws_s3_bucket.data.arn}/company-names.json",
+          # company-logos.json: same shape and cadence as company-names
+          # above. resolve-company-logos.yml asks each company's own ATS
+          # for the logo it uploaded, falls back to reading the company's
+          # site, and writes the result here; the merge stamps it onto
+          # jobs-read.db on its next run.
+          "${aws_s3_bucket.data.arn}/company-logos.json",
           # jobs-read.db: build-salary-matrix.yml reads the live snapshot
           # to find every listing that discloses a real range. Read is
           # what it needs; PutObject on this key is granted only because
