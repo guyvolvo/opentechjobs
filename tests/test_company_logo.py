@@ -52,7 +52,7 @@ class FakeSession:
         self.table = table
         self.asked = []
 
-    def get(self, url, timeout=None, allow_redirects=True, params=None):
+    def get(self, url, timeout=None, allow_redirects=True, params=None, **kwargs):
         self.asked.append(url)
         for key, resp in self.table.items():
             if key in url:
