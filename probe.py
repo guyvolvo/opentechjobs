@@ -284,7 +284,8 @@ def get_json(sess: requests.Session, url: str) -> Any:
 
 
 def get_json_post(sess: requests.Session, url: str, body: dict,
-                  ok_statuses: tuple[int, ...] = (200,)) -> Any:
+                  ok_statuses: tuple[int, ...] = (200,),
+                  timeout: int = TIMEOUT) -> Any:
     """POST variant of get_json. Workday's CXS API takes search params
     as a JSON body, not a query string. Same retry/logging behavior.
 
@@ -292,9 +293,15 @@ def get_json_post(sess: requests.Session, url: str, body: dict,
     per call rather than widened for everyone: for every other ATS here
     a 201 to a list request would mean something had gone wrong, and
     silently parsing it would hide that.
+
+    timeout is for the same board. Elbit's list is 2.3 MB of job
+    descriptions and takes about 15 seconds, so the 12-second default
+    dropped it every time, silently, as a board with no jobs. Raising
+    the default instead would make every genuinely dead host across
+    3,700 companies hang four times longer before giving up.
     """
     headers = _cond_headers()
-    return _request_json(lambda: sess.post(url, json=body, timeout=TIMEOUT, headers=headers),
+    return _request_json(lambda: sess.post(url, json=body, timeout=timeout, headers=headers),
                          url, "get_json_post", ok_statuses)
 
 
@@ -1585,6 +1592,8 @@ def f_breezy(sess, token):
 # 117 no longer serve at all, and 42 run an older WordPress board that
 # has no equivalent endpoint.
 NILOOSOFT_API = "https://niloo-server.herokuapp.com/"
+# Elbit's board alone is 2.3 MB and takes ~15s. Measured, not padded.
+NILOOSOFT_TIMEOUT = 45
 _NILOOSOFT_CHUNK_RE = re.compile(r"/_next/static/chunks/[A-Za-z0-9./_-]+\.js")
 _NILOOSOFT_SLUG_RE = re.compile(r"[\"'](/actions-[a-z0-9-]{2,40})[\"']")
 
@@ -1611,10 +1620,24 @@ def discover_niloosoft_slug(sess, host: str) -> str | None:
 
 
 def _niloosoft_location(j: dict) -> str:
-    # locationAddress is set on about one job in fifteen. `area` is
-    # always there and is a real region name (North, Sharon, Haifa),
-    # which is worth more than an empty string to the Israel filter.
-    return _txt(j.get("locationAddress")) or _txt(j.get("area"))
+    """Where the job is, always ending in Israel.
+
+    Two problems this solves at once. locationAddress is set on about
+    one job in fifteen, and `area` fills some of the rest with a real
+    region (North, Sharon, Haifa). But both arrive in Hebrew on most
+    boards -- "כפר סבא", "צפון" -- and IL_KEYWORDS, which is what the
+    site's israel_only filter matches on, is entirely Latin. So 730
+    jobs from six Israeli employers would land on the board and then be
+    invisible under the one filter most people use.
+
+    Naming the country is not a guess here. Niloosoft is an Israeli
+    vendor and every board on it is an Israeli career site, including
+    the ones belonging to global companies: flex-fr is Flex's Israel
+    site, pwc-careersite is PwC Israel. Checked across all six live
+    boards, every `area` value is an Israeli region.
+    """
+    where = _txt(j.get("locationAddress")) or _txt(j.get("area"))
+    return f"{where}, Israel" if where else "Israel"
 
 
 def f_niloosoft(sess, token):
@@ -1622,7 +1645,8 @@ def f_niloosoft(sess, token):
     if not slug:
         return None
     d = get_json_post(sess, NILOOSOFT_API + "actions-" + slug,
-                      {"cmd": "get-jobs", "data": {}}, ok_statuses=(200, 201))
+                      {"cmd": "get-jobs", "data": {}},
+                      ok_statuses=(200, 201), timeout=NILOOSOFT_TIMEOUT)
     if not isinstance(d, list) or not d:
         return None
     out = []

@@ -4269,3 +4269,11 @@ succinct.com
 strange.net
 cimspa.net
 city.com
+
+# Niloosoft (Hunter) boards, found via certificate transparency on
+# hunterhrms.com. See discover_niloosoft.py -- neither the board host
+# nor its action path is guessable from the company name.
+pwc.com
+iscar.co.il
+toganetworks.com
+yes.co.il

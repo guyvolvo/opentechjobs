@@ -159,7 +159,7 @@ NILOO = [
 def fetch_post(token, payload, ok=None):
     sess = FakeSession(payload)
     orig = probe.get_json_post
-    probe.get_json_post = lambda s, url, body, ok_statuses=(200,): payload
+    probe.get_json_post = lambda s, url, body, ok_statuses=(200,), timeout=None: payload
     try:
         return probe.FETCHERS["niloosoft"](sess, token)
     finally:
@@ -169,10 +169,16 @@ def fetch_post(token, payload, ok=None):
 jobs = fetch_post("iscar-fr.hunterhrms.com:iscar-hamah", NILOO)
 check("a Hunter board comes through", jobs is not None and len(jobs) == 2,
       repr(jobs and len(jobs)))
+# Every location is tagged with the country. These boards carry Hebrew
+# place names and the site's israel_only filter matches Latin keywords,
+# so without this the jobs land and then cannot be found.
 check("a job with no address falls back to its region",
-      jobs[0].location == "North", jobs[0].location)
+      jobs[0].location == "North, Israel", jobs[0].location)
 check("and a real address wins over the region",
-      jobs[1].location == "Tel Aviv", jobs[1].location)
+      jobs[1].location == "Tel Aviv, Israel", jobs[1].location)
+check("a job with neither still says Israel",
+      (fetch_post("x.hunterhrms.com:x", [dict(NILOO[0], locationAddress=None, area="")])
+       or [None])[0].location == "Israel")
 check("anything not status 1 is dropped",
       all(j.title != "Closed Role" for j in jobs))
 check("the job URL is built from the board host, not the API host",
