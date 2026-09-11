@@ -30,9 +30,11 @@ Order, best first:
 
   1. the ATS's own copy, keyed on the token
   2. whatever the company's site declares in <link rel="...icon">
-  3. the site's og:image
-  4. Google's favicon service, rejected if it returns its 16x16 placeholder
-  5. nothing, and the caller draws a lettered square
+  3. Google's favicon service, rejected if it returns its 16x16 placeholder
+  4. nothing, and the caller draws a lettered square
+
+Not og:image. It looks tempting and is always the wrong shape: a social
+share card, 1200x630, which in a square slot is a squashed strip.
 
 Every candidate is fetched and checked before it is accepted, so a
 soft-404 HTML page served as apple-touch-icon.png cannot win.
@@ -98,7 +100,7 @@ def check_image(sess, url: str) -> bool:
 
 
 class _IconParser(HTMLParser):
-    """Icons and og:image declared in a page's own head.
+    """The icons a page declares in its own head.
 
     rel is a space-separated token list, so "shortcut icon" and
     "apple-touch-icon-precomposed" both have to match.
@@ -107,7 +109,6 @@ class _IconParser(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.icons: list[tuple[int, str]] = []
-        self.og: str | None = None
 
     def handle_starttag(self, tag, attrs):
         a = {k.lower(): (v or "") for k, v in attrs}
@@ -122,9 +123,10 @@ class _IconParser(HTMLParser):
                 self.icons.append((0, href))
             elif "icon" in rels or "shortcut" in rels or "mask-icon" in rels:
                 self.icons.append((1, href))
-        elif tag == "meta":
-            if a.get("property", "").lower() == "og:image" and a.get("content"):
-                self.og = self.og or a["content"].strip()
+        # og:image is deliberately not collected. It is a social share
+        # card, not a logo: NVIDIA's is nvidia-corporate-og-image-1200x630
+        # .jpg, which rendered in a square slot as a squashed green strip.
+        # Reported live from a screenshot of exactly that.
 
 
 def _absolute(base: str, href: str) -> str:
@@ -158,8 +160,6 @@ def site_icons(sess, domain: str) -> list[str]:
             p.feed(r.text[:400_000])
             for _, href in sorted(p.icons, key=lambda t: t[0]):
                 out.append(_absolute(landed, href))
-            if p.og:
-                out.append(_absolute(landed, p.og))
     except (requests.RequestException, ValueError):
         pass
     out += [base + "/apple-touch-icon.png", base + "/favicon.ico"]

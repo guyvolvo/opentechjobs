@@ -97,8 +97,12 @@ check("the apple-touch-icon is preferred over the shortcut icon",
       icons[0] == "https://cdn.example.com/touch.png", repr(icons[:2]))
 check("a root-relative href becomes absolute",
       "https://site.example/static/fav.ico" in icons, repr(icons))
-check("a protocol-relative og:image becomes https",
-      "https://cdn.example.com/og.png" in icons, repr(icons))
+# og:image is a social share card, not a logo. NVIDIA's is
+# nvidia-corporate-og-image-1200x630.jpg, which in a square slot renders
+# as a squashed strip. It must never be collected, however tempting the
+# tag looks.
+check("og:image is never offered as a logo",
+      not any("og.png" in u for u in icons), repr(icons))
 check("and the two fixed guesses are still there, at the end",
       icons[-2:] == ["https://site.example/apple-touch-icon.png",
                      "https://site.example/favicon.ico"], repr(icons[-2:]))

@@ -332,11 +332,19 @@ window.rememberLogoStage = rememberLogoStage;
 function companyLogoImg(domain, size, extraClass = "", resolved = null) {
   if (resolved) {
     const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
-    // Still onerror-guarded: a CDN can 404 a logo that resolved weeks
-    // ago, and a broken image icon is worse than a lettered square.
+    // Two fallbacks, not one. A resolved URL can fail for reasons the
+    // server cannot see: a CDN 404s a logo that verified weeks ago, and
+    // an ad blocker refuses anything served from an ad network's own
+    // domain. Reported live: Taboola's logo is a valid 300x300 PNG on
+    // taboola.com, which Brave blocks outright, so a company that used
+    // to show an icon started showing a letter. Google's favicon service
+    // is a neutral host and survives both, so it goes between the
+    // resolved URL and giving up.
+    const logoDomain = LOGO_DOMAIN_OVERRIDES[domain] || domain;
     return `<img class="${cls}" src="${escapeHtml(resolved)}" alt="" loading="lazy"
+      data-google="${escapeHtml(companyLogoUrl(logoDomain, size))}"
       data-monogram="${escapeHtml(monogramLogoSvg(domain))}"
-      onerror="this.onerror=null;this.src=this.dataset.monogram;" />`;
+      onerror="if(this.dataset.google&&this.src!==this.dataset.google){this.src=this.dataset.google;}else{this.onerror=null;this.src=this.dataset.monogram;}" />`;
   }
   return companyLogoGuess(domain, size, extraClass);
 }
