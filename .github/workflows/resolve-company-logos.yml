@@ -1,0 +1,104 @@
+name: resolve-company-logos
+
+# Resolves each company's logo and keeps the result in
+# company-logos.json. See company_logo.py for why the browser can't be
+# trusted to work this out on its own: it was guessing two fixed URLs on
+# a domain that is itself frequently a guess, so a company whose icon
+# lives anywhere else, or whose stored domain is a tenant slug nobody
+# owns, got a lettered square. Fourteen of the 124 companies with open
+# Israeli listings were in that state, and one was showing a stranger's
+# logo outright.
+#
+# A logo is resolved once and then essentially never changes, so this
+# only works on companies that don't have an entry yet. The first run
+# clears the backlog; every run after is whatever discovery added since.
+# Companies whose every source came up empty are recorded with a null
+# url so they aren't retried forever. Use refresh to re-check everything,
+# which is what to run after a rebrand or a change to the resolver.
+#
+# Deliberately three steps rather than one call with --bucket. The
+# resolve itself can run for hours across several thousand slow hosts,
+# and the OIDC credentials are an hour-long session: scrape-discover.yml
+# did exactly this in one step and spent three days finishing its work
+# and then dying on the first S3 write with ExpiredToken. So the long
+# step touches no AWS at all, and the credentials are taken fresh on
+# either side of it.
+#
+# Nothing here touches the live database. The merge picks the file up on
+# its next hourly run and stamps the logos onto jobs-read.db.
+
+on:
+  schedule:
+    - cron: "53 4 * * *" # daily, after resolve-company-names so it sees the same known.json
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Resolve at most this many companies (0 = all)"
+        required: false
+        default: "0"
+        type: string
+      refresh:
+        description: "Re-resolve companies that already have an entry"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - run: pip install requests boto3
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Pull known.json and whatever logos we already have
+        run: |
+          aws s3 cp "s3://${{ vars.DATA_BUCKET }}/known.json" known.json
+          # Absent on the first run, which is not an error.
+          aws s3 cp "s3://${{ vars.DATA_BUCKET }}/company-logos.json" company-logos.json || true
+
+      - name: Resolve logos
+        run: |
+          python resolve_company_logos.py \
+            --known known.json \
+            --out company-logos.json \
+            --limit ${{ github.event.inputs.limit || '0' }} \
+            ${{ github.event.inputs.refresh == 'true' && '--refresh' || '' }}
+
+      - name: Re-assume AWS credentials (the resolve above outlives them)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Publish
+        run: |
+          python -c "
+          import json, sys
+          d = json.load(open('company-logos.json', encoding='utf-8'))
+          have = sum(1 for v in d.values() if isinstance(v, dict) and v.get('url'))
+          # A file that somehow came back tiny would overwrite a good one,
+          # which is how known.json lost 3,629 companies once.
+          if len(d) < 10:
+              print(f'refusing to publish {len(d)} entries', file=sys.stderr); sys.exit(1)
+          print(f'{have}/{len(d)} companies have a logo')
+          "
+          aws s3 cp company-logos.json "s3://${{ vars.DATA_BUCKET }}/company-logos.json" \
+            --content-type application/json

@@ -117,8 +117,43 @@ def apply_company_names(conn: sqlite3.Connection, names: dict[str, str] | None) 
     ).fetchone()[0]
 
 
+def apply_company_logos(conn: sqlite3.Connection, logos: dict | None) -> int:
+    """Stamp each company's resolved logo onto the merged snapshot.
+
+    Same cadence argument as apply_company_names above, only more so. A
+    logo costs several requests to find (company_logo.py asks the ATS
+    first, then reads the site) and then never changes, while partitions
+    are rewritten every few minutes by a fast poll that has no business
+    paying that. Keeping the answers in company-logos.json and applying
+    them here means the fast poll stays cheap and a newly resolved logo
+    still reaches the board on the next merge.
+
+    The file records a null url for a company whose every tier came up
+    empty, which is a real answer worth keeping so it is not retried
+    forever. Only a real url is written here, so that null never
+    overwrites a logo an older run did find.
+    """
+    if not logos:
+        return 0
+    rows = [(v["url"], domain) for domain, v in logos.items()
+            if isinstance(v, dict) and v.get("url")]
+    if not rows:
+        return 0
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(companies)")}
+    if "logo_url" not in cols:
+        # The column arrives with a loader deploy; until then there is
+        # nowhere to put these and that is not an error.
+        return 0
+    with conn:
+        conn.executemany("UPDATE companies SET logo_url = ? WHERE domain = ?", rows)
+    return conn.execute(
+        "SELECT COUNT(*) FROM companies WHERE logo_url IS NOT NULL"
+    ).fetchone()[0]
+
+
 def merge_partitions(partition_paths: dict[str, Path], out_path: Path,
-                     names: dict[str, str] | None = None) -> dict:
+                     names: dict[str, str] | None = None,
+                     logos: dict | None = None) -> dict:
     """partition_paths maps each partition's own name (e.g. "0", "1",
     "workday" -- not the S3 key or local filename) to its already-
     downloaded local file. Builds a fresh DB at out_path and returns a
@@ -260,6 +295,7 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path,
     with merged:
         update_meta(merged)
     apply_company_names(merged, names)
+    summary["companies_with_logo"] = apply_company_logos(merged, logos)
 
     # No VACUUM. It used to run here to reclaim free pages, but with the
     # unlink above out_path really is a fresh file that only ever gets
@@ -314,7 +350,22 @@ def main() -> int:
         except Exception as e:
             print(f"couldn't load company-names.json (non-fatal): {e!r}", file=sys.stderr)
 
-    summary = merge_partitions(partition_paths, args.out, names)
+    # Same best-effort treatment as the names file: no logos file just
+    # means every company falls back to the browser's own guessing, which
+    # is what it did before this existed.
+    logos = None
+    if args.bucket:
+        logos_path = args.out.with_name("company-logos.json")
+        try:
+            existed, _ = s3_pull(args.bucket, "company-logos.json", logos_path)
+            if existed:
+                logos = json.loads(logos_path.read_text(encoding="utf-8"))
+                have = sum(1 for v in logos.values() if isinstance(v, dict) and v.get("url"))
+                print(f"loaded {have} company logos", file=sys.stderr)
+        except Exception as e:
+            print(f"couldn't load company-logos.json (non-fatal): {e!r}", file=sys.stderr)
+
+    summary = merge_partitions(partition_paths, args.out, names, logos)
     print(json.dumps(summary), file=sys.stderr)
     if summary["skipped_version_mismatch"]:
         print(f"ALERT: {len(summary['skipped_version_mismatch'])} partition(s) skipped for schema "
