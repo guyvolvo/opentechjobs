@@ -1,0 +1,14 @@
+{
+  "name": "opentechjobs-e2e",
+  "private": true,
+  "description": "Browser and API end-to-end tests. Scoped here so the frontend stays dependency-free.",
+  "scripts": {
+    "test": "playwright test",
+    "test:desktop": "playwright test --project=desktop",
+    "test:filters": "playwright test specs/filters.spec.ts --project=desktop",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
