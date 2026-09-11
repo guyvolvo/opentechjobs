@@ -4210,3 +4210,25 @@ triedgeinvestments.com
 playworks.com
 upwork.ai
 prose.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+rapdev.com
+pod.io
+housemarque.com
+nanopath.com
+pathai.io
+rangeview.com
+sama.com
+polygon.com
+saris.ai
+sahara.com
+speckle.io
+root-access.org
+stargate.com
+tactiq.com
+taxo.com
+the-token.com
+union.ai
+unto.com
+aha.io
+contentful.com
