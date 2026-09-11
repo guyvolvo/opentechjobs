@@ -83,13 +83,21 @@ jobs:
           )
           "
 
+      # Hints: what each domain resolved to last time. Without them the
+      # sweep re-derives every already-known company from scratch,
+      # walking every fetcher and then two careers-page scrapes. Absent
+      # on a first run, which is not an error: probe.py says so and
+      # guesses from scratch.
+      - name: Pull known.json for hints
+        run: aws s3 cp "s3://${{ vars.DATA_BUCKET }}/known.json" known.json || true
+
       - name: Full probe, guess, Comeet scrape, embed/JSON-LD fallback
         if: ${{ github.event.inputs.domains == '' }}
-        run: python probe.py --batch domains.txt --fetch-descriptions --fetch-logos --json > resolved.json
+        run: python probe.py --batch domains.txt --hints known.json --fetch-descriptions --json > resolved.json
 
       - name: Targeted probe (workflow_dispatch domains input)
         if: ${{ github.event.inputs.domains != '' }}
-        run: python probe.py --domain "${{ github.event.inputs.domains }}" --fetch-descriptions --fetch-logos --json > resolved.json
+        run: python probe.py --domain "${{ github.event.inputs.domains }}" --hints known.json --fetch-descriptions --json > resolved.json
 
       # The credentials above are an OIDC session on a role capped at one
       # hour, and the sweep above outgrew that: it took 23 minutes on

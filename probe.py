@@ -187,6 +187,13 @@ FETCH_FULL_DESCRIPTIONS = False  # Comeet + Workday's extra per-job detail reque
 # the five-minute sweep. Off by default; --fetch-logos turns it on.
 FETCH_LOGOS = False
 
+# How long resolve() will spend guessing one domain before giving up.
+# A domain that resolves takes under a second; one that does not can walk
+# every fetcher, every token candidate and then two careers-page scrapes.
+# 45s is generous against the 0.3s a hit costs and bounds the worst case
+# so one bad host cannot hold a worker for three minutes.
+GUESS_BUDGET_S = 45
+
 # ATSes whose per-job detail fetch runs even with FETCH_FULL_DESCRIPTIONS
 # off. A global flag is the wrong lever here because the two gated
 # platforms are nowhere near the same size: measured live 2026-09-09,
@@ -253,6 +260,7 @@ def _cond_reset(etag: str | None = None, last_modified: str | None = None,
     # own validator to a completely different URL.
     _cond.armed = bool(etag or last_modified)
     _cond.not_modified = False
+    _cond.guessing = False
     _cond.new_etag = None
     _cond.new_last_modified = None
 
@@ -328,15 +336,22 @@ def get_json_post(sess: requests.Session, url: str, body: dict,
 
 def _request_json(do_request, url: str, label: str,
                   ok_statuses: tuple[int, ...] = (200,)) -> Any:
-    for attempt in (1, 2):
+    # One attempt while guessing, two when re-polling a board we already
+    # trust. A guess is a question about a host that probably does not
+    # exist, and asking a second time half a second later answers it the
+    # same way while costing another full timeout. Measured 2026-09-11:
+    # one domain took 178s and 27 probes to resolve, and the retries were
+    # most of it. A re-poll of a known-good board keeps its retry, where a
+    # blip really is worth a second look.
+    attempts = (1,) if getattr(_cond, "guessing", False) else (1, 2)
+    for attempt in attempts:
         try:
             r = do_request()
             break
         except requests.RequestException as e:
-            if attempt == 2:
+            if attempt == attempts[-1]:
                 if VERBOSE:
-                    print(f"    [{label}] {url} -> exception after retry: {e!r}",
-                          file=sys.stderr)
+                    print(f"    [{label}] {url} -> exception: {e!r}", file=sys.stderr)
                 return None
             if VERBOSE:
                 print(f"    [{label}] {url} -> exception, retrying once: {e!r}",
@@ -351,6 +366,18 @@ def _request_json(do_request, url: str, label: str,
     # moment one says to. Honours Retry-After when given, capped so one
     # unhappy provider can't stall the whole sweep past its timeout.
     if r.status_code in (429, 503):
+        # Not while guessing. A 429 on a guessed token is a provider
+        # throttling a question about a company that is almost certainly
+        # not theirs, and sleeping on it charges the sweep for the
+        # privilege. Personio answers 429 for any unknown subdomain, so
+        # every unresolved domain was paying the backoff plus a retry.
+        # A re-poll of a board we already track still backs off properly,
+        # which is where it matters.
+        if getattr(_cond, "guessing", False):
+            if VERBOSE:
+                print(f"    [{label}] {url} -> {r.status_code} while guessing, treating as a miss",
+                      file=sys.stderr)
+            return None
         wait = RATE_LIMIT_BACKOFF_S
         header = r.headers.get("Retry-After")
         if header:
@@ -1741,16 +1768,29 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
                                    # entry lets the search actually reach.
 }
 
+# Ordered by how often each one actually wins, because the guess loop
+# below tries them in this order and stops at the first hit. The old
+# order was roughly the order they were written in, which put personio
+# (7 companies) and lever (23) ahead of ashby (1,459) and workable (377):
+# every Ashby company paid for three doomed requests before reaching its
+# own board, measured at 3.1s for finout.io against 0.3s for a
+# greenhouse company. Percentages are of the 3,640 companies tracked on
+# 2026-09-11; re-sort this if the mix moves.
 FETCHERS: dict[str, Callable] = {
-    "greenhouse": f_greenhouse,
-    "personio": f_personio,
-    "lever": f_lever,
-    "ashby": f_ashby,
-    "workable": f_workable,
-    "recruitee": f_recruitee,
-    "smartrecruiters": f_smartrecruiters,
-    "jazzhr": f_jazzhr,
-    "teamtailor": f_teamtailor,
+    "ashby": f_ashby,                      # 40.1%
+    "greenhouse": f_greenhouse,            # 36.0%
+    "workable": f_workable,                # 10.4%
+    "smartrecruiters": f_smartrecruiters,  # 10.3%
+    "lever": f_lever,                      # 0.6%
+    "recruitee": f_recruitee,              # 0.3%
+    "personio": f_personio,                # 0.2%
+    "jazzhr": f_jazzhr,                    # 0.1%
+    "teamtailor": f_teamtailor,            # 0.0%
+    # The three below never win a guess: bamboohr and breezy serve a
+    # handful of companies each and niloosoft is unguessable by
+    # construction (it returns None without a request unless the token
+    # carries a host and a slug). Kept last so they cost nothing until
+    # everything likelier has been tried.
     "bamboohr": f_bamboohr,
     "breezy": f_breezy,
     "niloosoft": f_niloosoft,
@@ -2382,6 +2422,27 @@ def load_pins(path: Path = PINS_FILE) -> dict[str, dict[str, dict[str, str]]]:
 
 PINS = load_pins()
 
+# domain -> {"ats", "token"} for every company already resolved, loaded
+# by main() from --hints. Empty by default, so nothing changes for a
+# caller that does not pass one.
+HINTS: dict[str, dict] = {}
+
+
+def load_hints(path: Path) -> dict[str, dict]:
+    """known.json, keyed by domain. Missing or unreadable is not fatal:
+    hints are an accelerant, and losing them costs time, not results.
+    """
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        print(f"couldn't read hints from {path} ({e!r}), guessing from scratch", file=sys.stderr)
+        return {}
+    out = {}
+    for row in rows if isinstance(rows, list) else []:
+        if row.get("domain") and row.get("ats") and row.get("token"):
+            out[row["domain"]] = {"ats": row["ats"], "token": row["token"]}
+    return out
+
 
 def refetch_known(sess: requests.Session, domain: str, ats: str, token: str,
                   etag: str | None = None, last_modified: str | None = None,
@@ -2623,8 +2684,55 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
         res.tried = tried
         return res
 
+    # What this domain resolved to last time, tried before guessing.
+    #
+    # The discover sweep re-derived every company from scratch: a board
+    # already known to be ashby:finout still walked the fetcher list and,
+    # when nothing matched, went on to the Comeet and embed-scrape tiers,
+    # each of which fetches the company's own careers page. Measured
+    # 2026-09-11: a hit costs 0.3s to 3.1s and a miss 20s to 40s, across
+    # 4,271 domains, which is most of why a sweep that took 23 minutes on
+    # 2026-09-07 took 3h40m four days later.
+    #
+    # An ATS almost never changes, so the previous answer is the best
+    # first guess available. A wrong hint costs one request and then
+    # falls through to the search below, so a company that really has
+    # moved is still found.
+    hint = HINTS.get(domain)
+    if hint and hint.get("ats") in FETCHERS and hint.get("token"):
+        tried += 1
+        if VERBOSE:
+            print(f"    probe hint:{hint['ats']}:{hint['token']}", file=sys.stderr)
+        try:
+            jobs = FETCHERS[hint["ats"]](sess, hint["token"])
+        except Exception:
+            jobs = None
+        if jobs and _match_is_fresh(jobs):
+            res.ats, res.token = hint["ats"], hint["token"]
+            res.jobs = _fill_classifications(jobs, res.domain)
+            res.job_count = len(res.jobs)
+            res.tried = tried
+            return res
+
+    # Everything from here down is a guess, so requests stop retrying
+    # (see _request_json) and the whole search gets a wall-clock budget.
+    # Without one a single domain can hold a worker for minutes: measured
+    # 178s across 27 probes for foundenergy.org, while a domain that
+    # resolves takes 0.3s. The budget turns a pathological domain into an
+    # ordinary miss that the next sweep will try again.
+    _cond.guessing = True
+    deadline = time.monotonic() + GUESS_BUDGET_S
+
     for token in token_candidates(domain):
+        if time.monotonic() > deadline:
+            break
         for ats, fn in FETCHERS.items():
+            # Checked here and not only between token candidates: twelve
+            # fetchers at a 12s timeout is nearly two and a half minutes
+            # inside a single iteration of the outer loop, which is how
+            # the budget was overshot the first time it was added.
+            if time.monotonic() > deadline:
+                break
             if (ats, token) in KNOWN_FALSE_POSITIVES:
                 if VERBOSE:
                     print(f"    skip {ats}:{token}, known false positive", file=sys.stderr)
@@ -2658,8 +2766,13 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
     # _match_is_fresh) -- an old, abandoned-looking board shouldn't stop
     # the search from finding the company's actual current one.
     best_is_weak = best is None or not best[2] or not _match_is_fresh(best[2])
+    # Both fallback tiers below fetch the company's own careers page,
+    # which is the slowest thing this function does. Skip them once the
+    # budget is spent rather than adding minutes to a domain that has
+    # already said no in a dozen ways.
+    out_of_time = time.monotonic() > deadline
 
-    if SCRAPE_COMEET and best_is_weak:
+    if SCRAPE_COMEET and best_is_weak and not out_of_time:
         tried += 1
         if VERBOSE:
             print(f"    probe comeet-scrape:{domain}", file=sys.stderr)
@@ -2675,7 +2788,7 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
 
     # Last resort: scrape the company's own careers page. Same cost
     # profile as Comeet, gated the same way; --no-embed-scrape skips it.
-    if SCRAPE_EMBED and best_is_weak:
+    if SCRAPE_EMBED and best_is_weak and time.monotonic() <= deadline:
         tried += 1
         if VERBOSE:
             print(f"    probe embed-scrape:{domain}", file=sys.stderr)
@@ -2799,6 +2912,11 @@ def main() -> int:
                      help="skip the Comeet careers-page scrape (companies.yml pins still apply), much faster batch runs")
     ap.add_argument("--no-embed-scrape", action="store_true",
                      help="skip the careers-page embed/JobPosting-JSON-LD fallback, much faster batch runs")
+    ap.add_argument("--hints", type=Path,
+                     help="known.json from a previous run. Each domain's last known ats:token is "
+                          "tried before guessing, which turns an already-resolved company from a "
+                          "walk through every fetcher (and then the Comeet and embed-scrape tiers) "
+                          "into a single request. A stale hint costs one request and falls through.")
     ap.add_argument("--fetch-logos", action="store_true",
                      help="resolve each company's logo (company_logo.py): its ATS's own copy first, then "
                           "whatever its site declares, then Google's favicon service. A few requests per "
@@ -2814,11 +2932,14 @@ def main() -> int:
     if args.selftest:
         return selftest()
 
-    global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED, FETCH_FULL_DESCRIPTIONS, FETCH_LOGOS
+    global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED, FETCH_FULL_DESCRIPTIONS, FETCH_LOGOS, HINTS
     VERBOSE = args.verbose
     SCRAPE_COMEET = not args.no_comeet
     FETCH_FULL_DESCRIPTIONS = args.fetch_descriptions
     FETCH_LOGOS = args.fetch_logos
+    if args.hints:
+        HINTS = load_hints(args.hints)
+        print(f"{len(HINTS)} hints loaded from {args.hints}", file=sys.stderr)
     SCRAPE_EMBED = not args.no_embed_scrape
 
     sess = session()
