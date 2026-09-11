@@ -376,11 +376,18 @@ function fmtMinutesAgo(mins) {
 // Deliberately no "AGO". This is the age of the data being shown, not
 // the time since some event, and "29M AGO" under a heading about the
 // API invited exactly the wrong reading.
+// Spelled out rather than 18M/3H/2D. Next to a heading about how old the
+// data is, "18M" reads as eighteen months at least as easily as eighteen
+// minutes, and the two answers are a year apart.
 function fmtDataAge(mins) {
-  if (mins === null || mins === undefined) return "UNKNOWN";
-  if (mins < 60) return `${Math.round(mins)}M`;
-  if (mins < 60 * 24) return `${Math.round(mins / 60)}H`;
-  return `${Math.round(mins / (60 * 24))}D`;
+  if (mins === null || mins === undefined) return null;
+  if (mins < 60) return `${Math.round(mins)} min`;
+  if (mins < 60 * 24) {
+    const h = Math.round(mins / 60);
+    return `${h} hour${h === 1 ? "" : "s"}`;
+  }
+  const d = Math.round(mins / (60 * 24));
+  return `${d} day${d === 1 ? "" : "s"}`;
 }
 
 function escapeHtml(s) {
@@ -469,13 +476,17 @@ function apiStatusFields() {
   const age = minutesSince ?? 9999;
   const fresh = age <= FRESH_THRESHOLD_MINUTES;
   const level = !fresh ? "outage" : age > DEGRADED_AFTER_MINUTES ? "degraded" : "operational";
+  const spelled = fmtDataAge(minutesSince);
   return {
     fresh,
     level,
-    // "CURRENT" rather than "LIVE": the claim is about the data being
-    // up to date, which is what this measures.
-    value: fresh ? "LIVE" : fmtDataAge(minutesSince),
-    sub: fresh ? `${fmtDataAge(minutesSince)} old` : "no recent updates",
+    // The word follows the level, not `fresh`. It used to follow `fresh`,
+    // so the whole degraded band rendered a green LIVE beside the orange
+    // warning glyph: at 18 minutes the tile said everything was fine and
+    // flagged a problem in the same line. Reported live, from a
+    // screenshot of exactly that.
+    value: STATUS_LEVELS[level].text,
+    sub: spelled === null ? "age unknown" : `${spelled} old`,
   };
 }
 
@@ -534,8 +545,12 @@ function pipelineActivityText() {
 function tickApiStatus() {
   const card = document.getElementById("metric-api-status");
   if (!card) return;
-  const { fresh, level, value, sub } = apiStatusFields();
-  card.classList.toggle("highlight", fresh);
+  const { level, value, sub } = apiStatusFields();
+  // Green is for operational only. Degraded and outage colour the word
+  // to match their own glyph.
+  card.classList.toggle("highlight", level === "operational");
+  card.classList.toggle("degraded", level === "degraded");
+  card.classList.toggle("outage", level === "outage");
   card.querySelector(".value").innerHTML = `${statusIconHtml(level)}${escapeHtml(value)}`;
   card.querySelector(".sub").textContent = sub;
   const syncEl = card.querySelector(".sync-countdown");
@@ -547,7 +562,8 @@ function tickApiStatus() {
 function renderMetrics(stats) {
   const el = document.getElementById("metrics-grid");
   setLastCheckedAt(stats.freshness.last_checked);
-  const { fresh } = apiStatusFields();
+  const status = apiStatusFields();
+  const fresh = status.fresh;
 
   const cards = [
     {
@@ -583,17 +599,19 @@ function renderMetrics(stats) {
       // Raw HTML here, unlike every other card's value: this one leads
       // with the state glyph. The text beside it is our own constant or
       // a formatted number, never anything a listing supplied.
-      value: `${statusIconHtml(apiStatusFields().level)}${escapeHtml(apiStatusFields().value)}`,
-      sub: apiStatusFields().sub,
+      value: `${statusIconHtml(status.level)}${escapeHtml(status.value)}`,
+      sub: status.sub,
       sub2: pipelineActivityText(),
-      hl: fresh,
+      // The first paint has to land on the same class the tick would set
+      // a second later, or the tile flashes green before correcting.
+      cls: status.level === "operational" ? "highlight" : status.level,
     },
   ];
 
   el.innerHTML = cards
     .map(
       (c) => `
-      <div class="metric-card ${c.hl ? "highlight" : ""}" ${c.id ? `id="${c.id}"` : ""}>
+      <div class="metric-card ${c.cls || (c.hl ? "highlight" : "")}" ${c.id ? `id="${c.id}"` : ""}>
         <div class="label">${c.label}</div>
         <div>
           <div class="value">${c.value}</div>

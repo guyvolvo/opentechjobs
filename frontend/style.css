@@ -645,6 +645,11 @@ button, input, select {
 }
 
 .metric-card.highlight .value { color: var(--green); }
+/* Data Health only. The word and its glyph are one statement, so a
+   warning bang beside a green LIVE is a contradiction rather than a
+   colour choice. */
+.metric-card.degraded .value { color: var(--aws-degraded); }
+.metric-card.outage .value { color: var(--aws-outage); }
 .metric-card .sub {
   font-size: 11.5px;
   color: var(--grey);
