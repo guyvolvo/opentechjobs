@@ -4190,3 +4190,23 @@ stacks.ai
 unwrap.ai
 transgridenergy.com
 racapitalmanagement.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+prophet.com
+rainforest.com
+scaled.com
+statsports.com
+take2.ai
+roadrunner.ai
+posh.ai
+powerline.io
+quarks.io
+salesape.ai
+somnia.ai
+sola.ai
+typesafe.ai
+twelve.ai
+triedgeinvestments.com
+playworks.com
+upwork.ai
+prose.io
