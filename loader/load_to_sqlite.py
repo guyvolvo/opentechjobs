@@ -128,6 +128,13 @@ _NEW_COLUMNS = {
 _NEW_COMPANY_COLUMNS = {
     "company_name": "TEXT",
     "domain_verified": "INTEGER",
+    # Resolved once at discovery time by company_logo.py, rather than
+    # guessed in every visitor's browser on every page view. logo_source
+    # is which tier answered (ats, site, google, none), which is the only
+    # way to tell a company that genuinely has no logo from one we simply
+    # haven't looked up yet.
+    "logo_url": "TEXT",
+    "logo_source": "TEXT",
 }
 
 
@@ -364,8 +371,9 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
         else:
             conn.execute(
                 """
-                INSERT INTO companies (domain, ats, token, confidence, job_count, tried, error, first_seen, last_checked)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO companies (domain, ats, token, confidence, job_count, tried, error,
+                                       first_seen, last_checked, logo_url, logo_source)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(domain) DO UPDATE SET
                     ats = excluded.ats,
                     token = excluded.token,
@@ -373,10 +381,17 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
                     job_count = excluded.job_count,
                     tried = excluded.tried,
                     error = excluded.error,
-                    last_checked = excluded.last_checked
+                    last_checked = excluded.last_checked,
+                    -- Only a run that actually looked keeps its answer.
+                    -- The fast poll doesn't resolve logos, so without
+                    -- this every five-minute sweep would wipe what the
+                    -- nightly discover pass found.
+                    logo_url = COALESCE(excluded.logo_url, companies.logo_url),
+                    logo_source = COALESCE(excluded.logo_source, companies.logo_source)
                 """,
                 (domain, ats, r.get("token"), confidence,
-                 r.get("job_count", 0), r.get("tried", 0), r.get("error"), ts, ts),
+                 r.get("job_count", 0), r.get("tried", 0), r.get("error"), ts, ts,
+                 r.get("logo_url"), r.get("logo_source")),
             )
 
         if not ats:

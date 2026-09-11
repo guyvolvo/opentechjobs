@@ -32,6 +32,8 @@ from xml.etree import ElementTree as ET
 
 import requests
 
+import company_logo
+
 try:
     import yaml
 except ImportError:
@@ -145,6 +147,13 @@ class Resolution:
     # reads this, not error's mere presence, to decide whether a MISS
     # should overwrite a stale ats/token or leave it alone.
     retryable: bool = False
+    # Where the company's logo actually lives, resolved once at discovery
+    # time (see company_logo.py) instead of guessed in every visitor's
+    # browser on every page view. logo_source records which tier answered
+    # -- ats, site, google or none -- which is the only way to tell a
+    # company that has no logo from one we failed to look up.
+    logo_url: str | None = None
+    logo_source: str | None = None
     # True when this board was checked and provably hasn't moved, either
     # a 304 or a matching normalized_job_hash. Critically NOT the same as
     # "the board is empty": jobs is [] in both cases, and
@@ -165,6 +174,10 @@ VERBOSE = False
 SCRAPE_COMEET = True
 SCRAPE_EMBED = True
 FETCH_FULL_DESCRIPTIONS = False  # Comeet + Workday's extra per-job detail request; see the Job.description comment
+# Resolving a logo is a handful of requests per company and the answer
+# only changes when someone rebrands, so it runs in discovery and not in
+# the five-minute sweep. Off by default; --fetch-logos turns it on.
+FETCH_LOGOS = False
 
 # ATSes whose per-job detail fetch runs even with FETCH_FULL_DESCRIPTIONS
 # off. A global flag is the wrong lever here because the two gated
@@ -2493,6 +2506,25 @@ def _fill_classifications(jobs: list[Job], domain: str | None = None) -> list[Jo
 
 
 def resolve(domain: str, sess: requests.Session) -> Resolution:
+    """Find the company's board, then its logo.
+
+    The logo lookup is several requests and only changes when a company
+    rebrands, so it belongs here in discovery rather than in
+    refetch_known's five-minute sweep. FETCH_LOGOS turns it off for runs
+    that only want boards.
+    """
+    res = _resolve_board(domain, sess)
+    if FETCH_LOGOS and res.ats:
+        try:
+            res.logo_url, res.logo_source = company_logo.resolve_logo(
+                sess, domain, res.ats, res.token)
+        except Exception:
+            # Never let a missing picture cost us a resolved board.
+            res.logo_url, res.logo_source = None, "error"
+    return res
+
+
+def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
     # Belt and braces: discovery never sends validators, but it shares a
     # worker thread pool with refetch_known, and a leftover armed ETag
     # would make a board answer 304 mid-search -- which reads as "this
@@ -2759,6 +2791,11 @@ def main() -> int:
                      help="skip the Comeet careers-page scrape (companies.yml pins still apply), much faster batch runs")
     ap.add_argument("--no-embed-scrape", action="store_true",
                      help="skip the careers-page embed/JobPosting-JSON-LD fallback, much faster batch runs")
+    ap.add_argument("--fetch-logos", action="store_true",
+                     help="resolve each company's logo (company_logo.py): its ATS's own copy first, then "
+                          "whatever its site declares, then Google's favicon service. A few requests per "
+                          "company, and the answer only changes on a rebrand -- for the discover pass, not "
+                          "the fast poll.")
     ap.add_argument("--fetch-descriptions", action="store_true",
                      help="fetch each Comeet/Workday job's per-job detail page for a real description (neither "
                           "ATS's list endpoint has one). One extra request per listing on either -- meant for "
@@ -2769,10 +2806,11 @@ def main() -> int:
     if args.selftest:
         return selftest()
 
-    global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED, FETCH_FULL_DESCRIPTIONS
+    global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED, FETCH_FULL_DESCRIPTIONS, FETCH_LOGOS
     VERBOSE = args.verbose
     SCRAPE_COMEET = not args.no_comeet
     FETCH_FULL_DESCRIPTIONS = args.fetch_descriptions
+    FETCH_LOGOS = args.fetch_logos
     SCRAPE_EMBED = not args.no_embed_scrape
 
     sess = session()

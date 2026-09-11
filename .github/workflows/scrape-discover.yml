@@ -85,11 +85,11 @@ jobs:
 
       - name: Full probe, guess, Comeet scrape, embed/JSON-LD fallback
         if: ${{ github.event.inputs.domains == '' }}
-        run: python probe.py --batch domains.txt --fetch-descriptions --json > resolved.json
+        run: python probe.py --batch domains.txt --fetch-descriptions --fetch-logos --json > resolved.json
 
       - name: Targeted probe (workflow_dispatch domains input)
         if: ${{ github.event.inputs.domains != '' }}
-        run: python probe.py --domain "${{ github.event.inputs.domains }}" --fetch-descriptions --json > resolved.json
+        run: python probe.py --domain "${{ github.event.inputs.domains }}" --fetch-descriptions --fetch-logos --json > resolved.json
 
       # The credentials above are an OIDC session on a role capped at one
       # hour, and the sweep above outgrew that: it took 23 minutes on

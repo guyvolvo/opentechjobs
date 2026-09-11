@@ -218,8 +218,15 @@ def _has_company_name(conn) -> bool:
     NULL instead means the board shows domains for one merge cycle rather
     than 500ing, and a rollback of the loader can't break the API either.
     """
+    return _has_company_column(conn, "company_name")
+
+
+def _has_company_column(conn, name: str) -> bool:
+    """Generalised from the above, for logo_url, which arrives the same
+    way and would take the API down the same way if assumed.
+    """
     try:
-        return any(r[1] == "company_name" for r in conn.execute("PRAGMA table_info(companies)"))
+        return any(r[1] == name for r in conn.execute("PRAGMA table_info(companies)"))
     except Exception:
         return False
 
@@ -230,6 +237,12 @@ def route_jobs(params: dict) -> dict:
     company_name_select = (
         "(SELECT company_name FROM companies WHERE domain = jobs.company_domain) AS company_name"
         if _has_company_name(conn) else "NULL AS company_name"
+    )
+    # Same deploy-skew guard as company_name above: the column only
+    # exists once the merge has rebuilt jobs-read.db with it.
+    logo_select = (
+        "(SELECT logo_url FROM companies WHERE domain = jobs.company_domain) AS logo_url"
+        if _has_company_column(conn, "logo_url") else "NULL AS logo_url"
     )
 
     where_sql, args = build_jobs_where(params, has_fts_index(conn))
@@ -275,7 +288,8 @@ def route_jobs(params: dict) -> dict:
                -- because it is shared with the alert evaluator, which
                -- queries jobs on its own. Joining would make every one of
                -- those filters ambiguous and error the whole route out.
-               {company_name_select}
+               {company_name_select},
+               {logo_select}
         FROM jobs
         WHERE {where_sql}
         -- datetime(), not a bare column: posted_at is TEXT, and rows written

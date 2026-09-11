@@ -323,7 +323,25 @@ function rememberLogoStage(domain, stage) {
 }
 window.rememberLogoStage = rememberLogoStage;
 
-function companyLogoImg(domain, size, extraClass = "") {
+// A logo the server already resolved and verified (company_logo.py: the
+// company's own upload to its ATS, else whatever its site declares, else
+// Google's favicon service). Passed straight through, because it was
+// fetched and checked once rather than guessed here on every page view.
+// The cascade below remains for rows loaded before the column existed,
+// and for the panels that have a domain but no job record to read from.
+function companyLogoImg(domain, size, extraClass = "", resolved = null) {
+  if (resolved) {
+    const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
+    // Still onerror-guarded: a CDN can 404 a logo that resolved weeks
+    // ago, and a broken image icon is worse than a lettered square.
+    return `<img class="${cls}" src="${escapeHtml(resolved)}" alt="" loading="lazy"
+      data-monogram="${escapeHtml(monogramLogoSvg(domain))}"
+      onerror="this.onerror=null;this.src=this.dataset.monogram;" />`;
+  }
+  return companyLogoGuess(domain, size, extraClass);
+}
+
+function companyLogoGuess(domain, size, extraClass = "") {
   // LOGO_DOMAIN_OVERRIDES only affects where the icon itself is fetched
   // from -- domain (used below for the monogram initial, and by every
   // caller for the actual company identity/apply link) stays as-is.
@@ -1336,7 +1354,7 @@ function renderJobRows(jobs, starred) {
           </button>
         </td>
         <td class="title-cell">
-          ${companyLogoImg(j.company_domain, 64, "listing")}
+          ${companyLogoImg(j.company_domain, 64, "listing", j.logo_url)}
           <div class="job-card-body">
             <div class="job-card-title">
               <a href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>
@@ -1507,7 +1525,7 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
   return `
     <div class="job-detail-header">
       <div>
-        <div class="job-detail-company">${companyLogoImg(job.company_domain, 64, "detail")}${escapeHtml(companyLabel(job))}</div>
+        <div class="job-detail-company">${companyLogoImg(job.company_domain, 64, "detail", job.logo_url)}${escapeHtml(companyLabel(job))}</div>
         <h3 class="job-detail-title">${escapeHtml(job.title)}</h3>
         <div class="job-detail-badges">
           ${job.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority)}</span>` : ""}
