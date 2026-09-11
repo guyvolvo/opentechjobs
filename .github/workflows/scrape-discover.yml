@@ -91,6 +91,20 @@ jobs:
         if: ${{ github.event.inputs.domains != '' }}
         run: python probe.py --domain "${{ github.event.inputs.domains }}" --fetch-descriptions --json > resolved.json
 
+      # The credentials above are an OIDC session on a role capped at one
+      # hour, and the sweep above outgrew that: it took 23 minutes on
+      # 2026-09-07 and 3h40m on 2026-09-11. Every run since 2026-09-09
+      # probed all 4,271 domains successfully and then died on its first
+      # S3 write with ExpiredToken, so three days of discovery resolved
+      # nothing. Re-assume here rather than raise the role's session
+      # limit: the long step needs no credentials at all, and a fresh
+      # hour for the writes is both sufficient and shorter-lived.
+      - name: Re-assume AWS credentials (the probe above outlives them)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DATA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Report hit rate
         run: |
           python -c "
