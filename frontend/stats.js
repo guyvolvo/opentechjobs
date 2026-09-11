@@ -186,12 +186,7 @@ async function openDatabase() {
   worker = await createDbWorker([config], WORKER_URL, WASM_URL, MAX_BYTES);  // eslint-disable-line no-undef
 
   const meta = Object.fromEntries((await worker.db.exec("SELECT key, value FROM meta"))[0]?.values || []);
-  const built = meta.built_at ? new Date(meta.built_at) : null;
-  const age = built ? Math.round((Date.now() - built.getTime()) / 60000) : null;
-  status.textContent = `${fmtInt(meta.jobs || 0)} listings, ${fmtInt(meta.companies || 0)} companies`
-    + (age == null ? "" : `, built ${age < 2 ? "just now" : age + " min ago"}`);
-  $("explore-note").textContent = `The file covers every verified listing seen since ${meta.corpus_since || "1 September 2026"} and is rebuilt every hour. `
-    + `Your queries fetch only what they touch; a page load may read up to ${fmtBytes(MAX_BYTES)} before it stops itself.`;
+  status.textContent = `${fmtInt(meta.jobs || 0)} listings, ${fmtInt(meta.companies || 0)} companies`;
 
 }
 
@@ -271,7 +266,7 @@ function renderFilters() {
       ${control}
       <button type="button" class="qb-remove" data-i="${i}" aria-label="Remove filter">&times;</button>
     </div>`;
-  }).join("") || '<div class="qb-none">No filters. Every listing that matches the status above.</div>';
+  }).join("");
 
   host.querySelectorAll(".qb-ms").forEach((el) => {
     const i = Number(el.dataset.i);

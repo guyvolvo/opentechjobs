@@ -42,13 +42,13 @@
   <div class="workspace explore-page">
     <section class="section">
       <div class="container">
-        <h2 class="section-title">Explore</h2>
+        <h2 class="section-title">DB Explorer</h2>
         <!-- The database is a static file on the CDN and the query runs
              in this tab, inside SQLite compiled to WebAssembly. Only the
              pages a query touches are fetched, by HTTP range request.
              Nothing is sent anywhere. loader/build_explore.py says what
              is in the file and why. -->
-        <p class="explore-intro">Ask a question of every listing we track. Pick what to count and how to slice it, or write the SQL yourself. It runs in your browser: the database is a file on the CDN and your query fetches only the pages it touches.</p>
+        <p class="explore-intro">Here you can query information about the current and past job market statistics, in both no code and SQL formats</p>
 
         <div class="explore-layout">
           <!-- Sidebar. Schema first, the starter questions under it, both
@@ -147,7 +147,6 @@
           </div>
         </div>
 
-        <p class="stats-note" id="explore-note"></p>
         <p class="legal-back"><a class="link" href="/">&larr; Back to the job board</a></p>
       </div>
     </section>

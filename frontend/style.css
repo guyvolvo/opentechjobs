@@ -2106,7 +2106,6 @@ footer {
 .explore-page { display: block; padding-bottom: 40px; }
 .explore-page .section { padding-top: 28px; }
 .explore-intro { color: var(--grey); margin: 0 0 16px; max-width: 72ch; line-height: 1.5; font-size: 12.5px; }
-.stats-note { color: var(--grey); font-size: 11.5px; margin-top: 16px; max-width: 72ch; line-height: 1.5; }
 
 .explore-layout {
   display: grid;
@@ -2294,7 +2293,6 @@ body.explore-busy .explore-metric { color: var(--green); }
    rows, add. The multi-select is the board's control at this scale. */
 .qb-where { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--grey-line); }
 .qb-filters { display: flex; flex-direction: column; gap: 6px; }
-.qb-none { color: var(--grey); font-size: 11.5px; }
 .qb-filter {
   display: grid;
   grid-template-columns: 100px 70px minmax(0, 1fr) 30px;
