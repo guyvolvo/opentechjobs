@@ -80,6 +80,33 @@ def list_fragments(bucket: str, limit: int = MAX_FRAGMENTS_PER_RUN) -> list[str]
     return sorted(keys)[:limit]
 
 
+def list_fragments_sized(bucket: str, limit: int = MAX_FRAGMENTS_PER_RUN) -> list[tuple[str, int]]:
+    """Pending fragments as (key, bytes), oldest first.
+
+    Same listing as above, keeping the size S3 already returns. The
+    applier budgets by bytes rather than by count because a fragment is
+    as big as whatever the sweep found: 13MB on a quiet cycle and 100MB
+    after an outage, and it is the bytes that decide whether the apply
+    fits in memory.
+    """
+    if not bucket:
+        return []
+    s3 = boto3.client("s3")
+    out: list[tuple[str, int]] = []
+    token = None
+    while len(out) < limit:
+        kw = {"Bucket": bucket, "Prefix": PREFIX, "MaxKeys": 1000}
+        if token:
+            kw["ContinuationToken"] = token
+        resp = s3.list_objects_v2(**kw)
+        out += [(o["Key"], o.get("Size", 0)) for o in resp.get("Contents", [])
+                if o["Key"].endswith(".json")]
+        if not resp.get("IsTruncated"):
+            break
+        token = resp["NextContinuationToken"]
+    return sorted(out)[:limit]
+
+
 def read_fragments(bucket: str, keys: list[str]) -> list[dict]:
     """Every result across these fragments, in key order.
 

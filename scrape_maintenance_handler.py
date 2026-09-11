@@ -49,7 +49,7 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / "loader"))
 
 from alerts import evaluate_alerts  # noqa: E402
-from deltas import delete_fragments, list_fragments, read_fragments  # noqa: E402
+from deltas import delete_fragments, list_fragments_sized, read_fragments  # noqa: E402
 import build_explore
 import precompute
 
@@ -59,12 +59,22 @@ import precompute
 # all of them. See loader/archive.py for what this is protecting against.
 ARCHIVE_CLOSED_DAYS = 30
 
-# How many delta fragments one apply will parse into memory at once.
-# One. A fragment ran about 100MB on 2026-09-11, and parsed into Python
-# objects that is most of this Lambda's 2GB ceiling on its own: five
-# OOM'd, and so did two. Anything left over is applied by the next run
-# five minutes later, so a backlog drains rather than compounding.
-MAX_FRAGMENTS_PER_APPLY = 1
+# How much delta JSON one apply will parse into memory at once.
+#
+# A count was the wrong unit. A fragment is as big as whatever the sweep
+# found: 13MB on a quiet cycle, 100MB after the hour of downtime on
+# 2026-09-11, when the next sweep re-verified everything at once. Five of
+# those OOM'd this Lambda at its 2GB ceiling, and so did two, so the cap
+# went to one, which fixed the crash and created a different problem: the
+# sweep writes a fragment about every five minutes and this runs about
+# every five minutes, so a six-deep backlog never drained and every
+# company's data reached the site half an hour late.
+#
+# Budgeting by bytes drains the small ones in batches while still giving
+# a large one the whole run to itself. At least one fragment is always
+# taken, however big it is, because stalling forever is worse than one
+# risky apply that the next run will retry.
+MAX_APPLY_BYTES = 48 * 1024 * 1024
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 # Where bootstrap.json goes. Optional: unset just means the site keeps
@@ -202,7 +212,8 @@ def lambda_handler(event, context):
     so a failure anywhere in here costs a repeat rather than a listing.
     """
     s3 = boto3.client("s3")
-    keys = list_fragments(BUCKET)
+    sized = list_fragments_sized(BUCKET)
+    keys = [k for k, _ in sized]
     if not keys:
         _write_status(s3, "idle", "no pending deltas")
         print("no pending delta fragments")
@@ -220,9 +231,16 @@ def lambda_handler(event, context):
     # load_resolved is an upsert), so the rest simply land on the next
     # run five minutes later.
     pending = len(keys)
-    keys = keys[:MAX_FRAGMENTS_PER_APPLY]
+    take, total = [], 0
+    for key, size in sized:
+        if take and total + size > MAX_APPLY_BYTES:
+            break
+        take.append(key)
+        total += size
+    keys = take
     if pending > len(keys):
-        print(f"{pending} fragments pending, applying the oldest {len(keys)} this run")
+        print(f"{pending} fragments pending, applying the oldest {len(keys)} "
+              f"({total / 1048576:.0f}MB) this run")
 
     _write_status(s3, "merging", f"applying {len(keys)} of {pending} delta fragments to jobs-read.db")
     results = read_fragments(BUCKET, keys)
