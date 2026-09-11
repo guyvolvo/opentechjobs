@@ -132,6 +132,14 @@ jobs:
           )
           "
 
+      # --skip-known on a targeted run, for the same reason a partition
+      # writer passes it: this DB then holds only the handful of domains
+      # that were asked for, and export_known() against it produces a
+      # known.json missing every other company. Done live on 2026-09-11 by
+      # a six-domain re-resolve, which took the global file from 3,635
+      # companies to 6 and had to be restored from a bucket version. The
+      # full sweep still exports, because only it has seen everything.
+      #
       # jobs-full-discover.db, not jobs.db: Partition & Merge (2026-09-08)
       # retired the shared jobs.db -- see scrape_handler.py's own
       # docstring. This run's own working DB doesn't fit either partition
@@ -153,7 +161,7 @@ jobs:
             --out jobs-full-discover.db \
             --bucket ${{ vars.DATA_BUCKET }} \
             --key jobs-full-discover.db \
-            ${{ github.event.inputs.domains == '' && '--prune-stale' || '' }}
+            ${{ github.event.inputs.domains == '' && '--prune-stale' || '--skip-known' }}
 
       - name: "Report status: idle"
         run: |
