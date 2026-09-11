@@ -940,6 +940,34 @@ def s3_push_conditional(bucket: str, key: str, src: Path, etag: str | None) -> b
         raise
 
 
+def apply_company_logos(conn: sqlite3.Connection, path: Path) -> int:
+    """Stamp each company's resolved logo onto the snapshot.
+
+    This is the one place jobs-read.db is written, which is why it
+    happens here. The first attempt put it in merge_partitions, which
+    the applier Lambda never calls: it runs this script directly on each
+    delta, so the logos never reached the site and every row went on
+    falling back to the browser guessing an icon off a domain that is
+    itself often a guess.
+
+    Only a real URL is written. The file records a null for a company
+    whose every source came up empty, which is worth keeping so it is
+    not retried forever, but it must not overwrite a logo an earlier run
+    did find.
+    """
+    try:
+        logos = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        print(f"couldn't read logos from {path} ({e!r}), leaving them alone", file=sys.stderr)
+        return 0
+    rows = [(v["url"], domain) for domain, v in (logos or {}).items()
+            if isinstance(v, dict) and v.get("url")]
+    if not rows:
+        return 0
+    conn.executemany("UPDATE companies SET logo_url = ? WHERE domain = ?", rows)
+    return conn.execute("SELECT COUNT(*) FROM companies WHERE logo_url IS NOT NULL").fetchone()[0]
+
+
 def export_known(conn: sqlite3.Connection, path: Path) -> int:
     """Write every resolved company's (domain, ats, token) as JSON, in the
     shape probe.py's --known expects. Written on every load so a newly
@@ -1009,6 +1037,8 @@ def main() -> int:
                           "description column. The applier writes straight into jobs-read.db, "
                           "which must stay small: description text was ~42% of that file and the "
                           "words remain searchable through jobs_fts either way.")
+    ap.add_argument("--logos", type=Path,
+                     help="company-logos.json, stamped onto the snapshot before it ships. Logos live in their own file on their own cadence (resolve_company_logos.py): resolving one costs several requests and then never changes, while this snapshot is rewritten every few minutes.")
     ap.add_argument("--skip-known", action="store_true",
                      help="a --key pointed at a partition file (jobs-partition-{name}.db, see the Partition & "
                           "Merge design doc) only ever holds ITS OWN shard's companies -- export_known() run "
@@ -1064,6 +1094,9 @@ def main() -> int:
                                            args.archive_closed_days,
                                            _fts_supports_rowid_delete(conn))
                     print(f"archive: {json.dumps(result, default=str)}", file=sys.stderr)
+            if args.logos:
+                n_logos = apply_company_logos(conn, args.logos)
+                print(f"logos: {n_logos} companies carry one", file=sys.stderr)
             update_meta(conn)
 
         known_out = args.known_out or args.out.with_name("known.json")

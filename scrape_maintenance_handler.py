@@ -265,11 +265,24 @@ def lambda_handler(event, context):
     gc.collect()
     snapshot = TMP / "jobs-read.db"
 
+    # Logos live in their own file on their own cadence (see
+    # resolve_company_logos.py) and are stamped on here, because this is
+    # the only path that writes jobs-read.db. Best effort: no file just
+    # means the browser keeps guessing, which is what it did before.
+    logos = TMP / "company-logos.json"
+    logos_arg: list[str] = []
+    try:
+        s3.download_file(BUCKET, "company-logos.json", str(logos))
+        logos_arg = ["--logos", str(logos)]
+    except Exception as e:
+        print(f"no company-logos.json ({e.__class__.__name__}), skipping logos")
+
     load = subprocess.run(
         [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
          "--resolved", str(resolved), "--out", str(snapshot),
          "--bucket", BUCKET, "--key", "jobs-read.db",
          "--drop-description", "--skip-vacuum", "--skip-known",
+         *logos_arg,
          # Caps the snapshot instead of letting it grow forever. Paced
          # to once a day inside archive.py, not once per apply.
          "--archive-closed-days", str(ARCHIVE_CLOSED_DAYS)],
