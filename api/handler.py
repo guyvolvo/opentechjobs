@@ -350,11 +350,28 @@ def route_job_detail(job_id: str) -> dict | None:
     than the first time the column goes away.
     """
     conn = get_connection()
+    # Same two company columns the list route selects, and guarded the
+    # same way. Without logo_url here the detail drawer had nothing to
+    # render and fell back to the browser guessing an icon, so the same
+    # company could show a resolved logo in one place and a lettered
+    # square in the other. Reported live from a screenshot showing
+    # exactly that, in reverse: the list had the resolved URL and it was
+    # the resolved URL that was failing.
+    company_name_select = (
+        "(SELECT company_name FROM companies WHERE domain = jobs.company_domain) AS company_name"
+        if _has_company_name(conn) else "NULL AS company_name"
+    )
+    logo_select = (
+        "(SELECT logo_url FROM companies WHERE domain = jobs.company_domain) AS logo_url"
+        if _has_company_column(conn, "logo_url") else "NULL AS logo_url"
+    )
     row = conn.execute(
-        """
+        f"""
         SELECT id, company_domain, ats, external_id, title, location, department,
                category_of(department, title) AS category, seniority,
-               workplace_type, url, posted_at, description, confidence, first_seen, last_seen, closed_at
+               workplace_type, url, posted_at, description, confidence, first_seen, last_seen, closed_at,
+               {company_name_select},
+               {logo_select}
         FROM jobs WHERE id = ?
         """,
         (job_id,),

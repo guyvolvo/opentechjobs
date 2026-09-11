@@ -51,6 +51,16 @@ MIN_BYTES = 200
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/125.0 Safari/537.36")
 
+# Verification has to ask the way the board will ask, which means
+# sending our own Referer. Several sites hotlink-protect their assets:
+# www.axon.com/favicon/apple-touch-icon.png answers 200 to a bare
+# request and 403 to the same request with a cross-origin referer, so it
+# passed verification here and then failed in every visitor's browser,
+# which fell through to a lettered square. Found live from a screenshot
+# where the list showed a monogram and the detail drawer, which had no
+# resolved URL and so guessed, showed the real logo.
+ORIGIN = "https://opentechjobs.org"
+
 # Google answers 200 for a domain it has nothing for, with a generic
 # globe that is always exactly this size whatever sz you ask for.
 GOOGLE_PLACEHOLDER = (16, 16)
@@ -76,7 +86,8 @@ def check_image(sess, url: str) -> bool:
     if not url or not url.startswith(("http://", "https://")):
         return False
     try:
-        r = sess.get(url, timeout=TIMEOUT, allow_redirects=True)
+        r = sess.get(url, timeout=TIMEOUT, allow_redirects=True,
+                     headers={"Referer": ORIGIN + "/", "Accept": "image/avif,image/webp,*/*"})
     except requests.RequestException:
         return False
     if r.status_code != 200 or not _is_image(r) or len(r.content) < MIN_BYTES:
