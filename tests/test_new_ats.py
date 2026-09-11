@@ -196,6 +196,52 @@ check("an empty board is not a board",
 check("a board where every job is closed is not a board",
       fetch_post("x.hunterhrms.com:x", [NILOO[2]]) is None)
 
+# companies.yml pins, and the YAML trap underneath them. Every pin value
+# is an opaque id, but YAML 1.1 reads a bare `yes` as the boolean true,
+# which turned yes.co.il's board into a request for /actions-True. It
+# 404'd, resolve() fell through to guessing, and landed on a Greenhouse
+# board belonging to an electrical contractor in North Dakota.
+import textwrap  # noqa: E402
+import tempfile  # noqa: E402
+
+pins_yaml = textwrap.dedent("""
+    niloosoft:
+      - domain: yes.co.il
+        host: yes-fbf.hunterhrms.com
+        slug: yes
+        jobs_seen: 13
+      - domain: example.com
+        host: e.hunterhrms.com
+        slug: 01
+        jobs_seen: 2
+""")
+with tempfile.NamedTemporaryFile("w", suffix=".yml", delete=False, encoding="utf-8") as f:
+    f.write(pins_yaml)
+    pins_path = Path(f.name)
+
+pins = probe.load_pins(pins_path)
+check("an unquoted yes stays the string it was written as",
+      pins["niloosoft"]["yes.co.il"]["slug"] == "yes",
+      repr(pins["niloosoft"]["yes.co.il"]["slug"]))
+check("and a leading-zero slug keeps its zero",
+      pins["niloosoft"]["example.com"]["slug"] == "01",
+      repr(pins["niloosoft"]["example.com"]["slug"]))
+check("jobs_seen stays a number",
+      pins["niloosoft"]["yes.co.il"]["jobs_seen"] == 13)
+pins_path.unlink()
+
+# The real file has to survive the same trap.
+real = probe.load_pins()
+check("every pinned Hunter board has a string host and slug",
+      all(isinstance(p["host"], str) and isinstance(p["slug"], str)
+          for p in real.get("niloosoft", {}).values()),
+      repr(real.get("niloosoft")))
+check("and yes.co.il is one of them",
+      real.get("niloosoft", {}).get("yes.co.il", {}).get("slug") == "yes")
+
+check("the North Dakota electrician is blacklisted",
+      ("greenhouse", "yes") in probe.KNOWN_FALSE_POSITIVES)
+
 print()
 if failures:
     print("%d failed:" % len(failures))

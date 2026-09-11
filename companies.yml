@@ -268,3 +268,56 @@ workday:
     source: hand-verified
     note: salesforce.wd1 (the other shard search results pointed at) 404s -- wd12 is the live one
     israel_facets: {locations: ["26e99ef44f7b1005bacbfb729a5d0000"]}
+
+niloosoft:
+  # Niloosoft's Hunter, the ATS behind most of Israel's large traditional
+  # employers. Nothing about a board is guessable from the company: it
+  # lives on <tenant>.hunterhrms.com, renders in the browser, and posts
+  # to one shared API that routes by a per-tenant path. Iscar's board is
+  # iscar-fr and posts to actions-iscar-hamah; Elbit's is elbitnew and
+  # posts to actions-elbit.
+  #
+  # Both halves are recoverable, and discover_niloosoft.py does it:
+  # certificate transparency on hunterhrms.com is the tenant list, and
+  # the action path is a literal in each board's own JavaScript bundle.
+  # Everything below came from one run over all 117 hosts on
+  # 2026-09-11. 56 of those no longer serve and 42 run an older
+  # WordPress board with no equivalent endpoint.
+  #
+  # API shape: POST https://niloo-server.herokuapp.com/actions-{slug}
+  #            body {"cmd": "get-jobs", "data": {}}, answers 201.
+  - domain: elbitsystems.com
+    host: "elbitnew.hunterhrms.com"
+    slug: "elbit"
+    jobs_seen: 594
+    source: ct-log
+
+  - domain: pwc.com
+    host: "pwc-careersite.hunterhrms.com"
+    slug: "pwc-career"
+    jobs_seen: 47
+    source: ct-log
+
+  - domain: iscar.co.il
+    host: "iscar-fr.hunterhrms.com"
+    slug: "iscar-hamah"
+    jobs_seen: 37
+    source: ct-log
+
+  - domain: toganetworks.com
+    host: "toga-jobs.hunterhrms.com"
+    slug: "toga"
+    jobs_seen: 22
+    source: ct-log
+
+  - domain: flex.com
+    host: "flex-fr.hunterhrms.com"
+    slug: "flex"
+    jobs_seen: 17
+    source: ct-log
+
+  - domain: yes.co.il
+    host: "yes-fbf.hunterhrms.com"
+    slug: "yes"
+    jobs_seen: 13
+    source: ct-log

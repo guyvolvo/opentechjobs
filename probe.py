@@ -1689,6 +1689,10 @@ def f_niloosoft(sess, token):
 # Add to this set as more turn up.
 KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("ashby", "matrix"),          # matrix.co.il: real board is a Boston VC firm, not Matrix IT
+    ("greenhouse", "yes"),        # yes.co.il: real board is an electrical contractor in Dickinson, North
+                                   # Dakota. Caught when a transient failure on yes.co.il's Niloosoft pin
+                                   # let the guess loop run and land here; the pin is authoritative now,
+                                   # but a three-letter token will collide again for someone else.
     ("smartrecruiters", "trigo"), # trigo.tech: real board is an unrelated French/Moroccan company
     ("greenhouse", "iai"),        # iai.co.il: real board is a UK company, not Israel Aerospace Industries
     ("recruitee", "max"),         # max.co.il: real board is a German agency's demo/template listing
@@ -2330,11 +2334,28 @@ def load_pins(path: Path = PINS_FILE) -> dict[str, dict[str, dict[str, str]]]:
     """
     if yaml is None or not path.exists():
         return {}
+    # BaseLoader, not safe_load: every value in this file is an opaque
+    # id, and YAML 1.1's implicit typing mangles them. An unquoted `yes`
+    # becomes the boolean true, which turned yes.co.il's board into a
+    # request for /actions-True, 404'd, and read as a company with no
+    # board at all. A slug of `01` becomes the integer 1, and that one
+    # cannot even be undone afterwards -- the zero is gone before we see
+    # it. BaseLoader leaves every scalar a string, so the only value
+    # needing a type is the bookkeeping count.
     with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
+        data = yaml.load(f, Loader=yaml.BaseLoader) or {}
     out: dict[str, dict[str, dict[str, str]]] = {}
     for ats, entries in data.items():
-        out[ats] = {e["domain"]: e for e in entries or [] if e.get("domain")}
+        out[ats] = {}
+        for e in entries or []:
+            if not e.get("domain"):
+                continue
+            if "jobs_seen" in e:
+                try:
+                    e["jobs_seen"] = int(e["jobs_seen"])
+                except (TypeError, ValueError):
+                    e["jobs_seen"] = 0
+            out[ats][e["domain"]] = e
     return out
 
 
@@ -2527,6 +2548,40 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
             res.job_count = len(jobs)
             res.tried = tried
             return res
+
+    # Niloosoft, pinned for the same reason as the two above and then
+    # some: the board host is not the company's domain, and the action
+    # path the board posts to is not derivable from either. Both come
+    # from discover_niloosoft.py, which reads certificate transparency
+    # for the host list and each board's own bundle for the path.
+    pin = PINS.get("niloosoft", {}).get(domain)
+    if pin:
+        tried += 1
+        if VERBOSE:
+            print(f"    probe niloosoft-pin:{domain}", file=sys.stderr)
+        token = f"{pin['host']}:{pin['slug']}"
+        try:
+            jobs = f_niloosoft(sess, token)
+        except Exception:
+            jobs = None
+        if jobs is not None:
+            res.ats, res.token, res.jobs = "niloosoft", token, _fill_classifications(jobs, res.domain)
+            res.job_count = len(jobs)
+            res.tried = tried
+            return res
+        # A pin is a statement about which board this company uses, so a
+        # failed fetch means "try again next sweep", not "go guessing".
+        # Observed: one transient failure on yes.co.il's board sent the
+        # loop below off to greenhouse:yes, an electrical contractor in
+        # North Dakota. The shared API here cold-starts, so this will
+        # happen again.
+        res.error = "niloosoft pin unreachable this run"
+        # retryable, so load_to_sqlite treats this as a blip on a known
+        # board rather than a confident "nothing matched" that would
+        # clear the company's stored ats and token.
+        res.retryable = True
+        res.tried = tried
+        return res
 
     for token in token_candidates(domain):
         for ats, fn in FETCHERS.items():
