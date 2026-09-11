@@ -182,7 +182,7 @@ def lambda_handler(event, context):
         # saying so costs a second rather than a full sweep.
         _write_status(s3, "idle", "no boards due this tick")
         print("no boards due")
-        return {"swept": 0, "unchanged": 0, "changed": 0, "fragment": None,
+        return {"swept": 0, "unchanged": 0, "changed": 0, "fragments": 0,
                 "num_shards": 0, "hits": 0, "errors": 0, "jobs": 0}
 
     shard_path = TMP / "known-shard.json"
@@ -234,11 +234,12 @@ def lambda_handler(event, context):
     # pushed a snapshot containing them, so a crash here or there costs a
     # repeat, never a listing.
     _write_status(s3, "loading", f"writing delta for {len(changed)} changed companies")
-    fragment = put_fragment(BUCKET, data)
-    print(f"delta fragment: {fragment or '(nothing changed, none written)'}")
+    fragments = put_fragment(BUCKET, data)
+    print(f"delta fragments: {len(fragments)} written"
+          if fragments else "delta fragments: (nothing changed, none written)")
 
     _write_status(s3, "idle", f"last sweep: {len(data)} companies, {len(unchanged)} unchanged, "
                               f"{len(changed)} changed, {n_jobs} jobs")
     return {"swept": len(data), "unchanged": len(unchanged), "changed": len(changed),
-            "fragment": fragment, "num_shards": num_shards, "hits": len(hits),
+            "fragments": len(fragments), "num_shards": num_shards, "hits": len(hits),
             "errors": len(errors), "jobs": n_jobs}

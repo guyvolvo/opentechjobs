@@ -216,8 +216,9 @@ def lambda_handler(event, context):
     # sweep's does. The partition stays because _known_external_ids_by_domain
     # reads it back to skip description re-fetches, which is the whole
     # reason a run is 65 seconds instead of many minutes.
-    fragment = put_fragment(BUCKET, results)
-    print(f"delta fragment: {fragment or '(nothing to apply, none written)'}")
+    fragments = put_fragment(BUCKET, results)
+    print(f"delta fragments: {len(fragments)} written"
+          if fragments else "delta fragments: (nothing to apply, none written)")
 
     _write_status(s3, "idle", f"last run: {len(hits)}/{len(results)} Workday companies, {n_jobs} jobs")
-    return {"hits": len(hits), "jobs": n_jobs, "fragment": fragment}
+    return {"hits": len(hits), "jobs": n_jobs, "fragments": len(fragments)}

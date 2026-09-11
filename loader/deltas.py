@@ -38,27 +38,77 @@ WORKERS = 8
 # letting a long outage produce one enormous unschedulable catch-up.
 MAX_FRAGMENTS_PER_RUN = 400
 
+# A fragment used to be "whatever one sweep found", which made its size a
+# function of how busy the cycle was: 13MB on a quiet one, 50MB on a
+# normal one, and about 100MB the morning of 2026-09-11 when the sweep
+# came back from an hour of downtime and re-verified everything at once.
+# The applier parses a fragment whole, so that variance landed directly
+# on its 2GB ceiling: it OOM'd repeatedly, and because a failed apply
+# deletes nothing, every retry faced a bigger backlog than the last.
+#
+# Chunking here instead makes the applier's memory a property of this
+# constant rather than of the weather. Both limits matter: companies
+# alone is a poor proxy for bytes, since one company with a thousand
+# listings outweighs fifty with five, and it was exactly that skew that
+# produced a 50MB fragment from only 57 companies.
+MAX_FRAGMENT_COMPANIES = 25
+MAX_FRAGMENT_BYTES = 12 * 1024 * 1024
 
-def put_fragment(bucket: str, results: list[dict]) -> str | None:
-    """Write one sweep's changed companies. Returns the key, or None.
+
+def _chunks(payload: list[dict]):
+    """Split into fragments small enough to be applied whole.
+
+    Each company is serialized once here and the bytes reused, so the
+    cost is one encode rather than one per candidate chunk. A single
+    company larger than the budget still goes out on its own: it cannot
+    be split without breaking the upsert's per-company shape, and the
+    applier always takes at least one fragment for the same reason.
+    """
+    batch: list[bytes] = []
+    size = 0
+    for company in payload:
+        blob = json.dumps(company, ensure_ascii=False).encode("utf-8")
+        too_many = len(batch) >= MAX_FRAGMENT_COMPANIES
+        too_big = batch and size + len(blob) > MAX_FRAGMENT_BYTES
+        if too_many or too_big:
+            yield batch
+            batch, size = [], 0
+        batch.append(blob)
+        size += len(blob)
+    if batch:
+        yield batch
+
+
+def put_fragment(bucket: str, results: list[dict]) -> list[str]:
+    """Write one sweep's changed companies. Returns the keys written.
 
     Only companies with real results are written: an unchanged company
     carries no jobs and nothing to apply, so including it would just make
     every fragment the size of the company list.
     """
     if not bucket:
-        return None
+        return []
     payload = [r for r in results if r.get("ats") and not r.get("unchanged")]
     if not payload:
-        return None
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
-    key = f"{PREFIX}{stamp}-{uuid.uuid4().hex[:8]}.json"
-    boto3.client("s3").put_object(
-        Bucket=bucket, Key=key,
-        Body=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        ContentType="application/json",
-    )
-    return key
+        return []
+
+    s3 = boto3.client("s3")
+    keys: list[str] = []
+    for i, batch in enumerate(_chunks(payload)):
+        # The index keeps one sweep's own fragments in the order they
+        # were produced. Keys sort lexicographically and the applier
+        # relies on that ordering, and a bare microsecond stamp can
+        # collide across a fast loop.
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
+        key = f"{PREFIX}{stamp}-{i:03d}-{uuid.uuid4().hex[:8]}.json"
+        # Joined from the per-company bytes rather than re-serializing
+        # the batch, which would double this function's peak memory on
+        # the very machine whose memory is the point of the exercise.
+        body = b"[" + b",".join(batch) + b"]"
+        s3.put_object(Bucket=bucket, Key=key, Body=body,
+                      ContentType="application/json")
+        keys.append(key)
+    return keys
 
 
 def list_fragments(bucket: str, limit: int = MAX_FRAGMENTS_PER_RUN) -> list[str]:
