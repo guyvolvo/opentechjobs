@@ -348,3 +348,16 @@ workable:
     token: "rayzone-group"
     jobs_seen: 2
     source: workable-directory
+
+ness:
+  # Ness runs its own careers app, not an ATS. One public JSON call
+  # returns every open role, which is why a company-specific fetcher is
+  # worth having here. The token is the careers host.
+  #
+  # Checked against One1, Malam, Taldor, Hilan and Aman on 2026-09-11:
+  # none answer the same path, so this is one company rather than a
+  # platform worth generalising.
+  - domain: ness-tech.co.il
+    token: "www.ness-tech.co.il"
+    jobs_seen: 195
+    source: own-careers-api

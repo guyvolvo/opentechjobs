@@ -4298,3 +4298,7 @@ tat-technologies.com
 accessfintech.com
 go-arc.com
 rayzoneg.com
+
+# Ness runs its own careers app with a public JSON endpoint rather
+# than an ATS. Token pinned in companies.yml; see probe.py's f_ness.
+ness-tech.co.il

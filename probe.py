@@ -1720,6 +1720,56 @@ def f_niloosoft(sess, token):
     return out or None
 
 
+# Ness Technologies runs its own careers app rather than an ATS, and
+# backs it with a plain public JSON endpoint: one request returns all 195
+# open roles. That is a better ratio than most boards here, which is why
+# a single-company fetcher earns its keep.
+#
+# The token is the careers host, so the same code covers a second site if
+# one ever appears on the same product. It does not generalise further:
+# the path was checked against One1, Malam, Taldor, Hilan and Aman, and
+# only Ness answers it, so this is a company rather than a platform.
+#
+# Hebrew throughout, and locations are regions ("אזור המרכז") rather than
+# cities, so they get the same country tag as the Niloosoft boards for
+# the same reason: IL_KEYWORDS is Latin and would match none of them.
+_NESS_DATE_RE = re.compile(r"^(\d{2})/(\d{2})/(\d{4})$")
+
+
+def _ness_date(v):
+    """Ness dates are DD/MM/YYYY. Converted here rather than taught to
+    _normalize_date, because day-first and month-first are
+    indistinguishable for the first twelve days of a month and guessing
+    wrong for some other ATS would silently misdate its listings.
+    Confirmed day-first by values like 28/07/2026.
+    """
+    m = _NESS_DATE_RE.match(_txt(v))
+    if not m:
+        return None
+    day, month, year = m.groups()
+    return _normalize_date(f"{year}-{month}-{day}T00:00:00+00:00")
+
+
+def f_ness(sess, token):
+    d = get_json(sess, f"https://{token}/careers/api/Careers/GetAllItems")
+    if not isinstance(d, dict):
+        return None
+    rows = d.get("allOrderDetailsList") or []
+    if not rows:
+        return None
+    out = []
+    for j in rows:
+        where = _txt(j.get("posLocation"))
+        out.append(Job("ness", token, str(j.get("index")), _txt(j.get("title")),
+                       f"{where}, Israel" if where else "Israel",
+                       f"https://{token}/careers/job/{j.get('index')}",
+                       _ness_date(j.get("lastUpdated")),
+                       _txt(j.get("profName")) or None,
+                       len(_txt(j.get("posDescription"))),
+                       _clean_text(j.get("posDescription"))))
+    return out
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -1797,6 +1847,9 @@ FETCHERS: dict[str, Callable] = {
     "bamboohr": f_bamboohr,
     "breezy": f_breezy,
     "niloosoft": f_niloosoft,
+    # Keyed on a careers host, never on a guessed token, so it costs
+    # nothing until a pin names it.
+    "ness": f_ness,
 }
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
