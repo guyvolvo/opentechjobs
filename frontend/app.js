@@ -304,7 +304,12 @@ const LOGO_DOMAIN_OVERRIDES = {
 // one page -- wrapped in try/catch since localStorage can throw
 // (private browsing, blocked site data), same as every other
 // try/catch around it in this file.
-const LOGO_RESOLVED_KEY = "iljobs-logo-resolved-v1";
+// Bumped to v2 on 2026-09-11 with the override additions above. The
+// cached value short-circuits the cascade, so a visitor who already
+// resolved sentinellabs.io to the monogram would keep seeing it forever
+// no matter what the override table says. Any future change to
+// LOGO_DOMAIN_OVERRIDES or LOGO_STAGE_OVERRIDES has to bump this too.
+const LOGO_RESOLVED_KEY = "iljobs-logo-resolved-v2";
 let logoResolvedCache = new Map();
 try {
   logoResolvedCache = new Map(Object.entries(JSON.parse(localStorage.getItem(LOGO_RESOLVED_KEY) || "{}")));
