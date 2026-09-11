@@ -57,6 +57,13 @@ import precompute
 # counters, time-to-fill, the reconstructed history), so 30 is well past
 # all of them. See loader/archive.py for what this is protecting against.
 ARCHIVE_CLOSED_DAYS = 30
+
+# How many delta fragments one apply will parse into memory at once.
+# Two, because one fragment ran about 100MB on 2026-09-11 and five of
+# them OOM'd this Lambda at its 2GB ceiling. Anything left over is
+# applied by the next run five minutes later, so a backlog drains rather
+# than compounding.
+MAX_FRAGMENTS_PER_APPLY = 2
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 # Where bootstrap.json goes. Optional: unset just means the site keeps
@@ -200,7 +207,23 @@ def lambda_handler(event, context):
         print("no pending delta fragments")
         return {"ok": True, "applied": 0, "fragments": 0}
 
-    _write_status(s3, "merging", f"applying {len(keys)} delta fragments to jobs-read.db")
+    # read_fragments parses every fragment it is given into memory at
+    # once, and a fragment is the size of whatever the sweep found: about
+    # 100MB after a quiet hour, when the next sweep re-verifies
+    # everything at once. Five of those OOM'd this Lambda at 2GB, and
+    # because a failed apply deletes nothing, the backlog grew on every
+    # retry and each retry was guaranteed to fail harder than the last.
+    #
+    # Taking the oldest few bounds the memory whatever the backlog looks
+    # like. Order is preserved (keys are timestamped and sorted, and
+    # load_resolved is an upsert), so the rest simply land on the next
+    # run five minutes later.
+    pending = len(keys)
+    keys = keys[:MAX_FRAGMENTS_PER_APPLY]
+    if pending > len(keys):
+        print(f"{pending} fragments pending, applying the oldest {len(keys)} this run")
+
+    _write_status(s3, "merging", f"applying {len(keys)} of {pending} delta fragments to jobs-read.db")
     results = read_fragments(BUCKET, keys)
     if not results:
         # Every fragment unreadable. Leave them alone rather than delete
@@ -262,7 +285,7 @@ def lambda_handler(event, context):
     _write_status(s3, "precomputing", "building explore.db for the stats page")
     explore = build_explore.publish(FRONTEND_BUCKET, snapshot, TMP)
 
-    summary = {"applied": len(results), "fragments": len(keys),
+    summary = {"applied": len(results), "fragments": len(keys), "pending_after": pending - len(keys),
                "alerts": alerts_result, "precomputed": len(written),
                "explore": explore["bytes"] if explore else None}
     _publish_bootstrap(s3)
