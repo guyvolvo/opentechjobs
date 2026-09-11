@@ -942,6 +942,41 @@ function syncUrl() {
 // Populates `state` from a query string -- location.search on boot, or
 // whatever new URL a Back/Forward navigation hands back via popstate.
 // Anything absent keeps state's existing default; an absent param means
+// One gate for every filter value that reaches `state`, whatever it came
+// from. Both sources are user-editable and neither was checked: a URL is
+// hand-typed, shared and truncated, and localStorage is whatever a
+// previous version of this file happened to leave there.
+//
+// Found live: ?max_age_days=abc sent "abc" straight to the API, which
+// answers 400, so the board showed "Could not load jobs". That alone
+// would be a bad link. But max_age_days is also persisted, so the junk
+// was saved, and every later visit to the plain site reloaded it and
+// broke again. A single malformed link locked a browser out of the board
+// until its site data was cleared, with the only escape a Reset button
+// inside a panel the reader has no reason to open.
+//
+// An invalid value is dropped, never clamped to something plausible:
+// silently turning ?max_age_days=-5 into 30 would show results the URL
+// did not ask for. The one exception is offset, which was already
+// floored at 0 before this existed.
+const SORTABLE_KEYS = new Set(["age", "title"]);
+
+function cleanFilterValue(key, value) {
+  switch (key) {
+    case "max_age_days": {
+      if (value === "" || value == null) return "";
+      const s = String(value);
+      return /^\d+$/.test(s) && Number(s) > 0 ? s : undefined;
+    }
+    case "sort":
+      return SORTABLE_KEYS.has(value) ? value : undefined;
+    case "dir":
+      return value === "asc" || value === "desc" ? value : undefined;
+    default:
+      return value;
+  }
+}
+
 // "default," not "clear," so a partial URL (just ?q=... say) doesn't
 // stomp the rest back to defaults.
 function applyStateFromUrl(search) {
@@ -953,10 +988,19 @@ function applyStateFromUrl(search) {
   }
   if (p.has("confidence")) state.confidence = p.get("confidence");
   if (p.has("israel_only")) state.israel_only = p.get("israel_only") === "1";
-  if (p.has("max_age_days")) state.max_age_days = p.get("max_age_days");
+  if (p.has("max_age_days")) {
+    const v = cleanFilterValue("max_age_days", p.get("max_age_days"));
+    if (v !== undefined) state.max_age_days = v;
+  }
   if (p.has("starred")) state.starred_only = p.get("starred") === "1";
-  if (p.has("sort")) state.sort = p.get("sort");
-  if (p.has("dir")) state.dir = p.get("dir");
+  if (p.has("sort")) {
+    const v = cleanFilterValue("sort", p.get("sort"));
+    if (v !== undefined) state.sort = v;
+  }
+  if (p.has("dir")) {
+    const v = cleanFilterValue("dir", p.get("dir"));
+    if (v !== undefined) state.dir = v;
+  }
   if (p.has("offset")) {
     const n = parseInt(p.get("offset"), 10);
     state.offset = Number.isFinite(n) && n > 0 ? n : 0;
@@ -1004,7 +1048,12 @@ function applyStoredFilters() {
   }
   if (!saved || typeof saved !== "object") return;
   for (const key of PERSISTED_FILTER_KEYS) {
-    if (key in saved) state[key] = saved[key];
+    if (!(key in saved)) continue;
+    // Validated on the way out as well as in, so a browser already
+    // holding a poisoned value from before this existed heals itself on
+    // the next visit instead of needing its site data cleared.
+    const value = cleanFilterValue(key, saved[key]);
+    if (value !== undefined) state[key] = value;
   }
 }
 
@@ -2122,9 +2171,15 @@ function setActiveSortHeader(key, dir) {
     h.classList.remove("active");
     h.removeAttribute("data-dir");
   });
+  // No header for this key: the board sorts by two columns and anything
+  // else is a stale link or a typo. Threw a TypeError here before,
+  // after the rows had already rendered, so the board looked fine while
+  // the sort UI was left with nothing marked active.
   const th = document.querySelector(`th[data-sort="${key}"]`);
-  th.classList.add("active");
-  th.setAttribute("data-dir", dir === "desc" ? "↓" : "↑");
+  if (th) {
+    th.classList.add("active");
+    th.setAttribute("data-dir", dir === "desc" ? "↓" : "↑");
+  }
   // Keep the "Sort:" dropdown in step -- it only offers the two age-column
   // sorts (Newest/Oldest), so clicking the Age header updates it and
   // clicking the Listing header falls back to its blank "Sort" placeholder
