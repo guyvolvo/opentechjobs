@@ -32,12 +32,20 @@ from xml.etree import ElementTree as ET
 
 import requests
 
-import company_logo
-
 try:
     import yaml
 except ImportError:
     yaml = None
+
+# Optional on purpose, exactly like yaml above. Only discovery resolves
+# logos (--fetch-logos), and that runs from a full checkout; the three
+# scrape Lambdas never do, so their packages do not carry this file. A
+# hard import made probe.py exit 1 the moment it was deployed, which
+# stopped the five-minute sweep dead for an hour before anyone noticed.
+try:
+    import company_logo
+except ImportError:
+    company_logo = None
 
 # Shared with api/handler.py and alerts.py -- see job_filters.py's own
 # docstring on why (avoiding a second, independently-drifting Israel-
@@ -2514,7 +2522,7 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
     that only want boards.
     """
     res = _resolve_board(domain, sess)
-    if FETCH_LOGOS and res.ats:
+    if FETCH_LOGOS and company_logo and res.ats:
         try:
             res.logo_url, res.logo_source = company_logo.resolve_logo(
                 sess, domain, res.ats, res.token)
