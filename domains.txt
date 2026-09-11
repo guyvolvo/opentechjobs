@@ -4099,3 +4099,25 @@ careacross.com
 nationallegalaidanddefenderassociationnlada.com
 smartrecruiters.com
 velaaprivateislandmaldives.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+autofleet.io
+wayve.fr
+alten.net
+avamere.com
+apex.ai
+eucalyptus.com
+opentable.de
+charger-logistics.com
+figureai.org
+oura.com
+the.com
+asco.com
+flagshippioneering.com
+upstart.ai
+paypay.fr
+dianahealth.co
+alex-staff.com
+dialpad.com
+tide.com
+altruist.com
