@@ -321,3 +321,30 @@ niloosoft:
     slug: "yes"
     jobs_seen: 13
     source: ct-log
+
+workable:
+  # Workable accounts whose token is not their domain. The board slug and
+  # the account token usually match, which is why these are the only
+  # three of fifteen that needed pinning; the rest resolve by guessing.
+  #
+  # real.dev is the reason the generic pin path exists at all: guessing
+  # gives "real", which is a real but empty board belonging to somebody
+  # else, so the guess succeeds wrongly rather than failing. That token
+  # is blacklisted in probe.py's KNOWN_FALSE_POSITIVES too.
+  #
+  # Found via Workable's own public job search, filtered to Israel
+  # (discover_companies.py --source directory), 2026-09-11.
+  - domain: real.dev
+    token: "real-dev-inc"
+    jobs_seen: 9
+    source: workable-directory
+
+  - domain: mench-adv.co.il
+    token: "mench"
+    jobs_seen: 5
+    source: workable-directory
+
+  - domain: rayzoneg.com
+    token: "rayzone-group"
+    jobs_seen: 2
+    source: workable-directory

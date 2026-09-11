@@ -4277,3 +4277,24 @@ pwc.com
 iscar.co.il
 toganetworks.com
 yes.co.il
+
+# Workable accounts hiring in Israel, from Workable's own public job
+# search rather than a domain guess (discover_companies.py --source
+# directory). Every one carries at least two Israeli listings.
+# Huzzle and CXG were found the same way and left out: 2,476 and
+# 1,412 listings for two Israeli roles each, which is a job
+# aggregator and a global consultancy, not employers this board is
+# for. Three of these need a pinned token; see companies.yml.
+myteam.team
+nuvei.com
+tomax.io
+real.dev
+mench-adv.co.il
+humanz.com
+shifters-ai.com
+plateful.co
+squareone.com.cy
+tat-technologies.com
+accessfintech.com
+go-arc.com
+rayzoneg.com

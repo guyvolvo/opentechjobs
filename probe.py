@@ -1737,6 +1737,9 @@ def f_niloosoft(sess, token):
 # Add to this set as more turn up.
 KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("ashby", "matrix"),          # matrix.co.il: real board is a Boston VC firm, not Matrix IT
+    ("workable", "real"),         # real.dev: a real but empty Workable board belonging to someone
+                                   # else. The domain guesses "real"; the company's own board is
+                                   # "real-dev-inc", pinned in companies.yml.
     ("greenhouse", "yes"),        # yes.co.il: real board is an electrical contractor in Dickinson, North
                                    # Dakota. Caught when a transient failure on yes.co.il's Niloosoft pin
                                    # let the guess loop run and land here; the pin is authoritative now,
@@ -2709,6 +2712,34 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
             jobs = None
         if jobs and _match_is_fresh(jobs):
             res.ats, res.token = hint["ats"], hint["token"]
+            res.jobs = _fill_classifications(jobs, res.domain)
+            res.job_count = len(res.jobs)
+            res.tried = tried
+            return res
+
+    # Hand-pinned tokens for the ordinary guess-and-verify ATSes. Comeet,
+    # Workday and Niloosoft each need their own block above because their
+    # tokens are compound; these are the plain ones, where the only
+    # problem is that the token is not derivable from the domain.
+    #
+    # real.dev is why this exists: its Workable board is "real-dev-inc"
+    # and the domain guesses "real", which is a real, empty board
+    # belonging to someone else. Guessing does not just fail there, it
+    # succeeds wrongly, and a pin is the only way to say which one is
+    # meant.
+    for pin_ats in FETCHERS:
+        pin = PINS.get(pin_ats, {}).get(domain)
+        if not pin or not pin.get("token"):
+            continue
+        tried += 1
+        if VERBOSE:
+            print(f"    probe pin:{pin_ats}:{pin['token']}", file=sys.stderr)
+        try:
+            jobs = FETCHERS[pin_ats](sess, pin["token"])
+        except Exception:
+            jobs = None
+        if jobs:
+            res.ats, res.token = pin_ats, pin["token"]
             res.jobs = _fill_classifications(jobs, res.domain)
             res.job_count = len(res.jobs)
             res.tried = tried
