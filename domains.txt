@@ -4259,3 +4259,13 @@ pytho.ai
 reinforce.ai
 proximaai.com
 smallest.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+reson8.fr
+sovereign.com
+spaice.com
+staycation.co
+succinct.com
+strange.net
+cimspa.net
+city.com
