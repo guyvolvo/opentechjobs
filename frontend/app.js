@@ -173,6 +173,13 @@ const LOGO_STAGE_OVERRIDES = {
   // its usual 16x16 placeholder -- unreliable enough to skip rather
   // than keep retrying an inconsistent signal. Straight to the monogram.
   "unframe.com": 4,
+  // Three where the monogram is the right answer, not a gap to fix.
+  // Checked 2026-09-11: no apple-touch-icon, no favicon.ico, and
+  // Google's service 404s for each. Listed so the cascade stops
+  // guessing rather than issuing three doomed requests per row.
+  "elbitsystems.com": 4,  // elbitsystems.com serves no icon at any of the three
+  "iscar.co.il": 4,       // the site does not answer us at all
+  "referralsuseonly.com": 4,  // a board placeholder, not a company with a logo
 };
 
 // Companies whose stored domain is a wrong guess from discover_companies.py's
@@ -190,6 +197,16 @@ const LOGO_STAGE_OVERRIDES = {
 // verify_candidate() for the matching pipeline-side fix that stops new
 // wrong guesses like these from being accepted in the first place.
 const LOGO_DOMAIN_OVERRIDES = {
+  // Audited 2026-09-11 across the 124 companies with open Israeli
+  // listings: 14 were falling through to the monogram. Most were this
+  // same shape, a tenant slug that discovery's domain guesser turned
+  // into a plausible-looking domain nobody owns. Google has a good
+  // 64x64 for each of the real ones.
+  "sentinellabs.io": "sentinelone.com",  // SentinelOne's research blog, not the company site
+  "doitintl.com": "doit.com",            // was pulling an unrelated 98x53 logo from Google
+  "gongio.com": "gong.io",
+  "pagayais.com": "pagaya.com",
+  "eleoshealth.com": "eleos.health",
   "chainalysis-careers.com": "chainalysis.com",
   "zafran-security.com": "zafran.io",
   "chamelio.com": "chamelio.io",
