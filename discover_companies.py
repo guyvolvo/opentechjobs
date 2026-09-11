@@ -39,9 +39,23 @@ this project. A guessed domain ({token}.com) resolving to a real
 website isn't proof it's the SAME company the token belongs to, just a
 plausible starting point worth a human glance before merging.
 
+Workable is the one ATS with a better source than Common Crawl. It
+publishes a search across every board it hosts, filterable by location,
+and each result carries the employer's own website. --source directory
+reads that instead: no guessed domains, and the Israel ranking happens
+at the source. Measured 2026-09-11: 36 employers hiring in Israel, 32
+new to this project, 24 verified as real boards. The eight misses are
+accounts whose token is not their URL slug (Risco Group's board is
+"risco", its slug is "risco-group"); nothing public maps one to the
+other, so those still need the Common Crawl path. Lever, Ashby,
+Greenhouse and SmartRecruiters publish no equivalent search, and
+Comeet's needs a per-account token that only the company's own site
+carries.
+
 Usage:
     python discover_companies.py --ats greenhouse --json > candidates.json
     python discover_companies.py --ats lever --max-pages 5 --verify-limit 200
+    python discover_companies.py --ats workable --source directory --json
 """
 
 import argparse
@@ -50,6 +64,7 @@ import re
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 
@@ -152,6 +167,71 @@ _HYPHEN_TLD_RE = re.compile(r"-(ai|io|co|app|dev)$", re.IGNORECASE)
 # .com overwhelmingly first, then the handful of TLDs that turned up
 # repeatedly researching the ones plain .com got wrong (2026-09-08).
 _DOMAIN_GUESS_TLDS = ["com", "io", "ai", "co", "net", "org", "de", "fr"]
+
+
+# Workable publishes a search across every board it hosts, filterable by
+# location, and each result carries the employer's own website. That is
+# strictly better than the Common Crawl path above for this one ATS: no
+# guessed domain, and the location filter does the Israel ranking at the
+# source instead of after the fact. Measured 2026-09-11: 131 jobs in
+# Israel across 36 employers, 35 of which this project had never
+# resolved.
+#
+# The account token is not in the response, but the company URL ends in
+# "jobs-at-<slug>" and that slug is the token on most boards. Verified
+# against humanz, autofleet, nuvei, accessfintech and cloudshare; risco
+# is the counter-example, where the slug is the longer legal name and
+# the token is the short one, so the domain's own first label is tried
+# as a fallback.
+WORKABLE_SEARCH = "https://jobs.workable.com/api/v1/jobs"
+WORKABLE_PAGE_LIMIT = 20  # the endpoint refuses anything larger
+
+
+def _workable_slug(company_url: str) -> str | None:
+    m = re.search(r"/jobs-at-([a-z0-9-]+)", company_url or "")
+    return m.group(1) if m else None
+
+
+def fetch_workable_directory(sess: requests.Session, location: str,
+                             max_pages: int) -> dict[str, dict]:
+    """Employers hiring in `location`, keyed by candidate token."""
+    out: dict[str, dict] = {}
+    page_token = None
+    for _ in range(max_pages):
+        params = {"location": location, "limit": WORKABLE_PAGE_LIMIT}
+        if page_token:
+            params["pageToken"] = page_token
+        try:
+            r = sess.get(WORKABLE_SEARCH, params=params, timeout=30)
+            r.raise_for_status()
+            d = r.json()
+        except (requests.RequestException, ValueError) as e:
+            print(f"  workable directory page failed ({e!r}), stopping here", file=sys.stderr)
+            break
+        for job in d.get("jobs", []):
+            company = job.get("company") or {}
+            slug = _workable_slug(company.get("url", ""))
+            domain = _domain_of(company.get("website", ""))
+            if not slug and not domain:
+                continue
+            token = slug or domain.split(".")[0]
+            entry = out.setdefault(token, {
+                "title": company.get("title") or "",
+                "domain": domain,
+                "jobs_seen": 0,
+                # Tried in order if the first token 404s.
+                "fallbacks": [t for t in (domain.split(".")[0] if domain else None,) if t and t != token],
+            })
+            entry["jobs_seen"] += 1
+        page_token = d.get("nextPageToken")
+        if not page_token:
+            break
+    return out
+
+
+def _domain_of(url: str) -> str:
+    host = urlparse(url or "").netloc.lower()
+    return host.removeprefix("www.")
 
 
 def _candidate_stems(token: str):
@@ -265,16 +345,32 @@ def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
     return f"{token}.com", False
 
 
-def verify_candidate(sess: requests.Session, ats: str, token: str) -> dict | None:
-    if (ats, token) in KNOWN_FALSE_POSITIVES:
-        return None
-    try:
-        jobs = FETCHERS[ats](sess, token)
-    except Exception:
-        return None
+def verify_candidate(sess: requests.Session, ats: str, token: str,
+                     known: dict | None = None) -> dict | None:
+    """`known` carries what a directory source already told us: the real
+    domain, and any alternate tokens to try. Common Crawl gives neither,
+    so it passes None and the domain is guessed as before.
+    """
+    tokens = [token] + list((known or {}).get("fallbacks") or [])
+    jobs = None
+    for candidate in tokens:
+        if (ats, candidate) in KNOWN_FALSE_POSITIVES:
+            continue
+        try:
+            jobs = FETCHERS[ats](sess, candidate)
+        except Exception:
+            jobs = None
+        if jobs:
+            token = candidate
+            break
     if not jobs:
         return None
-    guessed_domain, domain_verified = _guess_domain(token, sess)
+    if known and known.get("domain"):
+        # Straight from the employer's own listing, so there is nothing
+        # to guess and nothing for a human to second-guess.
+        guessed_domain, domain_verified = known["domain"], True
+    else:
+        guessed_domain, domain_verified = _guess_domain(token, sess)
     # Free: `jobs` is already the full list this call just fetched to
     # confirm the board is real. Counting Israel-matching locations here
     # costs nothing extra and is what lets main() rank the whole batch by
@@ -306,17 +402,35 @@ def main() -> int:
 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ats", required=True, choices=sorted(CC_URL_PATTERNS), help="which ATS to search")
+    ap.add_argument("--source", choices=["commoncrawl", "directory"], default="commoncrawl",
+                    help="where candidate tokens come from. 'directory' reads the ATS's own "
+                         "cross-customer job search, which carries the real domain and filters "
+                         "by location; only Workable publishes one")
+    ap.add_argument("--location", default="Israel", help="location filter for --source directory")
     ap.add_argument("--max-pages", type=int, default=3, help="Common Crawl CDX pages to fetch")
     ap.add_argument("--verify-limit", type=int, default=100, help="cap on how many new candidates to live-verify")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    print(f"querying Common Crawl for {CC_URL_PATTERNS[args.ats]} ...", file=sys.stderr)
-    urls = fetch_cc_urls(CC_URL_PATTERNS[args.ats], args.max_pages)
-    print(f"  {len(urls)} URLs found", file=sys.stderr)
+    if args.source == "directory" and args.ats != "workable":
+        print(f"--source directory is only available for workable, not {args.ats}", file=sys.stderr)
+        return 2
 
-    tokens = extract_tokens(args.ats, urls)
-    print(f"  {len(tokens)} unique candidate slugs extracted", file=sys.stderr)
+    directory: dict[str, dict] = {}
+    if args.source == "directory":
+        sess = requests.Session()
+        sess.headers.update({"User-Agent": UA})
+        print(f"reading Workable's own job search for {args.location} ...", file=sys.stderr)
+        directory = fetch_workable_directory(sess, args.location, args.max_pages * 10)
+        tokens = set(directory)
+        print(f"  {len(tokens)} employers hiring there", file=sys.stderr)
+    else:
+        print(f"querying Common Crawl for {CC_URL_PATTERNS[args.ats]} ...", file=sys.stderr)
+        urls = fetch_cc_urls(CC_URL_PATTERNS[args.ats], args.max_pages)
+        print(f"  {len(urls)} URLs found", file=sys.stderr)
+
+        tokens = extract_tokens(args.ats, urls)
+        print(f"  {len(tokens)} unique candidate slugs extracted", file=sys.stderr)
 
     try:
         known = load_already_tracked(args.ats)
@@ -343,7 +457,7 @@ def main() -> int:
     def _verify(token: str):
         sess = requests.Session()
         sess.headers.update({"User-Agent": UA})
-        return verify_candidate(sess, args.ats, token)
+        return verify_candidate(sess, args.ats, token, directory.get(token))
 
     with ThreadPoolExecutor(max_workers=16) as pool:
         futures = {pool.submit(_verify, token): token for token in to_check}

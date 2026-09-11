@@ -1499,6 +1499,64 @@ def f_teamtailor(sess, token):
     return out
 
 
+# BambooHR and Breezy. Both serve a public careers list on a guessable
+# subdomain, no auth.
+#
+# BambooHR needs a guard the others do not. Any unknown subdomain answers
+# 200 with the same four-job demo tenant, so google.bamboohr.com looks
+# exactly like a real customer. Measured: five of seven apparent hits
+# across the unresolved domains were this. Matching on the demo's own job
+# ids would be tighter, but they are stable only until BambooHR edits its
+# sample data, and the titles have not moved in years.
+_BAMBOO_DEMO_TITLES = frozenset({
+    "IT Security Engineer", "Software Engineer",
+    "Sales Development Representative", "Marketing Manager",
+})
+
+
+def _bamboo_location(j: dict) -> str:
+    loc = j.get("location") or {}
+    parts = [_txt(loc.get("city")), _txt(loc.get("state"))]
+    return ", ".join(x for x in parts if x)
+
+
+def f_bamboohr(sess, token):
+    d = get_json(sess, f"https://{token}.bamboohr.com/careers/list")
+    if not isinstance(d, dict) or not d.get("result"):
+        return None
+    rows = d["result"]
+    titles = {_txt(j.get("jobOpeningName")) for j in rows}
+    if titles <= _BAMBOO_DEMO_TITLES:
+        print(f"    [f_bamboohr] {token} -> BambooHR's demo tenant, not a real board",
+              file=sys.stderr)
+        return None
+    # No posted date and no description in the list response, and no
+    # per-job endpoint that adds one without auth.
+    return [Job("bamboohr", token, str(j.get("id")), _txt(j.get("jobOpeningName")),
+                _bamboo_location(j),
+                f"https://{token}.bamboohr.com/careers/{j.get('id')}",
+                None, _txt(j.get("departmentLabel")) or None,
+                workplace_type="remote" if j.get("isRemote") else None) for j in rows]
+
+
+def _breezy_location(j: dict) -> str:
+    loc = j.get("location") or {}
+    parts = [_txt(loc.get("city")),
+             _txt((loc.get("state") or {}).get("name")),
+             _txt((loc.get("country") or {}).get("name"))]
+    return ", ".join(x for x in parts if x)
+
+
+def f_breezy(sess, token):
+    d = get_json(sess, f"https://{token}.breezy.hr/json")
+    if not isinstance(d, list) or not d:
+        return None
+    return [Job("breezy", token, _txt(j.get("id")), _txt(j.get("name")),
+                _breezy_location(j), _txt(j.get("url")),
+                _normalize_date(j.get("published_date")),
+                _txt(j.get("department")) or None) for j in d]
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -1553,6 +1611,8 @@ FETCHERS: dict[str, Callable] = {
     "smartrecruiters": f_smartrecruiters,
     "jazzhr": f_jazzhr,
     "teamtailor": f_teamtailor,
+    "bamboohr": f_bamboohr,
+    "breezy": f_breezy,
 }
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
