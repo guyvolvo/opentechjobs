@@ -35,6 +35,7 @@ guaranteed to happen on nearly every real merge instead of only on a
 crash.
 """
 
+import gc
 import json
 import os
 import subprocess
@@ -59,11 +60,11 @@ import precompute
 ARCHIVE_CLOSED_DAYS = 30
 
 # How many delta fragments one apply will parse into memory at once.
-# Two, because one fragment ran about 100MB on 2026-09-11 and five of
-# them OOM'd this Lambda at its 2GB ceiling. Anything left over is
-# applied by the next run five minutes later, so a backlog drains rather
-# than compounding.
-MAX_FRAGMENTS_PER_APPLY = 2
+# One. A fragment ran about 100MB on 2026-09-11, and parsed into Python
+# objects that is most of this Lambda's 2GB ceiling on its own: five
+# OOM'd, and so did two. Anything left over is applied by the next run
+# five minutes later, so a backlog drains rather than compounding.
+MAX_FRAGMENTS_PER_APPLY = 1
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 # Where bootstrap.json goes. Optional: unset just means the site keeps
@@ -232,7 +233,18 @@ def lambda_handler(event, context):
         raise RuntimeError("delta fragments present but none readable")
 
     resolved = TMP / "delta-resolved.json"
-    resolved.write_text(json.dumps(results, ensure_ascii=False), encoding="utf-8")
+    # json.dump to the open file, not write_text(json.dumps(...)): the
+    # latter builds the entire serialized document as a second copy in
+    # memory before a byte reaches disk, which on a 100MB fragment is
+    # 100MB of Python objects plus 100MB of string at the same moment.
+    applied_count = len(results)
+    with resolved.open("w", encoding="utf-8") as fh:
+        json.dump(results, fh, ensure_ascii=False)
+    # The parsed copy is dead the moment it is on disk: load_to_sqlite
+    # reads the file in its own process. Dropping it here gives that
+    # subprocess the headroom instead.
+    results = None
+    gc.collect()
     snapshot = TMP / "jobs-read.db"
 
     load = subprocess.run(
@@ -253,7 +265,7 @@ def lambda_handler(event, context):
 
     # Only now: the snapshot carrying them is pushed.
     removed = delete_fragments(BUCKET, keys)
-    print(f"applied {len(results)} company results from {len(keys)} fragments, "
+    print(f"applied {applied_count} company results from {len(keys)} fragments, "
           f"{removed} fragments cleared")
 
     # Alerts moved here from the sweep, which no longer opens a database.
@@ -285,11 +297,11 @@ def lambda_handler(event, context):
     _write_status(s3, "precomputing", "building explore.db for the stats page")
     explore = build_explore.publish(FRONTEND_BUCKET, snapshot, TMP)
 
-    summary = {"applied": len(results), "fragments": len(keys), "pending_after": pending - len(keys),
+    summary = {"applied": applied_count, "fragments": len(keys), "pending_after": pending - len(keys),
                "alerts": alerts_result, "precomputed": len(written),
                "explore": explore["bytes"] if explore else None}
     _publish_bootstrap(s3)
 
     print(f"delta apply complete: {json.dumps(summary, default=str)}")
-    _write_status(s3, "idle", f"last apply: {len(results)} companies from {len(keys)} fragments")
+    _write_status(s3, "idle", f"last apply: {applied_count} companies from {len(keys)} fragments")
     return {"ok": True, **summary}
