@@ -2382,25 +2382,53 @@ function wireThemeToggle() {
     btn.textContent = isDark ? "Light" : "Dark";
   };
   sync(); // index.html's inline head script already applied the saved theme before this ran
-  // Cleared on a timer, so a second click mid-fade restarts the window
-  // rather than letting the first one strip the class out from under it.
-  let themeFadeTimer = null;
-  btn.addEventListener("click", () => {
-    const root = document.documentElement;
-    // Only ever on during the swap itself. See .theme-transition in
-    // style.css for why this isn't just left on permanently.
-    root.classList.add("theme-transition");
-    clearTimeout(themeFadeTimer);
-    themeFadeTimer = setTimeout(() => root.classList.remove("theme-transition"), 450);
 
+  function swapTheme() {
     const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
     if (next === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
     } else {
       document.documentElement.removeAttribute("data-theme");
     }
-    localStorage.setItem(THEME_KEY, next);
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch {
+      // Private browsing or a full quota. The theme still switches; it
+      // just will not be remembered, which is not worth failing over.
+    }
     sync();
+  }
+
+  // One crossfade of the whole page, run by the compositor, instead of a
+  // transition on every element.
+  //
+  // The old version put `transition: background-color, color,
+  // border-color, fill` on .theme-transition * !important for 450ms.
+  // That is 2,430 elements on a full board, four properties each: around
+  // 9,700 transitions, none of which the compositor can help with,
+  // because changing a colour means repainting. Hence the lag on a
+  // phone, reported live.
+  //
+  // And it never animated anything anyway. Measured with a
+  // transitionstart counter on a real page: zero started, and the colours
+  // were at their new values in the same frame as the click. The class
+  // and the theme attribute were set in one go, so no style was ever
+  // resolved with the transition in place and nothing had a value to
+  // animate from.
+  //
+  // A view transition has neither problem. The browser snapshots the
+  // page before and after and crossfades the two images on the
+  // compositor: one animation, no repaint per frame, and it cannot fail
+  // to start because the snapshot is taken before the callback runs.
+  btn.addEventListener("click", () => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Firefox has no view transitions yet. There the theme just snaps,
+    // which is what it already did on every browser.
+    if (reduced || typeof document.startViewTransition !== "function") {
+      swapTheme();
+      return;
+    }
+    document.startViewTransition(swapTheme);
   });
 }
 

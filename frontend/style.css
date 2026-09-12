@@ -2143,32 +2143,25 @@ footer {
 
 /* Theme crossfade */
 
-/* Applied by the toggle for the duration of the switch only, never left
-   on permanently. A standing transition on background-color and color
-   would also catch every hover, every table-row highlight and every
-   focus ring and stretch them to 400ms, which reads as lag on a dense
-   board rather than as polish. Scoping it to the swap means the theme
-   eases and everything else stays instant.
-   Covers descendants and generated content explicitly because
-   transitions don't inherit: a rule on :root alone would ease the page
-   background and nothing standing on it. border-color and fill are in
-   here too, otherwise the 2px rules and the GitHub mark would snap
-   while their surroundings faded, which looks worse than no transition
-   at all. */
-.theme-transition,
-.theme-transition *,
-.theme-transition *::before,
-.theme-transition *::after {
-  transition: background-color 0.4s ease, color 0.4s ease,
-              border-color 0.4s ease, fill 0.4s ease !important;
+/* The whole page, crossfaded once by the compositor. See wireThemeToggle
+   in app.js for what this replaced and why: a transition on every
+   element, which repainted ~2,430 elements a frame on a full board and,
+   measured, never actually started.
+
+   Only the root snapshot is animated, so this is two images fading into
+   each other rather than thousands of colour interpolations. 280ms:
+   long enough to read as a fade, short enough that the page is not
+   frozen while someone is trying to click something. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+  animation-timing-function: ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .theme-transition,
-  .theme-transition *,
-  .theme-transition *::before,
-  .theme-transition *::after {
-    transition: none !important;
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
   }
 }
 
