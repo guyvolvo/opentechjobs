@@ -17,27 +17,36 @@ locals {
   api_gateway_domain = "${aws_apigatewayv2_api.api.id}.execute-api.${var.aws_region}.amazonaws.com"
 }
 
-# Sends anything arriving on the old domain straight to the new one,
-# preserving path and query string, instead of serving the same content
-# twice at two URLs indefinitely. Runs at the edge (viewer-request) so it
-# fires before any cache lookup or origin fetch -- the old host never
-# reaches S3 or the API.
+# Two jobs, one function, because a behaviour gets exactly one
+# viewer-request association and both have to run at the edge.
+#
+# First: anything arriving on the old domain goes straight to the new
+# one, path and query intact, instead of serving the same content twice
+# at two URLs indefinitely.
+#
+# Second: /account instead of /account.html. The frontend is static files
+# on S3 and the URL is the object key, so without this the extension is
+# part of every page's address, which is an implementation detail of how
+# the site is stored. A request with no extension gets .html added on its
+# way to the origin, and a request that spells the extension out is
+# redirected to the short form, so each page has one address rather than
+# two.
+#
+# index.html is deliberately left alone. default_root_object already
+# maps / to it, and redirecting /index.html to / risks a loop with that
+# substitution depending on which side of the function it happens.
 resource "aws_cloudfront_function" "legacy_domain_redirect" {
   name    = "${var.project_name}-legacy-domain-redirect"
   runtime = "cloudfront-js-2.0"
-  comment = "301 ${var.legacy_domain_name} -> ${var.domain_name}"
+  comment = "301 ${var.legacy_domain_name} -> ${var.domain_name}; pretty URLs"
   publish = true
   code    = <<-EOT
-    function handler(event) {
-      var request = event.request;
-      var host = request.headers.host && request.headers.host.value;
-      if (host !== "${var.legacy_domain_name}") {
-        return request;
-      }
-      // request.querystring is a parsed object (same shape as headers),
-      // never a raw string -- has to be rebuilt param by param, including
-      // any repeated key (multiValue), or a search shared as a link would
-      // silently lose everything past the first "&" on the redirect.
+    // request.querystring is a parsed object (same shape as headers),
+    // never a raw string -- it has to be rebuilt param by param,
+    // including any repeated key (multiValue), or a search shared as a
+    // link would silently lose everything past the first "&" on a
+    // redirect.
+    function queryOf(request) {
       var params = [];
       for (var key in request.querystring) {
         var qs = request.querystring[key];
@@ -47,14 +56,55 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
           params.push(key + "=" + qs.value);
         }
       }
-      var query = params.length ? "?" + params.join("&") : "";
+      return params.length ? "?" + params.join("&") : "";
+    }
+
+    function redirect(location) {
       return {
         statusCode: 301,
         statusDescription: "Moved Permanently",
-        headers: {
-          location: { value: "https://${var.domain_name}" + request.uri + query }
-        }
+        headers: { location: { value: location } }
       };
+    }
+
+    function handler(event) {
+      var request = event.request;
+      var host = request.headers.host && request.headers.host.value;
+      if (host === "${var.legacy_domain_name}") {
+        return redirect("https://${var.domain_name}" + request.uri + queryOf(request));
+      }
+
+      var uri = request.uri;
+      // The API has its own behaviours and its own idea of what a path
+      // means. Nothing below applies to it.
+      if (uri.indexOf("/api/") === 0 || uri === "/api") {
+        return request;
+      }
+
+      var last = uri.substring(uri.lastIndexOf("/") + 1);
+
+      // Left alone on purpose: see the note above the resource.
+      if (last === "index.html") {
+        return request;
+      }
+
+      // /account.html -> /account. One address per page.
+      if (last.length > 5 && last.substring(last.length - 5) === ".html") {
+        return redirect(uri.substring(0, uri.length - 5) + queryOf(request));
+      }
+
+      // /account/ -> /account, so the two do not cache separately.
+      if (uri.length > 1 && last === "") {
+        return redirect(uri.substring(0, uri.length - 1) + queryOf(request));
+      }
+
+      // /account -> account.html on the way to S3, invisibly. Anything
+      // with an extension is a real file (style.css, logo.png, the
+      // vendored .mjs) and is already named correctly.
+      if (uri !== "/" && last.indexOf(".") === -1) {
+        request.uri = uri + ".html";
+      }
+      return request;
     }
   EOT
 }
