@@ -57,6 +57,14 @@ UA = "Mozilla/5.0 (compatible; OpenTechJobs/1.0; +https://opentechjobs.org)"
 
 NAMES_KEY = "company-names.json"
 
+# See referral_boards.py. A referral board's own name is "Referral
+# Board", so the resolver below is answering honestly and still getting
+# it wrong; only the override knows who the board belongs to.
+try:
+    from referral_boards import REFERRAL_BOARDS
+except ImportError:
+    REFERRAL_BOARDS = {}
+
 
 def _txt(v) -> str | None:
     if not isinstance(v, str):
@@ -140,6 +148,9 @@ RESOLVERS = {
 
 
 def resolve_one(entry: dict, sess: requests.Session) -> tuple[str, str | None]:
+    known = REFERRAL_BOARDS.get(entry.get("domain") or "")
+    if known:
+        return entry["domain"], known["name"]
     fn = RESOLVERS.get(entry.get("ats") or "")
     token = entry.get("token")
     if not fn or not token:

@@ -45,11 +45,23 @@ from company_logo import UA, resolve_logo  # noqa: E402
 WORKERS = 10
 LOGOS_KEY = "company-logos.json"
 
+# See referral_boards.py. referralsuseonly.com is not a website, so every
+# logo path that starts from the domain is looking somewhere that does
+# not exist. Ask the real company's domain instead.
+try:
+    from referral_boards import REFERRAL_BOARDS
+except ImportError:
+    REFERRAL_BOARDS = {}
+
 
 def resolve_one(entry: dict, sess: requests.Session) -> tuple[str, dict]:
     domain = entry.get("domain", "")
+    look_at = REFERRAL_BOARDS.get(domain, {}).get("logo_domain", domain)
     try:
-        url, source = resolve_logo(sess, domain, entry.get("ats"), entry.get("token"))
+        # The ATS is still passed: a referral board carries the company's
+        # own logo on Greenhouse, which is a better source than the
+        # website favicon either way.
+        url, source = resolve_logo(sess, look_at, entry.get("ats"), entry.get("token"))
     except Exception:
         # An unreachable host is not an answer, so leave it out of the
         # file entirely and let the next run try again.

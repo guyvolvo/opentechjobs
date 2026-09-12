@@ -5308,3 +5308,75 @@ ecfx.com
 empatica.com
 effective.ai
 dunlop.com
+# Multinationals with an R&D centre in Israel, from Wikipedia's list of
+# them (over 570 centres, ~130 named companies). 35 of the names were
+# already here; these are the rest.
+#
+# Most of these will never resolve. A company this size runs its own
+# careers stack, which is the whole finding from probing the tier-one
+# giants: of five, only Amazon answered a plain request. They are listed
+# anyway because a daily guess costs one budget each and the ones that
+# DO sit on an ordinary ATS are exactly the ones we would otherwise
+# never think to look for.
+#
+# Names, not guesses, is the point. This board's problem has never been
+# the fetchers, it has been knowing which companies to ask about.
+3m.com
+abb.com
+alcatel-lucent.com
+aol.com
+att.com
+atos.net
+barclays.com
+bayer.com
+blackberry.com
+bmc.com
+bnpparibas.com
+bosch.com
+ca.com
+zeiss.com
+citigroup.com
+3ds.com
+ford.com
+fujitsu.com
+gartner.com
+thalesgroup.com
+gm.com
+harman.com
+honda.com
+intercontinentalexchange.com
+deere.com
+lenovo.com
+lge.com
+mcafee.com
+mercedes-benz.com
+merckgroup.com
+metacareers.com
+microfocus.com
+mitsubishicorp.com
+nestle.com
+nokia.com
+pepsico.com
+pfizer.com
+philips.com
+poly.com
+ptc.com
+se.com
+seagate.com
+singtel.com
+skoda-auto.com
+softwareag.com
+stengg.com
+sunpharma.com
+syngenta.com
+tcs.com
+tdk.com
+techmahindra.com
+teradata.com
+toshiba.com
+unilever.com
+vimeo.com
+winbond.com
+mi.com
+yahoo.com
+yandex.com
