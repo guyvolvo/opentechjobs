@@ -98,8 +98,8 @@ check("nothing outside the known keys is stored",
 # A profile is expressible as an ordinary board search.
 f = profile.profile_to_filter({"skills": ["Python", "Go"], "seniority": "senior",
                                "workplace": ["remote"], "israel_only": True})
-check("skills become the OR-shaped q, not AND-shaped keywords",
-      f.get("q") == "Python Go" and "keywords" not in f, repr(f))
+check("skills become the OR-and-rank param, not q or keywords",
+      f.get("skills") == "Python,Go" and "q" not in f and "keywords" not in f, repr(f))
 check("seniority and workplace map straight across",
       f.get("seniority") == "senior" and f.get("workplace") == "remote", repr(f))
 check("israel_only maps to the board's own param", f.get("israel_only") == "1")

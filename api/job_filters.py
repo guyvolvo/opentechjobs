@@ -12,6 +12,8 @@ so the same import line works in both.
 
 import re
 
+from skills import SKILL_LABELS
+
 # Coarse, cross-company category -- complements the raw `department`
 # column (kept as-is; still shown in the job detail view) rather than
 # replacing it. Reported live: one company's "R&D" is another's
@@ -219,6 +221,43 @@ def fts_escape(term: str) -> str:
     return '"' + term.replace('"', '""') + '"'
 
 
+# The skills a caller asked to match on, as canonical labels.
+#
+# Validated against the vocabulary rather than passed through, which is
+# what lets the SQL below interpolate them into a LIKE without escaping:
+# nothing outside SKILL_LABELS survives this, and no label contains a
+# LIKE wildcard. It also means a stale bookmark naming a skill we have
+# since dropped narrows the match instead of erroring the board out.
+MAX_MATCH_SKILLS = 20
+
+
+def wanted_skills(params: dict) -> list[str]:
+    known = {s.lower(): s for s in SKILL_LABELS}
+    out: list[str] = []
+    for part in (params.get("skills") or "").split(","):
+        label = known.get(part.strip().lower())
+        if label and label not in out:
+            out.append(label)
+    return out[:MAX_MATCH_SKILLS]
+
+
+def skills_score_sql(wanted: list[str]) -> tuple[str, list]:
+    """How many of `wanted` a row carries, as a SELECT expression.
+
+    SQLite has no set intersection, so this is one LIKE per skill summed
+    as booleans. Twenty of them is the cap and they run over a column
+    that is at most five comma-joined labels, so it stays cheap.
+
+    The count saturates: probe.py stores only the first five skills it
+    finds in a job, so a row matching six of yours still scores five.
+    Fine for ranking, which is all it is for.
+    """
+    if not wanted:
+        return "0", []
+    expr = " + ".join("((',' || COALESCE(skills, '') || ',') LIKE ?)" for _ in wanted)
+    return f"({expr})", [f"%,{s},%" for s in wanted]
+
+
 def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
     """Same WHERE-clause construction route_jobs() uses for /api/jobs,
     minus sort/limit/offset (callers that need a full listing add those
@@ -258,6 +297,22 @@ def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
             "(LOWER(title) LIKE ? OR LOWER(company_domain) LIKE ? OR LOWER(location) LIKE ? OR LOWER(department) LIKE ?)"
         )
         args.extend([q, q, q, q])
+
+    wanted = wanted_skills(params)
+    if wanted:
+        # OR, not AND. This is the CV match, and a person who knows a
+        # dozen things is not looking for the job that demands all
+        # twelve. It ranks by how many overlap instead (see
+        # skills_score_sql); the filter only decides who is on the list.
+        #
+        # Matched against the tagged `skills` column rather than the
+        # description, because both sides already speak one vocabulary:
+        # probe.py tags every job from skills.py and the CV analyser
+        # reads a CV with the same terms. A LIKE over descriptions would
+        # find "no Python experience required" and call it a match.
+        clauses = " OR ".join("(',' || COALESCE(skills, '') || ',') LIKE ?" for _ in wanted)
+        where.append(f"({clauses})")
+        args.extend(f"%,{s},%" for s in wanted)
 
     if params.get("keywords"):
         # ';'-separated, ALL must appear (AND, not OR): "azure;excel;iso"

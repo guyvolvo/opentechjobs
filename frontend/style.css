@@ -672,6 +672,24 @@ button, input, select {
   color: var(--black);
 }
 
+/* Data Health is the one tile whose value is a word, and DEGRADED is
+   eight characters where the figures beside it are at most seven digits
+   of tabular numerals. At the 30px step it needed 185px in a 153px tile
+   and rendered as DEGRADE, clipped mid-word by the panel's overflow.
+   Reported live from a screenshot. Sized to fit the longest of the
+   three words at the narrowest the tile gets, rather than made to
+   shrink per-word, so LIVE and DEGRADED sit on the same baseline at
+   the same size instead of jumping when the state changes. */
+#metric-api-status .value { font-size: 22px; }
+/* The glyph comes down with the word it belongs to, and gives back the
+   rest of the margin the word needs to stay on one line. */
+#metric-api-status .value .status-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
 .metric-card.highlight .value { color: var(--green); }
 /* Data Health only. The word and its glyph are one statement, so a
    warning bang beside a green LIVE is a contradiction rather than a
@@ -1419,6 +1437,10 @@ table.jobs .title-cell a:hover { color: var(--green); }
   cursor: pointer;
 }
 .skill-chip:hover { color: var(--green); text-decoration: underline; }
+/* A skill this row was matched on. The only per-row answer to "why is
+   this listing on my list", and it has to survive beside the hover
+   colour, so it is weight and ink rather than a second green. */
+.skill-chip.matched { color: var(--black); font-weight: 700; }
 /* + (adjacent sibling), not :not(:last-child) -- .skill-bracket's "]"
    is the column's real last child now (see jobSkillsHtml), so a
    last-child check would put a stray "·" on every chip, right before
@@ -1429,6 +1451,15 @@ table.jobs .title-cell a:hover { color: var(--green); }
    brackets sit right against the first/last chip (no gap token
    consumed for them) via negative margins, rather than reading as
    their own separately-spaced list items. */
+/* The CV match chip. Same shape as the company chip beside it, in the
+   quieter outline treatment: it is a statement about the whole board
+   rather than one more filter value, and two solid green chips side by
+   side read as a pair of equals. */
+.chip-match {
+  background: none;
+  color: var(--green);
+}
+
 .skill-bracket { color: var(--grey); }
 .skill-bracket:first-child { margin-right: -6px; }
 .skill-bracket:last-child { margin-left: -6px; }

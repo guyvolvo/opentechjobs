@@ -35,7 +35,8 @@ from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
 from skills import SKILL_TERMS
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
-                         has_fts_index, salary_source_select)
+                         has_fts_index, salary_source_select, skills_score_sql,
+                         wanted_skills)
 
 _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 
@@ -46,7 +47,7 @@ _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 _ALLOWED_FILTER_KEYS = {
     "q", "keywords", "ats", "company", "department", "seniority", "location",
     "workplace", "confidence", "israel_only", "include_closed", "include_outdated",
-    "min_age_days", "max_age_days",
+    "min_age_days", "max_age_days", "skills",
 }
 
 # How long CloudFront may serve a cached answer, as distinct from how
@@ -276,6 +277,12 @@ def route_jobs(params: dict) -> dict:
 
     where_sql, args = build_jobs_where(params, has_fts_index(conn))
 
+    # The CV match. build_jobs_where has already narrowed the list to
+    # rows carrying at least one of these; this counts how many, so the
+    # board can lead with the closest fit rather than the newest one.
+    wanted = wanted_skills(params)
+    score_sql, score_args = skills_score_sql(wanted)
+
     sort_key = params.get("sort", "age")
     if sort_key not in SORT_COLUMNS:
         raise ValueError(f"sort must be one of: {', '.join(SORT_COLUMNS)}")
@@ -292,6 +299,27 @@ def route_jobs(params: dict) -> dict:
     # SQLite reads a bare integer literal in ORDER BY as a 1-indexed
     # column-position reference, and "0" is out of range there.
     null_order = "posted_at IS NULL" if sort_key == "age" else "NULL"
+    # Best match first, unless the reader has picked a column themselves.
+    # Asking for a match and getting it ordered by date buries the whole
+    # point of asking: the ten closest fits are what the page is for, and
+    # they are scattered through two thousand rows by any other order.
+    # datetime() belongs to the date column alone. It used to wrap every
+    # sort column, and datetime('Senior Backend Engineer') is NULL, so
+    # every row tied and the board came back in scan order. Sorting by
+    # title silently did nothing on the live site until a test asked it
+    # to put three rows in alphabetical order and it refused.
+    #
+    # datetime() on posted_at is not decoration: the column is TEXT, and
+    # rows written before _normalize_date() started forcing UTC (see
+    # probe.py) carry other offsets, which a lexicographic sort gets
+    # wrong even though each row's own age is right. NOCASE on the text
+    # columns so "adobe" and "Adobe" are not two separate alphabets.
+    sort_expr = f"datetime({sort_col})" if sort_key == "age" else f"{sort_col} COLLATE NOCASE"
+    order_sql = f"{null_order}, {sort_expr} {sort_dir}"
+    order_args: list = []
+    if wanted and "sort" not in params:
+        order_sql = f"{score_sql} DESC, {order_sql}"
+        order_args = list(score_args)
 
     limit = _int_param(params, "limit", default=100, lo=1, hi=500)
     offset = _int_param(params, "offset", default=0, lo=0, hi=10_000_000)
@@ -318,19 +346,18 @@ def route_jobs(params: dict) -> dict:
                -- queries jobs on its own. Joining would make every one of
                -- those filters ambiguous and error the whole route out.
                {company_name_select},
-               {logo_select}
+               {logo_select},
+               {score_sql} AS match_score
         FROM jobs
         WHERE {where_sql}
-        -- datetime(), not a bare column: posted_at is TEXT, and rows written
-        -- before _normalize_date() started forcing UTC (see probe.py) can
-        -- carry other offsets, which a plain lexicographic ORDER BY sorts
-        -- wrong even though each row's own age is individually correct.
-        -- SQLite's datetime() parses the offset and compares real instants,
-        -- fixing existing rows too without a backfill.
-        ORDER BY {null_order}, datetime({sort_col}) {sort_dir}
+        -- See sort_expr above for why the date column is wrapped and the
+        -- text ones are not.
+        ORDER BY {order_sql}
         LIMIT ? OFFSET ?
         """,
-        [*args, limit, offset],
+        # In the order SQLite binds them: the SELECT's score expression,
+        # then WHERE, then the same expression again in ORDER BY.
+        [*score_args, *args, *order_args, limit, offset],
     ).fetchall()
 
     return {
@@ -338,6 +365,10 @@ def route_jobs(params: dict) -> dict:
         "total": total,
         "limit": limit,
         "offset": offset,
+        # Echoed back so the board can mark which chips on a row are the
+        # ones that put it there, and can say what it is matching on
+        # without re-parsing the URL it was handed.
+        "matched_skills": wanted,
     }
 
 

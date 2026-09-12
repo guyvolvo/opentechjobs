@@ -127,7 +127,11 @@ function paintProfile(profile) {
 // So "see my matches" is a link, not a feature.
 function paintMatchLink() {
   const p = new URLSearchParams();
-  if (draft.skills.length) p.set("q", draft.skills.join(" "));
+  // skills=, not q=. q is a single substring match against title and
+  // company, so a dozen skills joined with spaces asked the board for
+  // that exact phrase and found nothing, every time. See
+  // profile_to_filter and job_filters.wanted_skills.
+  if (draft.skills.length) p.set("skills", draft.skills.join(","));
   if (draft.seniority) p.set("seniority", draft.seniority);
   if (draft.workplace.length) p.set("workplace", draft.workplace.join(","));
   if (draft.israel_only) p.set("israel_only", "1");

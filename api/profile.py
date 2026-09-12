@@ -87,10 +87,14 @@ def profile_to_filter(profile: dict) -> dict:
     """
     params = {}
     if profile.get("skills"):
-        # keywords is AND-matched by build_jobs_where, which is wrong for
-        # a profile: someone who knows Python and Go wants either, not a
-        # job demanding both. q is the OR-shaped field.
-        params["q"] = " ".join(profile["skills"])
+        # The dedicated OR-and-rank param, not q and not keywords.
+        # Reported live, from a CV that found twelve skills: q is a
+        # single substring match against title and company, so it looked
+        # for the literal phrase "Python Azure Linux CI/CD Git
+        # Terraform..." and found nothing, forever. keywords would have
+        # been worse in a quieter way: it is AND-matched, so it would
+        # have demanded one job requiring all twelve.
+        params["skills"] = ",".join(profile["skills"])
     if profile.get("seniority"):
         params["seniority"] = profile["seniority"]
     if profile.get("workplace"):

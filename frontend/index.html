@@ -159,6 +159,14 @@
             <button id="company-chip" class="chip" style="display:none" title="Clear company filter">
               <span class="chip-label"></span> ✕
             </button>
+            <!-- The CV match, arriving as ?skills= from /account.html.
+                 A ranked board looks like an unranked one, so this is
+                 the only thing on screen saying the list has been cut
+                 to your skills and ordered by how many each job
+                 mentions. -->
+            <button id="match-chip" class="chip chip-match" style="display:none" title="Clear CV match">
+              <span class="chip-label"></span> ✕
+            </button>
             <div id="result-count" class="result-count"></div>
 
             <!-- Skeleton rows replaced the text loader (see jobsSkeletonHtml

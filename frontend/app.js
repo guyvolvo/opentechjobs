@@ -35,6 +35,11 @@ const WORKPLACE_LABELS = {
 const state = {
   q: "",
   keywords: "", // ';'-separated, ALL must appear (AND, not OR)
+  // The CV match, from /account.html: canonical skill labels, OR-matched
+  // and ranked by overlap. Deliberately not folded into `keywords` or
+  // `q` -- those ask "which jobs demand all of this" and "which titles
+  // contain this exact string", and a CV is neither question.
+  skills: [],
   department: [], // labeled "Category" in the UI; backend field stays "department"
   seniority: [],
   company: [], // multi-select; also set via clicking a company in the market panels
@@ -873,6 +878,22 @@ function renderPanels(stats) {
 
 let lastJobsResponse = null;
 
+// Sits beside the company chip and behaves the same way. A ranked board
+// looks identical to an unranked one, so without this the reader has no
+// way to tell that two thousand listings have quietly become forty, or
+// to get back.
+function renderMatchChip() {
+  const chip = document.getElementById("match-chip");
+  if (!chip) return;
+  if (!state.skills.length) {
+    chip.style.display = "none";
+    return;
+  }
+  chip.style.display = "inline-flex";
+  chip.querySelector(".chip-label").textContent =
+    `Matching ${state.skills.length} skill${state.skills.length === 1 ? "" : "s"}`;
+}
+
 function renderCompanyChip() {
   const chip = document.getElementById("company-chip");
   if (state.company.length === 0) {
@@ -895,6 +916,7 @@ function currentFilterParams() {
     company: state.company.join(","),
     location: state.location.join(","),
     workplace: state.workplace.join(","),
+    skills: state.skills.join(","),
     confidence: state.confidence,
     israel_only: state.israel_only ? "1" : "",
     max_age_days: state.max_age_days,
@@ -921,6 +943,7 @@ function buildShareParams() {
   if (state.company.length) p.set("company", state.company.join(","));
   if (state.location.length) p.set("location", state.location.join(","));
   if (state.workplace.length) p.set("workplace", state.workplace.join(","));
+  if (state.skills.length) p.set("skills", state.skills.join(","));
   if (state.confidence !== "all") p.set("confidence", state.confidence);
   // Global is the default now, so the filter only needs to appear in the
   // URL when it's ON, as israel_only=1 -- not the old inverted scheme
@@ -991,7 +1014,7 @@ function applyStateFromUrl(search) {
   const p = new URLSearchParams(search);
   if (p.has("q")) state.q = p.get("q");
   if (p.has("keywords")) state.keywords = p.get("keywords");
-  for (const key of ["department", "seniority", "company", "location", "workplace"]) {
+  for (const key of ["department", "seniority", "company", "location", "workplace", "skills"]) {
     if (p.has(key)) state[key] = p.get(key).split(",").filter(Boolean);
   }
   if (p.has("confidence")) state.confidence = p.get("confidence");
@@ -1026,7 +1049,7 @@ function applyStateFromUrl(search) {
 const FILTERS_KEY = "iljobs_filters";
 const PERSISTED_FILTER_KEYS = [
   "q", "keywords", "department", "seniority", "company", "location",
-  "workplace", "confidence", "israel_only", "max_age_days", "starred_only",
+  "workplace", "skills", "confidence", "israel_only", "max_age_days", "starred_only",
   "sort", "dir",
 ];
 
@@ -1208,6 +1231,7 @@ async function loadJobs() {
   const tbody = document.getElementById("jobs-body");
   const starred = getStarred();
   renderCompanyChip();
+  renderMatchChip();
 
   if (state.starred_only) {
     renderStarredOnly(starred);
@@ -1307,10 +1331,20 @@ function renderStarredOnly(starred) {
   document.getElementById("pagination").style.display = "none";
 }
 
+// Which skills the server matched on, straight from the response rather
+// than from state: the two can differ for a moment during a refetch, and
+// marking a chip that did not actually put the row here is a small lie
+// in the one place the reader is looking for an explanation.
+let matchedSkills = new Set();
+
 function renderJobs(data, starred) {
+  matchedSkills = new Set(data.matched_skills || []);
   document.getElementById("pagination").style.display = "flex";
   if (!data.jobs.length) {
-    document.getElementById("jobs-empty").innerHTML = emptyState("No listings match these filters.");
+    document.getElementById("jobs-empty").innerHTML = emptyState(
+      state.skills.length
+        ? "No open listing mentions any of your skills. Clear the match to see everything."
+        : "No listings match these filters.");
     document.getElementById("jobs-empty").style.display = "block";
     document.getElementById("jobs-body").innerHTML = "";
     document.getElementById("result-count").innerHTML = "";
@@ -1390,7 +1424,10 @@ function jobSkillsHtml(j) {
   const skills = (j.skills || "").split(",").filter(Boolean);
   if (!skills.length) return "";
   const chips = skills
-    .map((s) => `<button class="skill-chip" data-skill="${escapeHtml(s)}" type="button">${escapeHtml(s)}</button>`)
+    .map((s) => {
+      const hit = matchedSkills.has(s) ? " matched" : "";
+      return `<button class="skill-chip${hit}" data-skill="${escapeHtml(s)}" type="button">${escapeHtml(s)}</button>`;
+    })
     .join("");
   return `<span class="skill-bracket">[</span>${chips}<span class="skill-bracket">]</span>`;
 }
@@ -2129,6 +2166,13 @@ function wireFilters() {
   document.getElementById("company-chip").addEventListener("click", () => {
     state.company = [];
     msCompany.reset();
+    state.offset = 0;
+    loadJobs();
+    loadTicker();
+  });
+
+  document.getElementById("match-chip").addEventListener("click", () => {
+    state.skills = [];
     state.offset = 0;
     loadJobs();
     loadTicker();
