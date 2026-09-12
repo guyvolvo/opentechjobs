@@ -680,13 +680,13 @@ button, input, select {
    three words at the narrowest the tile gets, rather than made to
    shrink per-word, so LIVE and DEGRADED sit on the same baseline at
    the same size instead of jumping when the state changes. */
-#metric-api-status .value { font-size: 22px; }
+#metric-api-status .value { font-size: 20px; white-space: nowrap; }
 /* The glyph comes down with the word it belongs to, and gives back the
    rest of the margin the word needs to stay on one line. */
 #metric-api-status .value .status-icon {
-  width: 18px;
-  height: 18px;
-  margin-right: 6px;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
   vertical-align: -2px;
 }
 
