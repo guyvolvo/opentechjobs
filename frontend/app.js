@@ -2707,6 +2707,11 @@ function clearAuthError() {
 
 function renderAuthState() {
   const area = document.getElementById("auth-area");
+  // Pages other than the board load this file for authedFetch and the
+  // token helpers but have no topbar auth slot to paint into. The
+  // account page cannot simply grow one either: this panel carries the
+  // alert form's ids, and that page already has them.
+  if (!area) return;
   const tokens = getAuthTokens();
   if (!tokens) {
     area.innerHTML = `
