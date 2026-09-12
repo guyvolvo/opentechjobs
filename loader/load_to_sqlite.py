@@ -896,7 +896,7 @@ BACKFILL_MAX_PER_RUN = 60_000
 # A version change re-tags the whole table, walked by id with the cursor
 # kept in meta so each run picks up where the last stopped rather than
 # redoing the same first 60,000 forever.
-PLACES_VERSION = "2"
+PLACES_VERSION = "3"
 
 
 def _meta_get(conn: sqlite3.Connection, key: str) -> str | None:

@@ -353,18 +353,29 @@ def countries_of(location: str | None) -> list[str]:
     groups = [g for g in location.split(";") if g.strip()] or [location]
     for group in groups:
         segments = [s for s in _SPLIT.split(group) if s.strip()]
-        found = None
+        found: list[str] = []
         state_fallback = None
         for seg in segments:
             code = _segment_country(seg)
             if code:
-                found = code
-                break
+                # Every country in the group, not just the first.
+                # Stopping at the first was correct for an address, where
+                # the later segments only restate the same place, and
+                # wrong for a job posted in ten offices at once: only
+                # semicolons started a new group, and these boards
+                # separate with commas, so "Zurich, Switzerland,
+                # Brussels, Belgium, ... Tel Aviv-Yafo, Israel" reported
+                # Switzerland and nothing else. Found by 7 listings the
+                # Israel-only filter matched and the country filter did
+                # not. Deduplicated, so an address still counts once.
+                if code not in found:
+                    found.append(code)
+                continue
             if state_fallback is None and _UPPER2_RE.match(seg.strip()) and seg.strip() in US_STATES:
                 state_fallback = "US"
-        code = found or state_fallback
-        if code and code not in out:
-            out.append(code)
+        for code in (found or ([state_fallback] if state_fallback else [])):
+            if code not in out:
+                out.append(code)
 
     # Last resort, over the whole string rather than one segment at a
     # time. Everything above needs a segment to line up with a rule, and
@@ -378,19 +389,21 @@ def countries_of(location: str | None) -> list[str]:
     # where israel_only returned 2,464, which reads as the filter being
     # broken rather than stricter, and it was the same question answered
     # two ways.
+    # Checked whatever else was found, not only when nothing was, and
+    # before the cap below. A posting listing a dozen offices must still
+    # be findable under Israel, which is the one country this board
+    # cannot afford to be approximate about.
+    if "IL" not in out and any(kw in location.lower() for kw in IL_KEYWORDS):
+        out.insert(0, "IL")
     if not out:
-        low = location.lower()
-        if any(kw in low for kw in IL_KEYWORDS):
-            out.append("IL")
-        else:
-            m = _PHRASE_RE.search(_norm(location))
-            if m:
-                name = m.group(0)
-                code = ("US" if name in ("us", "usa") or name in US_STATE_NAMES_FOLDED
-                        else "GB" if name == "uk"
-                        else COUNTRY_NAMES_FOLDED.get(name))
-                if code:
-                    out.append(code)
+        m = _PHRASE_RE.search(_norm(location))
+        if m:
+            name = m.group(0)
+            code = ("US" if name in ("us", "usa") or name in US_STATE_NAMES_FOLDED
+                    else "GB" if name == "uk"
+                    else COUNTRY_NAMES_FOLDED.get(name))
+            if code:
+                out.append(code)
     return out[:MAX_COUNTRIES]
 
 
@@ -492,8 +505,10 @@ def cities_of(location: str | None) -> list[str]:
                 continue
             city = _canonical_city(seg)
             if city and city not in out:
+                # Same reasoning as countries_of: these boards separate
+                # offices with commas, so taking only the first left a
+                # ten-city posting filed under one city.
                 out.append(city)
-                break  # one city per location, the first one written
     return out[:MAX_CITIES]
 
 
