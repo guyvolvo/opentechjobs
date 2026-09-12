@@ -278,17 +278,17 @@ button, input, select {
 
 /* The signed-in trigger is a glyph rather than text, so it drops the
    underline the text version uses to show hover and lets the icon's own
-   currentColor carry that instead. 18px: the same optical weight as the
-   uppercase labels beside it, which sit at 12px with caps about 9px
-   tall. */
+   currentColor carry that instead. 16px, matching the Google and GitHub
+   marks in the sign-in panel: every icon in this topbar is now one
+   size. */
 .auth-account {
   display: inline-flex;
   align-items: center;
   border-bottom: none;
 }
 .account-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: block;
 }
 

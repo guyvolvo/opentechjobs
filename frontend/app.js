@@ -1381,7 +1381,7 @@ function renderStarredOnly(starred) {
   document.getElementById("jobs-error").style.display = "none";
   const rows = lastJobsResponse?.jobs?.filter((j) => starred.has(j.id)) || [];
   if (!rows.length) {
-    document.getElementById("jobs-empty").innerHTML = emptyState("You have not starred any listings yet.");
+    document.getElementById("jobs-empty").innerHTML = emptyState("You have not saved any listings yet.");
     document.getElementById("jobs-empty").style.display = "block";
     document.getElementById("jobs-body").innerHTML = "";
     document.getElementById("result-count").innerHTML = "";
@@ -1389,7 +1389,7 @@ function renderStarredOnly(starred) {
   }
   document.getElementById("jobs-empty").style.display = "none";
   renderJobRows(rows, starred);
-  document.getElementById("result-count").innerHTML = `<b>${rows.length}</b> starred`;
+  document.getElementById("result-count").innerHTML = `<b>${rows.length}</b> saved`;
   document.getElementById("pagination").style.display = "none";
 }
 
@@ -1517,7 +1517,7 @@ function renderJobRows(jobs, starred) {
       return `
       <tr data-id="${j.id}" class="${j.id === selectedJobId ? "selected" : ""}">
         <td>
-          <button class="star-btn ${isStarred ? "on" : ""}" data-star="${j.id}" title="Star (saved in this browser only)">
+          <button class="star-btn ${isStarred ? "on" : ""}" data-star="${j.id}" title="Save (this browser only)">
             ${isStarred ? "★" : "☆"}
           </button>
         </td>
