@@ -76,6 +76,34 @@ COUNTRY_NAMES = {
     "myanmar": "MM", "cambodia": "KH", "mongolia": "MN", "fiji": "FJ",
 }
 
+# The Israel-only filter's own keyword list, matched as a plain substring
+# anywhere in the location. It lives here rather than in job_filters
+# because countries_of has to agree with it exactly: a listing the board
+# calls Israeli and a country filter that disagrees are two answers to
+# one question, and the one people notice is the smaller number.
+# Reported live: country=IL returned 662 where israel_only returned
+# 2,464. job_filters re-exports it, so every existing caller is
+# unchanged.
+IL_KEYWORDS = [
+    "israel", "tel aviv", "tel-aviv", "telaviv", "herzliya", "raanana", "ra'anana",
+    "rehovot", "netanya", "haifa", "jerusalem", "beer sheva", "beersheva",
+    "petah tikva", "petah-tikva", "yokneam", "kfar saba", "kfar-saba",
+    "ramat gan", "ramat-gan", "modiin", "modi'in",
+    "caesarea", "yavne", "hod hasharon", "hod-hasharon", "bnei brak", "bnei-brak",
+    "rosh haayin", "rosh-haayin", "tlv",
+    # Added after finding these unmatched in real location strings.
+    # "kiryat" ("town of") deliberately catches every Kiryat-prefixed city
+    # in one entry. "Azur" was deliberately left out: too easily a false
+    # match against "Azure" the technology.
+    #
+    # Every multi-word city above now has a hyphenated form too, not just
+    # Tel Aviv -- reported live: "Ramat-Gan" (Sisense's own ATS location
+    # string, hyphenated) didn't match the space-only "ramat gan" entry,
+    # so a real Israeli listing was silently excluded from israel_only.
+    "givatayim", "karmiel", "kiryat", "rishon", "yehud",
+]
+
+
 # Rule 2. Alpha-3, allowlisted rather than computed, because CUN, NYC and
 # SEA are airport codes that look identical to one.
 COUNTRY_ALPHA3 = {
@@ -337,6 +365,32 @@ def countries_of(location: str | None) -> list[str]:
         code = found or state_fallback
         if code and code not in out:
             out.append(code)
+
+    # Last resort, over the whole string rather than one segment at a
+    # time. Everything above needs a segment to line up with a rule, and
+    # a location like "Hybrid Kiryat Ono" or "R&D Center, Yehud" lines up
+    # with nothing while still plainly naming a place.
+    #
+    # The Israeli list first, because it is the one that has to match
+    # exactly. israel_only reads the same keywords as a plain substring
+    # anywhere in the string, so anything it calls Israeli this has to
+    # call Israeli too. Reported live: the country filter returned 662
+    # where israel_only returned 2,464, which reads as the filter being
+    # broken rather than stricter, and it was the same question answered
+    # two ways.
+    if not out:
+        low = location.lower()
+        if any(kw in low for kw in IL_KEYWORDS):
+            out.append("IL")
+        else:
+            m = _PHRASE_RE.search(_norm(location))
+            if m:
+                name = m.group(0)
+                code = ("US" if name in ("us", "usa") or name in US_STATE_NAMES_FOLDED
+                        else "GB" if name == "uk"
+                        else COUNTRY_NAMES_FOLDED.get(name))
+                if code:
+                    out.append(code)
     return out[:MAX_COUNTRIES]
 
 

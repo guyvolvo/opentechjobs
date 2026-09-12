@@ -12,7 +12,9 @@ so the same import line works in both.
 
 import re
 
-from countries import ALPHA2
+# IL_KEYWORDS moved to countries.py, where the resolver that has to
+# agree with it lives. Re-exported so every caller is unchanged.
+from countries import ALPHA2, IL_KEYWORDS  # noqa: F401
 from skills import SKILL_LABELS
 
 # Coarse, cross-company category -- complements the raw `department`
@@ -124,24 +126,6 @@ def register_functions(conn) -> None:
     """
     conn.create_function("category_of", 2, classify_category)
 
-IL_KEYWORDS = [
-    "israel", "tel aviv", "tel-aviv", "telaviv", "herzliya", "raanana", "ra'anana",
-    "rehovot", "netanya", "haifa", "jerusalem", "beer sheva", "beersheva",
-    "petah tikva", "petah-tikva", "yokneam", "kfar saba", "kfar-saba",
-    "ramat gan", "ramat-gan", "modiin", "modi'in",
-    "caesarea", "yavne", "hod hasharon", "hod-hasharon", "bnei brak", "bnei-brak",
-    "rosh haayin", "rosh-haayin", "tlv",
-    # Added after finding these unmatched in real location strings.
-    # "kiryat" ("town of") deliberately catches every Kiryat-prefixed city
-    # in one entry. "Azur" was deliberately left out: too easily a false
-    # match against "Azure" the technology.
-    #
-    # Every multi-word city above now has a hyphenated form too, not just
-    # Tel Aviv -- reported live: "Ramat-Gan" (Sisense's own ATS location
-    # string, hyphenated) didn't match the space-only "ramat gan" entry,
-    # so a real Israeli listing was silently excluded from israel_only.
-    "givatayim", "karmiel", "kiryat", "rishon", "yehud",
-]
 
 # A posting older than this is treated as an archived ghost listing, not
 # a real open req. ATSes don't reliably mark outdated postings closed.

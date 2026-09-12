@@ -880,34 +880,86 @@ def check_timestamp_clustering(conn: sqlite3.Connection) -> list[str]:
 # list of tuples from it. On a partition that is a few thousand rows. On
 # the merged snapshot it is the whole board, about 150,000 rows at once,
 # inside the merge Lambda that has already been tuned twice for running
-# out of memory. It exited 1 and the merge stopped publishing, with the
-# scrape side still happily writing fragments in front of it.
+# out of memory.
 BACKFILL_BATCH = 5_000
 BACKFILL_MAX_PER_RUN = 60_000
 
+# Bump when countries.py starts giving different answers.
+#
+# Without this the backfill only ever visits rows that have no country
+# yet, so improving the resolver improves nothing already on the board.
+# That bit immediately: the first resolver missed locations like "Hybrid
+# Kiryat Ono" that the Israel-only filter matched, country=IL read 662
+# against israel_only's 2,464, and fixing the resolver would have left
+# every row tagged by the old one exactly as wrong as before.
+#
+# A version change re-tags the whole table, walked by id with the cursor
+# kept in meta so each run picks up where the last stopped rather than
+# redoing the same first 60,000 forever.
+PLACES_VERSION = "2"
+
+
+def _meta_get(conn: sqlite3.Connection, key: str) -> str | None:
+    row = conn.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else None
+
+
+def _meta_set(conn: sqlite3.Connection, key: str, value: str) -> None:
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (key, value),
+    )
+
+
+def _write_places(conn: sqlite3.Connection, rows) -> None:
+    conn.executemany(
+        "UPDATE jobs SET country = ?, city = ? WHERE id = ?",
+        [(country_string(r["location"]), city_string(r["location"]), r["id"])
+         for r in rows],
+    )
+
 
 def backfill_places(conn: sqlite3.Connection) -> int:
-    """Give a country and a city to every row missing either one.
+    """Give a country and a city to every row that needs one.
 
     Both columns are derived from location text, so unlike skills they
     need no re-scrape: the answer is already sitting in the row. Without
     this a closed job keeps a NULL country forever, since nothing
     re-polls a job that is gone, and the country filter would quietly
-    disagree with itself the moment anyone ticked "include closed". City
-    landed after country, so on the first run after it ships every row on
-    the board is missing one.
+    disagree with itself the moment anyone ticked "include closed".
 
-    Both are rewritten together whenever either is NULL. They read the
-    same input and cost the same pass, and a row holding a country but no
-    city is exactly the row that just gained the column.
+    Two modes. Normally it fills only what is missing, which after the
+    first pass is nothing. When PLACES_VERSION has moved it re-tags every
+    row instead, walking by id and remembering where it stopped, because
+    a better resolver is worth nothing to the rows the old one already
+    answered.
 
-    Batched and capped. Each batch commits, so memory stays flat and a
-    run that is cut short keeps what it already did. Whatever is left
-    over is picked up next cycle, which for a five minute merge means the
-    whole board is filled within the hour rather than in one pass that
-    has to succeed.
+    Batched and capped either way. Each batch commits, so memory stays
+    flat and a run cut short keeps what it did. The remainder goes next
+    cycle, so the whole board catches up within the hour rather than in
+    one pass that has to succeed.
     """
     total = 0
+    if _meta_get(conn, "places_version") != PLACES_VERSION:
+        cursor = _meta_get(conn, "places_cursor") or ""
+        while total < BACKFILL_MAX_PER_RUN:
+            rows = conn.execute(
+                "SELECT id, location FROM jobs WHERE id > ? ORDER BY id LIMIT ?",
+                (cursor, BACKFILL_BATCH),
+            ).fetchall()
+            if not rows:
+                _meta_set(conn, "places_version", PLACES_VERSION)
+                conn.execute("DELETE FROM meta WHERE key = 'places_cursor'")
+                conn.commit()
+                break
+            _write_places(conn, rows)
+            cursor = rows[-1]["id"]
+            _meta_set(conn, "places_cursor", cursor)
+            conn.commit()
+            total += len(rows)
+        return total
+
     while total < BACKFILL_MAX_PER_RUN:
         rows = conn.execute(
             "SELECT id, location FROM jobs WHERE country IS NULL OR city IS NULL LIMIT ?",
@@ -915,11 +967,7 @@ def backfill_places(conn: sqlite3.Connection) -> int:
         ).fetchall()
         if not rows:
             break
-        conn.executemany(
-            "UPDATE jobs SET country = ?, city = ? WHERE id = ?",
-            [(country_string(r["location"]), city_string(r["location"]), r["id"])
-             for r in rows],
-        )
+        _write_places(conn, rows)
         conn.commit()
         total += len(rows)
     return total
