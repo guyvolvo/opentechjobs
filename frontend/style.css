@@ -672,21 +672,24 @@ button, input, select {
   color: var(--black);
 }
 
-/* Data Health is the one tile whose value is a word, and DEGRADED is
-   eight characters where the figures beside it are at most seven digits
-   of tabular numerals. At the 30px step it needed 185px in a 153px tile
-   and rendered as DEGRADE, clipped mid-word by the panel's overflow.
-   Reported live from a screenshot. Sized to fit the longest of the
-   three words at the narrowest the tile gets, rather than made to
-   shrink per-word, so LIVE and DEGRADED sit on the same baseline at
-   the same size instead of jumping when the state changes. */
-#metric-api-status .value { font-size: 20px; white-space: nowrap; }
+/* Data Health is the one tile whose value is a word rather than a
+   figure, and DEGRADED is eight characters where the numbers beside it
+   are at most seven digits. At the shared 30px step it wanted 185px in
+   a box that offers 136, so it rendered as DEGRADE, clipped mid-word by
+   the panel's overflow. Reported live from a screenshot.
+
+   So this tile gets its own step, sized to the longest of the three
+   words at the narrowest the tile ever gets. One size for all three, not
+   a per-word shrink: LIVE and DEGRADED belong on the same baseline at
+   the same weight, or the tile changes shape every time the state does.
+   nowrap says out loud that the glyph and its word are one line. */
+#metric-api-status .value { font-size: 17px; white-space: nowrap; }
 /* The glyph comes down with the word it belongs to, and gives back the
-   rest of the margin the word needs to stay on one line. */
+   margin the word needs to stay beside it. */
 #metric-api-status .value .status-icon {
-  width: 16px;
-  height: 16px;
-  margin-right: 4px;
+  width: 15px;
+  height: 15px;
+  margin-right: 5px;
   vertical-align: -2px;
 }
 
