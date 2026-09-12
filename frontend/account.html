@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenTechJobs: Account</title>
+  <meta name="description" content="Your saved alerts, the skills you want matched, and what we store about you." />
+  <!-- No og: tags and noindex: this page is only meaningful signed in,
+       and a shared link to it would show a stranger their own empty
+       account rather than anything worth previewing. -->
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container">
+      <a class="wordmark" href="/">
+        <img src="logo-horizontal.png" alt="OpenTechJobs.org" class="wordmark-logo" />
+      </a>
+      <nav class="topnav">
+        <button id="theme-toggle" class="theme-toggle" type="button">Dark</button>
+        <a class="link" href="/">Job board</a>
+        <a class="link" href="/stats.html">Explore</a>
+        <a class="link" href="/api/help">API</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <section class="section">
+      <div class="container account-page">
+        <h2 class="section-title">Account</h2>
+
+        <!-- Signed out: the whole page is one prompt, because every
+             section below needs a token to say anything at all. -->
+        <div id="account-signedout" class="empty-state" hidden>
+          <strong>Not signed in</strong>
+          <span>Sign in from the job board to see your alerts and matching profile.</span>
+        </div>
+
+        <div id="account-body" hidden>
+          <section class="account-block">
+            <div class="account-block-head">
+              <h3 class="account-block-title">Signed in as</h3>
+            </div>
+            <p class="account-email" id="account-email"></p>
+            <p class="account-note">
+              We store your email so alerts can reach you, plus the skills and
+              preferences below. Nothing else: no name, no CV file, no history.
+            </p>
+          </section>
+
+          <section class="account-block">
+            <div class="account-block-head">
+              <h3 class="account-block-title">Matching profile</h3>
+              <span class="account-hint">Used to rank listings for you</span>
+            </div>
+            <div class="account-fields">
+              <label class="account-field">
+                <span class="account-label">Skills</span>
+                <div class="ms" id="profile-skills"></div>
+              </label>
+              <label class="account-field">
+                <span class="account-label">Level</span>
+                <select id="profile-seniority" class="qb-select">
+                  <option value="">Any level</option>
+                </select>
+              </label>
+              <label class="account-field">
+                <span class="account-label">Workplace</span>
+                <div class="ms" id="profile-workplace"></div>
+              </label>
+              <label class="toggle account-toggle">
+                <input type="checkbox" id="profile-israel" /> Israel only
+              </label>
+            </div>
+            <div class="account-actions">
+              <button class="btn btn-small" id="profile-save" type="button">Save profile</button>
+              <a class="btn ghost btn-small" id="profile-matches" href="/">See my matches</a>
+              <span class="account-status" id="profile-status" aria-live="polite"></span>
+            </div>
+          </section>
+
+          <section class="account-block">
+            <div class="account-block-head">
+              <h3 class="account-block-title">Alerts</h3>
+              <span class="account-hint">Emailed when a new listing matches</span>
+            </div>
+            <div id="account-alerts"><p class="alerts-empty">Loading…</p></div>
+            <p class="account-note">
+              Create and edit alerts from the job board's + Alert button.
+            </p>
+          </section>
+
+          <section class="account-block">
+            <div class="account-block-head">
+              <h3 class="account-block-title">Leaving</h3>
+            </div>
+            <div class="account-actions">
+              <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
+              <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete everything</button>
+              <span class="account-status" id="account-status" aria-live="polite"></span>
+            </div>
+            <p class="account-note">
+              Deleting removes your profile and every alert. Sign in again and
+              you start from an empty account.
+            </p>
+          </section>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="account.js"></script>
+</body>
+</html>

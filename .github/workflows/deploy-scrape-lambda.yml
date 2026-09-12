@@ -56,7 +56,7 @@ jobs:
         run: |
           mkdir -p fast/loader fast/db
           cp probe.py scrape_handler.py alerts.py sharding.py salary_model.py fast/
-          cp api/job_filters.py fast/
+          cp api/job_filters.py api/skills.py fast/
           cp loader/load_to_sqlite.py loader/descriptions.py loader/deltas.py loader/scrape_state.py fast/loader/
           cp db/schema.sql fast/db/
           pip install --target fast requests
@@ -66,7 +66,7 @@ jobs:
         run: |
           mkdir -p workday/loader workday/db
           cp probe.py scrape_workday_handler.py companies.yml salary_model.py workday/
-          cp api/job_filters.py workday/
+          cp api/job_filters.py api/skills.py workday/
           cp loader/load_to_sqlite.py loader/descriptions.py loader/deltas.py workday/loader/
           cp db/schema.sql workday/db/
           # pyyaml, not just requests: this is the one deployment package
@@ -88,7 +88,7 @@ jobs:
           cp loader/load_to_sqlite.py loader/merge_partitions.py loader/bootstrap.py loader/descriptions.py loader/deltas.py loader/precompute.py loader/archive.py loader/rebuild_fts.py loader/build_explore.py maintenance/loader/
           # bootstrap.py needs FRESH_CLAUSE and category_of() so its
           # first page matches what /api/jobs would return exactly.
-          cp api/job_filters.py maintenance/
+          cp api/job_filters.py api/skills.py maintenance/
           cp db/schema.sql maintenance/db/
           # aggregates.py: the /stats and /facets bodies, shared with the API
           # so the applier answers exactly what a request would have.

@@ -2740,7 +2740,10 @@ function renderAuthState() {
     <button class="auth-trigger" id="topbar-alert-btn" type="button">+ Alert</button>
     <button class="auth-trigger" id="auth-trigger" type="button">${escapeHtml(email)}</button>
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
-      <div class="alerts-header">My Alerts</div>
+      <div class="alerts-header alerts-header-row">
+        <span>My Alerts</span>
+        <a class="link account-link" href="/account.html">Account</a>
+      </div>
       <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
 
       <div class="alert-create" id="alert-create">
@@ -3201,7 +3204,16 @@ function wireAlertCreateForm() {
 const STATS_POLL_MS = 120_000;
 
 async function boot() {
-  await handleAuthRedirect(); // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render; also before applyStateFromUrl below, since a code-exchange redirect strips the URL down to location.pathname first
+  // Pages other than the board load this file for its auth helpers and
+  // createMultiSelect, and have none of the board's markup. Everything
+  // below assumes #jobs-body and the filter controls exist, so stop here
+  // rather than throwing through a dozen null lookups. handleAuthRedirect
+  // still runs: a sign-in can land on any page.
+  await handleAuthRedirect();
+  if (!document.getElementById("jobs-body")) {
+    wireAuth();
+    return;
+  } // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render; also before applyStateFromUrl below, since a code-exchange redirect strips the URL down to location.pathname first
 
   // localStorage first, as the new baseline, THEN the URL on top -- an
   // explicit query param always overrides a saved filter, never the

@@ -12,7 +12,7 @@ resource "aws_apigatewayv2_api" "api" {
 
   cors_configuration {
     allow_origins = ["*"]
-    allow_methods = ["GET", "POST", "PATCH", "DELETE"] # POST is also /api/auth/email/start (github_auth_lambda.tf); PATCH/DELETE are /me/alerts/{id} only
+    allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE"] # POST is also /api/auth/email/start (github_auth_lambda.tf); PATCH/DELETE are /me/alerts/{id}; PUT is /me/profile
     allow_headers = ["content-type", "authorization"]  # authorization: the Cognito JWT on /me/alerts requests
     max_age       = 3600
   }
@@ -123,6 +123,20 @@ resource "aws_apigatewayv2_route" "alerts_update_delete" {
   for_each  = toset(["PATCH", "DELETE"])
   api_id    = aws_apigatewayv2_api.api.id
   route_key = "${each.value} /api/me/alerts/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+}
+
+# The signed-in user's own profile: skills, seniority and search
+# preferences, never identity (see api/profile.py). Behind the same JWT
+# authorizer as the alert routes, because it is the same kind of data:
+# per-user and writable.
+resource "aws_apigatewayv2_route" "profile" {
+  for_each  = toset(["GET", "PUT"])
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "${each.value} /api/me/profile"
   target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
 
   authorization_type = "JWT"

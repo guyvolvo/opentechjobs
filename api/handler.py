@@ -31,6 +31,8 @@ from boto3.dynamodb.conditions import Key
 from aggregates import compute_facets, compute_stats
 from db import get_connection
 from help_page import HELP_HTML
+from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
+                     empty_profile)
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
                          has_fts_index, salary_source_select)
 
@@ -110,6 +112,14 @@ def lambda_handler(event, context):
             # and CloudFront's own /api/geo behavior disables caching
             # for the same reason (infra/cloudfront.tf).
             return _response(200, json.dumps(route_geo(event)))
+        if path == "/me/profile":
+            claims = _authenticated_claims(event)
+            if method == "GET":
+                return _response(200, json.dumps(route_get_profile(claims["sub"]), default=str))
+            if method == "PUT":
+                body = json.loads(event.get("body") or "{}")
+                return _response(200, json.dumps(route_put_profile(claims["sub"], body), default=str))
+            return _response(405, json.dumps({"error": "method not allowed"}))
         if path == "/me/alerts":
             claims = _authenticated_claims(event)
             if method == "GET":
@@ -721,7 +731,49 @@ def route_stats(params: dict | None = None) -> dict:
 
 def route_list_alerts(user_id: str) -> dict:
     resp = _alerts_table.query(KeyConditionExpression=Key("user_id").eq(user_id))
-    return {"alerts": resp.get("Items", [])}
+    # The profile shares this partition under a sentinel sort key (see
+    # profile.py), so it comes back from the same Query and would render
+    # as an alert with no filter.
+    items = [i for i in resp.get("Items", []) if i.get("alert_id") != PROFILE_ID]
+    return {"alerts": items}
+
+
+def route_get_profile(user_id: str) -> dict:
+    """The caller's own profile, or an empty one.
+
+    Absent is not an error: everyone has a profile conceptually, most
+    have never filled one in, and a 404 would make the page handle a
+    case that is really just "no skills yet".
+    """
+    resp = _alerts_table.get_item(Key={"user_id": user_id, "alert_id": PROFILE_ID})
+    item = resp.get("Item") or {}
+    stored = empty_profile()
+    stored.update({k: item[k] for k in stored if k in item})
+    # The vocabularies ship with the profile rather than from their own
+    # route. The page needs both to render at all, and a second copy of
+    # the skill list in the frontend is exactly the drift this project
+    # already created once between probe.py and the API.
+    return {
+        "profile": stored,
+        "options": {"skills": SKILLS, "seniority": SENIORITY, "workplace": WORKPLACE},
+    }
+
+
+def route_put_profile(user_id: str, body: dict) -> dict:
+    """Replace the caller's profile, validated down to known values.
+
+    A whole-object PUT rather than a PATCH: a profile is small, the page
+    always holds all of it, and merging partial updates would make
+    "clear my skills" indistinguishable from "leave them alone".
+    """
+    cleaned = clean_profile(body)
+    _alerts_table.put_item(Item={
+        "user_id": user_id,
+        "alert_id": PROFILE_ID,
+        **cleaned,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"profile": cleaned}
 
 
 def route_create_alert(claims: dict, body: dict) -> dict:

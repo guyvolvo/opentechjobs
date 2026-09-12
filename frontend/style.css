@@ -2506,3 +2506,49 @@ body.explore-busy .explore-metric { color: var(--green); }
   /* Five ticks do not fit a phone-width track; keep the two ends. */
   .xbar-ticks span:nth-child(2), .xbar-ticks span:nth-child(3), .xbar-ticks span:nth-child(4) { display: none; }
 }
+
+/* Account page. Blocks rather than cards: this is a settings screen, so
+   the reader is scanning for one thing at a time and a border per
+   section is enough to separate them. */
+.account-page { max-width: 720px; }
+.account-block {
+  border-top: var(--rule) solid var(--grey-line);
+  padding: 20px 0;
+}
+.account-block:first-of-type { border-top: none; padding-top: 0; }
+.account-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.account-block-title {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.account-hint { color: var(--grey); font-size: 11.5px; }
+.account-email { margin: 0 0 8px; font-weight: 700; }
+.account-note { color: var(--grey); font-size: 11.5px; margin: 10px 0 0; max-width: 60ch; line-height: 1.5; }
+.account-fields { display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
+.account-field { display: flex; flex-direction: column; gap: 4px; }
+.account-label {
+  font-size: 11.5px;
+  color: var(--grey);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.account-toggle { align-self: flex-start; }
+.account-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.account-status { font-size: 11.5px; color: var(--grey); }
+.account-status.error { color: var(--red); }
+/* The alert rows here are read-only summaries; editing lives in the
+   board's own panel, which already has the filter pickers. */
+.alert-summary-static { font-size: 12px; flex: 1 1 auto; min-width: 0; }
+.alerts-header-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.account-link { font-size: 11.5px; }
+/* Destructive, and the only place on the site that is. */
+.btn.btn-danger { border-color: var(--red); color: var(--red); }
+.btn.btn-danger:hover { background: var(--red); border-color: var(--red); color: var(--white); }
