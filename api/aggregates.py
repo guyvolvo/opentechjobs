@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 
 from countries import label_for
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
-                         has_fts_index)
+                         has_fts_index, has_places)
 
 
 def compute_facets(conn, params: dict) -> dict:
@@ -28,7 +28,7 @@ def compute_facets(conn, params: dict) -> dict:
     def counts_by(column_expr: str, exclude_param: str, limit: int) -> list[dict]:
         scoped = dict(params)
         scoped.pop(exclude_param, None)
-        where_sql, args = build_jobs_where(scoped, has_fts_index(conn))
+        where_sql, args = build_jobs_where(scoped, has_fts_index(conn), has_places(conn))
         rows = conn.execute(
             f"""
             SELECT {column_expr} AS value, COUNT(*) AS n
@@ -55,7 +55,7 @@ def compute_facets(conn, params: dict) -> dict:
         scoped = dict(params)
         scoped.pop("country", None)
         scoped.pop("city", None)
-        return build_jobs_where(scoped, has_fts_index(conn))
+        return build_jobs_where(scoped, has_fts_index(conn), has_places(conn))
 
     def country_counts(limit: int = 60) -> list[dict]:
         """One row per country, not per country LIST.
@@ -154,6 +154,12 @@ def compute_facets(conn, params: dict) -> dict:
     def location_tree(country_limit: int = 40, city_limit: int = 25) -> list[dict]:
         """One entry per country, its cities nested underneath.
 
+        Empty while the snapshot in hand predates the columns (see
+        has_places). An empty filter list is a dropdown with nothing in
+        it for one merge cycle; querying the columns anyway would 500
+        every /api/facets call for that same cycle, which takes the
+        category and company filters down with it.
+
         This replaces a flat facet over the raw location column, which
         offered "Tel Aviv", "Tel Aviv-Yafo, Tel Aviv, ISR" and
         "tel-aviv" as three separate choices for one place, and named no
@@ -164,6 +170,8 @@ def compute_facets(conn, params: dict) -> dict:
         The SQL orders both levels by n descending, so the slice keeps
         the 25 biggest cities rather than an arbitrary 25.
         """
+        if not has_places(conn):
+            return []
         cities = city_counts_by_country()
         return [
             {**c, "cities": cities.get(c["value"], [])[:city_limit]}

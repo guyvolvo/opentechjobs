@@ -337,7 +337,30 @@ def wanted_cities(params: dict) -> list[str]:
     return out[:MAX_CITIES_FILTER]
 
 
-def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
+def has_places(conn) -> bool:
+    """Whether this database carries the country and city columns.
+
+    Same reason has_fts_index exists, and the same trap load_to_sqlite.py
+    warns about at _NEW_COLUMNS: this Lambda's code and the database it
+    reads deploy on completely separate clocks. Code ships in seconds,
+    jobs-read.db only gains a column when the merge next rebuilds it, up
+    to an hour later. Shipping the country filter before that window
+    closed turned every ?country= request into "no such column: country",
+    exactly as that comment predicted for company_name. Confirmed live,
+    on the very deploy the comment was warning about.
+
+    Degrading means the filter is ignored for one merge cycle, so a
+    reader sees more listings than they asked for rather than an error.
+    """
+    try:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(jobs)")}
+        return "country" in cols and "city" in cols
+    except Exception:
+        return False
+
+
+def build_jobs_where(params: dict, has_fts: bool = False,
+                     places: bool = True) -> tuple[str, list]:
     """Same WHERE-clause construction route_jobs() uses for /api/jobs,
     minus sort/limit/offset (callers that need a full listing add those
     themselves; the alert evaluator only ever needs WHERE + first_seen).
@@ -393,7 +416,7 @@ def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
         where.append(f"({clauses})")
         args.extend(f"%,{s},%" for s in wanted)
 
-    wanted_countries = wanted_country_codes(params)
+    wanted_countries = wanted_country_codes(params) if places else []
     if wanted_countries:
         # OR across codes, and a LIKE against the comma-joined column for
         # the same reason skills uses one: a job can name more than one
@@ -404,7 +427,7 @@ def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
         where.append(f"({clauses})")
         args.extend(f"%,{c},%" for c in wanted_countries)
 
-    wanted_city_names = wanted_cities(params)
+    wanted_city_names = wanted_cities(params) if places else []
     if wanted_city_names:
         # Same shape as country above, against a column stored the same
         # comma-joined way, and OR across the names for the same reason: a

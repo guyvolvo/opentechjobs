@@ -35,8 +35,8 @@ from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
 from skills import SKILL_TERMS
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
-                         has_fts_index, salary_source_select, skills_score_sql,
-                         wanted_skills)
+                         has_fts_index, has_places, salary_source_select,
+                         skills_score_sql, wanted_skills)
 
 _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 
@@ -275,7 +275,7 @@ def route_jobs(params: dict) -> dict:
         if _has_company_column(conn, "logo_url") else "NULL AS logo_url"
     )
 
-    where_sql, args = build_jobs_where(params, has_fts_index(conn))
+    where_sql, args = build_jobs_where(params, has_fts_index(conn), has_places(conn))
 
     # The CV match. build_jobs_where has already narrowed the list to
     # rows carrying at least one of these; this counts how many, so the

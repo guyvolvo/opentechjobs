@@ -19,7 +19,7 @@ from pathlib import Path
 import boto3
 from boto3.dynamodb.conditions import Attr
 
-from job_filters import build_jobs_where, has_fts_index, register_functions
+from job_filters import build_jobs_where, has_fts_index, has_places, register_functions
 
 ALERTS_TABLE = os.environ.get("ALERTS_TABLE")
 FROM_EMAIL = os.environ.get("ALERTS_FROM_EMAIL", "alerts@guyvoloshin.com")
@@ -82,7 +82,7 @@ def _scan_active_alerts(table) -> list[dict]:
 
 def _find_new_matches(conn: sqlite3.Connection, alert: dict) -> list[dict]:
     filter_params = dict(alert.get("filter") or {})
-    where_sql, args = build_jobs_where(filter_params, has_fts_index(conn))
+    where_sql, args = build_jobs_where(filter_params, has_fts_index(conn), has_places(conn))
     # Always present: route_create_alert (api/handler.py) sets this to
     # created_at at creation time specifically so a brand-new alert's
     # first evaluation only picks up genuinely new postings, not every
