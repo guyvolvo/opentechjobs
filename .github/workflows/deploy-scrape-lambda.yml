@@ -31,8 +31,17 @@ on:
       - "scrape_maintenance_handler.py"
       - "sharding.py"
       - "alerts.py"
+      # Every shared module the packages copy in, or a change to one
+      # ships nowhere and the running Lambda keeps the old copy. Same
+      # family of trap as the cp lines below: nothing fails, the code
+      # just never arrives.
       - "api/job_filters.py"
+      - "api/skills.py"
+      - "api/countries.py"
       - "companies.yml"
+      # The packaging steps themselves. A fix to what gets copied has to
+      # be able to deploy itself.
+      - ".github/workflows/deploy-scrape-lambda.yml"
   workflow_dispatch: {}
 
 permissions:
