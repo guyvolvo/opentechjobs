@@ -627,8 +627,16 @@ async function boot() {
     run();
   });
   $("qb-filters").addEventListener("change", (e) => { if (e.target.matches("input.qb-input")) run(); });
-  $("explore-sql").addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
+  // On the document, not the textarea. The hint next to Run query is
+  // shown in both modes, but the textarea only exists in SQL mode, so in
+  // the builder the page advertised a shortcut bound to nothing. Reported
+  // live. Binding it here makes the hint true in both modes, which is the
+  // half of the fix worth having: the shortcut is more useful than the
+  // label.
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
+    e.preventDefault();
+    run();
   });
   $("explore-share").addEventListener("click", async () => {
     writeUrl();

@@ -75,6 +75,14 @@ ARCHIVE_CLOSED_DAYS = 30
 # taken, however big it is, because stalling forever is worse than one
 # risky apply that the next run will retry.
 MAX_APPLY_BYTES = 48 * 1024 * 1024
+
+# Batch two sweeps' worth before rebuilding, unless the oldest fragment
+# has been waiting longer than the ceiling. Ten minutes is not arbitrary:
+# it is the point at which the board's own Data Health tile stops saying
+# LIVE, so this cannot make the site look stale without also making it
+# say so.
+MIN_FRAGMENTS_TO_APPLY = 2
+MAX_FRAGMENT_WAIT_S = 9 * 60
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 # Where bootstrap.json goes. Optional: unset just means the site keeps
@@ -230,6 +238,33 @@ def lambda_handler(event, context):
     # like. Order is preserved (keys are timestamped and sorted, and
     # load_resolved is an upsert), so the rest simply land on the next
     # run five minutes later.
+    # Wait for a couple of fragments rather than rebuilding on every one.
+    #
+    # An apply costs about what the snapshot rebuild costs, not what the
+    # deltas cost: 34s median whether it carries one fragment or four.
+    # The sweep writes a fragment every five minutes, so this ran 288
+    # times a day and rebuilt a 509MB snapshot every time, which was
+    # 19,668 Lambda GB-seconds a day and the single largest line on a
+    # bill that had just forecast past its budget.
+    #
+    # Batching halves that. The ceiling is what protects freshness: the
+    # board calls data older than ten minutes DEGRADED (see
+    # DEGRADED_AFTER_MINUTES in app.js), so nothing is ever allowed to
+    # sit longer than that, and the status tile stays honest.
+    oldest_age = 0.0
+    if sized:
+        oldest_key = sized[0][0].rsplit("/", 1)[-1]
+        try:
+            stamp = datetime.strptime(oldest_key[:15], "%Y%m%dT%H%M%S")
+            oldest_age = (datetime.now(timezone.utc) - stamp.replace(tzinfo=timezone.utc)).total_seconds()
+        except ValueError:
+            oldest_age = MAX_FRAGMENT_WAIT_S  # unparseable name: apply rather than strand it
+    if len(keys) < MIN_FRAGMENTS_TO_APPLY and oldest_age < MAX_FRAGMENT_WAIT_S:
+        _write_status(s3, "idle", f"{len(keys)} fragment(s) waiting, batching")
+        print(f"{len(keys)} fragment(s), oldest {oldest_age:.0f}s: waiting for "
+              f"{MIN_FRAGMENTS_TO_APPLY} or {MAX_FRAGMENT_WAIT_S}s")
+        return {"ok": True, "applied": 0, "fragments": 0, "waiting": len(keys)}
+
     pending = len(keys)
     take, total = [], 0
     for key, size in sized:
