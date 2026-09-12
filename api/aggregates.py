@@ -18,6 +18,7 @@ wrong for a loader that already has a file open on disk.
 
 from datetime import datetime, timedelta, timezone
 
+from countries import label_for
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
                          has_fts_index)
 
@@ -41,9 +42,137 @@ def compute_facets(conn, params: dict) -> dict:
         ).fetchall()
         return [dict(r) for r in rows]
 
+    # Both place facets drop both place params, not just their own.
+    #
+    # counts_by's rule is that a facet is computed with every OTHER
+    # filter applied, so ticking one of its own values never empties its
+    # own list. Country and city are one control here, so the rule
+    # applies to the pair. Scoping cities by the country already chosen
+    # would be defensible, but scoping countries by the city already
+    # chosen leaves exactly one country standing and no way back to the
+    # rest.
+    def _place_scope():
+        scoped = dict(params)
+        scoped.pop("country", None)
+        scoped.pop("city", None)
+        return build_jobs_where(scoped, has_fts_index(conn))
+
+    def country_counts(limit: int = 60) -> list[dict]:
+        """One row per country, not per country LIST.
+
+        country is comma-joined, so a plain GROUP BY would file
+        "CA,IL,GB" as its own facet value and offer the reader a
+        three-country checkbox that matches nothing else. The CTE splits
+        it, which also means a job listing four offices in one country
+        counts once rather than four times, since countries_of already
+        deduplicated it before it was stored.
+        """
+        where_sql, args = _place_scope()
+        rows = conn.execute(
+            f"""
+            WITH RECURSIVE split(code, rest) AS (
+                SELECT '', country || ','
+                FROM jobs
+                WHERE {where_sql} AND country IS NOT NULL AND country != ''
+                UNION ALL
+                SELECT SUBSTR(rest, 1, INSTR(rest, ',') - 1),
+                       SUBSTR(rest, INSTR(rest, ',') + 1)
+                FROM split
+                WHERE rest != ''
+            )
+            SELECT code AS value, COUNT(*) AS n
+            FROM split
+            WHERE code != ''
+            GROUP BY code
+            ORDER BY n DESC
+            LIMIT ?
+            """,
+            [*args, limit],
+        ).fetchall()
+        return [{"value": r["value"], "label": label_for(r["value"]), "n": r["n"]}
+                for r in rows]
+
+    def city_counts_by_country() -> dict[str, list[dict]]:
+        """City counts, counted per country rather than board-wide.
+
+        A city on its own is not a facet a reader can use. There is a
+        Cambridge in England and one in Massachusetts and the board
+        carries both, so the pair is the answer. Both columns are split
+        by the same kind of CTE the country facet uses, then joined back
+        on the row they came from.
+
+        That join is a cross product within one row, which is the
+        definition being applied: a city belongs under a country when
+        some job names both. A posting reading "Tel Aviv, Israel; New
+        York, US" therefore files Tel Aviv under US too. That is wrong,
+        and it is the price of a location column that never said which
+        city went with which country. Jobs naming a single country,
+        which is nearly all of them, come out exact.
+        """
+        where_sql, args = _place_scope()
+        rows = conn.execute(
+            f"""
+            WITH RECURSIVE
+            csplit(job, code, rest) AS (
+                SELECT rowid, '', country || ','
+                FROM jobs
+                WHERE {where_sql} AND country IS NOT NULL AND country != ''
+                  AND city IS NOT NULL AND city != ''
+                UNION ALL
+                SELECT job, SUBSTR(rest, 1, INSTR(rest, ',') - 1),
+                       SUBSTR(rest, INSTR(rest, ',') + 1)
+                FROM csplit
+                WHERE rest != ''
+            ),
+            tsplit(job, name, rest) AS (
+                SELECT rowid, '', city || ','
+                FROM jobs
+                WHERE {where_sql} AND country IS NOT NULL AND country != ''
+                  AND city IS NOT NULL AND city != ''
+                UNION ALL
+                SELECT job, SUBSTR(rest, 1, INSTR(rest, ',') - 1),
+                       SUBSTR(rest, INSTR(rest, ',') + 1)
+                FROM tsplit
+                WHERE rest != ''
+            )
+            SELECT csplit.code AS code, tsplit.name AS name, COUNT(*) AS n
+            FROM csplit
+            JOIN tsplit ON tsplit.job = csplit.job
+            WHERE csplit.code != '' AND tsplit.name != ''
+            GROUP BY csplit.code, tsplit.name
+            ORDER BY n DESC, tsplit.name
+            """,
+            # The scope clause is written twice, so its arguments go in
+            # twice as well.
+            [*args, *args],
+        ).fetchall()
+        out: dict[str, list[dict]] = {}
+        for r in rows:
+            out.setdefault(r["code"], []).append({"value": r["name"], "n": r["n"]})
+        return out
+
+    def location_tree(country_limit: int = 40, city_limit: int = 25) -> list[dict]:
+        """One entry per country, its cities nested underneath.
+
+        This replaces a flat facet over the raw location column, which
+        offered "Tel Aviv", "Tel Aviv-Yafo, Tel Aviv, ISR" and
+        "tel-aviv" as three separate choices for one place, and named no
+        country anywhere. Both levels are deduplicated per job before
+        they are stored, so a company listing four Tel Aviv offices on
+        one posting counts once.
+
+        The SQL orders both levels by n descending, so the slice keeps
+        the 25 biggest cities rather than an arbitrary 25.
+        """
+        cities = city_counts_by_country()
+        return [
+            {**c, "cities": cities.get(c["value"], [])[:city_limit]}
+            for c in country_counts(country_limit)
+        ]
+
     return {
         "categories": counts_by("category_of(department, title)", "department", 20),
-        "locations": counts_by("location", "location", 40),
+        "locations": location_tree(),
         "companies": counts_by("company_domain", "company", 500),
     }
 

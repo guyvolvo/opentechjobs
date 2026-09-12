@@ -1193,6 +1193,44 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .ms-option input { accent-color: var(--green); flex-shrink: 0; }
 .ms-empty { padding: 10px 4px; color: var(--grey); font-size: 12px; }
 
+/* Locations, the one dropdown with two levels: countries, and each
+   country's cities folded under it. The chevron is a real button beside
+   the <label>, never inside it, because a click anywhere in a label
+   toggles that label's checkbox and expanding a country is a different
+   act from filtering by it. */
+.ms-group-row { display: flex; align-items: center; }
+.ms-group-row .ms-option { flex: 1 1 auto; min-width: 0; }
+/* Country names plus their count outrun the 220px menu (Bosnia and
+   Herzegovina (1,204) does it on its own), and .ms-option is a flex row
+   with a fixed-size checkbox in it, so the text is what has to give. */
+.ms-option-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-chevron {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* The arrow itself is 10x6. The rest is hit area: at the drawing's own
+     size this is a target you aim at rather than one you hit. */
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--black);
+  cursor: pointer;
+}
+.ms-chevron svg { transform: rotate(-90deg); transition: transform 120ms ease; }
+.ms-chevron[aria-expanded="true"] svg { transform: rotate(0deg); }
+.ms-chevron:hover { background: var(--hover-bg); }
+.ms-chevron:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+/* Collapsed, with cities picked underneath. Without this the board is
+   filtered by something the open dropdown gives no sign of at all. */
+.ms-chevron.has-picks { color: var(--green); }
+.ms-cities { display: flex; flex-direction: column; }
+/* One checkbox plus .ms-option's own 8px gap, so a city's box starts
+   where its country's name does instead of at an invented indent. */
+.ms-city { padding-left: 24px; }
+
 .ms-clear {
   width: 100%;
   margin-top: 6px;

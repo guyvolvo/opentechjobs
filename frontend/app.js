@@ -48,7 +48,12 @@ const state = {
   department: [], // labeled "Category" in the UI; backend field stays "department"
   seniority: [],
   company: [], // multi-select; also set via clicking a company in the market panels
-  location: [], // curated top raw location strings, not a geocoded facet
+  // Both halves of the one Locations dropdown, and both geocoded. They
+  // are separate filters that AND together on the server, which is why
+  // ticking a country here does not tick its cities: country=IL with
+  // city=Berlin is a legitimate way to ask for nothing, not a bug.
+  country: [], // ISO 3166-1 alpha-2 codes; a job can carry several
+  city: [], // canonical city names, as the locations facet spells them
   workplace: [], // remote|hybrid|onsite
   confidence: "all", // no confidence filter in the UI; shown inline via badge instead
   // Default global, not Israel-only (2026-09-08, flipped on request --
@@ -923,7 +928,8 @@ function currentFilterParams() {
     department: state.department.join(","),
     seniority: state.seniority.join(","),
     company: state.company.join(","),
-    location: state.location.join(","),
+    country: state.country.join(","),
+    city: state.city.join(","),
     workplace: state.workplace.join(","),
     skills: state.skills.join(","),
     confidence: state.confidence,
@@ -949,7 +955,8 @@ function buildShareParams() {
   if (state.department.length) p.set("department", state.department.join(","));
   if (state.seniority.length) p.set("seniority", state.seniority.join(","));
   if (state.company.length) p.set("company", state.company.join(","));
-  if (state.location.length) p.set("location", state.location.join(","));
+  if (state.country.length) p.set("country", state.country.join(","));
+  if (state.city.length) p.set("city", state.city.join(","));
   if (state.workplace.length) p.set("workplace", state.workplace.join(","));
   if (state.skills.length) p.set("skills", state.skills.join(","));
   if (state.confidence !== "all") p.set("confidence", state.confidence);
@@ -1042,7 +1049,8 @@ function applyStateFromUrl(search) {
     state.department = [];
     state.seniority = [];
     state.company = [];
-    state.location = [];
+    state.country = [];
+    state.city = [];
     state.workplace = [];
     state.confidence = "all";
     state.max_age_days = "";
@@ -1058,7 +1066,7 @@ function applyStateFromUrl(search) {
       .map((t) => (t.includes(" ") ? `"${t}"` : t))
       .join(" ");
   }
-  for (const key of ["department", "seniority", "company", "location", "workplace", "skills"]) {
+  for (const key of ["department", "seniority", "company", "country", "city", "workplace", "skills"]) {
     if (p.has(key)) state[key] = p.get(key).split(",").filter(Boolean);
   }
   // A link from the CV analyser carries skills and no sort, and its
@@ -1097,7 +1105,7 @@ function applyStateFromUrl(search) {
 // round-trips, sort/dir included.
 const FILTERS_KEY = "iljobs_filters";
 const PERSISTED_FILTER_KEYS = [
-  "search", "department", "seniority", "company", "location",
+  "search", "department", "seniority", "company", "country", "city",
   "workplace", "skills", "confidence", "israel_only", "max_age_days", "starred_only",
   "sort", "dir",
 ];
@@ -1159,7 +1167,7 @@ function applyStateToFilterUI() {
   msDepartment.setSelected(state.department);
   msSeniority.setSelected(state.seniority);
   msCompany.setSelected(state.company);
-  msLocation.setSelected(state.location);
+  msLocation.setSelected(state.country, state.city);
   msWorkplace.setSelected(state.workplace);
   // The pinned "Israel (only)" checkbox isn't one of msLocation's own
   // selected values (createMultiSelect only set its initial checked
@@ -2089,6 +2097,252 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
   };
 }
 
+// The Locations dropdown: countries at the top level, each country's own
+// cities folded underneath it.
+//
+// A sibling of createMultiSelect above rather than a mode inside it.
+// Almost nothing survives the jump: two independent selection sets
+// instead of one, expansion state no flat caller has, a two-argument
+// setSelected, an onChange that hands back a pair. Every internal of the
+// flat widget would have grown a grouped/flat branch for the benefit of
+// one caller while its ten flat callers paid for branches they never
+// take. The one thing the two genuinely share is the one-open-at-a-time
+// contract, and that already lives outside both, in OPEN_MULTISELECTS.
+//
+// Country and city are independent filters that AND together on the
+// server, so ticking a country here deliberately does not tick its
+// cities and ticking a city does not tick its country. country=IL with
+// city=Berlin is a legitimate way to ask for nothing.
+//
+// Same drawing as the chevron on .filters select (see style.css), so the
+// two arrows sitting a few pixels apart in the filter row match. Inline
+// here rather than a background-image data URI, because currentColor
+// only follows the element's color when the SVG is really in the DOM.
+const MS_CHEVRON_SVG =
+  '<svg viewBox="0 0 10 6" width="10" height="6" aria-hidden="true">'
+  + '<path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"'
+  + ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function createLocationSelect(containerId, { placeholder, onChange, pinnedOption = null }) {
+  const container = document.getElementById(containerId);
+  const selectedCountries = new Set();
+  const selectedCities = new Set();
+  // Which countries are open. View state, not filter state: it never
+  // reaches the URL or localStorage, and a Back/Forward navigation has no
+  // business re-collapsing a country somebody just opened.
+  const expanded = new Set();
+  let countries = [];
+
+  container.innerHTML = `
+    <button type="button" class="ms-toggle" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(placeholder)}</button>
+    <div class="ms-menu" hidden>
+      ${
+        pinnedOption
+          ? `<label class="ms-option ms-pinned">
+               <input type="checkbox" id="${pinnedOption.id}" ${pinnedOption.checked ? "checked" : ""} />
+               ${escapeHtml(pinnedOption.label)}
+             </label>
+             <div class="ms-pinned-divider"></div>`
+          : ""
+      }
+      <input type="text" class="ms-search" placeholder="Filter…" />
+      <div class="ms-options" role="listbox"></div>
+      <button type="button" class="ms-clear">Clear</button>
+    </div>
+  `;
+  const toggle = container.querySelector(".ms-toggle");
+  const menu = container.querySelector(".ms-menu");
+  const optionsEl = container.querySelector(".ms-options");
+  const searchEl = container.querySelector(".ms-search");
+
+  if (pinnedOption) {
+    container.querySelector(`#${pinnedOption.id}`).addEventListener("change", (e) => {
+      pinnedOption.onChange(e.target.checked);
+    });
+  }
+
+  function optionHtml(kind, row, checked) {
+    const count = row.n == null ? "" : ` (${fmtInt(row.n)})`;
+    return `
+      <label class="ms-option ms-${kind}">
+        <input type="checkbox" data-kind="${kind}" value="${escapeHtml(row.value)}" ${checked ? "checked" : ""} />
+        <span class="ms-option-text">${escapeHtml(row.label)}${count}</span>
+      </label>`;
+  }
+
+  // Only the search box's own value, so a country the search opened can
+  // still be collapsed by hand while that same search is still typed.
+  // Auto-expanding on every render instead would make the chevron a
+  // no-op for exactly the rows the reader is looking at.
+  let lastQuery = null;
+
+  function renderOptions(filterText = "") {
+    const q = filterText.trim().toLowerCase();
+    const freshQuery = q !== lastQuery;
+    lastQuery = q;
+    const blocks = [];
+    for (const c of countries) {
+      const cities = c.cities || [];
+      const countryHit = !q || c.label.toLowerCase().includes(q);
+      const cityHits = q ? cities.filter((t) => t.label.toLowerCase().includes(q)) : cities;
+      if (q && !countryHit && !cityHits.length) continue;
+      // A city that matched what somebody typed but sits inside a
+      // collapsed country reads as no match at all, so open it.
+      if (freshQuery && q && cityHits.length) expanded.add(c.value);
+      const isOpen = expanded.has(c.value);
+      // When the query itself picked cities out, show those and not the
+      // country's other forty.
+      const shownCities = q && cityHits.length ? cityHits : cities;
+      const buriedPicks = !isOpen && cities.some((t) => selectedCities.has(t.value));
+      blocks.push(`
+        <div class="ms-group">
+          <div class="ms-group-row">
+            ${optionHtml("country", c, selectedCountries.has(c.value))}
+            ${
+              cities.length
+                ? `<button type="button" class="ms-chevron${buriedPicks ? " has-picks" : ""}"
+                     data-country="${escapeHtml(c.value)}" aria-expanded="${isOpen}"
+                     aria-label="${isOpen ? "Hide" : "Show"} cities in ${escapeHtml(c.label)}">${MS_CHEVRON_SVG}</button>`
+                : ""
+            }
+          </div>
+          ${
+            isOpen && shownCities.length
+              ? `<div class="ms-cities">${shownCities
+                  .map((t) => optionHtml("city", t, selectedCities.has(t.value)))
+                  .join("")}</div>`
+              : ""
+          }
+        </div>`);
+    }
+    optionsEl.innerHTML = blocks.join("") || '<div class="ms-empty">No matches.</div>';
+  }
+
+  function emit() {
+    onChange({ countries: [...selectedCountries], cities: [...selectedCities] });
+  }
+
+  function labelFor(value, kind) {
+    if (kind === "country") {
+      const hit = countries.find((c) => c.value === value);
+      return hit ? hit.label : value;
+    }
+    for (const c of countries) {
+      const hit = (c.cities || []).find((t) => t.value === value);
+      if (hit) return hit.label;
+    }
+    return value;
+  }
+
+  function updateLabel() {
+    const total = selectedCountries.size + selectedCities.size;
+    if (total === 0) {
+      toggle.textContent = placeholder;
+    } else if (total === 1) {
+      toggle.textContent = selectedCountries.size
+        ? labelFor([...selectedCountries][0], "country")
+        : labelFor([...selectedCities][0], "city");
+    } else {
+      toggle.textContent = `${total} selected`;
+    }
+    toggle.classList.toggle("active", total > 0);
+  }
+
+  function close() {
+    menu.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+    OPEN_MULTISELECTS.delete(close);
+  }
+
+  function open() {
+    OPEN_MULTISELECTS.forEach((closeOther) => closeOther());
+    menu.hidden = false;
+    toggle.setAttribute("aria-expanded", "true");
+    OPEN_MULTISELECTS.add(close);
+    searchEl.focus();
+  }
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.hidden ? open() : close();
+  });
+  menu.addEventListener("click", (e) => e.stopPropagation()); // clicks inside the menu shouldn't bubble to document and self-close it
+
+  optionsEl.addEventListener("change", (e) => {
+    if (!e.target.matches('input[type="checkbox"]')) return;
+    const set = e.target.dataset.kind === "city" ? selectedCities : selectedCountries;
+    e.target.checked ? set.add(e.target.value) : set.delete(e.target.value);
+    updateLabel();
+    emit();
+  });
+
+  // The chevron sits outside the <label> on purpose: a click anywhere
+  // inside a label toggles its checkbox, and expanding a country is not
+  // the same act as filtering by it.
+  optionsEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".ms-chevron");
+    if (!btn) return;
+    const value = btn.dataset.country;
+    expanded.has(value) ? expanded.delete(value) : expanded.add(value);
+    renderOptions(searchEl.value);
+  });
+
+  searchEl.addEventListener("input", () => renderOptions(searchEl.value));
+
+  container.querySelector(".ms-clear").addEventListener("click", () => {
+    selectedCountries.clear();
+    selectedCities.clear();
+    renderOptions(searchEl.value);
+    updateLabel();
+    emit();
+  });
+
+  renderOptions();
+  updateLabel();
+
+  return {
+    setOptions(next) {
+      // An empty list is what a facets payload still in the old shape
+      // degrades to (see normalizeLocationFacets). Reconciling against
+      // it would drop every pick the reader can still read in the URL,
+      // so treat it as no news and keep what is already on screen.
+      if (!next.length) return;
+      const before = selectedCountries.size + selectedCities.size;
+      countries = next;
+      const cityValues = new Set(next.flatMap((c) => (c.cities || []).map((t) => t.value)));
+      // Drop any pick the new option set no longer offers, same as the
+      // flat widget does, and for the same reason: state must not keep
+      // sending a value this dropdown no longer shows as selected.
+      for (const v of [...selectedCountries]) {
+        if (!next.some((c) => c.value === v)) selectedCountries.delete(v);
+      }
+      for (const v of [...selectedCities]) {
+        if (!cityValues.has(v)) selectedCities.delete(v);
+      }
+      renderOptions(searchEl.value);
+      updateLabel();
+      if (selectedCountries.size + selectedCities.size !== before) emit();
+    },
+    reset() {
+      selectedCountries.clear();
+      selectedCities.clear();
+      expanded.clear();
+      searchEl.value = "";
+      lastQuery = null;
+      renderOptions("");
+      updateLabel();
+    },
+    setSelected(countryValues, cityValues) {
+      selectedCountries.clear();
+      selectedCities.clear();
+      countryValues.forEach((v) => selectedCountries.add(v));
+      cityValues.forEach((v) => selectedCities.add(v));
+      renderOptions(searchEl.value);
+      updateLabel();
+    },
+  };
+}
+
 document.addEventListener("click", () => OPEN_MULTISELECTS.forEach((closeOther) => closeOther()));
 
 // filter wiring
@@ -2136,9 +2390,14 @@ function wireFilters() {
     },
   });
 
-  msLocation = createMultiSelect("ms-location", {
+  // One dropdown for both halves of where. Two adjacent location filters
+  // made the reader decide which of them their question belonged in
+  // before they could ask it, and the honest answer was often both.
+  // Always searchable: the facet runs to a few hundred countries and
+  // several thousand cities, and the place you want is one you already
+  // have in mind, so typing beats scrolling.
+  msLocation = createLocationSelect("ms-location", {
     placeholder: "Locations",
-    searchable: true,
     pinnedOption: {
       id: "f-israel",
       label: "Israel (only)",
@@ -2150,8 +2409,9 @@ function wireFilters() {
         loadTicker();
       },
     },
-    onChange: (values) => {
-      state.location = values;
+    onChange: ({ countries, cities }) => {
+      state.country = countries;
+      state.city = cities;
       state.offset = 0;
       loadJobs();
       loadTicker();
@@ -2202,7 +2462,8 @@ function wireFilters() {
     state.department = [];
     state.seniority = [];
     state.company = [];
-    state.location = [];
+    state.country = [];
+    state.city = [];
     state.workplace = [];
     state.skills = [];
     state.israel_only = false;
@@ -2270,7 +2531,8 @@ function updateFiltersToggleLabel() {
   if (state.department.length) n++;
   if (state.seniority.length) n++;
   if (state.company.length) n++;
-  if (state.location.length) n++;
+  if (state.country.length) n++;
+  if (state.city.length) n++;
   if (state.workplace.length) n++;
   if (state.israel_only) n++; // the location dropdown's own pinned "Israel (only)" checkbox
   if (state.max_age_days) n++;
@@ -2343,6 +2605,38 @@ async function loadGlobalCompanyOptions() {
 // query per call, not a client-side recount. Called from loadJobs() on
 // every filter change, and from refreshStats()'s periodic tick so counts
 // still track new postings without waiting for the next filter click.
+// The locations facet, sanity-checked before it reaches the dropdown.
+//
+// Two different files answer that key. The filtered path asks the API,
+// which is being deployed with the nested country/cities shape. The
+// unfiltered path (every page load, every timer tick) reads the
+// precomputed /facets.json, which the merge only rewrites on its next
+// run, so for one cycle after deploy it is still the old flat list of
+// raw location strings. Those entries have no `label` and no `cities`,
+// so rendering them as countries would put "Tel Aviv, Israel" at the top
+// level and then send it to the API as country=Tel Aviv, Israel.
+//
+// The `label` is what tells the two shapes apart: the new contract is
+// the only one that carries a country name separate from its code.
+// Anything else degrades to an empty list, which setOptions treats as
+// no news rather than as a reason to clear the reader's picks. Nothing
+// in here can throw either -- refreshFacetOptions wraps every facet in
+// one try/catch, so a single bad key takes the categories and companies
+// dropdowns down with it.
+function normalizeLocationFacets(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .filter((r) => r && typeof r.value === "string" && typeof r.label === "string")
+    .map((r) => ({
+      value: r.value,
+      label: r.label,
+      n: r.n,
+      cities: (Array.isArray(r.cities) ? r.cities : [])
+        .filter((c) => c && typeof c.value === "string")
+        .map((c) => ({ value: c.value, label: c.value, n: c.n })),
+    }));
+}
+
 async function refreshFacetOptions() {
   try {
     // Only the unfiltered case has a static answer, which is also the
@@ -2357,7 +2651,7 @@ async function refreshFacetOptions() {
       ? await getJSON(`/facets?${qs(currentFilterParams())}`)
       : await getStaticFacets(state.confidence || "verified");
     msDepartment.setOptions(facets.categories.map((r) => ({ value: r.value, label: `${r.value} (${r.n})` })));
-    msLocation.setOptions(facets.locations.map((r) => ({ value: r.value, label: `${r.value} (${r.n})` })));
+    msLocation.setOptions(normalizeLocationFacets(facets.locations));
     // Alphabetical, not by count: this list is searchable/typed-into, not
     // browsed top-down like Category/Location, so a stable, scannable
     // order matters more here than leading with the biggest hirers.

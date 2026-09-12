@@ -55,10 +55,12 @@ except ImportError:
 # running probe.py straight from the repo root, where job_filters.py
 # still lives under api/.
 try:
+    from countries import city_string, country_string
     from job_filters import IL_KEYWORDS
     from skills import SKILL_TERMS
 except ImportError:
     sys.path.insert(0, str(Path(__file__).with_name("api")))
+    from countries import city_string, country_string
     from job_filters import IL_KEYWORDS
     from skills import SKILL_TERMS
 
@@ -127,6 +129,18 @@ class Job:
     # neither field mentions anything in _SKILL_KEYWORDS, common for
     # non-technical roles or ATSes with no description on this pass.
     skills: list[str] = field(default_factory=list)
+    # ISO 3166-1 alpha-2 codes for every country the location names,
+    # comma-joined and deduplicated, or "" when it names none ("Remote",
+    # "Distributed, Global"). Derived from the location text by
+    # countries.py, because no ATS gives us a country field.
+    country: str = ""
+    # The canonical city names the same location text yields, comma-joined
+    # and deduplicated, or "" when it names none ("Remote"). Derived by the
+    # same countries.py pass as country above, and canonicalised on the way
+    # out, so "Tel Aviv-Yafo, Tel Aviv, ISR" and "tel-aviv" both land as
+    # "Tel Aviv" and the filter offers one entry per city instead of one
+    # per spelling.
+    city: str = ""
     # Real disclosed comp (Ashby's structured field today) or a market
     # estimate, never both. None when neither is available.
     salary_text: str | None = None
@@ -2639,6 +2653,8 @@ def _fill_classifications(jobs: list[Job], domain: str | None = None) -> list[Jo
         if j.workplace_type is None:
             j.workplace_type = _classify_workplace(j.location)
         j.skills = _extract_skills(j.title, j.description)
+        j.country = country_string(j.location)
+        j.city = city_string(j.location)
         if j.salary_text is not None:
             continue
         if j.location and any(kw in j.location.lower() for kw in IL_KEYWORDS):

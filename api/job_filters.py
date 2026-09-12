@@ -12,6 +12,7 @@ so the same import line works in both.
 
 import re
 
+from countries import ALPHA2
 from skills import SKILL_LABELS
 
 # Coarse, cross-company category -- complements the raw `department`
@@ -284,6 +285,58 @@ def search_terms(raw: str) -> list[str]:
     return out[:10]
 
 
+# The countries a caller asked for, as codes this vocabulary knows.
+#
+# Validated rather than passed through, which is what lets the SQL
+# interpolate them into a LIKE without escaping, and what makes a stale
+# link naming a code we have since dropped narrow the filter instead of
+# erroring the board out. Same rule as wanted_skills below it.
+MAX_COUNTRIES_FILTER = 20
+
+
+def wanted_country_codes(params: dict) -> list[str]:
+    out: list[str] = []
+    for part in (params.get("country") or "").split(","):
+        code = part.strip().upper()
+        if code in ALPHA2 and code not in out:
+            out.append(code)
+    return out[:MAX_COUNTRIES_FILTER]
+
+
+# The cities a caller asked for, by canonical name.
+#
+# Not validated the way wanted_country_codes validates codes, because
+# there is no set to validate against: countries.py keeps a city it does
+# not recognise under its own written name, deliberately, so that a place
+# nobody has added to the gazetteer still appears on the board. The
+# vocabulary is open, so a name arriving from a link can be one this
+# process has never seen and still be right.
+#
+# Sanitising is what replaces validation, since the SQL below interpolates
+# nothing and the names go in as bound parameters, but a LIKE pattern is
+# still a pattern. A "%" or a "_" inside a name is a wildcard and would
+# match places nobody asked for. A "," would split one name into two
+# across the comma-wrapping the match depends on. No real city name holds
+# any of the three, so a name that does is dropped rather than escaped:
+# the filter narrows, exactly as a stale country code does, instead of
+# erroring the board out.
+MAX_CITIES_FILTER = 20
+
+
+def wanted_cities(params: dict) -> list[str]:
+    out: list[str] = []
+    for part in (params.get("city") or "").split(","):
+        name = part.strip()
+        # The comma test cannot fire while the input is split on commas.
+        # It is written anyway so this stays correct if a caller ever
+        # hands the names over already split.
+        if not name or "," in name or "%" in name or "_" in name:
+            continue
+        if name not in out:
+            out.append(name)
+    return out[:MAX_CITIES_FILTER]
+
+
 def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
     """Same WHERE-clause construction route_jobs() uses for /api/jobs,
     minus sort/limit/offset (callers that need a full listing add those
@@ -339,6 +392,32 @@ def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
         clauses = " OR ".join("(',' || COALESCE(skills, '') || ',') LIKE ?" for _ in wanted)
         where.append(f"({clauses})")
         args.extend(f"%,{s},%" for s in wanted)
+
+    wanted_countries = wanted_country_codes(params)
+    if wanted_countries:
+        # OR across codes, and a LIKE against the comma-joined column for
+        # the same reason skills uses one: a job can name more than one
+        # country, and "Remote, Canada; Remote, Israel" has to be findable
+        # under either. Comma-wrapped so IL never matches the IL inside
+        # some future three-letter code.
+        clauses = " OR ".join("(',' || COALESCE(country, '') || ',') LIKE ?" for _ in wanted_countries)
+        where.append(f"({clauses})")
+        args.extend(f"%,{c},%" for c in wanted_countries)
+
+    wanted_city_names = wanted_cities(params)
+    if wanted_city_names:
+        # Same shape as country above, against a column stored the same
+        # comma-joined way, and OR across the names for the same reason: a
+        # posting naming two offices has to be findable under either.
+        # Comma-wrapped so "Haifa" never matches inside some longer name
+        # that happens to contain it.
+        #
+        # Combined with country by AND, like every other filter here, so
+        # country=IL&city=Haifa asks for both and a Haifa in some other
+        # country would not answer it.
+        clauses = " OR ".join("(',' || COALESCE(city, '') || ',') LIKE ?" for _ in wanted_city_names)
+        where.append(f"({clauses})")
+        args.extend(f"%,{c},%" for c in wanted_city_names)
 
     if params.get("search"):
         for term in search_terms(params["search"]):

@@ -31,6 +31,12 @@ from pathlib import Path
 
 from descriptions import description_sha, put_many
 
+# api/ is a sibling of this file's parent. Same import dance probe.py
+# does, and for the same reason: countries.py has to be one definition
+# shared by the tagger, the loader and the API.
+sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+from countries import city_string, country_string  # noqa: E402
+
 SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
 
 # Stamped via PRAGMA user_version on every DB this loader writes (see
@@ -115,6 +121,8 @@ def open_db(path: Path) -> sqlite3.Connection:
 _NEW_COLUMNS = {
     "description_sha": "TEXT",
     "skills": "TEXT",
+    "country": "TEXT",
+    "city": "TEXT",
     "salary_text": "TEXT",
     "salary_is_estimate": "INTEGER NOT NULL DEFAULT 0",
     "salary_source": "TEXT",
@@ -473,9 +481,9 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
         """
         INSERT INTO jobs (id, company_domain, ats, external_id, title, location, department,
                            url, posted_at, description_chars, description, description_sha, seniority, workplace_type,
-                           skills, salary_text, salary_is_estimate, salary_source,
+                           skills, country, city, salary_text, salary_is_estimate, salary_source,
                            confidence, first_seen, last_seen, closed_at, raw_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
         ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             location = excluded.location,
@@ -540,6 +548,17 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- it (keyword match), so it goes empty on the exact same
             -- re-verify passes description does.
             skills = CASE WHEN excluded.skills IS NOT NULL AND excluded.skills != '' THEN excluded.skills ELSE skills END,
+            -- No guard, unlike skills: country comes from the location
+            -- string, which every pass carries, so a re-verify pass can
+            -- never blank it the way a description-less pass blanks
+            -- skills. A moved job should follow its new location.
+            country = excluded.country,
+            -- Unguarded for the same reason, and it is the same location
+            -- string being read: a re-verify pass that carries no
+            -- description still carries the location, so there is nothing
+            -- here for it to blank. A job that moves across town should
+            -- show the town it moved to.
+            city = excluded.city,
             -- salary_text needed a stricter guard than "not empty":
             -- reported live -- a Comeet job's discover-pass estimate
             -- (title+description, e.g. a specific "Go Developer" figure)
@@ -668,7 +687,17 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
          ts if j.get("ats") == "comeet" and already_tracked_company else j.get("posted_at"),
          j.get("description_chars", 0), j.get("description"), j.get("description_sha"),
          j.get("seniority"), j.get("workplace_type"),
-         ",".join(j.get("skills") or []), j.get("salary_text"), int(bool(j.get("salary_is_estimate"))),
+         ",".join(j.get("skills") or []),
+         # Derived here as well as in probe.py, so a payload written by
+         # an older probe still lands with a country rather than a hole.
+         # It is pure text in, text out, which is also what makes the
+         # backfill below possible.
+         j.get("country") or country_string(j.get("location")),
+         # Same derive-on-both-sides as country above. A payload from a
+         # probe that predates this column carries no city key at all,
+         # and the location it does carry is the whole input.
+         j.get("city") or city_string(j.get("location")),
+         j.get("salary_text"), int(bool(j.get("salary_is_estimate"))),
          # Derived rather than required, so a probe.py that predates
          # salary_source still loads: an old payload carrying only
          # salary_is_estimate lands on "table", which is what every
@@ -828,6 +857,39 @@ def check_timestamp_clustering(conn: sqlite3.Connection) -> list[str]:
         f"{r['posted_at']}: {r['n']} jobs across {r['companies']} different companies share this exact timestamp"
         for r in rows
     ]
+
+
+def backfill_places(conn: sqlite3.Connection) -> int:
+    """Give a country and a city to every row missing either one.
+
+    Both columns are derived from location text, so unlike skills they
+    need no re-scrape: the answer is already sitting in the row. Without
+    this a closed job keeps a NULL country forever, since nothing
+    re-polls a job that is gone, and the country filter would quietly
+    disagree with itself the moment anyone ticked "include closed". City
+    landed after country, so on the first run after it ships every row
+    on the board is missing one.
+
+    Both are rewritten together whenever either is NULL. They read the
+    same input and cost the same pass, and a row holding a country but
+    no city is exactly the row that just gained the column.
+
+    Cheap in practice. It only touches rows where one of the two is
+    missing, so the first run after this ships does the work and every
+    run after it does nothing.
+    """
+    rows = conn.execute(
+        "SELECT id, location FROM jobs WHERE country IS NULL OR city IS NULL"
+    ).fetchall()
+    if not rows:
+        return 0
+    conn.executemany(
+        "UPDATE jobs SET country = ?, city = ? WHERE id = ?",
+        [(country_string(r["location"]), city_string(r["location"]), r["id"])
+         for r in rows],
+    )
+    conn.commit()
+    return len(rows)
 
 
 def update_meta(conn: sqlite3.Connection) -> None:
@@ -1097,6 +1159,9 @@ def main() -> int:
             if args.logos:
                 n_logos = apply_company_logos(conn, args.logos)
                 print(f"logos: {n_logos} companies carry one", file=sys.stderr)
+            n_places = backfill_places(conn)
+            if n_places:
+                print(f"places: filled {n_places} rows from their location text", file=sys.stderr)
             update_meta(conn)
 
         known_out = args.known_out or args.out.with_name("known.json")

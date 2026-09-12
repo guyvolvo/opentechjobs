@@ -97,7 +97,16 @@ CREATE TABLE IF NOT EXISTS jobs (
                                             -- common; plenty of postings just don't say.
     skills              TEXT,              -- comma-joined, up to 5 tech/skill terms matched against
                                             -- title+description (see probe.py's _extract_skills).
+    country             TEXT,              -- comma-joined ISO 3166-1 alpha-2 codes for every country the
+                                            -- location names, deduplicated; '' when it names none
+                                            -- ("Remote"). No ATS gives us a country, so this is derived
+                                            -- from the location text by api/countries.py.
                                             -- Empty/NULL for non-technical roles or no description.
+    city                TEXT,              -- comma-joined canonical city names for every city the same
+                                            -- location names, deduplicated; '' when it names none.
+                                            -- Derived alongside country above, with the spellings folded
+                                            -- together, so "Tel Aviv-Yafo" and "tel-aviv" both store as
+                                            -- "Tel Aviv" and the city filter lists one entry per place.
     salary_text         TEXT,              -- real disclosed comp (currently Ashby only) or a market
                                             -- estimate, never both. See salary_source for which.
                                             -- NULL where neither applies.
