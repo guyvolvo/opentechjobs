@@ -35,7 +35,7 @@ const WORKPLACE_LABELS = {
 const state = {
   q: "",
   keywords: "", // ';'-separated, ALL must appear (AND, not OR)
-  // The CV match, from /account.html: canonical skill labels, OR-matched
+  // The CV match, from /account: canonical skill labels, OR-matched
   // and ranked by overlap. Deliberately not folded into `keywords` or
   // `q` -- those ask "which jobs demand all of this" and "which titles
   // contain this exact string", and a CV is neither question.
@@ -2856,7 +2856,7 @@ function renderAuthState() {
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
       <div class="alerts-header alerts-header-row">
         <span>My Alerts</span>
-        <a class="link account-link" href="/account.html">Account</a>
+        <a class="link account-link" href="/account">Account</a>
       </div>
       <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
 
