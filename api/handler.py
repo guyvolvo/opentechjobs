@@ -46,6 +46,12 @@ _ALLOWED_FILTER_KEYS = {
     "min_age_days", "max_age_days",
 }
 
+# How long CloudFront may serve a cached answer, as distinct from how
+# long a browser may. Kept below the interval at which the underlying
+# snapshot can change, so a reader never sees an answer older than the
+# data could be.
+EDGE_CACHE_SECONDS = 180
+
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -169,9 +175,21 @@ def _response(status: int, body: str, cache_seconds: int | None = None):
     # Explicitly opt-in, not a blanket default: /pipeline-status exists
     # specifically to show whether a sync is happening RIGHT NOW, and the
     # /me/* alert routes are per-user and must never be shared/cached.
+    #
+    # s-maxage is the edge's own window and browsers ignore it, so the two
+    # can differ. The comment above was written believing CloudFront
+    # cached for 120s whatever this header said; it does not, it honours
+    # the origin, so max-age=60 was also pinning the edge at 60 and every
+    # minute meant a fresh Lambda invocation per edge per URL. The API was
+    # the largest line on the bill at roughly 20,000 GB-seconds a day.
+    #
+    # 180s costs nothing real: the snapshot behind these answers changes
+    # when the applier runs, which after batching is every five to nine
+    # minutes, so a three-minute edge window is still well inside how
+    # often the data itself can move.
     headers = {"Content-Type": "application/json", **CORS_HEADERS}
     if cache_seconds is not None:
-        headers["Cache-Control"] = f"public, max-age={cache_seconds}"
+        headers["Cache-Control"] = f"public, max-age={cache_seconds}, s-maxage={EDGE_CACHE_SECONDS}"
     return {
         "statusCode": status,
         "headers": headers,
