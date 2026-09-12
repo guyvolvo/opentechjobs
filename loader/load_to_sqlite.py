@@ -31,10 +31,25 @@ from pathlib import Path
 
 from descriptions import description_sha, put_many
 
-# api/ is a sibling of this file's parent. Same import dance probe.py
-# does, and for the same reason: countries.py has to be one definition
-# shared by the tagger, the loader and the API.
-sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+# countries.py is one definition shared by the tagger, the loader and the
+# API, so this file has to find it in two different layouts.
+#
+# In the repo it sits at api/, a sibling of this file's parent. In a
+# Lambda package it is copied flat to the package root, and the merge
+# runs this file as a SUBPROCESS, so sys.path[0] is loader/ and the root
+# is not on the path at all. Inserting only the api/ guess found nothing
+# there: the import raised, the loader exited 1, and the merge stopped
+# publishing every five minutes while the scrape side kept writing
+# fragments in front of it. The board's data froze for forty minutes and
+# the only visible symptom was an empty filter dropdown.
+#
+# Checking for the file rather than guessing a layout, so adding a third
+# one later fails loudly here instead of at import.
+_LOADER_DIR = Path(__file__).resolve().parent
+for _candidate in (_LOADER_DIR.parent / "api", _LOADER_DIR.parent, _LOADER_DIR):
+    if (_candidate / "countries.py").exists():
+        sys.path.insert(0, str(_candidate))
+        break
 from countries import city_string, country_string  # noqa: E402
 
 SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
