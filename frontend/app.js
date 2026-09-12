@@ -2590,18 +2590,23 @@ async function loadGlobalCompanyOptions() {
 // in here can throw either -- refreshFacetOptions wraps every facet in
 // one try/catch, so a single bad key takes the categories and companies
 // dropdowns down with it.
+// Fills COUNTRY_LABELS_SEEN as a side effect, so describeAlertFilter can
+// name a code without the frontend carrying its own country list.
 function normalizeLocationFacets(rows) {
   if (!Array.isArray(rows)) return [];
   return rows
     .filter((r) => r && typeof r.value === "string" && typeof r.label === "string")
-    .map((r) => ({
-      value: r.value,
-      label: r.label,
-      n: r.n,
-      cities: (Array.isArray(r.cities) ? r.cities : [])
-        .filter((c) => c && typeof c.value === "string")
-        .map((c) => ({ value: c.value, label: c.value, n: c.n })),
-    }));
+    .map((r) => {
+      COUNTRY_LABELS_SEEN.set(r.value, r.label);
+      return {
+        value: r.value,
+        label: r.label,
+        n: r.n,
+        cities: (Array.isArray(r.cities) ? r.cities : [])
+          .filter((c) => c && typeof c.value === "string")
+          .map((c) => ({ value: c.value, label: c.value, n: c.n })),
+      };
+    });
 }
 
 async function refreshFacetOptions() {
@@ -3156,7 +3161,6 @@ function renderAuthState() {
           <div class="ms" id="alert-ms-company"></div>
           <div class="ms" id="alert-ms-location"></div>
           <div class="ms" id="alert-ms-workplace"></div>
-          <label class="toggle"><input type="checkbox" id="alert-f-israel" /> Israel only</label>
         </div>
         <div class="alert-form-actions">
           <button class="btn" id="create-alert-btn" type="button">Create Alert</button>
@@ -3313,15 +3317,38 @@ async function loadMyAlerts() {
 
 // Short, readable summary of a saved filter -- not every possible key,
 // just the ones a user is likely to have actually set.
+// A country code as the facets name it. The board never ships a country
+// list of its own: the codes it shows came from /api/facets, and this
+// remembers those labels so a saved alert reads "Israel" rather than
+// "IL". Falls back to the code, which is what an alert saved against a
+// country the facet no longer lists will show.
+const COUNTRY_LABELS_SEEN = new Map();
+
+function countryLabel(code) {
+  return COUNTRY_LABELS_SEEN.get(code) || code;
+}
+
+// Trimmed, because a saved value like "Tel Aviv, Israel" splits into a
+// second part with a leading space and rendered as a double one.
+function csv(value) {
+  return String(value).split(",").map((v) => v.trim()).filter(Boolean);
+}
+
 function describeAlertFilter(filter) {
   const parts = [];
   if (filter.search || filter.q) parts.push(`"${filter.search || filter.q}"`);
-  if (filter.keywords) parts.push(filter.keywords.split(";").join(", "));
-  if (filter.department) parts.push(filter.department.split(",").join(", "));
-  if (filter.seniority) parts.push(filter.seniority.split(",").join(", "));
-  if (filter.company) parts.push(filter.company.split(",").join(", "));
-  if (filter.location) parts.push(filter.location.split(",").join(", "));
-  if (filter.workplace) parts.push(filter.workplace.split(",").join(", "));
+  if (filter.keywords) parts.push(filter.keywords.split(";").map((t) => t.trim()).filter(Boolean).join(", "));
+  if (filter.department) parts.push(csv(filter.department).join(", "));
+  if (filter.seniority) parts.push(csv(filter.seniority).join(", "));
+  if (filter.company) parts.push(csv(filter.company).join(", "));
+  if (filter.location) parts.push(csv(filter.location).join(", "));
+  if (filter.workplace) parts.push(csv(filter.workplace).join(", "));
+  // Place, as the form now saves it. A code is shown by the name the
+  // facets gave it, so a saved alert reads Israel rather than IL.
+  if (filter.country) parts.push(csv(filter.country).map(countryLabel).join(", "));
+  if (filter.city) parts.push(csv(filter.city).join(", "));
+  // And as it used to. These alerts still match, because the API still
+  // answers both keys, so they are still described.
   if (filter.israel_only === "1") parts.push("Israel only");
   return parts.length ? parts.join(" · ") : "All jobs";
 }
@@ -3405,12 +3432,9 @@ const alertFormState = {
   department: [],
   seniority: [],
   company: [],
-  location: [],
+  country: [],
+  city: [],
   workplace: [],
-  // Default global, matching the board's own default (see state.israel_only
-  // above) -- was true, silently scoping every new alert to Israel-only
-  // unless a user noticed and unchecked it first.
-  israel_only: false,
 };
 
 // The alert being edited, or null for "create a new one". The form below
@@ -3431,16 +3455,24 @@ function fillAlertForm(filter) {
   alertFormState.department = list(filter.department);
   alertFormState.seniority = list(filter.seniority);
   alertFormState.company = list(filter.company);
-  alertFormState.location = list(filter.location);
+  alertFormState.country = list(filter.country);
+  alertFormState.city = list(filter.city);
+  // An alert saved before the board had countries. israel_only maps
+  // exactly onto country=IL now that the two return the same listings,
+  // so it is translated rather than dropped; the old raw-string location
+  // is not, because its values were never canonical names and any
+  // mapping would be a guess. Editing such an alert loses only the part
+  // this form can no longer express.
+  if (filter.israel_only === "1" && !alertFormState.country.includes("IL")) {
+    alertFormState.country = ["IL", ...alertFormState.country];
+  }
   alertFormState.workplace = list(filter.workplace);
-  alertFormState.israel_only = filter.israel_only === "1";
 
   document.getElementById("alert-f-search").value = alertFormState.search;
-  document.getElementById("alert-f-israel").checked = alertFormState.israel_only;
   alertMsDepartment.setSelected(alertFormState.department);
   alertMsSeniority.setSelected(alertFormState.seniority);
   alertMsCompany.setSelected(alertFormState.company);
-  alertMsLocation.setSelected(alertFormState.location);
+  alertMsLocation.setSelected(alertFormState.country, alertFormState.city);
   alertMsWorkplace.setSelected(alertFormState.workplace);
 }
 
@@ -3477,11 +3509,10 @@ function resetAlertForm() {
   alertFormState.department = [];
   alertFormState.seniority = [];
   alertFormState.company = [];
-  alertFormState.location = [];
+  alertFormState.country = [];
+  alertFormState.city = [];
   alertFormState.workplace = [];
-  alertFormState.israel_only = false;
   document.getElementById("alert-f-search").value = "";
-  document.getElementById("alert-f-israel").checked = false;
   alertMsDepartment.reset();
   alertMsSeniority.reset();
   alertMsCompany.reset();
@@ -3508,10 +3539,14 @@ function populateAlertFilterOptions() {
     alertMsDepartment.setOptions(
       latestStats.top_departments.map((r) => ({ value: r.department, label: `${r.department} (${r.n})` }))
     );
-    alertMsLocation.setOptions(
-      latestStats.top_locations.map((r) => ({ value: r.location, label: `${r.location} (${r.n})` }))
-    );
   }
+  // Locations come from the facets tree, not latestStats.top_locations.
+  // Those are raw strings, which is what the board stopped offering:
+  // "Tel Aviv", "Tel Aviv-Yafo, Tel Aviv, ISR" and "tel-aviv" were three
+  // choices for one place, and none of them named a country.
+  getStaticFacets("verified")
+    .then((facets) => alertMsLocation.setOptions(normalizeLocationFacets(facets.locations)))
+    .catch(() => {});
   loadGlobalCompanyOptions().then((opts) => {
     if (opts) alertMsCompany.setOptions(opts);
   });
@@ -3542,10 +3577,13 @@ function wireAlertCreateForm() {
     searchable: true,
     onChange: (values) => { alertFormState.company = values; },
   });
-  alertMsLocation = createMultiSelect("alert-ms-location", {
+  alertMsLocation = createLocationSelect("alert-ms-location", {
     placeholder: "Locations",
     searchable: true,
-    onChange: (values) => { alertFormState.location = values; },
+    onChange: ({ countries, cities }) => {
+      alertFormState.country = countries;
+      alertFormState.city = cities;
+    },
   });
   alertMsWorkplace = createMultiSelect("alert-ms-workplace", {
     placeholder: "Workplace",
@@ -3553,10 +3591,6 @@ function wireAlertCreateForm() {
     onChange: (values) => { alertFormState.workplace = values; },
   });
   populateAlertFilterOptions();
-
-  document.getElementById("alert-f-israel").addEventListener("change", (e) => {
-    alertFormState.israel_only = e.target.checked;
-  });
 
   document.getElementById("cancel-edit-btn").addEventListener("click", cancelEditAlert);
   paintAlertFormMode();
@@ -3573,9 +3607,9 @@ function wireAlertCreateForm() {
       department: alertFormState.department.join(","),
       seniority: alertFormState.seniority.join(","),
       company: alertFormState.company.join(","),
-      location: alertFormState.location.join(","),
+      country: alertFormState.country.join(","),
+      city: alertFormState.city.join(","),
       workplace: alertFormState.workplace.join(","),
-      israel_only: alertFormState.israel_only ? "1" : "",
     };
     const filter = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== "" && v != null));
     // Read once: the request is awaited below, and a click on another row
