@@ -1031,6 +1031,32 @@ function cleanFilterValue(key, value) {
 // stomp the rest back to defaults.
 function applyStateFromUrl(search) {
   const p = new URLSearchParams(search);
+  // A CV match is the exception to "default, not clear" above. It says
+  // show me my matches, not show me my matches inside whatever I last
+  // typed, and the filters it would otherwise inherit are saved ones the
+  // reader cannot see from the link they just clicked.
+  //
+  // It also digs out a specific hole. The first version of this feature
+  // sent the skills as q=, a single substring match, so everyone who
+  // clicked See my matches before today has the phrase "Python Azure
+  // Linux CI/CD Git Terraform..." saved as their text search. Reported
+  // live: the match arrived, the chip appeared, and the board said NO
+  // RESULTS, because the saved q was still intersecting it.
+  //
+  // Reset first, then merge, so the link's own params still land. A
+  // shared ?skills=...&department=... keeps its department.
+  if (p.has("skills")) {
+    state.q = "";
+    state.keywords = "";
+    state.department = [];
+    state.seniority = [];
+    state.company = [];
+    state.location = [];
+    state.workplace = [];
+    state.confidence = "all";
+    state.max_age_days = "";
+    state.starred_only = false;
+  }
   if (p.has("q")) state.q = p.get("q");
   if (p.has("keywords")) state.keywords = p.get("keywords");
   for (const key of ["department", "seniority", "company", "location", "workplace", "skills"]) {
