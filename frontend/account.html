@@ -70,32 +70,25 @@
 
           <section class="account-block">
             <div class="account-block-head">
-              <h3 class="account-block-title">Matching profile</h3>
-              <span class="account-hint">Used to rank listings for you</span>
+              <h3 class="account-block-title">CV analyser</h3>
+              <span class="account-hint">Your file never leaves this page</span>
             </div>
-            <div class="account-fields">
-              <label class="account-field">
-                <span class="account-label">Skills</span>
-                <div class="ms" id="profile-skills"></div>
-              </label>
-              <label class="account-field">
-                <span class="account-label">Level</span>
-                <select id="profile-seniority" class="qb-select">
-                  <option value="">Any level</option>
-                </select>
-              </label>
-              <label class="account-field">
-                <span class="account-label">Workplace</span>
-                <div class="ms" id="profile-workplace"></div>
-              </label>
-              <label class="toggle account-toggle">
-                <input type="checkbox" id="profile-israel" /> Israel only
-              </label>
+
+            <div class="cv-drop" id="cv-drop">
+              <input type="file" id="cv-file" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden />
+              <button class="btn btn-small" id="cv-analyze" type="button">Analyze CV</button>
+              <span class="cv-filename" id="cv-filename">PDF or plain text</span>
             </div>
-            <div class="account-actions">
-              <button class="btn btn-small" id="profile-save" type="button">Save profile</button>
-              <a class="btn ghost btn-small" id="profile-matches" href="/">See my matches</a>
-              <span class="account-status" id="profile-status" aria-live="polite"></span>
+            <p class="cv-status" id="cv-status" aria-live="polite"></p>
+
+            <div id="cv-result" hidden>
+              <p class="account-label">Skills found</p>
+              <div class="cv-chips" id="cv-chips"></div>
+              <div class="account-actions">
+                <button class="btn btn-small" id="profile-save" type="button">Save to profile</button>
+                <a class="btn ghost btn-small" id="profile-matches" href="/">See my matches</a>
+                <span class="account-status" id="profile-status" aria-live="polite"></span>
+              </div>
             </div>
           </section>
 

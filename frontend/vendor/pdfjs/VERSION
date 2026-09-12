@@ -1,0 +1,20 @@
+pdf.js 4.6.82
+https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.min.mjs
+https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.worker.min.mjs
+Fetched 2026-09-12. Apache-2.0, Mozilla.
+
+Vendored rather than loaded from a CDN for the same reason the sql.js
+worker next door is: this site ships static files with no build step and
+no third-party script tags, so a page cannot start depending on someone
+else's uptime or start reporting its readers to them.
+
+That matters more here than anywhere else on the site. This library
+reads the CV a person picks, and it runs entirely in their browser: the
+file is never uploaded, and the only thing that ever reaches us is the
+list of skills they choose to save. Loading the parser from a CDN would
+have told that CDN, on every analysis, that somebody was parsing a
+document on this domain.
+
+Unmodified. pdf.worker.min.mjs must sit next to pdf.min.mjs; account.js
+points workerSrc at it explicitly rather than relying on the default
+resolution, which assumes a bundler.

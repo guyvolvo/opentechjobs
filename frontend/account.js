@@ -1,6 +1,6 @@
 // The account page. Loads after app.js and reuses its auth helpers,
-// createMultiSelect and escapeHtml rather than a second copy of each;
-// app.js stops its own boot early when the board markup is absent.
+// alert form and escapeHtml rather than a second copy of each; app.js
+// stops its own boot early when the board markup is absent.
 //
 // Everything here needs a token, so the page is one of two states: a
 // prompt to sign in, or the real thing. There is no useful half-signed-in
@@ -8,16 +8,11 @@
 
 const $ = (id) => document.getElementById(id);
 
-let skillsPicker;
-let workplacePicker;
-// Served by GET /me/profile alongside the profile itself, so the picker
-// offers exactly the labels the API will accept and probe.py tags jobs
-// with. A hardcoded copy here drifted from the real list within minutes
-// the first time it was tried.
-let vocabulary = { skills: [], seniority: [], workplace: [] };
-// What the server last confirmed. Save compares against this so the
-// button can say "Saved" only when something actually changed.
-let saved = null;
+// Served by GET /me/profile alongside the profile itself: the same
+// terms probe.py tags jobs with, so a skill found in a CV is by
+// construction one a listing can carry. A hardcoded copy here drifted
+// from the real list within minutes the first time it was tried.
+let skillTerms = [];
 const draft = { skills: [], seniority: "", workplace: [], israel_only: true };
 
 function setStatus(el, text, isError = false) {
@@ -33,13 +28,86 @@ const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only:
 async function loadProfile() {
   try {
     const data = await authedFetch("/me/profile");
-    return { profile: data.profile || EMPTY_PROFILE, options: data.options || null };
+    return { profile: data.profile || EMPTY_PROFILE, skill_terms: data.skill_terms || [] };
   } catch {
     // A profile that will not load is not worth blocking the page for;
     // the alerts below may still work, and an empty form is honest. The
     // pickers just have nothing to offer until the next load.
-    return { profile: { ...EMPTY_PROFILE }, options: null };
+    return { profile: { ...EMPTY_PROFILE }, skill_terms: [] };
   }
+}
+
+// The CV analyser. The file is read in this tab and never uploaded:
+// pdf.js is vendored next door, the skill terms come down with the
+// profile, and the only thing that ever reaches the server is the list
+// of skills someone chooses to save.
+//
+// That is why the matching runs here rather than in the API. It uses the
+// same terms probe.py tags every job description with, so a skill found
+// in a CV is by construction a skill a listing can carry.
+
+let matchers = null;
+
+function buildMatchers(terms) {
+  // Mirrors probe.py's _SKILL_KEYWORDS: one case-insensitive,
+  // word-bounded alternation per label. \b behaves the same either side
+  // for the ASCII these needles are made of.
+  return (terms || []).map(({ label, needles }) => ({
+    label,
+    re: new RegExp(
+      "\\b(?:" + needles.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\b",
+      "i",
+    ),
+  }));
+}
+
+function skillsIn(text) {
+  // Ordered by where each one appears, like the tagger, so the list
+  // reads the way the document does rather than the way our vocabulary
+  // happens to be sorted.
+  const hits = [];
+  for (const { label, re } of matchers || []) {
+    const m = re.exec(text);
+    if (m) hits.push([m.index, label]);
+  }
+  hits.sort((a, b) => a[0] - b[0]);
+  return hits.map(([, label]) => label);
+}
+
+async function textFromPdf(file) {
+  // Imported on demand: a 330KB parser should not load for someone who
+  // came to edit an alert.
+  const pdfjs = await import("/vendor/pdfjs/pdf.min.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.mjs";
+  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  const pages = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const content = await (await doc.getPage(i)).getTextContent();
+    pages.push(content.items.map((it) => it.str).join(" "));
+  }
+  return pages.join("\n");
+}
+
+async function readCv(file) {
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)) return textFromPdf(file);
+  return file.text();
+}
+
+function paintChips() {
+  const host = $("cv-chips");
+  host.innerHTML = draft.skills.map((s) => `
+    <button type="button" class="cv-chip" data-skill="${escapeHtml(s)}" title="Remove">
+      ${escapeHtml(s)}<span aria-hidden="true">&times;</span>
+    </button>`).join("") || '<span class="cv-none">No known skills found. The file may be an image scan.</span>';
+
+  host.querySelectorAll(".cv-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      draft.skills = draft.skills.filter((s) => s !== chip.dataset.skill);
+      paintChips();
+      paintMatchLink();
+    });
+  });
+  paintMatchLink();
 }
 
 function paintProfile(profile) {
@@ -47,16 +115,15 @@ function paintProfile(profile) {
   draft.seniority = profile.seniority || "";
   draft.workplace = [...(profile.workplace || [])];
   draft.israel_only = profile.israel_only !== false;
-
-  skillsPicker.setSelected(draft.skills);
-  workplacePicker.setSelected(draft.workplace);
-  $("profile-seniority").value = draft.seniority;
-  $("profile-israel").checked = draft.israel_only;
+  if (draft.skills.length) {
+    $("cv-result").hidden = false;
+    paintChips();
+  }
   paintMatchLink();
 }
 
 // The profile is expressible as an ordinary board search, which is the
-// point of validating it against the same vocabularies the filters use.
+// point of validating it against the same vocabulary the filters use.
 // So "see my matches" is a link, not a feature.
 function paintMatchLink() {
   const p = new URLSearchParams();
@@ -65,36 +132,37 @@ function paintMatchLink() {
   if (draft.workplace.length) p.set("workplace", draft.workplace.join(","));
   if (draft.israel_only) p.set("israel_only", "1");
   const link = $("profile-matches");
-  link.href = "/?" + p.toString();
-  link.textContent = draft.skills.length ? "See my matches" : "Browse all listings";
+  if (link) link.href = "/?" + p.toString();
 }
 
 function wireProfile() {
-  skillsPicker = createMultiSelect("profile-skills", {
-    placeholder: "Skills",
-    searchable: true,
-    // The same closed list the API validates against and probe.py tags
-    // jobs with, so a skill picked here can always match something.
-    options: (vocabulary.skills || []).map((s) => ({ value: s, label: s })),
-    onChange: (values) => { draft.skills = values; paintMatchLink(); },
-  });
-  workplacePicker = createMultiSelect("profile-workplace", {
-    placeholder: "Workplace",
-    options: Object.entries(WORKPLACE_LABELS).map(([value, label]) => ({ value, label })),
-    onChange: (values) => { draft.workplace = values; paintMatchLink(); },
-  });
+  matchers = buildMatchers(skillTerms);
+  const input = $("cv-file");
 
-  const seniority = $("profile-seniority");
-  for (const [value, label] of Object.entries(SENIORITY_LABELS)) {
-    const opt = document.createElement("option");
-    opt.value = value;
-    opt.textContent = label;
-    seniority.append(opt);
-  }
-  seniority.addEventListener("change", (e) => { draft.seniority = e.target.value; paintMatchLink(); });
-  $("profile-israel").addEventListener("change", (e) => {
-    draft.israel_only = e.target.checked;
-    paintMatchLink();
+  $("cv-analyze").addEventListener("click", () => input.click());
+
+  input.addEventListener("change", async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    $("cv-filename").textContent = file.name;
+    setStatus("cv-status", "Reading…");
+    try {
+      const text = await readCv(file);
+      const found = skillsIn(text);
+      // Merge rather than replace: someone who analyses a second CV, or
+      // has already added a skill by hand, should not silently lose it.
+      draft.skills = [...new Set([...draft.skills, ...found])].slice(0, 20);
+      $("cv-result").hidden = false;
+      paintChips();
+      setStatus("cv-status", found.length
+        ? `Found ${found.length} skill${found.length === 1 ? "" : "s"}. Nothing was uploaded.`
+        : "No known skills found. Nothing was uploaded.");
+    } catch (err) {
+      setStatus("cv-status", "Could not read that file. PDF or plain text.", true);
+    } finally {
+      // So picking the same file twice still fires a change event.
+      input.value = "";
+    }
   });
 
   $("profile-save").addEventListener("click", async (e) => {
@@ -102,11 +170,10 @@ function wireProfile() {
     btn.classList.add("btn-busy");
     try {
       const res = await authedFetch("/me/profile", { method: "PUT", body: JSON.stringify(draft) });
-      saved = res.profile || res;
       // Repaint from the response, not the draft: the server drops
-      // anything it does not recognise, and the form should show what
+      // anything it does not recognise, and the page should show what
       // was actually stored rather than what was asked for.
-      paintProfile(saved);
+      paintProfile(res.profile || res);
       setStatus("profile-status", "Saved.");
     } catch (err) {
       setStatus("profile-status", err.message || "Could not save.", true);
@@ -197,10 +264,10 @@ async function bootAccount() {
   $("account-email").textContent = decodeJwtEmail(tokens.id_token) || "signed in";
 
   wireLeaving();
-  // Order matters: the skills picker is built from the vocabulary the
-  // server returns, so it cannot be wired before that arrives.
+  // Order matters: the matchers are built from the terms the server
+  // returns, so the analyser cannot be wired before they arrive.
   const loaded = await loadProfile();
-  vocabulary = loaded.options || vocabulary;
+  skillTerms = loaded.skill_terms || [];
   wireProfile();
   paintProfile(loaded.profile);
   await wireAlerts();

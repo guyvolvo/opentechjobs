@@ -33,6 +33,7 @@ from db import get_connection
 from help_page import HELP_HTML
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
+from skills import SKILL_TERMS
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
                          has_fts_index, salary_source_select)
 
@@ -756,6 +757,12 @@ def route_get_profile(user_id: str) -> dict:
     return {
         "profile": stored,
         "options": {"skills": SKILLS, "seniority": SENIORITY, "workplace": WORKPLACE},
+        # The needles as well as the labels, because the CV analyser runs
+        # in the reader's own browser: the file is never uploaded, so the
+        # matching has to happen there, which means the browser needs the
+        # same terms probe.py tags jobs with. Not secret, and shipping
+        # them is what keeps one vocabulary rather than two.
+        "skill_terms": [{"label": label, "needles": needles} for label, needles in SKILL_TERMS],
     }
 
 

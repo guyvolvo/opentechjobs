@@ -2561,3 +2561,33 @@ body.explore-busy .explore-metric { color: var(--green); }
   color: var(--white);
 }
 .btn.btn-danger-solid:hover { background: var(--black); border-color: var(--black); }
+
+/* CV analyser. The file is read in the page and never uploaded, so
+   there is no upload affordance to draw: a button and the filename is
+   the whole interaction. */
+.cv-drop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cv-filename { color: var(--grey); font-size: 11.5px; }
+.cv-status { font-size: 11.5px; color: var(--grey); margin: 8px 0 0; min-height: 1.2em; }
+.cv-status.error { color: var(--red); }
+.cv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+/* Each chip is a remove button, so the found list is a starting point
+   rather than a verdict. */
+.cv-chip {
+  appearance: none;
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font);
+  font-size: 11.5px;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.cv-chip span { color: var(--grey); }
+.cv-chip:hover { background: var(--black); color: var(--white); }
+.cv-chip:hover span { color: var(--white); }
+.cv-chip:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.cv-none { color: var(--grey); font-size: 11.5px; }
