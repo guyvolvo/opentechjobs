@@ -1707,6 +1707,94 @@ def f_ness(sess, token):
     return out
 
 
+# Amazon and AWS, from amazon.jobs' own search endpoint.
+#
+# Not an ATS: one company's careers site, which is why the token is a
+# country code rather than a company slug. That shape is also the guard.
+# Every fetcher in FETCHERS gets called with every guessed token, and a
+# guess is a lowercase slug off a domain name, so requiring "ISR" or
+# "ISR|aws" means this costs nothing until a pin names it. Without that
+# the guess loop would hand amazon.jobs somebody else's company name as a
+# country filter and take whatever came back.
+#
+# Split into two boards on purpose. business_category tells AWS apart
+# from the rest of Amazon, and on a job board they are two employers:
+# different work, different sites, different logo. Pinning them
+# separately gives each its own company row rather than burying sixty AWS
+# roles under a retail logo.
+AMAZON_SEARCH = "https://www.amazon.jobs/en/search.json"
+AMAZON_PAGE = 100
+
+_AMAZON_TOKEN_RE = re.compile(r"^([A-Z]{3})(?:\|(-?[a-z]+))?$")
+_AMAZON_DATE_RE = re.compile(r"^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$")
+_MONTHS = {m: i for i, m in enumerate(
+    ["january", "february", "march", "april", "may", "june", "july",
+     "august", "september", "october", "november", "december"], start=1)}
+
+
+def _amazon_date(v):
+    """"September  9, 2026", with the double space a single-digit day
+    leaves behind. Parsed by name rather than strptime because %B follows
+    the process locale, and a Lambda that is not running in English would
+    silently date every Amazon listing None.
+    """
+    m = _AMAZON_DATE_RE.match(" ".join(_txt(v).split()))
+    if not m:
+        return None
+    month = _MONTHS.get(m.group(1).lower())
+    if not month:
+        return None
+    return _normalize_date(f"{m.group(3)}-{month:02d}-{int(m.group(2)):02d}T00:00:00+00:00")
+
+
+def f_amazon(sess, token):
+    m = _AMAZON_TOKEN_RE.match(_txt(token))
+    if not m:
+        return None
+    country, want = m.group(1), m.group(2)
+    out, offset = [], 0
+    while True:
+        d = get_json(sess, f"{AMAZON_SEARCH}?normalized_country_code%5B%5D={country}"
+                           f"&result_limit={AMAZON_PAGE}&offset={offset}")
+        if not isinstance(d, dict):
+            # Nothing on page one means no board. A failure part way
+            # through a paged read is different: keep what we have rather
+            # than turning a transient blip into "this company closed
+            # every role", which is what returning None would mean to the
+            # closed-job pass.
+            return out or None
+        rows = d.get("jobs") or []
+        for j in rows:
+            category = _txt(j.get("business_category")).lower()
+            if want == "aws" and category != "aws":
+                continue
+            if want == "-aws" and category == "aws":
+                continue
+            jid = _txt(j.get("id_icims")) or _txt(j.get("id"))
+            if not jid:
+                continue
+            # The qualifications carry most of the technology names, and
+            # the description proper is mostly prose about the team, so
+            # skill tagging gets much better results from all three.
+            body = "\n\n".join(_txt(j.get(k)) for k in
+                                ("description", "basic_qualifications", "preferred_qualifications")
+                                if _txt(j.get(k)))
+            where = _txt(j.get("normalized_location")) or _txt(j.get("location"))
+            out.append(Job("amazon", token, jid, _txt(j.get("title")),
+                           where,
+                           "https://www.amazon.jobs" + _txt(j.get("job_path")),
+                           _amazon_date(j.get("posted_date")),
+                           _txt(j.get("job_category")) or None,
+                           len(body),
+                           _clean_text(body)))
+        offset += AMAZON_PAGE
+        # hits counts the country, not the category filter, so paging has
+        # to follow the raw row count and not len(out).
+        if len(rows) < AMAZON_PAGE or offset >= int(d.get("hits") or 0):
+            break
+    return out
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -1787,6 +1875,8 @@ FETCHERS: dict[str, Callable] = {
     # Keyed on a careers host, never on a guessed token, so it costs
     # nothing until a pin names it.
     "ness": f_ness,
+    # Same idea, keyed on a country code. See the note above f_amazon.
+    "amazon": f_amazon,
 }
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque

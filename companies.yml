@@ -361,3 +361,27 @@ ness:
     token: "www.ness-tech.co.il"
     jobs_seen: 195
     source: own-careers-api
+
+amazon:
+  # Amazon runs its own careers site, not an ATS, so the token is a
+  # country code rather than a company slug. That shape is also what
+  # keeps the guess loop away from it: a guessed token is a lowercase
+  # slug off a domain, and this fetcher only answers to "ISR" (see
+  # f_amazon in probe.py).
+  #
+  # Two entries because business_category separates AWS from the rest of
+  # Amazon, and on a job board they are two employers: different work,
+  # different site, different logo. One pin would bury 151 AWS roles
+  # under a retail logo.
+  #
+  # Counts as of 2026-09-12. amazon.jobs also covers Audible, Twitch and
+  # the rest of the group; in Israel that is a handful of roles and they
+  # land under amazon.com, which is where their listings point anyway.
+  - domain: aws.amazon.com
+    token: "ISR|aws"
+    jobs_seen: 151
+    source: own-careers-api
+  - domain: amazon.com
+    token: "ISR|-aws"
+    jobs_seen: 13
+    source: own-careers-api

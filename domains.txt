@@ -323,6 +323,7 @@ variantyx.com
 # guessing loop.
 microsoft.com
 google.com
+aws.amazon.com
 amazon.com
 apple.com
 meta.com
