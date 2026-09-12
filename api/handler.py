@@ -284,25 +284,29 @@ def route_jobs(params: dict) -> dict:
     score_sql, score_args = skills_score_sql(wanted)
 
     sort_key = params.get("sort", "age")
-    if sort_key not in SORT_COLUMNS:
-        raise ValueError(f"sort must be one of: {', '.join(SORT_COLUMNS)}")
-    sort_col = SORT_COLUMNS[sort_key]
+    # "match" is a real sort key, not a default that applies when nobody
+    # asked for one. The board always sends an explicit sort, so a
+    # server-side default could never reach it, and ranked results came
+    # back in date order with the ranking silently discarded.
+    if sort_key == "match" and not wanted:
+        sort_key = "age"
+    if sort_key not in SORT_COLUMNS and sort_key != "match":
+        raise ValueError(f"sort must be one of: {', '.join(SORT_COLUMNS)}, match")
+    sort_col = SORT_COLUMNS.get(sort_key, SORT_COLUMNS["age"])
     sort_dir = "DESC" if params.get("dir", "asc").lower() == "desc" else "ASC"
     # age and posted_at run in opposite directions: a lower age means a
     # more recent posted_at, so "age ASC" (default, newest first) needs
     # posted_at DESC. Flip only for this column.
-    if sort_key == "age":
+    # "match" shares this: inside a band of equally-good matches the
+    # rows are read newest first, same as everywhere else on the board.
+    if sort_key in ("age", "match"):
         sort_dir = "ASC" if sort_dir == "DESC" else "DESC"
     # NULLS LAST regardless of direction: SQLite treats NULL as smaller
     # than everything else, which would put it first on an ASC sort. The
     # non-age branch needs a genuine no-op constant, not a bare "0":
     # SQLite reads a bare integer literal in ORDER BY as a 1-indexed
     # column-position reference, and "0" is out of range there.
-    null_order = "posted_at IS NULL" if sort_key == "age" else "NULL"
-    # Best match first, unless the reader has picked a column themselves.
-    # Asking for a match and getting it ordered by date buries the whole
-    # point of asking: the ten closest fits are what the page is for, and
-    # they are scattered through two thousand rows by any other order.
+    null_order = "posted_at IS NULL" if sort_key in ("age", "match") else "NULL"
     # datetime() belongs to the date column alone. It used to wrap every
     # sort column, and datetime('Senior Backend Engineer') is NULL, so
     # every row tied and the board came back in scan order. Sorting by
@@ -316,11 +320,14 @@ def route_jobs(params: dict) -> dict:
     # columns so "adobe" and "Adobe" are not two separate alphabets.
     # TRIM because a handful of ATSes serve titles with a leading space,
     # which otherwise sorts them above the letter A.
-    sort_expr = (f"datetime({sort_col})" if sort_key == "age"
+    sort_expr = (f"datetime({sort_col})" if sort_key in ("age", "match")
                  else f"TRIM({sort_col}) COLLATE NOCASE")
     order_sql = f"{null_order}, {sort_expr} {sort_dir}"
     order_args: list = []
-    if wanted and "sort" not in params:
+    # Overlap first, date second. The ten closest fits are the whole
+    # point of asking for a match, and any other order scatters them
+    # through two thousand rows.
+    if sort_key == "match":
         order_sql = f"{score_sql} DESC, {order_sql}"
         order_args = list(score_args)
 

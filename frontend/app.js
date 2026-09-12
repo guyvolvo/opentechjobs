@@ -1006,7 +1006,10 @@ function syncUrl() {
 // silently turning ?max_age_days=-5 into 30 would show results the URL
 // did not ask for. The one exception is offset, which was already
 // floored at 0 before this existed.
-const SORTABLE_KEYS = new Set(["age", "title"]);
+// "match" has no column header to click. It is not a column: it is what
+// the board orders by while a CV match is on, set when the match arrives
+// and dropped the moment someone clicks a real header.
+const SORTABLE_KEYS = new Set(["age", "title", "match"]);
 
 function cleanFilterValue(key, value) {
   switch (key) {
@@ -1033,6 +1036,11 @@ function applyStateFromUrl(search) {
   for (const key of ["department", "seniority", "company", "location", "workplace", "skills"]) {
     if (p.has(key)) state[key] = p.get(key).split(",").filter(Boolean);
   }
+  // A link from the CV analyser carries skills and no sort, and its
+  // whole purpose is the ranking. Without this the board asks for
+  // sort=age, the server honours it, and a ranked list comes back in
+  // date order looking exactly like no match at all.
+  if (p.has("skills") && !p.has("sort") && state.skills.length) state.sort = "match";
   if (p.has("confidence")) state.confidence = p.get("confidence");
   if (p.has("israel_only")) state.israel_only = p.get("israel_only") === "1";
   if (p.has("max_age_days")) {
@@ -2171,6 +2179,7 @@ function wireFilters() {
     state.company = [];
     state.location = [];
     state.workplace = [];
+    state.skills = [];
     state.israel_only = false;
     state.max_age_days = "";
     state.starred_only = false;
@@ -2202,6 +2211,7 @@ function wireFilters() {
 
   document.getElementById("match-chip").addEventListener("click", () => {
     state.skills = [];
+    if (state.sort === "match") setActiveSortHeader("age", "asc");
     state.offset = 0;
     loadJobs();
     loadTicker();

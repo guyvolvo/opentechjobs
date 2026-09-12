@@ -87,7 +87,7 @@ def run(params):
 
 MINE = "Python,AWS,Docker,Terraform,Linux,Go"
 
-res = run({"skills": MINE})
+res = run({"skills": MINE, "sort": "match"})
 ids = [j["id"] for j in res["jobs"]]
 
 check("a job sharing one skill is on the list", "b" in ids, repr(ids))
@@ -107,16 +107,18 @@ check("the matched skills are echoed for the board to mark",
 check("matching is OR, so one skill is enough to appear",
       len(ids) == 3, repr(ids))
 
-# Ranking is the default, not an override of an explicit choice.
+# Ranking is a sort the caller asks for by name. It cannot be a default
+# that applies when no sort was given: the board always sends one, so
+# such a default would never once have reached it.
 by_title = run({"skills": MINE, "sort": "title"})
-check("an explicit sort still wins",
+check("another sort still wins",
       [j["id"] for j in by_title["jobs"]] == ["b", "f", "a"],
       repr([j["title"] for j in by_title["jobs"]]))
 
 # A label we never emit must narrow the match, not error the board out:
 # these arrive from bookmarks and shared links, which outlive vocabularies.
 check("an unknown skill is dropped rather than fatal",
-      [j["id"] for j in run({"skills": "Python,COBOL,,Fortran"})["jobs"]] == ["a", "b"])
+      [j["id"] for j in run({"skills": "Python,COBOL,,Fortran", "sort": "match"})["jobs"]] == ["a", "b"])
 # All of them unknown leaves no filter at all, so the board is
 # unnarrowed. Same rule as every other param here: an unusable value is
 # dropped rather than guessed at. Worth knowing rather than worth
@@ -149,11 +151,15 @@ check("Go does not match Golang or Django",
       "c" not in [j["id"] for j in run({"skills": "Go"})["jobs"]])
 
 # It has to compose with the filters around it.
-narrowed = run({"skills": MINE, "q": "backend"})
+narrowed = run({"skills": MINE, "sort": "match", "q": "backend"})
 check("it narrows alongside the other filters",
       [j["id"] for j in narrowed["jobs"]] == ["b"], repr(narrowed["jobs"]))
 check("and total counts the match, not the board",
       run({"skills": MINE})["total"] == 3, repr(run({"skills": MINE})["total"]))
+
+# sort=match with nothing to match on is a stale link, not an error.
+check("asking to rank with no skills falls back to newest first",
+      [j["id"] for j in run({"sort": "match"})["jobs"]] == ["a", "b", "c", "d", "e", "f"])
 
 # Saved alerts share this translation, so the key has to be allowed
 # through alert creation as well.
