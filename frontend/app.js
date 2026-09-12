@@ -56,14 +56,6 @@ const state = {
   city: [], // canonical city names, as the locations facet spells them
   workplace: [], // remote|hybrid|onsite
   confidence: "all", // no confidence filter in the UI; shown inline via badge instead
-  // Default global, not Israel-only (2026-09-08, flipped on request --
-  // was true, silently narrowing every first-time visit's board to a
-  // fraction of the real listing count). "Israel (only)" is now an
-  // opt-in pick, same as any other location -- see the pinned option on
-  // msLocation below, and buildShareParams/applyStateFromUrl for the
-  // matching URL-param flip (israel_only=1 now means the filter is ON,
-  // not off).
-  israel_only: false,
   max_age_days: "", // "" = any time; else days-since-posting cutoff, straight into the API param of the same name
   starred_only: false,
   sort: "age",
@@ -933,7 +925,6 @@ function currentFilterParams() {
     workplace: state.workplace.join(","),
     skills: state.skills.join(","),
     confidence: state.confidence,
-    israel_only: state.israel_only ? "1" : "",
     max_age_days: state.max_age_days,
   };
 }
@@ -960,10 +951,6 @@ function buildShareParams() {
   if (state.workplace.length) p.set("workplace", state.workplace.join(","));
   if (state.skills.length) p.set("skills", state.skills.join(","));
   if (state.confidence !== "all") p.set("confidence", state.confidence);
-  // Global is the default now, so the filter only needs to appear in the
-  // URL when it's ON, as israel_only=1 -- not the old inverted scheme
-  // (default Israel-only, israel_only=0 to opt out).
-  if (state.israel_only) p.set("israel_only", "1");
   if (state.max_age_days) p.set("max_age_days", state.max_age_days);
   if (state.starred_only) p.set("starred", "1");
   if (state.sort !== "age") p.set("sort", state.sort);
@@ -1075,7 +1062,13 @@ function applyStateFromUrl(search) {
   // date order looking exactly like no match at all.
   if (p.has("skills") && !p.has("sort") && state.skills.length) state.sort = "match";
   if (p.has("confidence")) state.confidence = p.get("confidence");
-  if (p.has("israel_only")) state.israel_only = p.get("israel_only") === "1";
+  // Links older than the country filter. israel_only was replaced by
+  // country=IL, and the two now return the same listings, so this is an
+  // exact translation rather than the guess the old location param would
+  // have needed. The API still answers israel_only for saved alerts.
+  if (p.get("israel_only") === "1" && !state.country.includes("IL")) {
+    state.country = [...state.country, "IL"];
+  }
   if (p.has("max_age_days")) {
     const v = cleanFilterValue("max_age_days", p.get("max_age_days"));
     if (v !== undefined) state.max_age_days = v;
@@ -1106,7 +1099,7 @@ function applyStateFromUrl(search) {
 const FILTERS_KEY = "iljobs_filters";
 const PERSISTED_FILTER_KEYS = [
   "search", "department", "seniority", "company", "country", "city",
-  "workplace", "skills", "confidence", "israel_only", "max_age_days", "starred_only",
+  "workplace", "skills", "confidence", "max_age_days", "starred_only",
   "sort", "dir",
 ];
 
@@ -1138,6 +1131,14 @@ function applyStoredFilters() {
   // Saved by a version that had two boxes. Fold them into the one box
   // rather than dropping them: somebody had a search running, and this
   // is the visit where they find out it changed shape.
+  // The same translation applyStateFromUrl does for an old link. Someone
+  // browsing with Israel-only ticked should still be looking at Israeli
+  // listings after the checkbox it lived in stops existing.
+  if (saved.israel_only && !Array.isArray(saved.country)) {
+    saved.country = ["IL"];
+  } else if (saved.israel_only && !saved.country.includes("IL")) {
+    saved.country = [...saved.country, "IL"];
+  }
   if (!("search" in saved) && (saved.q || saved.keywords)) {
     saved.search = [saved.q || "", ...String(saved.keywords || "").split(";")]
       .map((t) => t.trim())
@@ -1169,11 +1170,6 @@ function applyStateToFilterUI() {
   msCompany.setSelected(state.company);
   msLocation.setSelected(state.country, state.city);
   msWorkplace.setSelected(state.workplace);
-  // The pinned "Israel (only)" checkbox isn't one of msLocation's own
-  // selected values (createMultiSelect only set its initial checked
-  // state once, at wireFilters() time) -- without this a Back/Forward
-  // navigation could leave it visually out of sync with state.israel_only.
-  document.getElementById("f-israel").checked = state.israel_only;
   setActiveSortHeader(state.sort, state.dir);
 }
 
@@ -2123,7 +2119,7 @@ const MS_CHEVRON_SVG =
   + '<path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"'
   + ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function createLocationSelect(containerId, { placeholder, onChange, pinnedOption = null }) {
+function createLocationSelect(containerId, { placeholder, onChange }) {
   const container = document.getElementById(containerId);
   const selectedCountries = new Set();
   const selectedCities = new Set();
@@ -2136,15 +2132,6 @@ function createLocationSelect(containerId, { placeholder, onChange, pinnedOption
   container.innerHTML = `
     <button type="button" class="ms-toggle" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(placeholder)}</button>
     <div class="ms-menu" hidden>
-      ${
-        pinnedOption
-          ? `<label class="ms-option ms-pinned">
-               <input type="checkbox" id="${pinnedOption.id}" ${pinnedOption.checked ? "checked" : ""} />
-               ${escapeHtml(pinnedOption.label)}
-             </label>
-             <div class="ms-pinned-divider"></div>`
-          : ""
-      }
       <input type="text" class="ms-search" placeholder="Filter…" />
       <div class="ms-options" role="listbox"></div>
       <button type="button" class="ms-clear">Clear</button>
@@ -2154,12 +2141,6 @@ function createLocationSelect(containerId, { placeholder, onChange, pinnedOption
   const menu = container.querySelector(".ms-menu");
   const optionsEl = container.querySelector(".ms-options");
   const searchEl = container.querySelector(".ms-search");
-
-  if (pinnedOption) {
-    container.querySelector(`#${pinnedOption.id}`).addEventListener("change", (e) => {
-      pinnedOption.onChange(e.target.checked);
-    });
-  }
 
   function optionHtml(kind, row, checked) {
     const count = row.n == null ? "" : ` (${fmtInt(row.n)})`;
@@ -2398,17 +2379,6 @@ function wireFilters() {
   // have in mind, so typing beats scrolling.
   msLocation = createLocationSelect("ms-location", {
     placeholder: "Locations",
-    pinnedOption: {
-      id: "f-israel",
-      label: "Israel (only)",
-      checked: state.israel_only,
-      onChange: (checked) => {
-        state.israel_only = checked;
-        state.offset = 0;
-        loadJobs();
-        loadTicker();
-      },
-    },
     onChange: ({ countries, cities }) => {
       state.country = countries;
       state.city = cities;
@@ -2466,7 +2436,6 @@ function wireFilters() {
     state.city = [];
     state.workplace = [];
     state.skills = [];
-    state.israel_only = false;
     state.max_age_days = "";
     state.starred_only = false;
     state.sort = "age";
@@ -2479,7 +2448,6 @@ function wireFilters() {
     msCompany.reset();
     msLocation.reset();
     msWorkplace.reset();
-    document.getElementById("f-israel").checked = false;
     document.getElementById("f-starred").checked = false;
     setActiveSortHeader("age", "asc");
     loadJobs();
@@ -2534,7 +2502,6 @@ function updateFiltersToggleLabel() {
   if (state.country.length) n++;
   if (state.city.length) n++;
   if (state.workplace.length) n++;
-  if (state.israel_only) n++; // the location dropdown's own pinned "Israel (only)" checkbox
   if (state.max_age_days) n++;
   if (state.starred_only) n++;
   if (state.sort !== "age" || state.dir !== "asc") n++;
