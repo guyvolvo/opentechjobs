@@ -2552,3 +2552,12 @@ body.explore-busy .explore-metric { color: var(--green); }
 /* Destructive, and the only place on the site that is. */
 .btn.btn-danger { border-color: var(--red); color: var(--red); }
 .btn.btn-danger:hover { background: var(--red); border-color: var(--red); color: var(--white); }
+/* The confirm half of the pair: filled, because by the time it appears
+   the reader has already said what they want and this is the click that
+   does it. */
+.btn.btn-danger-solid {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--white);
+}
+.btn.btn-danger-solid:hover { background: var(--black); border-color: var(--black); }

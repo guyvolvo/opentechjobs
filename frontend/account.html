@@ -66,10 +66,6 @@
               <h3 class="account-block-title">Signed in as</h3>
             </div>
             <p class="account-email" id="account-email"></p>
-            <p class="account-note">
-              We store your email so alerts can reach you, plus the skills and
-              preferences below. Nothing else: no name, no CV file, no history.
-            </p>
           </section>
 
           <section class="account-block">
@@ -103,30 +99,42 @@
             </div>
           </section>
 
+          <!-- Same ids as the board's own alert panel, so app.js's
+               renderAlertsList and wireAlertCreateForm drive this page
+               too rather than a second implementation of the same form. -->
           <section class="account-block">
             <div class="account-block-head">
               <h3 class="account-block-title">Alerts</h3>
               <span class="account-hint">Emailed when a new listing matches</span>
             </div>
-            <div id="account-alerts"><p class="alerts-empty">Loading…</p></div>
-            <p class="account-note">
-              Create and edit alerts from the job board's + Alert button.
-            </p>
+            <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
+
+            <div class="alert-create" id="alert-create">
+              <div class="alerts-header" id="alert-form-title">New Alert</div>
+              <div class="alert-create-fields">
+                <input type="text" id="alert-f-q" placeholder="SEARCH TITLE, COMPANY, LOCATION…" />
+                <div class="ms" id="alert-ms-department"></div>
+                <div class="ms" id="alert-ms-seniority"></div>
+                <div class="ms" id="alert-ms-company"></div>
+                <div class="ms" id="alert-ms-location"></div>
+                <div class="ms" id="alert-ms-workplace"></div>
+                <label class="toggle"><input type="checkbox" id="alert-f-israel" /> Israel only</label>
+              </div>
+              <div class="alert-form-actions">
+                <button class="btn" id="create-alert-btn" type="button">Create Alert</button>
+                <button class="btn btn-quiet" id="cancel-edit-btn" type="button" hidden>Cancel</button>
+              </div>
+              <p class="create-alert-feedback" id="create-alert-feedback" hidden></p>
+            </div>
           </section>
 
           <section class="account-block">
-            <div class="account-block-head">
-              <h3 class="account-block-title">Leaving</h3>
-            </div>
             <div class="account-actions">
               <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
-              <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete everything</button>
+              <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete Account</button>
+              <button class="btn btn-small btn-danger-solid" id="account-delete-confirm" type="button" hidden>Confirm</button>
               <span class="account-status" id="account-status" aria-live="polite"></span>
             </div>
-            <p class="account-note">
-              Deleting removes your profile and every alert. Sign in again and
-              you start from an empty account.
-            </p>
           </section>
         </div>
       </div>

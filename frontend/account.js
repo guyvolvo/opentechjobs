@@ -116,66 +116,55 @@ function wireProfile() {
   });
 }
 
-async function paintAlerts() {
-  const host = $("account-alerts");
-  let alerts = [];
+// Alerts are app.js's own renderAlertsList and wireAlertCreateForm,
+// pointed at markup on this page with the same ids. A second copy of a
+// form with six filter pickers is exactly the kind of duplication that
+// drifts, and the board's version already handles create, edit, pause
+// and delete.
+//
+// populateAlertFilterOptions reads latestStats for the department and
+// location lists, which only the board itself normally fills in, so this
+// page fetches the same stats the board does.
+async function wireAlerts() {
   try {
-    alerts = (await authedFetch("/me/alerts")).alerts || [];
+    latestStats = await getStaticOrApi("/stats.json", "/stats");
   } catch {
-    host.innerHTML = '<p class="alerts-empty">Could not load alerts.</p>';
-    return;
+    // Non-fatal: the pickers fall back to whatever they can load on
+    // their own, and the search box still works.
   }
-  if (!alerts.length) {
-    host.innerHTML = '<p class="alerts-empty">No alerts yet.</p>';
-    return;
-  }
-  host.innerHTML = alerts.map((a) => `
-    <div class="alert-row ${a.active ? "" : "paused"}">
-      <span class="alert-summary-static">${escapeHtml(describeAlertFilter(a.filter))}</span>
-      <span class="alert-actions">
-        <button class="alert-toggle" data-id="${a.alert_id}" data-active="${a.active}">${a.active ? "Pause" : "Resume"}</button>
-        <button class="alert-delete" data-id="${a.alert_id}" aria-label="Delete alert" title="Delete alert">&times;</button>
-      </span>
-    </div>`).join("");
-
-  host.querySelectorAll(".alert-toggle").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      try {
-        await authedFetch(`/me/alerts/${btn.dataset.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ active: btn.dataset.active !== "true" }),
-        });
-        await paintAlerts();
-      } catch { btn.disabled = false; }
-    });
-  });
-  host.querySelectorAll(".alert-delete").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      try {
-        await authedFetch(`/me/alerts/${btn.dataset.id}`, { method: "DELETE" });
-        await paintAlerts();
-      } catch { btn.disabled = false; }
-    });
-  });
+  wireAlertCreateForm();
+  renderAlertsList(await loadMyAlerts());
 }
 
 function wireLeaving() {
   $("account-signout").addEventListener("click", signOut);
-  $("account-delete").addEventListener("click", async (e) => {
-    // Deliberately a second click rather than a confirm() dialog: this
-    // removes every alert someone has built up and there is no undo.
+
+  // A separate Confirm button rather than the same button changing its
+  // own label. The destructive click then lands somewhere the pointer
+  // was not already resting, and the first button keeps saying what it
+  // does while the second says what happens next.
+  const del = $("account-delete");
+  const confirmBtn = $("account-delete-confirm");
+  let armed = null;
+
+  const disarm = () => {
+    clearTimeout(armed);
+    armed = null;
+    confirmBtn.hidden = true;
+  };
+
+  del.addEventListener("click", () => {
+    if (!confirmBtn.hidden) return disarm();
+    confirmBtn.hidden = false;
+    armed = setTimeout(disarm, 8000);
+  });
+
+  confirmBtn.addEventListener("click", async (e) => {
+    // Cancel the auto-hide but leave the button on screen: hiding it
+    // here would take the only thing showing progress away mid-delete.
+    clearTimeout(armed);
+    armed = null;
     const btn = e.currentTarget;
-    if (btn.dataset.armed !== "true") {
-      btn.dataset.armed = "true";
-      btn.textContent = "Delete everything, really";
-      setTimeout(() => {
-        btn.dataset.armed = "false";
-        btn.textContent = "Delete everything";
-      }, 5000);
-      return;
-    }
     btn.classList.add("btn-busy");
     try {
       const alerts = (await authedFetch("/me/alerts")).alerts || [];
@@ -193,6 +182,7 @@ function wireLeaving() {
     } catch (err) {
       setStatus("account-status", err.message || "Could not delete.", true);
       btn.classList.remove("btn-busy");
+      disarm();
     }
   });
 }
@@ -213,7 +203,7 @@ async function bootAccount() {
   vocabulary = loaded.options || vocabulary;
   wireProfile();
   paintProfile(loaded.profile);
-  await paintAlerts();
+  await wireAlerts();
 }
 
 bootAccount();
