@@ -1437,10 +1437,26 @@ table.jobs .title-cell a:hover { color: var(--green); }
   cursor: pointer;
 }
 .skill-chip:hover { color: var(--green); text-decoration: underline; }
-/* A skill this row was matched on. The only per-row answer to "why is
-   this listing on my list", and it has to survive beside the hover
-   colour, so it is weight and ink rather than a second green. */
-.skill-chip.matched { color: var(--black); font-weight: 700; }
+/* The skills a CV match put this row on the list for. Not buttons:
+   clicking one would swap the whole match for a single-keyword filter,
+   which is the opposite of what someone reading their matches wants. */
+.job-match {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.match-chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--green);
+  border: var(--rule) solid var(--green);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
 /* + (adjacent sibling), not :not(:last-child) -- .skill-bracket's "]"
    is the column's real last child now (see jobSkillsHtml), so a
    last-child check would put a stray "·" on every chip, right before

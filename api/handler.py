@@ -314,7 +314,10 @@ def route_jobs(params: dict) -> dict:
     # probe.py) carry other offsets, which a lexicographic sort gets
     # wrong even though each row's own age is right. NOCASE on the text
     # columns so "adobe" and "Adobe" are not two separate alphabets.
-    sort_expr = f"datetime({sort_col})" if sort_key == "age" else f"{sort_col} COLLATE NOCASE"
+    # TRIM because a handful of ATSes serve titles with a leading space,
+    # which otherwise sorts them above the letter A.
+    sort_expr = (f"datetime({sort_col})" if sort_key == "age"
+                 else f"TRIM({sort_col}) COLLATE NOCASE")
     order_sql = f"{null_order}, {sort_expr} {sort_dir}"
     order_args: list = []
     if wanted and "sort" not in params:

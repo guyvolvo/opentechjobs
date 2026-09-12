@@ -488,7 +488,7 @@ function setLastCheckedAt(iso) {
 
 
 // Shared by the topbar status dot/text and the API Status card: past
-// this, both flip from LIVE (green) to OFFLINE (red) together.
+// this, both flip from LIVE (green) to DOWN (red) together.
 //
 // This tracked the write cycle up to 75 while the merge was hourly. It
 // has to come down with it, or the site claims LIVE through fifteen
@@ -524,17 +524,33 @@ const FRESH_THRESHOLD_MINUTES = 20;
 // one. A single late merge is ordinary.
 const DEGRADED_AFTER_MINUTES = 10;
 
+// Short words, because the tile they sit in is narrow. The Data Health
+// value box gets about 78px at the widths where the market panel is at
+// its clamped maximum, and DEGRADED needed 185px at the shared 30px
+// step: it rendered as DEGRADE, clipped mid-word by the panel's
+// overflow, and was reported live from a screenshot. OFFLINE was
+// quietly overflowing at those widths too, just not far enough for
+// anyone to catch it.
+//
+// No font size fixes that. Eight characters in 78px is 12px type, which
+// is smaller than the caption under it. So the words got shorter
+// instead, and all three now fit with room to spare in every layout.
+// STALE rather than DEGRADED because it is also the more honest word:
+// nothing is broken, the numbers on screen are just older than they
+// should be. The full phrasing survives as each level's aria-label,
+// which is where a screen reader reads it and where width costs
+// nothing.
 const STATUS_LEVELS = {
   operational: { symbol: "status-positive", label: "Operational", text: "LIVE" },
-  degraded: { symbol: "status-warning", label: "Degraded", text: "DEGRADED" },
-  outage: { symbol: "status-negative", label: "No recent updates", text: "OFFLINE" },
+  degraded: { symbol: "status-warning", label: "Degraded", text: "STALE" },
+  outage: { symbol: "status-negative", label: "No recent updates", text: "DOWN" },
 };
 
 function apiStatusFields() {
   // The age is only meaningful if our own reading is current. Both polls
   // are gated on the tab being visible, and a sleeping machine misses
   // them with the tab still in front, while the one-second tick counts up
-  // regardless. So an idle tab walks itself to OFFLINE while every cycle
+  // regardless. So an idle tab walks itself to DOWN while every cycle
   // behind it ran on time: CloudWatch shows both halves of the pipeline
   // firing every 5 minutes, 48 for 48, through the window a tile claimed
   // 20 minutes of silence.
@@ -1420,14 +1436,26 @@ function jobSalaryHtml(j) {
 // filter (the same AND-match param /api/jobs already supports) to that
 // one term and reloads, rather than adding a second, parallel filter
 // mechanism just for this.
+// The skills that put this row on the list, shown only while a CV match
+// is on. The full chip list was pulled from rows on request, to give
+// salary the space, and this does not bring it back: a row shows the
+// two or three of your own skills it shares, or nothing at all. Without
+// it a ranked board is indistinguishable from an unranked one, and the
+// order looks arbitrary rather than earned.
+function jobMatchHtml(j) {
+  if (!matchedSkills.size) return "";
+  const hits = (j.skills || "").split(",").filter((s) => matchedSkills.has(s));
+  if (!hits.length) return "";
+  return `<div class="job-match">${hits
+    .map((s) => `<span class="match-chip">${escapeHtml(s)}</span>`)
+    .join("")}</div>`;
+}
+
 function jobSkillsHtml(j) {
   const skills = (j.skills || "").split(",").filter(Boolean);
   if (!skills.length) return "";
   const chips = skills
-    .map((s) => {
-      const hit = matchedSkills.has(s) ? " matched" : "";
-      return `<button class="skill-chip${hit}" data-skill="${escapeHtml(s)}" type="button">${escapeHtml(s)}</button>`;
-    })
+    .map((s) => `<button class="skill-chip" data-skill="${escapeHtml(s)}" type="button">${escapeHtml(s)}</button>`)
     .join("");
   return `<span class="skill-bracket">[</span>${chips}<span class="skill-bracket">]</span>`;
 }
@@ -1456,6 +1484,7 @@ function renderJobRows(jobs, starred) {
               ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
             </div>
             <div class="job-meta">${jobMetaLine(j)}</div>
+            ${jobMatchHtml(j)}
             <div class="job-links">
               <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
               <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
