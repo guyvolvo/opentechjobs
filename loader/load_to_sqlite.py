@@ -859,6 +859,18 @@ def check_timestamp_clustering(conn: sqlite3.Connection) -> list[str]:
     ]
 
 
+# One pass of the backfill, and the most it will do in a single run.
+#
+# The first version read every matching row with fetchall() and built one
+# list of tuples from it. On a partition that is a few thousand rows. On
+# the merged snapshot it is the whole board, about 150,000 rows at once,
+# inside the merge Lambda that has already been tuned twice for running
+# out of memory. It exited 1 and the merge stopped publishing, with the
+# scrape side still happily writing fragments in front of it.
+BACKFILL_BATCH = 5_000
+BACKFILL_MAX_PER_RUN = 60_000
+
+
 def backfill_places(conn: sqlite3.Connection) -> int:
     """Give a country and a city to every row missing either one.
 
@@ -867,29 +879,35 @@ def backfill_places(conn: sqlite3.Connection) -> int:
     this a closed job keeps a NULL country forever, since nothing
     re-polls a job that is gone, and the country filter would quietly
     disagree with itself the moment anyone ticked "include closed". City
-    landed after country, so on the first run after it ships every row
-    on the board is missing one.
+    landed after country, so on the first run after it ships every row on
+    the board is missing one.
 
     Both are rewritten together whenever either is NULL. They read the
-    same input and cost the same pass, and a row holding a country but
-    no city is exactly the row that just gained the column.
+    same input and cost the same pass, and a row holding a country but no
+    city is exactly the row that just gained the column.
 
-    Cheap in practice. It only touches rows where one of the two is
-    missing, so the first run after this ships does the work and every
-    run after it does nothing.
+    Batched and capped. Each batch commits, so memory stays flat and a
+    run that is cut short keeps what it already did. Whatever is left
+    over is picked up next cycle, which for a five minute merge means the
+    whole board is filled within the hour rather than in one pass that
+    has to succeed.
     """
-    rows = conn.execute(
-        "SELECT id, location FROM jobs WHERE country IS NULL OR city IS NULL"
-    ).fetchall()
-    if not rows:
-        return 0
-    conn.executemany(
-        "UPDATE jobs SET country = ?, city = ? WHERE id = ?",
-        [(country_string(r["location"]), city_string(r["location"]), r["id"])
-         for r in rows],
-    )
-    conn.commit()
-    return len(rows)
+    total = 0
+    while total < BACKFILL_MAX_PER_RUN:
+        rows = conn.execute(
+            "SELECT id, location FROM jobs WHERE country IS NULL OR city IS NULL LIMIT ?",
+            (BACKFILL_BATCH,),
+        ).fetchall()
+        if not rows:
+            break
+        conn.executemany(
+            "UPDATE jobs SET country = ?, city = ? WHERE id = ?",
+            [(country_string(r["location"]), city_string(r["location"]), r["id"])
+             for r in rows],
+        )
+        conn.commit()
+        total += len(rows)
+    return total
 
 
 def update_meta(conn: sqlite3.Connection) -> None:
@@ -1159,9 +1177,15 @@ def main() -> int:
             if args.logos:
                 n_logos = apply_company_logos(conn, args.logos)
                 print(f"logos: {n_logos} companies carry one", file=sys.stderr)
-            n_places = backfill_places(conn)
-            if n_places:
-                print(f"places: filled {n_places} rows from their location text", file=sys.stderr)
+            # Never fatal. Filling a derived column is a nicety; the
+            # merge publishing at all is not, and the first version of
+            # this took the merge down with it.
+            try:
+                n_places = backfill_places(conn)
+                if n_places:
+                    print(f"places: filled {n_places} rows from their location text", file=sys.stderr)
+            except Exception as e:
+                print(f"places backfill failed (non-fatal): {e!r}", file=sys.stderr)
             update_meta(conn)
 
         known_out = args.known_out or args.out.with_name("known.json")
