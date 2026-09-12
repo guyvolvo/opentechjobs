@@ -276,6 +276,22 @@ button, input, select {
 }
 .auth-trigger:hover, .auth-trigger.active { color: var(--green); border-color: var(--green); }
 
+/* The signed-in trigger is a glyph rather than text, so it drops the
+   underline the text version uses to show hover and lets the icon's own
+   currentColor carry that instead. 18px: the same optical weight as the
+   uppercase labels beside it, which sit at 12px with caps about 9px
+   tall. */
+.auth-account {
+  display: inline-flex;
+  align-items: center;
+  border-bottom: none;
+}
+.account-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 .auth-signed-in {
   display: flex;
   align-items: center;

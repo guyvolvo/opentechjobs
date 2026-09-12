@@ -3142,9 +3142,17 @@ function renderAuthState() {
     return;
   }
   const email = decodeJwtEmail(tokens.id_token) || "signed in";
+  // An icon, not the address. The topbar is the one place on the site a
+  // reader's own email was on screen permanently, including over a
+  // shoulder and in any screenshot they take of the board. The address
+  // is still there for anyone who wants it, as the button's title and
+  // its accessible name, which is also where a screen reader reads it.
   area.innerHTML = `
     <button class="auth-trigger" id="topbar-alert-btn" type="button">+ Alert</button>
-    <button class="auth-trigger" id="auth-trigger" type="button">${escapeHtml(email)}</button>
+    <button class="auth-trigger auth-account" id="auth-trigger" type="button"
+            title="${escapeHtml(email)}" aria-label="Account, signed in as ${escapeHtml(email)}">
+      <svg class="account-icon" aria-hidden="true"><use href="#account"></use></svg>
+    </button>
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
       <div class="alerts-header alerts-header-row">
         <span>My Alerts</span>
