@@ -258,6 +258,32 @@ def skills_score_sql(wanted: list[str]) -> tuple[str, list]:
     return f"({expr})", [f"%,{s},%" for s in wanted]
 
 
+# One search box, one param.
+#
+# It replaces two that a reader had to choose between without being told
+# the difference: q matched a substring of the title, company, location
+# or department, and keywords was semicolon-separated, AND-matched, and
+# the only one that read the job description. Nobody could be expected to
+# know that "kubernetes" in the left box and the right box asked
+# different questions.
+#
+# So: whitespace-separated words, all of which must appear, each matched
+# against everything we hold about a job, description included. That is
+# what a search box is assumed to do. Quotes keep a phrase whole.
+#
+# q and keywords are still honoured below, because saved alerts carry
+# them and a filter someone saved in March must keep meaning what it
+# meant in March.
+def search_terms(raw: str) -> list[str]:
+    """Whitespace-separated, with "quoted phrases" kept whole."""
+    out = []
+    for match in re.findall(r'"([^"]*)"|(\S+)', raw or ""):
+        term = (match[0] or match[1]).strip()
+        if term:
+            out.append(term)
+    return out[:10]
+
+
 def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
     """Same WHERE-clause construction route_jobs() uses for /api/jobs,
     minus sort/limit/offset (callers that need a full listing add those
@@ -313,6 +339,27 @@ def build_jobs_where(params: dict, has_fts: bool = False) -> tuple[str, list]:
         clauses = " OR ".join("(',' || COALESCE(skills, '') || ',') LIKE ?" for _ in wanted)
         where.append(f"({clauses})")
         args.extend(f"%,{s},%" for s in wanted)
+
+    if params.get("search"):
+        for term in search_terms(params["search"]):
+            like = f"%{term.lower()}%"
+            # Every field a job has an answer for. company_domain rather
+            # than the company's real name because that name lives in the
+            # companies table, and this same function runs in the alert
+            # evaluator, which queries jobs on its own with no join.
+            parts = ["LOWER(title) LIKE ?", "LOWER(company_domain) LIKE ?",
+                     "LOWER(location) LIKE ?", "LOWER(COALESCE(department, '')) LIKE ?"]
+            term_args = [like, like, like, like]
+            if has_fts:
+                parts.append("jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)")
+                term_args.append(fts_escape(term))
+            else:
+                # Same fallback as keywords below: a partition written
+                # before the index existed still carries the column.
+                parts.append("LOWER(COALESCE(description, '')) LIKE ?")
+                term_args.append(like)
+            where.append("(" + " OR ".join(parts) + ")")
+            args.extend(term_args)
 
     if params.get("keywords"):
         # ';'-separated, ALL must appear (AND, not OR): "azure;excel;iso"

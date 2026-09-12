@@ -60,8 +60,8 @@ conn.execute("""
         id TEXT PRIMARY KEY, company_domain TEXT, ats TEXT, title TEXT,
         location TEXT, department TEXT, seniority TEXT, workplace_type TEXT,
         url TEXT, posted_at TEXT, confidence TEXT, first_seen TEXT,
-        last_seen TEXT, closed_at TEXT, skills TEXT, salary_text TEXT,
-        salary_is_estimate INT
+        last_seen TEXT, closed_at TEXT, skills TEXT, description TEXT,
+        salary_text TEXT, salary_is_estimate INT
     )
 """)
 for i, (jid, title, skills) in enumerate(JOBS):
@@ -151,7 +151,7 @@ check("Go does not match Golang or Django",
       "c" not in [j["id"] for j in run({"skills": "Go"})["jobs"]])
 
 # It has to compose with the filters around it.
-narrowed = run({"skills": MINE, "sort": "match", "q": "backend"})
+narrowed = run({"skills": MINE, "sort": "match", "search": "backend"})
 check("it narrows alongside the other filters",
       [j["id"] for j in narrowed["jobs"]] == ["b"], repr(narrowed["jobs"]))
 check("and total counts the match, not the board",

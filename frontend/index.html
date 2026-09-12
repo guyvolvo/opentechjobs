@@ -122,7 +122,7 @@
         <div class="board-split">
           <div class="board-list">
             <div class="filters">
-              <input type="text" id="f-q" placeholder="Search title, company, location…" />
+              <input type="text" id="f-search" placeholder="Search" title="Every word must appear somewhere in the listing: title, company, location, category or description. &quot;Quote a phrase&quot; to keep it together." />
               <!-- Collapsed behind #filters-toggle below a certain #board
                    width (see style.css's @container rule) -- everything
                    here is a refinement on top of the search box above,
@@ -131,7 +131,6 @@
                    identical to before this existed. -->
               <button type="button" class="btn ghost filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="filters-sub">Filters</button>
               <div class="filters-sub" id="filters-sub">
-                <input type="text" id="f-keywords" placeholder="Keywords" title="Semicolon-separated, e.g. azure;excel;iso. A job must mention all of them" />
                 <div class="ms" id="ms-department"></div>
                 <div class="ms" id="ms-seniority"></div>
                 <div class="ms" id="ms-company"></div>

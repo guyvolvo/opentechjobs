@@ -33,8 +33,13 @@ const WORKPLACE_LABELS = {
 };
 
 const state = {
-  q: "",
-  keywords: "", // ';'-separated, ALL must appear (AND, not OR)
+  // One box. Every word must appear somewhere in the listing, quotes
+  // keep a phrase whole. It replaced two boxes, q and keywords, that
+  // asked visibly different questions with nothing on screen saying so:
+  // one read the description and the other did not, one was AND and the
+  // other a single substring, and the separator was a semicolon. The API
+  // still answers both, because saved alerts carry them.
+  search: "",
   // The CV match, from /account: canonical skill labels, OR-matched
   // and ranked by overlap. Deliberately not folded into `keywords` or
   // `q` -- those ask "which jobs demand all of this" and "which titles
@@ -914,8 +919,7 @@ function renderCompanyChip() {
 // and the ticker, so "10 most recent" respects the active filters too.
 function currentFilterParams() {
   return {
-    q: state.q,
-    keywords: state.keywords,
+    search: state.search,
     department: state.department.join(","),
     seniority: state.seniority.join(","),
     company: state.company.join(","),
@@ -941,8 +945,7 @@ function currentFilterParams() {
 // a plain "/" instead of growing every field's default into the URL.
 function buildShareParams() {
   const p = new URLSearchParams();
-  if (state.q) p.set("q", state.q);
-  if (state.keywords) p.set("keywords", state.keywords);
+  if (state.search) p.set("search", state.search);
   if (state.department.length) p.set("department", state.department.join(","));
   if (state.seniority.length) p.set("seniority", state.seniority.join(","));
   if (state.company.length) p.set("company", state.company.join(","));
@@ -1035,8 +1038,7 @@ function applyStateFromUrl(search) {
   // Reset first, then merge, so the link's own params still land. A
   // shared ?skills=...&department=... keeps its department.
   if (p.has("skills")) {
-    state.q = "";
-    state.keywords = "";
+    state.search = "";
     state.department = [];
     state.seniority = [];
     state.company = [];
@@ -1046,8 +1048,16 @@ function applyStateFromUrl(search) {
     state.max_age_days = "";
     state.starred_only = false;
   }
-  if (p.has("q")) state.q = p.get("q");
-  if (p.has("keywords")) state.keywords = p.get("keywords");
+  if (p.has("search")) state.search = p.get("search");
+  // Links older than the single box. Semicolons were the separator
+  // there; here a space is, and quoting keeps a multi-word term whole.
+  if (p.has("q") || p.has("keywords")) {
+    state.search = [p.get("q") || "", ...(p.get("keywords") || "").split(";")]
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => (t.includes(" ") ? `"${t}"` : t))
+      .join(" ");
+  }
   for (const key of ["department", "seniority", "company", "location", "workplace", "skills"]) {
     if (p.has(key)) state[key] = p.get(key).split(",").filter(Boolean);
   }
@@ -1087,7 +1097,7 @@ function applyStateFromUrl(search) {
 // round-trips, sort/dir included.
 const FILTERS_KEY = "iljobs_filters";
 const PERSISTED_FILTER_KEYS = [
-  "q", "keywords", "department", "seniority", "company", "location",
+  "search", "department", "seniority", "company", "location",
   "workplace", "skills", "confidence", "israel_only", "max_age_days", "starred_only",
   "sort", "dir",
 ];
@@ -1117,6 +1127,16 @@ function applyStoredFilters() {
     return;
   }
   if (!saved || typeof saved !== "object") return;
+  // Saved by a version that had two boxes. Fold them into the one box
+  // rather than dropping them: somebody had a search running, and this
+  // is the visit where they find out it changed shape.
+  if (!("search" in saved) && (saved.q || saved.keywords)) {
+    saved.search = [saved.q || "", ...String(saved.keywords || "").split(";")]
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => (t.includes(" ") ? `"${t}"` : t))
+      .join(" ");
+  }
   for (const key of PERSISTED_FILTER_KEYS) {
     if (!(key in saved)) continue;
     // Validated on the way out as well as in, so a browser already
@@ -1133,8 +1153,7 @@ function applyStoredFilters() {
 // caller (boot, or the popstate handler) does that once, itself, after.
 // Requires wireFilters() to have already run (msDepartment etc. assigned).
 function applyStateToFilterUI() {
-  document.getElementById("f-q").value = state.q;
-  document.getElementById("f-keywords").value = state.keywords;
+  document.getElementById("f-search").value = state.search;
   document.getElementById("f-date-posted").value = state.max_age_days || "";
   document.getElementById("f-starred").checked = state.starred_only;
   msDepartment.setSelected(state.department);
@@ -1542,9 +1561,11 @@ function renderJobRows(jobs, starred) {
   document.querySelectorAll("[data-skill]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation(); // same reasoning as the star button above
-      state.keywords = btn.dataset.skill;
+      // Quoted, so "REST API" stays one term rather than two words the
+      // listing must both mention separately.
+      state.search = btn.dataset.skill.includes(" ") ? `"${btn.dataset.skill}"` : btn.dataset.skill;
       state.offset = 0;
-      document.getElementById("f-keywords").value = state.keywords;
+      document.getElementById("f-search").value = state.search;
       loadJobs();
       loadTicker();
       window.scrollTo({ top: document.getElementById("board").offsetTop - 60, behavior: "smooth" });
@@ -2073,20 +2094,10 @@ document.addEventListener("click", () => OPEN_MULTISELECTS.forEach((closeOther) 
 // filter wiring
 
 function wireFilters() {
-  document.getElementById("f-q").addEventListener(
+  document.getElementById("f-search").addEventListener(
     "input",
     debounce((e) => {
-      state.q = e.target.value.trim();
-      state.offset = 0;
-      loadJobs();
-      loadTicker();
-    }, 300)
-  );
-
-  document.getElementById("f-keywords").addEventListener(
-    "input",
-    debounce((e) => {
-      state.keywords = e.target.value.trim();
+      state.search = e.target.value.trim();
       state.offset = 0;
       loadJobs();
       loadTicker();
@@ -2187,8 +2198,7 @@ function wireFilters() {
   });
 
   document.getElementById("f-reset").addEventListener("click", () => {
-    state.q = "";
-    state.keywords = "";
+    state.search = "";
     state.department = [];
     state.seniority = [];
     state.company = [];
@@ -2201,8 +2211,7 @@ function wireFilters() {
     state.sort = "age";
     state.dir = "asc";
     state.offset = 0;
-    document.getElementById("f-q").value = "";
-    document.getElementById("f-keywords").value = "";
+    document.getElementById("f-search").value = "";
     document.getElementById("f-date-posted").value = "";
     msDepartment.reset();
     msSeniority.reset();
@@ -2253,11 +2262,11 @@ function wireFilters() {
 // Only meaningful below the @container breakpoint that collapses
 // .filters-sub in the first place (see style.css) -- harmless to call
 // unconditionally above it too, the button just stays display:none.
-// Counts against #f-q deliberately excluded: it's always visible on
+// Counts against #f-search deliberately excluded: it's always visible on
 // its own, never one of the controls this button is hiding.
 function updateFiltersToggleLabel() {
   let n = 0;
-  if (state.keywords) n++;
+
   if (state.department.length) n++;
   if (state.seniority.length) n++;
   if (state.company.length) n++;
@@ -2852,7 +2861,7 @@ function renderAuthState() {
       <div class="alert-create" id="alert-create">
         <div class="alerts-header" id="alert-form-title">New Alert</div>
         <div class="alert-create-fields">
-          <input type="text" id="alert-f-q" placeholder="SEARCH TITLE, COMPANY, LOCATION…" />
+          <input type="text" id="alert-f-search" placeholder="SEARCH" />
           <div class="ms" id="alert-ms-department"></div>
           <div class="ms" id="alert-ms-seniority"></div>
           <div class="ms" id="alert-ms-company"></div>
@@ -3017,7 +3026,8 @@ async function loadMyAlerts() {
 // just the ones a user is likely to have actually set.
 function describeAlertFilter(filter) {
   const parts = [];
-  if (filter.q) parts.push(`"${filter.q}"`);
+  if (filter.search || filter.q) parts.push(`"${filter.search || filter.q}"`);
+  if (filter.keywords) parts.push(filter.keywords.split(";").join(", "));
   if (filter.department) parts.push(filter.department.split(",").join(", "));
   if (filter.seniority) parts.push(filter.seniority.split(",").join(", "));
   if (filter.company) parts.push(filter.company.split(",").join(", "));
@@ -3099,7 +3109,10 @@ function showCreateAlertFeedback(msg, isError) {
 let alertMsDepartment, alertMsSeniority, alertMsCompany, alertMsLocation, alertMsWorkplace;
 
 const alertFormState = {
-  q: "",
+  // Same single field as the board's box, so an alert matches what you
+  // were looking at when you saved it. Alerts saved before this still
+  // carry q and the API still answers it.
+  search: "",
   department: [],
   seniority: [],
   company: [],
@@ -3125,7 +3138,7 @@ let myAlerts = [];
 // comma-joined strings.
 function fillAlertForm(filter) {
   const list = (v) => (v ? String(v).split(",").filter(Boolean) : []);
-  alertFormState.q = filter.q || "";
+  alertFormState.search = filter.search || filter.q || "";
   alertFormState.department = list(filter.department);
   alertFormState.seniority = list(filter.seniority);
   alertFormState.company = list(filter.company);
@@ -3133,7 +3146,7 @@ function fillAlertForm(filter) {
   alertFormState.workplace = list(filter.workplace);
   alertFormState.israel_only = filter.israel_only === "1";
 
-  document.getElementById("alert-f-q").value = alertFormState.q;
+  document.getElementById("alert-f-search").value = alertFormState.search;
   document.getElementById("alert-f-israel").checked = alertFormState.israel_only;
   alertMsDepartment.setSelected(alertFormState.department);
   alertMsSeniority.setSelected(alertFormState.seniority);
@@ -3171,14 +3184,14 @@ function cancelEditAlert() {
 }
 
 function resetAlertForm() {
-  alertFormState.q = "";
+  alertFormState.search = "";
   alertFormState.department = [];
   alertFormState.seniority = [];
   alertFormState.company = [];
   alertFormState.location = [];
   alertFormState.workplace = [];
   alertFormState.israel_only = false;
-  document.getElementById("alert-f-q").value = "";
+  document.getElementById("alert-f-search").value = "";
   document.getElementById("alert-f-israel").checked = false;
   alertMsDepartment.reset();
   alertMsSeniority.reset();
@@ -3222,8 +3235,8 @@ function wireAlertCreateForm() {
   // existing alert, and Create would quietly overwrite it.
   editingAlertId = null;
 
-  document.getElementById("alert-f-q").addEventListener("input", (e) => {
-    alertFormState.q = e.target.value.trim();
+  document.getElementById("alert-f-search").addEventListener("input", (e) => {
+    alertFormState.search = e.target.value.trim();
   });
 
   alertMsDepartment = createMultiSelect("alert-ms-department", {
@@ -3267,7 +3280,7 @@ function wireAlertCreateForm() {
     const btn = e.currentTarget;
     btn.classList.add("btn-busy");
     const raw = {
-      q: alertFormState.q,
+      search: alertFormState.search,
       department: alertFormState.department.join(","),
       seniority: alertFormState.seniority.join(","),
       company: alertFormState.company.join(","),
@@ -3324,7 +3337,7 @@ async function boot() {
   // run before wireFilters() creates the actual controls -- state.israel_only
   // (read at creation time by ms-location's pinned "Israel (only)"
   // checkbox) needs to already be right by then. applyStateToFilterUI()
-  // below handles the rest (the multi-selects/#f-q/#f-keywords/#f-starred),
+  // below handles the rest (the multi-selects/#f-search/#f-starred),
   // which all need wireFilters() to have already assigned msDepartment
   // etc. first.
   applyStoredFilters();

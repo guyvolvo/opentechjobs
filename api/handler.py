@@ -45,7 +45,7 @@ _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 # silently matching nothing forever, since the evaluator (alerts.py)
 # just feeds this same dict straight into that same function.
 _ALLOWED_FILTER_KEYS = {
-    "q", "keywords", "ats", "company", "department", "seniority", "location",
+    "search", "q", "keywords", "ats", "company", "department", "seniority", "location",
     "workplace", "confidence", "israel_only", "include_closed", "include_outdated",
     "min_age_days", "max_age_days", "skills",
 }
