@@ -679,17 +679,20 @@ button, input, select {
    the panel's overflow. Reported live from a screenshot.
 
    So this tile gets its own step, sized to the longest of the three
-   words at the narrowest the tile ever gets. One size for all three, not
+   words at the narrowest the tile ever gets, which is 102px at 1440
+   wide, where the panel's grid turns three columns. Measured, not
+   guessed: every other width gives more room, so a size that holds
+   DEGRADED there holds it everywhere. One size for all three, not
    a per-word shrink: LIVE and DEGRADED belong on the same baseline at
    the same weight, or the tile changes shape every time the state does.
    nowrap says out loud that the glyph and its word are one line. */
-#metric-api-status .value { font-size: 17px; white-space: nowrap; }
+#metric-api-status .value { font-size: 13px; white-space: nowrap; }
 /* The glyph comes down with the word it belongs to, and gives back the
    margin the word needs to stay beside it. */
 #metric-api-status .value .status-icon {
-  width: 15px;
-  height: 15px;
-  margin-right: 5px;
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
   vertical-align: -2px;
 }
 
