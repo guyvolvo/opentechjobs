@@ -1377,7 +1377,7 @@ table.jobs thead th.active::after { content: attr(data-dir); margin-left: 4px; c
    should be. */
 table.jobs tbody tr { border-bottom: 1px solid var(--grey-line); }
 table.jobs tbody tr:hover { background: var(--hover-bg); }
-table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
+table.jobs tbody td { padding: 14px 10px; vertical-align: top; }
 
 /* Card layout: logo, title/meta/actions, salary, skills -- four real
    grid columns, not flex items. Flexbox was tried through several
@@ -1417,7 +1417,7 @@ table.jobs tbody td { padding: 12px 10px; vertical-align: top; }
    necessarily the same as the row's full height. */
 table.jobs .title-cell {
   display: grid;
-  grid-template-columns: 70px 1fr 20%;
+  grid-template-columns: 74px 1fr 20%;
   column-gap: 12px;
   align-items: start;
   height: 100%;
@@ -1426,6 +1426,13 @@ table.jobs .title-cell {
 
 /* overflow-wrap:anywhere. A company domain has no spaces to break at,
    and some job titles arrive as one long hyphenated/slashed word too. */
+/* The row title, at the one step between body text and the detail
+   panel's own title. It used to inherit the table's 13px body size, so
+   the thing a reader is actually looking for was set at the same size as
+   the department and the location under it. Documented in DESIGN.md as
+   Row Title rather than left as another undeclared literal. */
+.job-card-title { font-size: 15px; line-height: 1.35; }
+
 table.jobs .title-cell a {
   font-weight: 600;
   text-decoration: none;
@@ -1436,7 +1443,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
 /* Sentence case, not the system's usual uppercase Label treatment --
    deliberately closer to a normal reading line (company/location names
    read oddly shouted in all-caps) than to a table-header-style tag. */
-.job-meta { color: var(--grey); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
+.job-meta { color: var(--grey); font-size: 13px; margin-top: 3px; overflow-wrap: anywhere; }
 
 /* Salary (real disclosed or an estimate, see app.js's jobSalaryHtml)
    plus skill chips -- confirmed live: plain text, no border/background
@@ -1449,7 +1456,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
    height, not a bug. */
 .job-salary-col,
 .job-skills-col {
-  padding-top: 20px; /* clears .job-card-title's line so this starts level with .job-meta */
+  padding-top: 24px; /* clears .job-card-title's line so this starts level with .job-meta */
   font-size: 12px;
 }
 .job-skills-col {
@@ -1568,7 +1575,11 @@ table.jobs .title-cell a:hover { color: var(--green); }
    title cell's), so equal margins here still read visually off-center
    against the row as a whole. 11px/19px compensates for that -- both
    real gaps (star-to-logo, logo-to-text) come out to ~31px. */
-.company-logo.listing { width: 40px; height: 40px; margin: 0 19px 0 11px; align-self: center; }
+/* 52px, up from 40. A job board row is scanned by logo first and title
+   second, and at 40 the mark was smaller than the company name beside
+   it, which inverts that order. LinkedIn runs 48 for the same job;
+   this sits just above it because our rows carry more text per line. */
+.company-logo.listing { width: 52px; height: 52px; margin: 0 14px 0 8px; align-self: center; }
 .job-detail-company .company-logo.detail { width: 32px; height: 32px; vertical-align: -8px; margin-right: 8px; }
 .bar-row .company-logo { width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; }
 
@@ -1879,7 +1890,14 @@ footer {
      time, regardless of content length. */
   table.jobs td.title-cell { display: flex; flex-wrap: wrap; align-items: center; }
   table.jobs td.title-cell > .company-logo.listing { flex: 0 0 auto; }
-  table.jobs td.title-cell > .job-card-body { flex: 1 1 auto; min-width: 0; }
+  /* basis 0, not auto. With auto the flex base size is the text's own
+     width, so a long title measured wider than the line and wrapped the
+     logo onto a row of its own, while a short title next to it kept the
+     logo beside the text. Exactly the inconsistency the comment above
+     describes, reintroduced the moment the logo grew from 40px to 52px.
+     A basis of zero means this column is always sized by what is left
+     after the logo, so it shrinks and wraps its text instead. */
+  table.jobs td.title-cell > .job-card-body { flex: 1 1 0; min-width: 0; }
   table.jobs .job-salary-col { flex: 1 0 100%; padding-top: 4px; }
   table.jobs .job-skills-col { flex: 0 1 auto; padding-top: 4px; }
   table.jobs tr { padding: 10px 0; }

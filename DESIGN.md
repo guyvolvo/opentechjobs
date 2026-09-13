@@ -210,6 +210,12 @@ grotesque-sans display face, never the reverse.
 - **Subtitle** (700, 17px): the job-detail panel's title (`.job-detail-title`),
   needs to read as more prominent than table-row body text without
   competing with the two genuine display-face headings above it.
+- **Row Title** (600, 15px): a job listing's title in the board table
+  (`.job-card-title`). The one step between Body and Subtitle, and it
+  exists because a row is scanned title-first: at Body size the title sat
+  level with the company and location beneath it, so nothing in the row
+  led. Below Subtitle deliberately, so opening a listing still promotes
+  its title rather than repeating it at the same weight.
 - **Body** (400, 13–14px): filters, table cells, panel prose, buttons.
 - **Label** (700, 10–12px, uppercase, 0.06–0.1em tracking): column
   headers, panel titles, chip text, the result count, the topnav.
