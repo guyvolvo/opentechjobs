@@ -2111,6 +2111,23 @@ footer {
   width: 26%;
   background: var(--green);
   will-change: transform;
+  /* Deliberately not animated here.
+
+     The animation used to live on this rule and run forever, with
+     .active only switching the opacity. So a sweep that had been
+     running invisibly for minutes became visible at whatever point of
+     its travel it happened to be at, and most of the time that is not
+     the left edge. Reported live from a screenshot: the bar appears at
+     the right-hand side and slides off, which reads as a load ending
+     the instant it began.
+
+     Declaring it on .active instead starts every sweep at frame one, so
+     the bar always enters from the left. It also stops a compositor
+     animation running on every idle page, which was costing a repaint a
+     frame for something nobody could see. */
+  transform: translateX(-108%);
+}
+.load-bar.active::after {
   animation: load-bar-sweep 0.85s linear infinite;
 }
 @keyframes load-bar-sweep {
@@ -2178,7 +2195,7 @@ footer {
      
      So the bar still travels, at a third of the speed, which is slow
      enough not to catch the eye and still obviously a direction. */
-  .load-bar::after {
+  .load-bar.active::after {
     animation: load-bar-sweep-calm 2.6s linear infinite;
   }
   .btn-busy::after { animation: none; }
