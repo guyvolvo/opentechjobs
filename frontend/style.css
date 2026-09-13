@@ -2118,12 +2118,11 @@ footer {
   to   { transform: translateX(385%); }
 }
 
-/* The reduced-motion stand-in. Never dips far enough to read as
-   flickering, and never reaches zero, so the bar is always visibly
-   there rather than blinking in and out. */
-@keyframes load-bar-breathe {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.35; }
+/* The reduced-motion sweep. Same travel, slower, so the movement is
+   never quick enough to catch the eye the way the 0.85s one does. */
+@keyframes load-bar-sweep-calm {
+  from { transform: translateX(-108%); }
+  to   { transform: translateX(385%); }
 }
 
 /* Inline button busy state. color:transparent keeps the label in flow,
@@ -2162,16 +2161,25 @@ footer {
    So it pulses instead of sweeping. Reduced motion is about not
    triggering people with vestibular sensitivity, which is a rule about
    large translation, not about holding every pixel still. A slow
-   cross-fade in place carries "something is happening" without moving
-   anything across the screen. Three seconds, not the sweep's 0.85, so
-   it reads as a patient breath rather than a blink. */
+   the load bar keeps its direction but loses its pace, since a bar that
+   only brightens and dims says something is happening without saying
+   which way it is going. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; background-image: none; }
+  /* Slower, not still.
+     
+     This used to swap the sweep for a full-width bar pulsing its
+     opacity. Reported live from a browser with the setting on: it reads
+     as a flashing line rather than as progress, which is the one thing
+     a loading indicator has to say. A 2px strip crossing a header is
+     not the large-area or parallax motion this media query exists to
+     spare people; an element covering the full width and changing
+     brightness in place arguably is closer to it.
+     
+     So the bar still travels, at a third of the speed, which is slow
+     enough not to catch the eye and still obviously a direction. */
   .load-bar::after {
-    width: 100%;
-    left: 0;
-    transform: none;
-    animation: load-bar-breathe 3s ease-in-out infinite;
+    animation: load-bar-sweep-calm 2.6s linear infinite;
   }
   .btn-busy::after { animation: none; }
   /* The sheet still opens and closes, it just arrives already there. */
