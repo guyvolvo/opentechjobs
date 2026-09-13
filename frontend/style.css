@@ -1462,6 +1462,11 @@ table.jobs .title-cell a:hover { color: var(--green); }
    deliberately closer to a normal reading line (company/location names
    read oddly shouted in all-caps) than to a table-header-style tag. */
 .job-meta { color: var(--grey); font-size: 13px; margin-top: 3px; overflow-wrap: anywhere; }
+/* The employer, at full ink while the rest of the line stays grey. Same
+   size and weight as its neighbours, so this is contrast doing the work
+   rather than scale: the row already has one thing set larger and bolder
+   than everything else, and a second would just compete with it. */
+.job-company { color: var(--black); }
 
 /* Salary (real disclosed or an estimate, see app.js's jobSalaryHtml)
    plus skill chips -- confirmed live: plain text, no border/background

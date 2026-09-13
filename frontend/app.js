@@ -1621,7 +1621,12 @@ function companyLabel(j) {
 }
 
 function jobMetaLine(j) {
-  const parts = [escapeHtml(companyLabel(j))];
+  // The company gets its own span so it can carry more contrast than the
+  // rest of the line. Everything here used to be one flat grey, so the
+  // employer read with exactly the same weight as the department it
+  // happens to be hiring into, and a reader scanning the column had
+  // nothing to land on between the title and the location.
+  const parts = [`<span class="job-company">${escapeHtml(companyLabel(j))}</span>`];
   if (j.department) parts.push(escapeHtml(j.department));
   if (j.location) parts.push(escapeHtml(j.location));
   let line = parts.join(" · ");
