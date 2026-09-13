@@ -1061,24 +1061,20 @@ function renderGhostStat(ghost, openJobs) {
 // says so on itself rather than relying only on the section heading. The
 // Statistics column scrolls independently, so a reader can easily have a
 // chart on screen with the heading that qualifies it already gone.
-function globalTitle(text) {
-  return `${text} <span class="panel-scope">· Global</span>`;
-}
-
 function renderPanels(stats) {
   const el = document.getElementById("panel-grid");
 
   el.innerHTML = `
     <div class="panel">
-      <div class="panel-title">${globalTitle("New Listings, Last 14 Days")}</div>
+      <div class="panel-title">New Listings, Last 14 Days</div>
       ${renderTrendChart(stats.daily_new_jobs)}
     </div>
     <div class="panel">
-      <div class="panel-title">${globalTitle("Open Jobs Over Time")}</div>
+      <div class="panel-title">Open Jobs Over Time</div>
       ${renderOpenJobsChart(stats.open_jobs_history)}
     </div>
     <div class="panel">
-      <div class="panel-title">${globalTitle("Fastest Growing (New Reqs, 7D)")}</div>
+      <div class="panel-title">Fastest Growing (New Reqs, 7D)</div>
       ${
         stats.top_movers_7d.length
           ? renderBarList(stats.top_movers_7d, "domain", { clickable: true })
@@ -1086,18 +1082,18 @@ function renderPanels(stats) {
       }
     </div>
     <div class="panel">
-      <div class="panel-title">${globalTitle("Top Categories")}</div>
+      <div class="panel-title">Top Categories</div>
       ${renderBarList(stats.top_departments, "department")}
     </div>
     <div class="panel">
-      <div class="panel-title">${globalTitle("Seniority Spread")}</div>
+      <div class="panel-title">Seniority Spread</div>
       ${renderBarList(
         stats.seniority_breakdown.map((r) => ({ seniority: SENIORITY_LABELS[r.seniority] || r.seniority, n: r.n })),
         "seniority"
       )}
     </div>
     <div class="panel">
-      <div class="panel-title">${globalTitle("Dormant Listings")}</div>
+      <div class="panel-title">Dormant Listings</div>
       ${renderGhostStat(stats.ghost, stats.totals.open_jobs)}
     </div>`;
 
@@ -1129,7 +1125,7 @@ function renderScopedPanels(stats) {
   const rows = scoped ? latestScoped.data.top_companies : stats.top_companies || [];
   el.innerHTML = `
     <div class="panel">
-      <div class="panel-title">${scoped ? "Top Hirers in This Search" : globalTitle("Top Hiring Companies")}</div>
+      <div class="panel-title">${scoped ? "Top Hirers in This Search" : "Top Hiring Companies"}</div>
       ${
         rows.length
           ? renderBarList(rows, "domain", { clickable: true })

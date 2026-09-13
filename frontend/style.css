@@ -861,7 +861,6 @@ button, input, select {
    the heading that qualifies it already scrolled off. Same size and
    colour as the title it trails, dropped to regular weight so it reads
    as a qualifier and not as part of the name. */
-.panel-title .panel-scope { font-weight: 400; }
 
 .bar-row {
   display: grid;
