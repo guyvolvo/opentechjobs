@@ -733,72 +733,206 @@ function tickApiStatus() {
   document.getElementById("status-text").textContent = STATUS_LEVELS[level].text;
 }
 
+// The scoped answer the API gave for one exact set of board filters,
+// plus the filter string it was asked for. The key is what lets the
+// 2-minute global /stats tick re-render these tiles without quietly
+// repainting a filtered board with whole-board numbers: if the key does
+// not match what the filter bar says right now, the numbers in here
+// belong to a search nobody is looking at.
+// `data: null` with `degraded: true` is the answer that came back
+// without a `scoped` object at all.
+let latestScoped = null;
+
+// One shape for the scopeable numbers, whichever half of the payload
+// they came out of. /api/stats' `scoped` object mirrors totals.* /
+// throughput.* / age.* / top_companies field for field on purpose, so
+// the tiles never have to branch on where a number came from.
+function scopeShape(src) {
+  return {
+    open_jobs: src.open_jobs,
+    companies_hiring: src.companies_hiring,
+    new_jobs_24h: src.new_jobs_24h,
+    new_jobs_7d: src.new_jobs_7d,
+    closed_jobs_24h: src.closed_jobs_24h,
+    closed_jobs_7d: src.closed_jobs_7d,
+    median_open_days: src.median_open_days,
+    oldest_open_days: src.oldest_open_days,
+    top_companies: Array.isArray(src.top_companies) ? src.top_companies : [],
+  };
+}
+
+function globalScope(stats) {
+  return scopeShape({
+    ...stats.totals,
+    ...stats.throughput,
+    ...stats.age,
+    top_companies: stats.top_companies || [],
+  });
+}
+
+// Four states, because three of them look identical if you only track
+// "filtered or not" and each one has to be labelled differently:
+//
+//   global       nothing real is filtered, the tiles are whole-board
+//   pending      filtered, the scoped answer has not landed yet
+//   scoped       filtered, the numbers on screen are the filtered ones
+//   unavailable  filtered, but the API answered without a `scoped` key
+//                (a stale artifact, or the route before it shipped), so
+//                the numbers fall back to whole-board and say so
+//
+// The "is anything really filtered" test is refreshFacetOptions', not a
+// second definition of its own: the board sends a confidence on every
+// request, so it never counts as a filter here.
+function currentScopeMode() {
+  const params = qs({ ...currentFilterParams(), confidence: "" });
+  if (!params) return "global";
+  if (!latestScoped || latestScoped.params !== params) return "pending";
+  return latestScoped.degraded ? "unavailable" : "scoped";
+}
+
+// What the board is filtered by, in the words the filter bar itself
+// uses. Read from state rather than from the response, because it has
+// to be right the moment a filter changes, which is up to 2.9s before
+// the numbers it describes arrive.
+// starred_only and sort/offset are deliberately absent: the first is a
+// client-local view the API never sees, the other two do not change
+// which listings are counted.
+function activeFilterSummary() {
+  const parts = [];
+  if (state.search) parts.push(`"${state.search}"`);
+  if (state.department.length) parts.push(state.department.join(", "));
+  if (state.seniority.length) parts.push(state.seniority.map((s) => SENIORITY_LABELS[s] || s).join(", "));
+  if (state.company.length) parts.push(state.company.join(", "));
+  if (state.country.length) parts.push(state.country.map(countryLabel).join(", "));
+  if (state.city.length) parts.push(state.city.join(", "));
+  if (state.workplace.length) parts.push(state.workplace.map((w) => WORKPLACE_LABELS[w] || w).join(", "));
+  if (state.skills.length) parts.push(`${state.skills.length} CV skill${state.skills.length === 1 ? "" : "s"}`);
+  if (state.max_age_days) parts.push(`posted in the last ${state.max_age_days} days`);
+  return parts;
+}
+
+// Says so plainly when nothing is applied rather than disappearing. An
+// indicator that is only there sometimes teaches the reader nothing
+// about the times it is missing, and "these are global right now" is
+// exactly what they need to know to trust the tile above.
+function renderScopeLine() {
+  const el = document.getElementById("stats-scope");
+  if (!el) return;
+  const mode = currentScopeMode();
+  const applied = activeFilterSummary().join(" · ");
+  if (mode === "global") {
+    el.textContent = "No filters applied, so these are whole-board totals.";
+    return;
+  }
+  if (mode === "pending") {
+    el.textContent = `${applied}. Counting…`;
+    return;
+  }
+  if (mode === "unavailable") {
+    el.textContent = `${applied}. No scoped totals came back, so these are whole-board numbers.`;
+    return;
+  }
+  el.textContent = applied;
+}
+
 function renderMetrics(stats) {
-  const el = document.getElementById("metrics-grid");
   setLastCheckedAt(stats.freshness.last_checked);
-  const status = apiStatusFields();
-  const fresh = status.fresh;
+  renderScopedMetrics(stats);
+  renderPipelineTile();
+}
+
+// The five tiles that can follow the board's filters. Data Health is not
+// among them any more; it answers a question about the pipeline, not
+// about the selected listings, and lives in its own block below.
+function renderScopedMetrics(stats) {
+  const el = document.getElementById("metrics-grid");
+  const mode = currentScopeMode();
+  const pending = mode === "pending";
+  // Only "scoped" puts filtered numbers on screen. "pending" is about to,
+  // so it labels itself the same way; "unavailable" falls back to
+  // whole-board numbers and has to keep the whole-board labels with them.
+  const narrowed = mode === "scoped" || pending;
+  const d = mode === "scoped" ? latestScoped.data : globalScope(stats);
+  renderScopeLine();
 
   const cards = [
     {
-      label: "Global Open Jobs",
-      value: fmtInt(stats.totals.open_jobs),
-      sub: `${fmtInt(stats.meta.open_jobs_best_effort)} more unverified`,
+      // The word "global" survives on this tile only while the number
+      // under it really is global. A filtered count beneath a label
+      // reading GLOBAL OPEN JOBS is the failure this whole section
+      // exists to rule out.
+      label: narrowed ? "Open Roles" : "Global Open Jobs",
+      value: fmtInt(d.open_jobs),
+      // open_jobs_best_effort is a whole-board figure with no scoped
+      // twin in the contract, so it cannot ride along under a filtered
+      // count pretending to describe it.
+      sub: narrowed ? "matching these filters" : `${fmtInt(stats.meta.open_jobs_best_effort)} more unverified`,
       hl: true,
     },
     {
       label: "Companies Hiring",
-      value: fmtInt(stats.totals.companies_hiring),
-      sub: "with a fresh open role",
+      value: fmtInt(d.companies_hiring),
+      sub: narrowed ? "with a matching open role" : "with a fresh open role",
     },
     {
-      label: "New Listings in 7d",
-      value: `+${fmtInt(stats.throughput.new_jobs_24h)}`,
-      sub: `${fmtInt(stats.throughput.new_jobs_7d)} in 7d`,
-      hl: stats.throughput.new_jobs_24h > 0,
+      // The label said 7d while the number under it was the 24h figure,
+      // with the real 7d total demoted to the caption. Both tiles read
+      // the same way, so both said the wrong period. Caught while
+      // relabelling the panel for scoping, which is the whole point of
+      // that exercise: a number nobody can name is worse than no number.
+      label: "New Listings in 24h",
+      value: `+${fmtInt(d.new_jobs_24h)}`,
+      sub: `${fmtInt(d.new_jobs_7d)} in 7d`,
+      hl: d.new_jobs_24h > 0,
     },
     {
-      label: "Closed / Filled",
-      value: `-${fmtInt(stats.throughput.closed_jobs_24h)}`,
-      sub: `${fmtInt(stats.throughput.closed_jobs_7d)} in 7d`,
+      label: "Closed in 24h",
+      value: `-${fmtInt(d.closed_jobs_24h)}`,
+      sub: `${fmtInt(d.closed_jobs_7d)} in 7d`,
     },
     {
       label: "Median Open Age",
-      value: fmtAge(stats.age.median_open_days),
-      sub: `oldest ${fmtAge(stats.age.oldest_open_days)}`,
-    },
-    {
-      id: "metric-api-status",
-      label: "Data Health",
-      // Raw HTML here, unlike every other card's value: this one leads
-      // with the state glyph. The text beside it is our own constant or
-      // a formatted number, never anything a listing supplied.
-      value: `${statusIconHtml(status.level)}${escapeHtml(status.value)}`,
-      sub: status.sub,
-      sub2: pipelineActivityText(),
-      // The first paint has to land on the same class the tick would set
-      // a second later, or the tile flashes green before correcting.
-      cls: status.level === "operational" ? "highlight" : status.level,
+      value: fmtAge(d.median_open_days),
+      sub: `oldest ${fmtAge(d.oldest_open_days)}`,
     },
   ];
 
   el.innerHTML = cards
     .map(
       (c) => `
-      <div class="metric-card ${c.cls || (c.hl ? "highlight" : "")}" ${c.id ? `id="${c.id}"` : ""}>
+      <div class="metric-card ${pending ? "pending" : c.hl ? "highlight" : ""}"${pending ? ' aria-busy="true"' : ""}>
         <div class="label">${c.label}</div>
         <div>
-          <div class="value">${c.value}</div>
-          <div class="sub">${c.sub}</div>
-          ${c.sub2 ? `<div class="sync-countdown">${c.sub2}</div>` : ""}
+          <div class="value">${pending ? '<span class="skeleton" aria-hidden="true"></span>' : c.value}</div>
+          <div class="sub">${pending ? "" : c.sub}</div>
         </div>
       </div>`
     )
     .join("");
+}
 
-  paintStatusIcon(document.getElementById("status-dot"), apiStatusFields().level);
-  document.getElementById("status-text").textContent =
-    STATUS_LEVELS[apiStatusFields().level].text;
+// Never scoped, and its own block says why. It describes the freshness
+// of the whole scrape, so narrowing it to a filter would be meaningless
+// even if the API offered a way to.
+function renderPipelineTile() {
+  const el = document.getElementById("pipeline-grid");
+  const status = apiStatusFields();
+  const sub2 = pipelineActivityText();
+  // The first paint has to land on the same class the one-second tick
+  // would set right after, or the tile flashes green before correcting.
+  el.innerHTML = `
+      <div class="metric-card ${status.level === "operational" ? "highlight" : status.level}" id="metric-api-status"
+           title="Freshness of the whole pipeline across every company we poll. Never narrowed by the board's filters.">
+        <div class="label">Data Health</div>
+        <div>
+          <div class="value">${statusIconHtml(status.level)}${escapeHtml(status.value)}</div>
+          <div class="sub">${status.sub}</div>
+          ${sub2 ? `<div class="sync-countdown">${sub2}</div>` : ""}
+        </div>
+      </div>`;
+
+  paintStatusIcon(document.getElementById("status-dot"), status.level);
+  document.getElementById("status-text").textContent = STATUS_LEVELS[status.level].text;
 }
 
 // Recomputes from lastCheckedAt every 1s -- the sync countdown needs a
@@ -923,24 +1057,28 @@ function renderGhostStat(ghost, openJobs) {
     <div class="ghost-sub">${fmtInt(ghost.dormant_count)} of ${fmtInt(ghost.sample_size)} open listings haven't been filled in over ${ghost.threshold_days} days (${fmtInt(openJobs)} open in total).</div>`;
 }
 
+// Every panel in the Market overview block is whole-board, and each one
+// says so on itself rather than relying only on the section heading. The
+// Statistics column scrolls independently, so a reader can easily have a
+// chart on screen with the heading that qualifies it already gone.
+function globalTitle(text) {
+  return `${text} <span class="panel-scope">· Global</span>`;
+}
+
 function renderPanels(stats) {
   const el = document.getElementById("panel-grid");
 
   el.innerHTML = `
     <div class="panel">
-      <div class="panel-title">New Listings, Last 14 Days</div>
+      <div class="panel-title">${globalTitle("New Listings, Last 14 Days")}</div>
       ${renderTrendChart(stats.daily_new_jobs)}
     </div>
     <div class="panel">
-      <div class="panel-title">Open Jobs Over Time</div>
+      <div class="panel-title">${globalTitle("Open Jobs Over Time")}</div>
       ${renderOpenJobsChart(stats.open_jobs_history)}
     </div>
     <div class="panel">
-      <div class="panel-title">Top Hiring Companies</div>
-      ${renderBarList(stats.top_companies, "domain", { clickable: true })}
-    </div>
-    <div class="panel">
-      <div class="panel-title">Fastest Growing (New Reqs, 7D)</div>
+      <div class="panel-title">${globalTitle("Fastest Growing (New Reqs, 7D)")}</div>
       ${
         stats.top_movers_7d.length
           ? renderBarList(stats.top_movers_7d, "domain", { clickable: true })
@@ -948,20 +1086,63 @@ function renderPanels(stats) {
       }
     </div>
     <div class="panel">
-      <div class="panel-title">Top Categories</div>
+      <div class="panel-title">${globalTitle("Top Categories")}</div>
       ${renderBarList(stats.top_departments, "department")}
     </div>
     <div class="panel">
-      <div class="panel-title">Seniority Spread</div>
+      <div class="panel-title">${globalTitle("Seniority Spread")}</div>
       ${renderBarList(
         stats.seniority_breakdown.map((r) => ({ seniority: SENIORITY_LABELS[r.seniority] || r.seniority, n: r.n })),
         "seniority"
       )}
     </div>
     <div class="panel">
+      <div class="panel-title">${globalTitle("Dormant Listings")}</div>
       ${renderGhostStat(stats.ghost, stats.totals.open_jobs)}
     </div>`;
 
+  wireCompanyBarClicks(el);
+}
+
+// Top hirers, the one bar list the contract can narrow, so it sits in
+// the Current search block with the tiles rather than beside the charts.
+function renderScopedPanels(stats) {
+  const el = document.getElementById("scoped-panel-grid");
+  const mode = currentScopeMode();
+
+  if (mode === "pending") {
+    // Bones rather than the previous filter's leaderboard. A list of
+    // companies is read as an answer, and holding the old one there for
+    // up to 2.9s answers a question the reader has stopped asking.
+    el.innerHTML = `
+      <div class="panel sk-panel" aria-busy="true">
+        <span class="skeleton sk-label"></span>
+        <span class="skeleton sk-bar"></span>
+        <span class="skeleton sk-bar"></span>
+        <span class="skeleton sk-bar"></span>
+        <span class="skeleton sk-bar"></span>
+      </div>`;
+    return;
+  }
+
+  const scoped = mode === "scoped";
+  const rows = scoped ? latestScoped.data.top_companies : stats.top_companies || [];
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">${scoped ? "Top Hirers in This Search" : globalTitle("Top Hiring Companies")}</div>
+      ${
+        rows.length
+          ? renderBarList(rows, "domain", { clickable: true })
+          : '<div class="sub" style="color:var(--grey)">No company has a matching open role.</div>'
+      }
+    </div>`;
+
+  wireCompanyBarClicks(el);
+}
+
+// Clicking a company in any bar list filters the board to it. Shared by
+// both grids, since the same rows now render in two places.
+function wireCompanyBarClicks(el) {
   el.querySelectorAll("[data-company]").forEach((row) => {
     row.addEventListener("click", () => {
       state.company = [row.dataset.company];
@@ -1414,6 +1595,13 @@ async function loadJobs() {
   renderCompanyChip();
   renderMatchChip();
 
+  // Not awaited, and above the starred_only branch on purpose. The
+  // listings are what the reader came for and the sidebar must never
+  // hold them up, but "Saved" is a client-local view rather than an API
+  // filter, so the Current search block is still answering for whatever
+  // else is selected and would otherwise sit on the previous answer.
+  refreshScopedStats();
+
   if (state.starred_only) {
     // Hands over this call's seq and controller rather than starting
     // its own, so a slow saved fetch loses to a newer view the same way
@@ -1493,10 +1681,15 @@ async function loadJobs() {
       errEl.style.display = "block";
     }
   } finally {
-    // Only the request still being waited on may clear the bar. An
-    // earlier one finishing would otherwise report the page as settled
-    // while the newer request is still running.
-    if (seq === jobsRequestSeq) setLoadBar(false);
+    // Always, never gated on the sequence. setLoadBar is reference
+    // counted, and an earlier request skipping its decrement leaks the
+    // count upward: request two increments before request one's finally
+    // runs, one then declines to decrement, and the bar is stuck on for
+    // the rest of the session. Guarding this looked like it was stopping
+    // a stale request reporting the page as settled, but the counter
+    // already handles that. Introduced by the sequencing fix and caught
+    // in review before anyone saw it.
+    setLoadBar(false);
   }
 }
 
@@ -1573,7 +1766,7 @@ async function renderStarredOnly(starred, seq, inFlight) {
     errEl.textContent = `Could not load your saved listings: ${err.message}`;
     errEl.style.display = "block";
   } finally {
-    if (seq === jobsRequestSeq) setLoadBar(false);
+    setLoadBar(false); // see the note in loadJobs: never gate this
   }
 }
 
@@ -2914,7 +3107,7 @@ async function loadTicker() {
   try {
     return await _loadTicker(seq, inFlight.signal);
   } finally {
-    if (seq === tickerRequestSeq) setLoadBar(false);
+    setLoadBar(false); // see the note in loadJobs: never gate this
   }
 }
 
@@ -3019,6 +3212,7 @@ async function refreshStats() {
     latestStats = cachedStats;
     renderMetrics(cachedStats);
     renderPanels(cachedStats);
+    renderScopedPanels(cachedStats);
   }
 
   setLoadBar(true);
@@ -3027,7 +3221,12 @@ async function refreshStats() {
     latestStats = stats;
     renderMetrics(stats);
     renderPanels(stats);
+    renderScopedPanels(stats);
     refreshFacetOptions();
+    // Not awaited, and forced: a filtered board's tiles go stale on the
+    // same 2-minute clock the global ones do, and this tick is also the
+    // catch-up a tab gets when it becomes visible again.
+    refreshScopedStats({ force: true });
     populateAlertFilterOptions();
     try {
       localStorage.setItem(STATS_CACHE_KEY, JSON.stringify(stats));
@@ -3041,10 +3240,112 @@ async function refreshStats() {
       const msg = `<div class="error-state" style="grid-column:1/-1">Could not load /api/stats: ${escapeHtml(err.message)}</div>`;
       document.getElementById("metrics-grid").innerHTML = msg;
       document.getElementById("panel-grid").innerHTML = msg;
+      // The other two grids are the same failure, and four copies of one
+      // message are not four times the information. Clear their bones so
+      // nothing sits there pretending to still be loading.
+      document.getElementById("scoped-panel-grid").innerHTML = "";
+      document.getElementById("pipeline-grid").innerHTML = "";
     }
   } finally {
     setLoadBar(false);
   }
+}
+
+// The scoped half of the Statistics column: the five tiles and Top
+// hirers, asked for with whatever the filter bar currently says.
+//
+// Sequenced the way loadJobs is, and for the same reason it had to be. A
+// scoped /stats was measured at up to 2.9 seconds, which is several
+// filter changes' worth of typing, and without the counter a slow answer
+// for an abandoned filter paints straight over a fast one for the
+// current filter. Abort rather than ignore, too: an answer nobody will
+// read still costs the reader's bandwidth and us a Lambda invocation.
+let scopedStatsSeq = 0;
+let scopedStatsInFlight = null;
+// The filter string currently on the wire, so loadJobs' calls for a page
+// turn or a sort flip (neither of which changes what is counted) do not
+// each fire a duplicate of the request already running.
+let scopedStatsPending = null;
+
+async function refreshScopedStats({ force = false } = {}) {
+  // refreshFacetOptions' test, not a second definition of it: confidence
+  // rides along on every request the board makes, so it is not a filter
+  // in the sense that decides between the static artifact and the API.
+  const params = qs({ ...currentFilterParams(), confidence: "" });
+
+  if (!params) {
+    // Unfiltered, which is the path that must stay on the precomputed
+    // /stats.json artifact. refreshStats is already holding that answer,
+    // so there is nothing to ask anyone.
+    if (scopedStatsInFlight) scopedStatsInFlight.abort();
+    scopedStatsInFlight = null;
+    scopedStatsPending = null;
+    scopedStatsSeq++; // retires anything still resolving
+    latestScoped = null;
+    renderScopeDependent();
+    return;
+  }
+
+  const held = latestScoped !== null && latestScoped.params === params;
+  if (!force && (held || scopedStatsPending === params)) {
+    renderScopeDependent(); // already answered, or already being asked
+    return;
+  }
+
+  const seq = ++scopedStatsSeq;
+  if (scopedStatsInFlight) scopedStatsInFlight.abort();
+  const inFlight = new AbortController();
+  scopedStatsInFlight = inFlight;
+  scopedStatsPending = params;
+  // Only when the question actually changed. A forced refresh of the
+  // same filters keeps its numbers on screen while it revalidates; a new
+  // filter drops them, because the previous filter's count sitting under
+  // a new search reads as the new search's count.
+  if (!held) latestScoped = null;
+  renderScopeDependent();
+
+  setLoadBar(true);
+  try {
+    const data = await getJSON(`/stats?${qs(currentFilterParams())}`, { signal: inFlight.signal });
+    if (seq !== scopedStatsSeq) return;
+    const scoped = data && data.scoped;
+    // No `scoped` key is a normal answer, not a broken one: it is what
+    // the unfiltered route returns and what a stale artifact or a
+    // pre-deploy API looks like. Fall back to whole-board numbers, under
+    // whole-board labels, and let the scope line say what happened.
+    latestScoped =
+      scoped && typeof scoped.open_jobs === "number"
+        ? { params, data: scopeShape(scoped) }
+        : { params, data: null, degraded: true };
+    renderScopeDependent();
+  } catch (err) {
+    if (seq !== scopedStatsSeq || err.name === "AbortError") return;
+    // One failed sidebar refresh does not earn an error banner. Same
+    // fallback as a payload with no `scoped` key.
+    latestScoped = { params, data: null, degraded: true };
+    renderScopeDependent();
+  } finally {
+    if (seq === scopedStatsSeq) scopedStatsPending = null;
+    // Unconditional, unlike loadJobs': the bar is reference counted and
+    // this call incremented it exactly once, so skipping the decrement
+    // on a superseded request would leave it running forever.
+    setLoadBar(false);
+  }
+}
+
+// Everything in the sidebar that has to agree about the board's current
+// filters, repainted together so the tiles, Top hirers and the scope
+// line can never disagree about which question they are answering.
+function renderScopeDependent() {
+  if (!latestStats) {
+    // No stats in hand yet, so the markup's own skeletons stay up. The
+    // scope line still paints: it is built from state, not from a
+    // response, and it is the one thing that can be right immediately.
+    renderScopeLine();
+    return;
+  }
+  renderScopedMetrics(latestStats); // paints the scope line with them
+  renderScopedPanels(latestStats);
 }
 
 // /api/health is a tiny, cheap endpoint built for exactly this: a

@@ -646,6 +646,57 @@ button, input, select {
 .stats-board .metrics-grid { grid-template-columns: repeat(2, 1fr); }
 .stats-board .panel-grid { grid-template-columns: 1fr; }
 
+/* The three labelled blocks of the Statistics column (see index.html for
+   why they exist). The heading is the Label step DESIGN.md already
+   documents (700, 10-12px, uppercase, 0.06-0.1em), the same one
+   .panel-title and .metric-card .label use: a heading here introduces a
+   block of labels, so a new size would compete with the tiles instead of
+   ranking above them. Full ink rather than --grey is what separates it
+   from the tile labels underneath. */
+.stats-section { margin-top: 18px; }
+.stats-section + .stats-section { margin-top: 26px; }
+
+.stats-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  color: var(--black);
+  margin: 0 0 4px;
+}
+
+/* The scope line: which filters the block above is counting, or a plain
+   statement that none are. Same 11.5px as .metric-card .sub, so it adds
+   no step to the ramp. */
+.stats-scope {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--grey);
+  margin: 0 0 10px;
+}
+
+/* A grid standing on its own rather than as one half of the
+   metrics-grid/panel-grid pair. It keeps neither the -2px seam overlap
+   nor the half-rounded corners those two share. Two class names deep so
+   it outranks .panel-grid/.metrics-grid wherever they land in the file,
+   rather than depending on sitting below them. */
+.stats-board .stats-grid-solo {
+  margin-top: 0;
+  border-radius: 4px;
+}
+
+/* Five scoped tiles in a two-column grid leave a sixth cell empty, and
+   an empty cell here is not whitespace. It is the hairline background
+   showing through where a tile should be. The odd one out takes the
+   whole row instead. */
+.stats-board .metrics-grid .metric-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* Pipeline status is one tile and always will be. */
+#pipeline-grid { grid-template-columns: 1fr; }
+
 /* Same root cause as the padding fix above, one layer up: two columns
    of metric tiles need real width each for their own label/value text,
    and this panel's width can get narrow enough (a smaller window, not
@@ -763,6 +814,17 @@ button, input, select {
   line-height: 1.35;
 }
 
+/* A tile waiting on its own scoped answer. A scoped /stats was measured
+   at up to 2.9s, and for that long the previous filter's number sitting
+   there reads as this filter's number, so the tile shows bones instead.
+   Same 26px as .sk-tile's own value bone; the card's own min-height
+   holds its shape either way, so nothing around it moves. */
+.metric-card.pending .value .skeleton {
+  width: 52%;
+  height: 26px;
+  margin-top: 2px;
+}
+
 /* Market-insight panels: who's hiring, what for, where. No ATS-vendor
    breakdown here; that's plumbing, not a market signal. */
 
@@ -792,6 +854,14 @@ button, input, select {
   margin-bottom: 12px;
   font-weight: 700;
 }
+
+/* Marks a Market overview panel as whole-board, on the panel itself
+   rather than only in the section heading above it: the Statistics
+   column scrolls, so a reader can easily have a chart on screen with
+   the heading that qualifies it already scrolled off. Same size and
+   colour as the title it trails, dropped to regular weight so it reads
+   as a qualifier and not as part of the name. */
+.panel-title .panel-scope { font-weight: 400; }
 
 .bar-row {
   display: grid;

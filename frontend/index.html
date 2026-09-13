@@ -216,31 +216,68 @@
       <h2 class="section-title">Statistics</h2>
       <a class="link stats-more" href="/stats">Explore advanced statistics</a>
 
-      <div id="metrics-grid" class="metrics-grid">
-        <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
-        <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
-        <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
-        <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
-        <span class="visually-hidden" role="status">Loading metrics</span>
-      </div>
+      <!-- Three labelled blocks, not one flat stack. Some of these
+           numbers follow the board's filters now and the rest never
+           can, and an unlabelled column gives the reader no way to tell
+           which is which: "GLOBAL OPEN JOBS" over a count of twelve
+           remote Ruby roles in Haifa is the exact failure. The heading
+           of each block says which question it answers. -->
+      <section class="stats-section" aria-labelledby="stats-search-title">
+        <h3 class="stats-section-title" id="stats-search-title">Current search</h3>
+        <p class="stats-scope" id="stats-scope">No filters applied, so these are whole-board totals.</p>
 
-      <div id="panel-grid" class="panel-grid">
-        <div class="panel sk-panel" aria-hidden="true">
-          <span class="skeleton sk-label"></span>
-          <span class="skeleton sk-bar"></span>
-          <span class="skeleton sk-bar"></span>
-          <span class="skeleton sk-bar"></span>
-          <span class="skeleton sk-bar"></span>
+        <div id="metrics-grid" class="metrics-grid">
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <span class="visually-hidden" role="status">Loading metrics</span>
         </div>
-        <div class="panel sk-panel" aria-hidden="true">
-          <span class="skeleton sk-label"></span>
-          <span class="skeleton sk-bar"></span>
-          <span class="skeleton sk-bar"></span>
-          <span class="skeleton sk-bar"></span>
-          <span class="skeleton sk-bar"></span>
+
+        <div id="scoped-panel-grid" class="panel-grid">
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <span class="visually-hidden" role="status">Loading top hirers</span>
         </div>
-        <span class="visually-hidden" role="status">Loading market panels</span>
-      </div>
+      </section>
+
+      <section class="stats-section" aria-labelledby="stats-market-title">
+        <h3 class="stats-section-title" id="stats-market-title">Market overview</h3>
+        <p class="stats-scope">The whole board, always. Nothing here narrows to your filters.</p>
+
+        <div id="panel-grid" class="panel-grid stats-grid-solo">
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <span class="visually-hidden" role="status">Loading market panels</span>
+        </div>
+      </section>
+
+      <section class="stats-section" aria-labelledby="stats-pipeline-title">
+        <h3 class="stats-section-title" id="stats-pipeline-title">Pipeline status</h3>
+        <p class="stats-scope">How fresh the scrape itself is, across every company we poll.</p>
+
+        <div id="pipeline-grid" class="metrics-grid stats-grid-solo">
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <span class="visually-hidden" role="status">Loading pipeline status</span>
+        </div>
+      </section>
     </aside>
   </div>
 
