@@ -28,7 +28,8 @@ from urllib.parse import parse_qs
 import boto3
 from boto3.dynamodb.conditions import Key
 
-from aggregates import compute_facets, compute_stats
+from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
+                        has_board_filters)
 from db import get_connection
 from help_page import HELP_HTML
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
@@ -721,14 +722,14 @@ def _unfiltered_confidence(params: dict) -> str | None:
     the precomputed facets were never once used by the page they were
     built for.
 
-    The FTS flag is constant on both sides too. It only changes the
-    keywords branch, and a request with keywords is filtered regardless.
+    The comparison itself now lives in aggregates.has_board_filters,
+    which /api/stats needs to ask the same question of. This adds the
+    variant name on top of it, which is the only part facets needs and
+    stats does not.
     """
-    confidence = params.get("confidence") or "verified"
-    probe = {**params, "confidence": "verified"}
-    if build_jobs_where(probe, True) != build_jobs_where({"confidence": "verified"}, True):
+    if has_board_filters(params):
         return None
-    return confidence
+    return params.get("confidence") or "verified"
 
 
 def route_facets(params: dict) -> dict:
@@ -749,6 +750,20 @@ def route_facets(params: dict) -> dict:
 
 def route_stats(params: dict | None = None) -> dict:
     params = params or {}
+    # A filtered request gets a scoped block on top of the artifact
+    # rather than a fresh compute of the whole response. Everything in
+    # the artifact is global BY DEFINITION of this contract (the 14-day
+    # series, top_departments, by_ats and the rest describe the market,
+    # not a result set), so a filtered caller's copy of those fields is
+    # byte-identical to the unfiltered one and recomputing them buys
+    # nothing. It costs plenty: compute_stats is twenty queries and
+    # measured 7.03s live, against 0.30s for a precomputed read, and
+    # /api/stats?israel_only=1 is already precomputed on purpose (see
+    # top_locations_israel). Falling all the way through the way
+    # route_facets does would have made that request twenty times
+    # slower to gain nothing, so only the scoped block is live: three
+    # queries, added below.
+    filtered = has_board_filters(params)
     ready = _precomputed_json("stats.json")
     if ready is not None:
         # israel_only is the only thing that changes this response, and it
@@ -757,6 +772,8 @@ def route_stats(params: dict | None = None) -> dict:
         out = {k: v for k, v in ready.items() if k != "top_locations_israel"}
         if bool_param(params, "israel_only"):
             out["top_locations"] = ready.get("top_locations_israel", out.get("top_locations", []))
+        if filtered:
+            out["scoped"] = compute_scoped_stats(get_connection(), params)
         # Two fields in here are clocks, not aggregates, and freezing a
         # clock for fifteen minutes makes it wrong rather than stale.
         # Reported live: the Data Health tile read "19M old" while the
@@ -771,6 +788,8 @@ def route_stats(params: dict | None = None) -> dict:
         except Exception as e:
             print(f"couldn't refresh freshness on precomputed stats: {e!r}")
         return out
+    # No artifact: compute_stats attaches the same scoped key itself, so
+    # both paths answer the same shape.
     return compute_stats(get_connection(), params)
 
 

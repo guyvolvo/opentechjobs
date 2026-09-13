@@ -185,15 +185,163 @@ def compute_facets(conn, params: dict) -> dict:
     }
 
 
+def has_board_filters(params: dict) -> bool:
+    """Whether this request narrows the board at all.
+
+    Decided from the WHERE the params produce, not from a list of
+    parameter names, so a filter added to build_jobs_where later cannot
+    quietly read as unfiltered here and get handed a global answer.
+    handler.py's _unfiltered_confidence asks the same question for
+    /api/facets and now calls this rather than keeping a second copy of
+    the comparison that could drift from it.
+
+    confidence is held constant on both sides, and that is the whole
+    subtlety. The board sends a confidence on every single request: it
+    defaults to "all" where the API defaults to "verified". Counting it
+    as a filter would make every request read as filtered, so the
+    precomputed artifact would never be used again and the scoped block
+    would run on the plain page load it exists to stay out of. A request
+    carrying nothing but confidence is therefore the unfiltered case.
+
+    The FTS flag is constant on both sides too, for the same reason it
+    is in _unfiltered_confidence: it only changes the keywords branch,
+    and a request with keywords is filtered either way.
+
+    A value build_jobs_where cannot use (a country code outside ALPHA2,
+    a malformed job id) adds no clause, so it reads as unfiltered here
+    as well. That is the same degrading every other caller of that
+    function gets, and it is the right answer: the board itself was not
+    narrowed either, so a global number is what matches what the reader
+    is looking at.
+    """
+    probe = {**params, "confidence": "verified"}
+    return build_jobs_where(probe, True) != build_jobs_where({"confidence": "verified"}, True)
+
+
+# Matches the global top_companies' own LIMIT 10, so the frontend can
+# swap one list for the other without re-cutting it.
+SCOPED_TOP_COMPANIES = 10
+
+
+def compute_scoped_stats(conn, params: dict) -> dict:
+    """The few stats numbers that are properties of a result set rather
+    than of the market, counted over the caller's own filters.
+
+    Three queries, and that budget is the design rather than an
+    accident. compute_stats runs twenty, most of them in the 14-day
+    series and the day-by-day open-jobs reconstruction, and /api/facets
+    already measures 0.30s served from the precomputed artifact against
+    2.88s computed live off three. Scoping all twenty would put a
+    multi-second request behind every filter change, so everything that
+    only describes the whole market stays global and what is left is
+    read in one grouped pass, one age pass and one throughput pass.
+    Conditional SUM inside a pass, never a query per number.
+
+    The scope is build_jobs_where's, unmodified, which is what makes
+    open_jobs the same number /api/jobs reports as `total` for the same
+    query string. Two figures on one screen disagreeing is worse than
+    either being missing.
+    """
+    # Probed once and reused by both build_jobs_where calls below. Each
+    # probe is its own read (sqlite_master, then PRAGMA table_info), and
+    # calling them per clause the way compute_facets does would triple
+    # that for no new information.
+    fts, places = has_fts_index(conn), has_places(conn)
+    where_sql, args = build_jobs_where(params, fts, places)
+
+    # One grouped pass answers three fields. Summing the groups gives
+    # the row count, counting the groups gives the companies, and the
+    # first ten rows are the list. A separate COUNT and COUNT(DISTINCT)
+    # would be two more scans for numbers already sitting here.
+    per_company = conn.execute(
+        f"""
+        SELECT company_domain AS domain, COUNT(*) AS n
+        FROM jobs
+        WHERE {where_sql}
+        GROUP BY company_domain
+        ORDER BY n DESC
+        """,
+        args,
+    ).fetchall()
+    open_jobs = sum(r["n"] for r in per_company)
+    # A NULL domain is a group here but not a company, and the global
+    # COUNT(DISTINCT company_domain) does not count it either.
+    companies_hiring = sum(1 for r in per_company if r["domain"] is not None)
+    top_companies = [{"domain": r["domain"], "n": r["n"]}
+                     for r in per_company[:SCOPED_TOP_COMPANIES]]
+
+    # A row per job, same as the global age block: SQLite has no median,
+    # and the sort runs over the filtered set, which is smaller than the
+    # board by definition. A NULL posted_at is left out rather than read
+    # as age zero, matching that query.
+    ages = sorted(
+        r["d"] for r in conn.execute(
+            f"""
+            SELECT julianday('now') - julianday(posted_at) AS d
+            FROM jobs
+            WHERE {where_sql} AND posted_at IS NOT NULL
+            """,
+            args,
+        ).fetchall()
+    )
+    n = len(ages)
+    median_days = None
+    if n:
+        mid = n // 2
+        median_days = ages[mid] if n % 2 else (ages[mid - 1] + ages[mid]) / 2
+
+    # Throughput is the one part that cannot run on the board's own
+    # WHERE. It counts closings, the board hides closed rows by default,
+    # so closed_jobs_* under the unmodified scope would be zero for
+    # every caller. These two params lift exactly the two clauses the
+    # global throughput query leaves out (it reads confidence and
+    # nothing else), and every filter the caller did set still applies.
+    flow_sql, flow_args = build_jobs_where(
+        {**params, "include_closed": "1", "include_outdated": "1"}, fts, places)
+    flow = conn.execute(
+        f"""
+        SELECT
+          SUM(CASE WHEN julianday('now') - julianday(first_seen) <= 1 THEN 1 ELSE 0 END) AS added_24h,
+          SUM(CASE WHEN julianday('now') - julianday(first_seen) <= 7 THEN 1 ELSE 0 END) AS added_7d,
+          SUM(CASE WHEN closed_at IS NOT NULL
+                    AND julianday('now') - julianday(closed_at) <= 1 THEN 1 ELSE 0 END) AS closed_24h,
+          SUM(CASE WHEN closed_at IS NOT NULL
+                    AND julianday('now') - julianday(closed_at) <= 7 THEN 1 ELSE 0 END) AS closed_7d
+        FROM jobs
+        WHERE {flow_sql}
+        """,
+        flow_args,
+    ).fetchone()
+
+    return {
+        "open_jobs": open_jobs,
+        "companies_hiring": companies_hiring,
+        "new_jobs_24h": flow["added_24h"] or 0,
+        "new_jobs_7d": flow["added_7d"] or 0,
+        "closed_jobs_24h": flow["closed_24h"] or 0,
+        "closed_jobs_7d": flow["closed_7d"] or 0,
+        "median_open_days": round(median_days, 1) if median_days is not None else None,
+        "oldest_open_days": round(ages[-1], 1) if n else None,
+        "top_companies": top_companies,
+    }
+
+
 def compute_stats(conn, params: dict | None = None) -> dict:
     """Everything the homepage dashboard needs, as a handful of cheap SQL
     aggregates. All "since" comparisons use julianday() diffs rather than
     string comparison, since ISO8601-with-offset and datetime('now')'s
     format don't sort reliably against each other at day boundaries.
 
-    params only reads israel_only, which scopes top_locations to IL-tagged
-    postings for the frontend's Location filter. Every other field stays
-    global and independent of the job board's own local filters.
+    params reads israel_only, which scopes top_locations to IL-tagged
+    postings for the frontend's Location filter. Every other field here
+    stays global and independent of the job board's own local filters.
+
+    The exception is the "scoped" key, added only when the request
+    carries a real filter. It answers "what does the market look like
+    for the filters I have on right now" for the handful of numbers
+    where that question means something, and it costs three queries
+    against this function's twenty. See compute_scoped_stats for what
+    is in it and why the rest is not.
     """
     params = params or {}
     meta = {row["key"]: row["value"] for row in conn.execute("SELECT key, value FROM meta")}
@@ -483,7 +631,7 @@ def compute_stats(conn, params: dict | None = None) -> dict:
         for day in window
     ]
 
-    return {
+    payload = {
         "meta": meta,
         "open_jobs_by_ats": [dict(r) for r in by_ats],
         "category_seniority": category_seniority,
@@ -536,3 +684,10 @@ def compute_stats(conn, params: dict | None = None) -> dict:
             "oldest_open_days": round(ages[-1], 1) if n else None,
         },
     }
+    # Absent, not empty, when nothing is filtered. The key existing is
+    # how the frontend knows there is a result set worth describing, and
+    # an unfiltered request must keep answering exactly what it answered
+    # before this shipped, precomputed artifact included.
+    if has_board_filters(params):
+        payload["scoped"] = compute_scoped_stats(conn, params)
+    return payload
