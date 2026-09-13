@@ -1639,6 +1639,13 @@ table.jobs .title-cell a:hover { color: var(--green); }
   font-weight: 700;
 }
 .badge.best-effort { border-color: var(--grey); color: var(--grey); }
+/* A listing that has closed. Only ever seen in the Saved view, since the
+   board hides closed rows by default, and that is exactly where it
+   matters: the point of saving something is to come back to it, and
+   coming back to find it gone without being told is worse than not
+   having saved it. Red rather than grey, because this is the one badge
+   that changes what a reader should do next. */
+.badge.closed { border-color: var(--aws-outage); color: var(--aws-outage); }
 .title-cell .badge { margin-left: 6px; vertical-align: middle; }
 
 /* Reported live: left-aligned (the table default), a short "Age"

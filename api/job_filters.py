@@ -321,6 +321,43 @@ def wanted_cities(params: dict) -> list[str]:
     return out[:MAX_CITIES_FILTER]
 
 
+# The job ids a caller asked for.
+#
+# This is what the Saved view is built on: the board holds a reader's
+# stars as ids and asks for exactly those rows, so a star stays visible
+# whether or not the job happens to be in the 50 rows currently loaded.
+#
+# Validated rather than interpolated, same rule as the country codes
+# above. An id here is loader/load_to_sqlite.py's job_id(), an md5
+# hexdigest slice, so lowercase hex is the only shape a real one takes
+# and anything else cannot match a row anyway. Dropped rather than
+# rejected, so a stale star naming a job from before a re-keying narrows
+# the request instead of erroring the whole board out.
+#
+# 200 is the cap because a request naming every star a person has is
+# still one bound parameter each, and an unbounded IN list is a query
+# SQLite can refuse to compile at all.
+MAX_IDS_FILTER = 200
+JOB_ID_RE = re.compile(r"^[0-9a-f]{8,64}$")
+
+
+def is_job_id(value) -> bool:
+    """Whether this could be an id this database holds. Used by the API's
+    own /me/saved routes too, so a saved row can never be written for
+    something that is not a job.
+    """
+    return isinstance(value, str) and JOB_ID_RE.match(value) is not None
+
+
+def wanted_ids(params: dict) -> list[str]:
+    out: list[str] = []
+    for part in (params.get("ids") or "").split(","):
+        jid = part.strip()
+        if is_job_id(jid) and jid not in out:
+            out.append(jid)
+    return out[:MAX_IDS_FILTER]
+
+
 def has_places(conn) -> bool:
     """Whether this database carries the country and city columns.
 
@@ -373,6 +410,15 @@ def build_jobs_where(params: dict, has_fts: bool = False,
     _add_in_filter(where, args, params, "seniority", "seniority")
     _add_in_filter(where, args, params, "location", "location")
     _add_in_filter(where, args, params, "workplace", "workplace_type")
+
+    wanted_id_list = wanted_ids(params)
+    if wanted_id_list:
+        where.append("id IN (%s)" % ",".join("?" * len(wanted_id_list)))
+        args.extend(wanted_id_list)
+    # No else branch on purpose. An ids param that survives validation
+    # empty (every id malformed, or a bare "ids=") adds no clause at all,
+    # so the board comes back unfiltered rather than empty, which is how
+    # every other filter in this file treats a value it cannot use.
 
     if not bool_param(params, "include_outdated"):
         where.append(FRESH_CLAUSE)

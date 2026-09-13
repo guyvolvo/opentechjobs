@@ -2,8 +2,10 @@
 // from S3/CloudFront, runs as-shipped. Talks to the API at /api/*,
 // same-origin (CloudFront routes /api/* to the Lambda).
 //
-// Starring a listing is localStorage-only: the API has no write
-// endpoints or accounts, so there's no server side to hang that state off.
+// Starring a listing writes to localStorage first and always, because
+// every render path reads that set synchronously, signed in or out.
+// Signed in, the same set is mirrored to /me/saved, so a star set on
+// this laptop is there on the phone too.
 
 const API_BASE = "/api";
 const STAR_KEY = "iljobs_starred";
@@ -112,6 +114,99 @@ function toggleStar(id) {
   s.has(id) ? s.delete(id) : s.add(id);
   localStorage.setItem(STAR_KEY, JSON.stringify([...s]));
   return s;
+}
+
+function setStarred(ids) {
+  localStorage.setItem(STAR_KEY, JSON.stringify([...ids]));
+}
+
+// Repaints the star controls for one job wherever they are on screen,
+// which is the table row's button and, when that job is the one the
+// detail panel has open, its Save button too. Used by the paths that
+// change the set without going through a click, so the glyph still
+// follows the data.
+function paintStar(id, starredSet) {
+  const on = starredSet.has(id);
+  const rowBtn = document.querySelector(`[data-star="${id}"].star-btn`);
+  if (rowBtn) {
+    rowBtn.classList.toggle("on", on);
+    rowBtn.textContent = on ? "★" : "☆";
+  }
+  syncDetailStarButton(id, starredSet);
+}
+
+// The server mirror. The click handlers never await this. A star is a
+// localStorage toggle that has always felt instant, and making it wait
+// on a Lambda round-trip would be a visible downgrade for the one thing
+// on this board that never had to wait.
+function pushStar(id, saved) {
+  if (!getAuthTokens()) return; // signed out, and then localStorage is the whole story, exactly as before
+  authedFetch(`/me/saved/${encodeURIComponent(id)}`, { method: saved ? "PUT" : "DELETE" })
+    .catch(() => revertStar(id, saved));
+}
+
+// A write that did not land must not leave this browser quietly
+// disagreeing with the account. Put the local set back and repaint that
+// one star, then say so in the board's own error line, which is the
+// same place a failed /jobs fetch reports itself.
+function revertStar(id, attempted) {
+  // A token that expired mid-request signs the tab out; the local star
+  // is then no less valid than any other signed-out star, so leave it.
+  if (!getAuthTokens()) return;
+  const s = getStarred();
+  if (s.has(id) !== attempted) return; // clicked again since, and that newer intent owns the row now
+  toggleStar(id);
+  const now = getStarred();
+  paintStar(id, now);
+  if (state.starred_only) loadJobs(); // the saved view is a row off until it re-reads the set
+  const errEl = document.getElementById("jobs-error");
+  if (!errEl) return;
+  errEl.textContent = attempted
+    ? "Could not save that listing to your account. The star has been put back."
+    : "Could not remove that listing from your account. The star has been put back.";
+  errEl.style.display = "block";
+}
+
+// Boot merge, one direction each way. Someone who starred jobs before
+// ever signing in keeps them, and someone signing in on a new phone
+// gets what they starred on the laptop, which is why this is a union
+// and not a download that overwrites.
+async function syncSavedFromServer() {
+  if (!getAuthTokens()) return;
+  let data;
+  try {
+    data = await authedFetch("/me/saved");
+  } catch {
+    // Signed out, token dead, endpoint down. Local stays authoritative
+    // and nothing on screen changes.
+    return;
+  }
+  const local = getStarred();
+  // /me/saved comes back newest first; reversed it appends oldest
+  // first, which keeps the array's tail the recent end. Nothing reads
+  // this order except the 200-id cap in renderStarredOnly.
+  const remote = (data?.saved || []).map((r) => r.job_id).reverse();
+  const union = new Set([...local, ...remote]);
+  if (union.size !== local.size) setStarred(union);
+
+  // Local-only ids go up so both sides end up holding the same set.
+  // Not pushStar, because a failure here must not roll back a star the
+  // reader set before they ever signed in. The next boot tries again.
+  const remoteSet = new Set(remote);
+  for (const id of local) {
+    if (remoteSet.has(id)) continue;
+    authedFetch(`/me/saved/${encodeURIComponent(id)}`, { method: "PUT" }).catch(() => {});
+  }
+
+  if (union.size === local.size) return;
+  if (state.starred_only) {
+    loadJobs(); // the saved view is now short a few rows
+    return;
+  }
+  // Stars that arrived from another device land on rows already
+  // painted, so flip those in place rather than refetching the page.
+  document.querySelectorAll(".star-btn").forEach((btn) => paintStar(btn.dataset.star, union));
+  if (selectedJobId) paintStar(selectedJobId, union); // open detail panel may be a job the current page does not list
 }
 
 // fetch helpers
@@ -1320,7 +1415,10 @@ async function loadJobs() {
   renderMatchChip();
 
   if (state.starred_only) {
-    renderStarredOnly(starred);
+    // Hands over this call's seq and controller rather than starting
+    // its own, so a slow saved fetch loses to a newer view the same way
+    // every other request here does.
+    renderStarredOnly(starred, seq, inFlight);
     return;
   }
 
@@ -1408,21 +1506,75 @@ function emptyState(line) {
   return `<strong>No results</strong><span>${line}</span>`;
 }
 
-function renderStarredOnly(starred) {
+// The saved view used to filter lastJobsResponse, which is whichever 50
+// rows the board happens to be holding. Save a job, change one filter,
+// open Saved, and it showed nothing. So it asks for the ids instead.
+// include_closed/include_outdated go with them on purpose. A listing
+// you saved three weeks ago and are still chasing is exactly the one
+// the default filters would drop, and having it vanish from your own
+// saved list is worse than showing it closed.
+async function renderStarredOnly(starred, seq, inFlight) {
   document.getElementById("jobs-loading").textContent = "";
   document.getElementById("jobs-error").style.display = "none";
-  const rows = lastJobsResponse?.jobs?.filter((j) => starred.has(j.id)) || [];
-  if (!rows.length) {
-    document.getElementById("jobs-empty").innerHTML = emptyState("You have not saved any listings yet.");
-    document.getElementById("jobs-empty").style.display = "block";
-    document.getElementById("jobs-body").innerHTML = "";
+  document.getElementById("pagination").style.display = "none";
+  const tbody = document.getElementById("jobs-body");
+  const empty = document.getElementById("jobs-empty");
+
+  // Stays synchronous for the nothing-saved case. No request, no bones,
+  // no flicker on the way to an empty list.
+  if (!starred.size) {
+    empty.innerHTML = emptyState("You have not saved any listings yet.");
+    empty.style.display = "block";
+    tbody.innerHTML = "";
     document.getElementById("result-count").innerHTML = "";
     return;
   }
-  document.getElementById("jobs-empty").style.display = "none";
-  renderJobRows(rows, starred);
-  document.getElementById("result-count").innerHTML = `<b>${rows.length}</b> saved`;
-  document.getElementById("pagination").style.display = "none";
+  empty.style.display = "none";
+
+  // 200 is the endpoint's cap on ids. The tail of the set is the recent
+  // end (toggleStar appends), so an outlier with 300 saved jobs sees the
+  // 200 they starred most recently rather than the 200 they forgot.
+  const ids = [...starred].slice(-200);
+  const params = qs({
+    ids: ids.join(","),
+    include_closed: 1,
+    include_outdated: 1,
+    limit: 200,
+  });
+
+  tbody.closest("table").style.display = "";
+  tbody.innerHTML = jobsSkeletonHtml();
+  document.getElementById("jobs-loading").textContent = "Loading listings";
+  document.getElementById("result-count").innerHTML = "";
+  setLoadBar(true);
+  try {
+    const data = await getJSON(`/jobs?${params}`, { signal: inFlight.signal });
+    if (seq !== jobsRequestSeq) return;
+    document.getElementById("jobs-loading").textContent = "";
+    // Same bookkeeping renderJobs does, so clicking a saved row opens
+    // the detail panel from data already in hand instead of refetching.
+    lastJobsResponse = data;
+    const rows = data.jobs || [];
+    if (!rows.length) {
+      // Saved ids that the API no longer knows at all. Rare, and it
+      // reads as a bug if the view just goes blank.
+      empty.innerHTML = emptyState("None of your saved listings are available any more.");
+      empty.style.display = "block";
+      tbody.innerHTML = "";
+      return;
+    }
+    renderJobRows(rows, starred);
+    document.getElementById("result-count").innerHTML = `<b>${rows.length}</b> saved`;
+  } catch (err) {
+    if (seq !== jobsRequestSeq || err.name === "AbortError") return;
+    document.getElementById("jobs-loading").textContent = "";
+    tbody.innerHTML = ""; // bones would otherwise sit there forever behind the error
+    const errEl = document.getElementById("jobs-error");
+    errEl.textContent = `Could not load your saved listings: ${err.message}`;
+    errEl.style.display = "block";
+  } finally {
+    if (seq === jobsRequestSeq) setLoadBar(false);
+  }
 }
 
 // Which skills the server matched on, straight from the response rather
@@ -1539,6 +1691,10 @@ function jobSkillsHtml(j) {
 }
 
 function renderJobRows(jobs, starred) {
+  // The tooltip stopped being true once /me/saved existed. Signed in,
+  // the star does follow you, and saying otherwise talks people out of
+  // using it.
+  const starTitle = getAuthTokens() ? "Save to your account" : "Save (this browser only)";
   document.getElementById("jobs-body").innerHTML = jobs
     .map((j) => {
       const age = j.posted_at
@@ -1549,7 +1705,7 @@ function renderJobRows(jobs, starred) {
       return `
       <tr data-id="${j.id}" class="${j.id === selectedJobId ? "selected" : ""}">
         <td>
-          <button class="star-btn ${isStarred ? "on" : ""}" data-star="${j.id}" title="Save (this browser only)">
+          <button class="star-btn ${isStarred ? "on" : ""}" data-star="${j.id}" title="${starTitle}">
             ${isStarred ? "★" : "☆"}
           </button>
         </td>
@@ -1560,6 +1716,7 @@ function renderJobRows(jobs, starred) {
               <a href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>
               ${j.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[j.seniority] || j.seniority)}</span>` : ""}
               ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
+              ${j.closed_at ? '<span class="badge closed" title="This listing is no longer open">Closed</span>' : ""}
             </div>
             <div class="job-meta">${jobMetaLine(j)}</div>
             ${jobMatchHtml(j)}
@@ -1586,6 +1743,7 @@ function renderJobRows(jobs, starred) {
       btn.classList.toggle("on", s.has(btn.dataset.star));
       btn.textContent = s.has(btn.dataset.star) ? "★" : "☆";
       syncDetailStarButton(btn.dataset.star, s);
+      pushStar(btn.dataset.star, s.has(btn.dataset.star));
       if (state.starred_only) loadJobs();
     });
   });
@@ -1779,6 +1937,7 @@ function wireJobDetailPanel(job) {
       rowBtn.classList.toggle("on", on);
       rowBtn.textContent = on ? "★" : "☆";
     }
+    pushStar(job.id, on);
     if (state.starred_only) loadJobs();
   });
   const permalinkBtn = panel.querySelector("[data-copy-permalink]");
@@ -3722,6 +3881,10 @@ async function boot() {
   applyStateFromUrl(location.search);
 
   wireAuth();
+  // Not awaited. The board renders from localStorage the moment it can,
+  // signed in or out, and the merged-in stars from other devices flip
+  // themselves on whenever /me/saved gets back.
+  syncSavedFromServer();
   wireFilters();
   applyStateToFilterUI();
   wireJobDetail();

@@ -7,13 +7,13 @@ DynamoDB table, and an if/elif router is as clear as a micro-framework
 without the extra weight.
 
 Job data itself stays read-only, from the batch loader
-(loader/load_to_sqlite.py) alone -- starring a listing is still
-client-local in localStorage, not accounts-backed. The one real write
-surface is /me/alerts: Cognito-authenticated (see infra/apigateway.tf's
-JWT authorizer, attached only to those routes), DynamoDB-backed, scoped
-to the caller's own sub claim. Every other route stays fully public, no
-auth required, matching this project's original "no accounts" framing
-minus the one feature that genuinely needed one -- see PRODUCT.md.
+(loader/load_to_sqlite.py) alone. The write surfaces are all under
+/me/: alerts, the profile, and saved jobs. Each is Cognito-authenticated
+(see infra/apigateway.tf's JWT authorizer, attached only to those
+routes), DynamoDB-backed, and scoped to the caller's own sub claim.
+Every other route stays fully public, no auth required, matching this
+project's original "no accounts" framing minus the few features that
+genuinely needed one -- see PRODUCT.md.
 """
 
 import json
@@ -33,6 +33,7 @@ from db import get_connection
 from help_page import HELP_HTML
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
+from saved import is_saved_id, job_id_of, saved_id
 from skills import SKILL_TERMS
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
                          has_fts_index, has_places, salary_source_select,
@@ -47,7 +48,7 @@ _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 _ALLOWED_FILTER_KEYS = {
     "search", "q", "keywords", "ats", "company", "department", "seniority", "location", "country",
     "city", "workplace", "confidence", "israel_only", "include_closed", "include_outdated",
-    "min_age_days", "max_age_days", "skills",
+    "min_age_days", "max_age_days", "skills", "ids",
 }
 
 # How long CloudFront may serve a cached answer, as distinct from how
@@ -129,6 +130,24 @@ def lambda_handler(event, context):
             if method == "POST":
                 body = json.loads(event.get("body") or "{}")
                 return _response(201, json.dumps(route_create_alert(claims, body), default=str))
+            return _response(405, json.dumps({"error": "method not allowed"}))
+        if path == "/me/saved":
+            user_id = _authenticated_claims(event)["sub"]
+            if method == "GET":
+                return _response(200, json.dumps(route_list_saved(user_id), default=str))
+            return _response(405, json.dumps({"error": "method not allowed"}))
+        if path.startswith("/me/saved/") and len(path) > len("/me/saved/"):
+            user_id = _authenticated_claims(event)["sub"]
+            job_id = path[len("/me/saved/"):]
+            # No unquoting: a job id is hex (see job_filters.is_job_id),
+            # so anything percent-encoded is not one and gets a 400 from
+            # the validation below rather than being decoded into a row.
+            if method == "PUT":
+                route_save_job(user_id, job_id)
+                return _response(204, "")
+            if method == "DELETE":
+                route_unsave_job(user_id, job_id)
+                return _response(204, "")
             return _response(405, json.dumps({"error": "method not allowed"}))
         if path.startswith("/me/alerts/") and len(path) > len("/me/alerts/"):
             user_id = _authenticated_claims(event)["sub"]
@@ -773,10 +792,13 @@ def route_stats(params: dict | None = None) -> dict:
 
 def route_list_alerts(user_id: str) -> dict:
     resp = _alerts_table.query(KeyConditionExpression=Key("user_id").eq(user_id))
-    # The profile shares this partition under a sentinel sort key (see
-    # profile.py), so it comes back from the same Query and would render
-    # as an alert with no filter.
-    items = [i for i in resp.get("Items", []) if i.get("alert_id") != PROFILE_ID]
+    # The profile and every saved job share this partition under
+    # sentinel sort keys (see profile.py and saved.py), so they come back
+    # from the same Query. The profile would render as an alert with no
+    # filter; a saved job would put one row in the reader's alert list
+    # per star, which for anyone who uses the Saved view is most of it.
+    items = [i for i in resp.get("Items", [])
+             if i.get("alert_id") != PROFILE_ID and not is_saved_id(i.get("alert_id"))]
     return {"alerts": items}
 
 
@@ -909,6 +931,58 @@ def route_update_alert(user_id: str, alert_id: str, body: dict) -> dict | None:
     except _alerts_table.meta.client.exceptions.ConditionalCheckFailedException:
         return None
     return resp["Attributes"]
+
+
+# /me/saved: the reader's stars, one row per job (see saved.py for the
+# shape and why it lives in this table). The rows hold ids and nothing
+# else, so the board reads the jobs themselves back through
+# /api/jobs?ids=..., and a starred job that has since closed comes back
+# with closed_at set rather than vanishing, which is the whole reason
+# someone stars one.
+
+
+def route_list_saved(user_id: str) -> dict:
+    """Every job this user has starred, newest first.
+
+    Same whole-partition Query the alert list runs, filtered the same
+    way. Sorted here rather than by DynamoDB because the sort key is the
+    job id, so the table's own order is by id, which means nothing to a
+    reader. A missing saved_at sorts last instead of blowing up the
+    comparison.
+    """
+    resp = _alerts_table.query(KeyConditionExpression=Key("user_id").eq(user_id))
+    rows = [i for i in resp.get("Items", []) if is_saved_id(i.get("alert_id"))]
+    rows.sort(key=lambda i: i.get("saved_at") or "", reverse=True)
+    return {"saved": [{"job_id": job_id_of(i), "saved_at": i.get("saved_at")} for i in rows]}
+
+
+def route_save_job(user_id: str, job_id: str) -> None:
+    """Star a job. Idempotent because the sort key is derived from the
+    job id: a second save overwrites the one row rather than adding a
+    duplicate, and no read is needed to find out which it is.
+
+    saved_at moves to the later save. That is right for the list's own
+    order: someone who unstarred a job and starred it again in the same
+    session means it now, not whenever they first noticed it.
+    """
+    _alerts_table.put_item(Item={
+        "user_id": user_id,
+        "alert_id": saved_id(job_id),
+        # Stored as its own attribute as well as inside the sort key, so
+        # anything reading these rows (an export, a delete-my-account)
+        # does not have to know how the key is assembled.
+        "job_id": job_id,
+        "saved_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+def route_unsave_job(user_id: str, job_id: str) -> None:
+    # No existence check, same convention as route_delete_alert below:
+    # unstarring something that is not starred is the state the caller
+    # asked for, not an error. The id is still validated first, so a
+    # junk path gets a 400 rather than a silent 204 that looks like it
+    # did something.
+    _alerts_table.delete_item(Key={"user_id": user_id, "alert_id": saved_id(job_id)})
 
 
 def route_delete_alert(user_id: str, alert_id: str) -> None:
