@@ -35,6 +35,7 @@ import argparse
 import json
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -43,20 +44,22 @@ sys.path.insert(0, str(Path(__file__).parent))
 from company_logo import UA, resolve_logo  # noqa: E402
 
 WORKERS = 10
+
+# How long a company with no logo is left alone before being asked
+# again, and the most such retries any one run will do.
+RETRY_MISSES_AFTER_DAYS = 7
+MAX_RETRIES_PER_RUN = 400
 LOGOS_KEY = "company-logos.json"
 
 # See referral_boards.py. referralsuseonly.com is not a website, so every
 # logo path that starts from the domain is looking somewhere that does
 # not exist. Ask the real company's domain instead.
-try:
-    from referral_boards import REFERRAL_BOARDS
-except ImportError:
-    REFERRAL_BOARDS = {}
+from company_aliases import logo_domain
 
 
 def resolve_one(entry: dict, sess: requests.Session) -> tuple[str, dict]:
     domain = entry.get("domain", "")
-    look_at = REFERRAL_BOARDS.get(domain, {}).get("logo_domain", domain)
+    look_at = logo_domain(domain)
     try:
         # The ATS is still passed: a referral board carries the company's
         # own logo on Greenhouse, which is a better source than the
@@ -66,7 +69,11 @@ def resolve_one(entry: dict, sess: requests.Session) -> tuple[str, dict]:
         # An unreachable host is not an answer, so leave it out of the
         # file entirely and let the next run try again.
         return domain, {}
-    return domain, {"url": url, "source": source}
+    # Stamped even on a miss, so the retry pacing above can tell a
+    # company nobody has looked at from one that was looked at and had
+    # nothing to give.
+    return domain, {"url": url, "source": source,
+                    "tried_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
 def main() -> int:
@@ -101,8 +108,42 @@ def main() -> int:
     elif args.out and args.out.exists():
         logos = json.loads(args.out.read_text(encoding="utf-8"))
 
-    todo = [e for e in known
-            if e.get("domain") and (args.refresh or e["domain"] not in logos)]
+    # A company that HAS a logo is settled. A company that does not is
+    # not: it may have had no site the day we asked, or its entry may
+    # predate a fix to the resolver. Those get looked at again.
+    #
+    # This was the bug behind two separate ones. A miss used to be stored
+    # as {"url": None, "source": "none"}, which is a truthy dict, so the
+    # domain counted as done and was skipped on every later run. Six
+    # companies kept their monogram forever, and a fix shipped earlier
+    # today for referral-board logos could never take effect, because the
+    # only domains it applied to had already been written off.
+    #
+    # Retries are paced rather than run every time: a site that had no
+    # icon yesterday probably has none today, and there are enough of
+    # these to matter. RETRY_MISSES_AFTER_DAYS keeps the daily run's
+    # extra work bounded, and MAX_RETRIES_PER_RUN bounds it absolutely.
+    now = datetime.now(timezone.utc)
+
+    def is_stale_miss(entry: dict) -> bool:
+        if entry.get("url"):
+            return False
+        tried = entry.get("tried_at")
+        if not tried:
+            return True  # written before this field existed
+        try:
+            age = now - datetime.fromisoformat(tried)
+        except ValueError:
+            return True
+        return age > timedelta(days=RETRY_MISSES_AFTER_DAYS)
+
+    fresh = [e for e in known if e.get("domain") and e["domain"] not in logos]
+    retries = [] if args.refresh else [
+        e for e in known
+        if e.get("domain") and e["domain"] in logos and is_stale_miss(logos[e["domain"]])
+    ]
+    todo = known if args.refresh else fresh + retries[:MAX_RETRIES_PER_RUN]
+    todo = [e for e in todo if e.get("domain")]
     if args.limit:
         todo = todo[:args.limit]
 
