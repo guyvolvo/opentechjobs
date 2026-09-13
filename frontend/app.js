@@ -116,8 +116,8 @@ function toggleStar(id) {
 
 // fetch helpers
 
-async function getJSON(path) {
-  const res = await fetch(`${API_BASE}${path}`);
+async function getJSON(path, { signal } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, signal ? { signal } : undefined);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `HTTP ${res.status}`);
@@ -1282,7 +1282,31 @@ function getBootstrap() {
   return bootstrapPromise;
 }
 
+// Which request the page is currently waiting for.
+//
+// Reported live: type quickly and the board sticks on the previous
+// filter. Nothing ordered the responses, so two requests in flight
+// finished in whatever order the network gave them, and a slow one for
+// the old filter painted over a fast one for the new. Reproduced with a
+// stub: search box reading "bbb", rows reading "RESULT FOR aaa". A cold
+// Lambda answering after a warm one does this for real.
+//
+// A counter rather than a timestamp: two calls in the same millisecond
+// are exactly the case this has to separate. Every await in loadJobs is
+// followed by a check, because any of them can be the point a newer
+// call overtakes this one.
+let jobsRequestSeq = 0;
+let jobsInFlight = null;
+
 async function loadJobs() {
+  const seq = ++jobsRequestSeq;
+  // Cancel rather than ignore. Ignoring would still cost the reader's
+  // bandwidth and our Lambda invocation for an answer nobody will see,
+  // and someone typing a ten-character search fires several of these.
+  if (jobsInFlight) jobsInFlight.abort();
+  const inFlight = new AbortController();
+  jobsInFlight = inFlight;
+
   // Every state-mutating handler in this file calls loadJobs() right
   // after, so state is already final for this transition -- one call
   // here covers all of them instead of one at each call site.
@@ -1323,6 +1347,7 @@ async function loadJobs() {
   // better to show, so a returning visitor never waits on it.
   if (!cached) {
     const boot = await getBootstrap();
+    if (seq !== jobsRequestSeq) return; // a newer filter won while that resolved
     if (boot && boot.params === params && boot.jobs && boot.jobs.jobs.length) {
       cached = boot.jobs;
     }
@@ -1343,7 +1368,8 @@ async function loadJobs() {
 
   setLoadBar(true);
   try {
-    const data = await getJSON(`/jobs?${params}`);
+    const data = await getJSON(`/jobs?${params}`, { signal: inFlight.signal });
+    if (seq !== jobsRequestSeq) return;
     document.getElementById("jobs-loading").textContent = "";
     // Skip the re-render when the background refresh just confirms
     // nothing changed -- avoids a jarring flicker/scroll-reset for what
@@ -1356,6 +1382,9 @@ async function loadJobs() {
     }
     setCachedJobs(params, data);
   } catch (err) {
+    // An abort is this function cancelling itself, not a failure, and a
+    // stale rejection belongs to a filter nobody is looking at.
+    if (seq !== jobsRequestSeq || err.name === "AbortError") return;
     document.getElementById("jobs-loading").textContent = "";
     if (!cached) tbody.innerHTML = ""; // bones would otherwise sit there forever behind the error
     // A cached render is still on screen and still useful -- don't bury
@@ -1366,7 +1395,10 @@ async function loadJobs() {
       errEl.style.display = "block";
     }
   } finally {
-    setLoadBar(false);
+    // Only the request still being waited on may clear the bar. An
+    // earlier one finishing would otherwise report the page as settled
+    // while the newer request is still running.
+    if (seq === jobsRequestSeq) setLoadBar(false);
   }
 }
 
@@ -2609,7 +2641,10 @@ function normalizeLocationFacets(rows) {
     });
 }
 
+let facetsRequestSeq = 0;
+
 async function refreshFacetOptions() {
+  const seq = ++facetsRequestSeq;
   try {
     // Only the unfiltered case has a static answer, which is also the
     // one every page load and every timer tick asks for. Any active
@@ -2622,6 +2657,7 @@ async function refreshFacetOptions() {
     const facets = qs(active)
       ? await getJSON(`/facets?${qs(currentFilterParams())}`)
       : await getStaticFacets(state.confidence || "verified");
+    if (seq !== facetsRequestSeq) return; // a newer filter is already being counted
     msDepartment.setOptions(facets.categories.map((r) => ({ value: r.value, label: `${r.value} (${r.n})` })));
     msLocation.setOptions(normalizeLocationFacets(facets.locations));
     // Alphabetical, not by count: this list is searchable/typed-into, not
@@ -2702,20 +2738,31 @@ function wireThemeToggle() {
 // filters, not a fixed sitewide list. Called from every filter-changing
 // handler, but not pagination/sort (those don't change what "recent"
 // means). Duplicated once in the DOM so the CSS marquee loops seamlessly.
+let tickerRequestSeq = 0;
+let tickerInFlight = null;
+
 async function loadTicker() {
+  const seq = ++tickerRequestSeq;
+  if (tickerInFlight) tickerInFlight.abort();
+  const inFlight = new AbortController();
+  tickerInFlight = inFlight;
   setLoadBar(true);
   try {
-    return await _loadTicker();
+    return await _loadTicker(seq, inFlight.signal);
   } finally {
-    setLoadBar(false);
+    if (seq === tickerRequestSeq) setLoadBar(false);
   }
 }
 
-async function _loadTicker() {
+// Same sequencing as loadJobs, and for the same reason: this rides the
+// board's own filters, so without it the strip can end up showing the
+// ten newest for a filter nobody is looking at any more.
+async function _loadTicker(seq, signal) {
   const track = document.getElementById("ticker-track");
   try {
     const params = qs({ ...currentFilterParams(), limit: 10, sort: "age", dir: "asc" });
-    const data = await getJSON(`/jobs?${params}`);
+    const data = await getJSON(`/jobs?${params}`, { signal });
+    if (seq !== tickerRequestSeq) return;
     if (!data.jobs.length) {
       track.innerHTML = "";
       return;
