@@ -12,8 +12,8 @@ resource "aws_apigatewayv2_api" "api" {
 
   cors_configuration {
     allow_origins = ["*"]
-    allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE"] # POST is also /api/auth/email/start (github_auth_lambda.tf); PATCH/DELETE are /me/alerts/{id}; PUT is /me/profile
-    allow_headers = ["content-type", "authorization"]  # authorization: the Cognito JWT on /me/alerts requests
+    allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE"] # POST is also /api/auth/email/start (github_auth_lambda.tf); PATCH/DELETE are /me/alerts/{id} and /me/saved/{id}; PUT is /me/profile and /me/saved/{id}
+    allow_headers = ["content-type", "authorization"]         # authorization: the Cognito JWT on /me/alerts requests
     max_age       = 3600
   }
 }
@@ -97,8 +97,8 @@ resource "aws_apigatewayv2_authorizer" "cognito" {
   }
 }
 
-# More specific than the "ANY /{proxy+}" catch-all above, so these four
-# win for exactly these paths; everything else (including GET /me/alerts
+# More specific than the "ANY /{proxy+}" catch-all above, so these win
+# for exactly these paths; everything else (including GET /me/alerts
 # itself if hit with the wrong method) still falls through to the public
 # catch-all, which 404s it as "no route" rather than silently allowing
 # an unauthenticated method through.
@@ -137,6 +137,33 @@ resource "aws_apigatewayv2_route" "profile" {
   for_each  = toset(["GET", "PUT"])
   api_id    = aws_apigatewayv2_api.api.id
   route_key = "${each.value} /api/me/profile"
+  target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+}
+
+# The signed-in reader's saved listings. Behind the same authorizer for
+# the same reason as the two above: per-user and writable.
+#
+# One route for the collection and one for a single id, mirroring the
+# alert routes rather than inventing a second shape. The id path carries
+# PUT and DELETE and no POST: saving a listing is idempotent, and a
+# reader clicking a star twice in a second should not create two of
+# anything.
+resource "aws_apigatewayv2_route" "saved_list" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "GET /api/me/saved"
+  target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
+}
+
+resource "aws_apigatewayv2_route" "saved_item" {
+  for_each  = toset(["PUT", "DELETE"])
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "${each.value} /api/me/saved/{id}"
   target    = "integrations/${aws_apigatewayv2_integration.alerts.id}"
 
   authorization_type = "JWT"
