@@ -92,6 +92,17 @@
             </div>
           </section>
 
+          <!-- The listings this reader starred, from any device. They used
+               to live only in one browser's localStorage, so this section
+               could not have existed. -->
+          <section class="account-block">
+            <div class="account-block-head">
+              <h3 class="account-block-title">Saved listings</h3>
+              <span class="account-hint">Starred on any device</span>
+            </div>
+            <div id="saved-list"><p class="alerts-empty">Loading…</p></div>
+          </section>
+
           <!-- Same ids as the board's own alert panel, so app.js's
                renderAlertsList and wireAlertCreateForm drive this page
                too rather than a second implementation of the same form. -->

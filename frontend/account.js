@@ -258,6 +258,96 @@ function wireLeaving() {
   });
 }
 
+// Saved listings.
+//
+// Two requests, not one: the account only stores the ids, because a copy
+// of the listing itself would be stale the moment the job closed or
+// moved. The ids come from the account and the listings come from the
+// board's own endpoint, so what is shown here is always the live record.
+//
+// include_closed and include_outdated are both on deliberately. Someone
+// who saved a job wants to know it closed far more than they want a
+// tidy list, and the board hides closed rows by default.
+async function loadSaved() {
+  const host = $("saved-list");
+  if (!host) return;
+  let ids = [];
+  try {
+    const data = await authedFetch("/me/saved");
+    ids = (data.saved || []).map((r) => r.job_id).filter(Boolean);
+  } catch {
+    host.innerHTML = '<p class="alerts-empty">Could not load your saved listings.</p>';
+    return;
+  }
+  if (!ids.length) {
+    host.innerHTML = '<p class="alerts-empty">Nothing saved yet. Star a listing on the board and it will appear here.</p>';
+    return;
+  }
+  let jobs = [];
+  try {
+    const q = new URLSearchParams({
+      ids: ids.slice(0, 200).join(","),
+      include_closed: "1",
+      include_outdated: "1",
+      limit: "200",
+    });
+    jobs = (await getJSON(`/jobs?${q}`)).jobs || [];
+  } catch {
+    host.innerHTML = '<p class="alerts-empty">Could not load your saved listings.</p>';
+    return;
+  }
+  // The account knows the order they were starred in; the board returns
+  // them in its own. Restore the reader's order, newest first.
+  const rank = new Map(ids.map((id, i) => [id, i]));
+  jobs.sort((a, b) => (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999));
+  paintSaved(jobs);
+}
+
+function paintSaved(jobs) {
+  const host = $("saved-list");
+  host.innerHTML = jobs.map((j) => {
+    const where = [j.company_name || j.company_domain, j.location].filter(Boolean).join(" · ");
+    return `
+      <div class="alert-row" data-saved="${escapeHtml(j.id)}">
+        <div class="saved-main">
+          <a class="saved-title" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>
+          ${j.closed_at ? '<span class="badge closed" title="This listing is no longer open">Closed</span>' : ""}
+          <div class="saved-meta">${escapeHtml(where)}</div>
+        </div>
+        <button class="alert-delete" type="button" data-unsave="${escapeHtml(j.id)}" title="Remove from saved">✕</button>
+      </div>`;
+  }).join("");
+
+  host.querySelectorAll("[data-unsave]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.unsave;
+      btn.disabled = true;
+      try {
+        await authedFetch(`/me/saved/${encodeURIComponent(id)}`, { method: "DELETE" });
+      } catch {
+        btn.disabled = false;
+        setStatus("account-status", "Could not remove that listing.", true);
+        return;
+      }
+      // The board reads this same list out of localStorage, so removing
+      // it here has to remove it there too, or the star would still be
+      // lit the next time this reader opens the board in this browser.
+      try {
+        const key = "iljobs_starred";
+        const local = new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+        local.delete(id);
+        localStorage.setItem(key, JSON.stringify([...local]));
+      } catch {
+        // Private browsing or a full quota. The account is the record
+        // that matters; this copy is a convenience.
+      }
+      const row = btn.closest("[data-saved]");
+      if (row) row.remove();
+      if (!$("saved-list").querySelector("[data-saved]")) loadSaved();
+    });
+  });
+}
+
 async function bootAccount() {
   const tokens = getAuthTokens();
   if (!tokens?.id_token) {
@@ -275,6 +365,9 @@ async function bootAccount() {
   wireProfile();
   paintProfile(loaded.profile);
   await wireAlerts();
+  // Last, and not awaited by anything above it: two requests that only
+  // fill one block, so nothing else on the page should wait on them.
+  loadSaved();
 }
 
 bootAccount();

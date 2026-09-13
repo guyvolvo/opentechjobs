@@ -346,6 +346,24 @@ button, input, select {
 }
 .alert-row:last-child { border-bottom: none; }
 
+/* A saved listing reuses .alert-row, because it is the same object on
+   this page: one line, a label on the left, one control on the right.
+   The title is a link out to the posting rather than a button, since
+   there is nothing to edit here, only somewhere to go. */
+.saved-main { min-width: 0; }
+.saved-title {
+  font-weight: 600;
+  color: var(--black);
+  text-decoration: none;
+}
+.saved-title:hover { color: var(--green); text-decoration: underline; }
+.saved-meta {
+  color: var(--grey);
+  font-size: 12px;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
 /* A button, not a span: clicking the summary is how you edit the alert,
    so it has to be reachable by keyboard and announce itself as a
    control. Styled back down to look like the line of text it replaced,
