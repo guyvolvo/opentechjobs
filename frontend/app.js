@@ -2146,11 +2146,11 @@ async function openJobDetail(id) {
     : `<div class="loading-state">Loading job…</div>`;
   if (known) wireJobDetailPanel(known);
 
-  // Lock the page behind the sheet so the sheet's own scroll doesn't
-  // also scroll the list underneath, and slide it in on the next frame.
-  // The class goes on after hidden=false has painted, or there's no
-  // off-screen starting position for the transition to animate from.
-  document.body.style.overflow = "hidden";
+  // Slide it in on the next frame. The class goes on after hidden=false
+  // has painted, or there's no off-screen starting position for the
+  // transition to animate from. The page behind is deliberately not
+  // scroll-locked, so the board keeps scrolling under the pointer (see
+  // .job-detail in style.css).
   requestAnimationFrame(() => {
     panel.classList.add("open");
     document.getElementById("job-scrim")?.classList.add("open");
@@ -2187,7 +2187,6 @@ function closeJobDetail() {
   const panel = document.getElementById("job-detail");
   panel.classList.remove("open");
   document.getElementById("job-scrim")?.classList.remove("open");
-  document.body.style.overflow = "";
   // Delayed to match style.css's 0.25s slide-out transition -- an
   // immediate hidden=true would cut straight to display:none, same as
   // no animation at all. Cleared by the next openJobDetail (see its

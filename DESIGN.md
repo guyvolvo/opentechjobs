@@ -264,10 +264,12 @@ the page keeps scaling with viewport width all the way to ultra-wide
 instead of plateauing inside a fixed box.
 
 The job detail panel is always a sheet over the board, never in the
-page's flow. Above 960px it slides in from the right at
-`clamp(380px, 46vw, 560px)` and covers the Market Stats column; below
-960px it is full-screen and swipe-to-dismiss. Both lock the page's
-scroll and dim it with `--scrim`. Above 1300px it used to be a sticky
+page's flow. Above 960px it slides in from the right, as wide as the
+Market Stats column plus 260px, so it covers the statistics and the
+Saved and Reset filters; below 960px it is full-screen and
+swipe-to-dismiss. Both dim the board with `--scrim` without locking it:
+the wheel scrolls the board when the pointer is over the board and the
+sheet when it is over the sheet. Above 1300px it used to be a sticky
 column squeezed in beside the list, which left the description too
 little room, and before that a stacked panel below the entire list,
 which scrolled the reader to the footer. Being out of the flow is the

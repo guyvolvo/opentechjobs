@@ -939,16 +939,27 @@ button, input, select {
    Stats. Reported live: the laptop sheet, which covers the statistics
    column instead, had room for the description and the desktop column
    read as cramped. So desktop gets the laptop layout. Below 960px it
-   becomes the full-screen bottom sheet (see the responsive block). */
+   becomes the full-screen bottom sheet (see the responsive block).
+
+   Width is the statistics column (the same clamp .workspace uses) plus
+   260px, which is enough to also cover the Saved and Reset filters at
+   the end of the filter row. Measured: covering Saved takes 677px at a
+   1566px viewport and 697px from 1798px up, where the statistics column
+   stops growing. Asked for as "a little bigger", so no more than that.
+
+   The page behind is not scroll-locked. The wheel scrolls whichever of
+   the two the pointer is over, and overscroll-behavior stops a scroll
+   that reaches the end of the sheet from carrying on into the board. */
 .job-detail {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: auto;
-  width: clamp(380px, 46vw, 560px);
+  width: calc(clamp(360px, 28vw, 460px) + 260px);
   min-width: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   z-index: 20; /* above .topbar's 10 */
   background: var(--white);
   border: 0 solid var(--black);
@@ -961,10 +972,11 @@ button, input, select {
 .job-detail[hidden] { display: none; }
 
 /* Not a shadow and not elevation (see DESIGN.md's No-Shadow Rule),
-   which is why it is a flat tint rather than a gradient falloff. The
-   board behind the sheet is scroll-locked while it is up, so without
-   something marking it as inert the page reads as broken. Clicking it
-   closes, the usual escape hatch for anything covering the page.
+   which is why it is a flat tint rather than a gradient falloff. It
+   marks the board as behind the sheet while it is up. The board still
+   scrolls under it, since a wheel event over a fixed element with
+   nothing to scroll falls through to the page. Clicking it closes, the
+   usual escape hatch for anything covering the page.
    Opacity rather than display carries the fade, since display can't
    transition. */
 #job-scrim {
