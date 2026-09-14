@@ -1157,6 +1157,35 @@ def _normalize_date(v: Any) -> str | None:
         return None
 
 
+def _greenhouse_distinct(jobs: list) -> list:
+    """One posting per job, where a board posted the same job twice.
+
+    Greenhouse keeps a job and its postings apart, and a company can
+    publish two postings of one job to the same board. Fireblocks did:
+    "Information Security Engineer", requisition K555, two posting ids,
+    identical text, shown twice on the board. Reported live.
+
+    Keyed on the internal job id AND title AND location. The id alone is
+    not enough: a job hiring in three cities is one internal job with a
+    posting per city, and a fifth of all postings in a 53-board sample
+    share an id that way. The full key matched 6 of 2,268. The earliest
+    published posting is kept, the lower id on a tie, so the choice holds
+    from one poll to the next.
+    """
+    def order(j):
+        return (str(j.get("first_published") or ""), int(j.get("id") or 0))
+
+    kept: dict = {}
+    for j in sorted(jobs, key=order):
+        internal = j.get("internal_job_id")
+        key = (internal, _txt(j.get("title")), _txt((j.get("location") or {}).get("name")))
+        if internal is None:
+            key = ("posting", j.get("id"))
+        kept.setdefault(key, j)
+    wanted = {id(j) for j in kept.values()}
+    return [j for j in jobs if id(j) in wanted]
+
+
 def f_greenhouse(sess, token):
     d = get_json(sess, f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true")
     if not isinstance(d, dict) or "jobs" not in d:
@@ -1165,7 +1194,8 @@ def f_greenhouse(sess, token):
                 _txt(j.get("location")), _txt(j.get("absolute_url")),
                 _normalize_date(j.get("updated_at")),
                 _txt((j.get("departments") or [{}])[0].get("name")) or None,
-                len(_txt(j.get("content"))), _clean_text(j.get("content"))) for j in d["jobs"]]
+                len(_txt(j.get("content"))), _clean_text(j.get("content")))
+            for j in _greenhouse_distinct(d["jobs"])]
 
 
 def f_lever(sess, token):
