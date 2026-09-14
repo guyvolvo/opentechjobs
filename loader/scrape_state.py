@@ -77,7 +77,13 @@ JITTER = 0.35
 # 1,200 is roughly 25 seconds of sweeping, against that 200-second
 # ceiling. Generous margin, and still well above the ~850 a converged
 # steady state should actually ask for.
-MAX_PER_SWEEP = 1200
+# 600, down from 1200. A sweep that cannot finish saves nothing, so every
+# board it meant to poll is still due next time and that sweep cannot
+# finish either. Measured 2026-09-14: 1,200 due boards took 171s from a
+# desk and over 200s in the Lambda, and the sweep failed every run for
+# 45 minutes. Half the batch finishes, saves its state, and the backlog
+# drains across runs instead of blocking all of them.
+MAX_PER_SWEEP = 600
 
 _VALIDATORS = ("etag", "last_modified", "content_hash")
 

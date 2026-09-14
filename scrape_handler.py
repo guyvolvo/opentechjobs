@@ -196,7 +196,12 @@ def lambda_handler(event, context):
     # memory x duration, not the ceiling itself.
     probe = subprocess.run(
         [sys.executable, str(ROOT / "probe.py"), "--known", str(shard_path), "--json"],
-        capture_output=True, text=True, timeout=200,
+        # 420, not 200. On 2026-09-14 a busy hour left more boards due than a
+        # 200s run could poll; each run timed out, saved no poll state, and so
+        # left every board still due for the next, which timed out the same
+        # way. The pipeline showed offline for 45 minutes. The Lambda allows
+        # 600s and all that follows the poll is a small fragment write.
+        capture_output=True, text=True, timeout=420,
     )
     if probe.stderr:
         print(probe.stderr)
