@@ -1,0 +1,10 @@
+# Everything public is open to every crawler, AI crawlers included.
+# /api/ is JSON for programs, not pages, so crawlers skip it, except the
+# human-readable reference at /api/help. /account is also marked noindex
+# on the page itself; it is left crawlable so crawlers can see that.
+User-agent: *
+Allow: /
+Allow: /api/help
+Disallow: /api/
+
+Sitemap: https://opentechjobs.org/sitemap.xml

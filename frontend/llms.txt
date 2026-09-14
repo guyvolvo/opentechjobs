@@ -1,0 +1,29 @@
+# OpenTechJobs.org
+
+> An open-source tech job board focused on Israel. It pulls listings straight from the hiring systems of about 3,450 companies (Greenhouse, Lever, Ashby, SmartRecruiters, Workday and others) every 5 minutes, so a listing here is the employer's own posting, not a repost. The same companies' roles in other countries are listed too. The data is free to use through a public JSON API with no key.
+
+Every listing links to the employer's own application page. Salaries come in three kinds, and the API says which one you are looking at in `salary_source`: `disclosed` is the employer's published range, `table` is our estimate for the role and seniority in the Israeli market, and `estimated` is our estimate from what comparable roles pay at that company and location. Only `disclosed` comes from the employer.
+
+## Pages
+
+- [Job board](https://opentechjobs.org/): search and filter open listings, with live hiring statistics for the current search.
+- [Explore](https://opentechjobs.org/stats): query every tracked listing with filters and groupings, or with SQL, in the browser.
+- [API reference](https://opentechjobs.org/api/help): every public endpoint and parameter.
+- [Privacy policy](https://opentechjobs.org/privacy): what the optional alerts feature stores.
+- [Source code](https://github.com/guyvolvo/opentechjobs): MIT licensed.
+
+## API
+
+All endpoints below are public, free and need no key. Responses are JSON.
+
+- [GET /api/jobs](https://opentechjobs.org/api/jobs?country=IL&search=devops&limit=20): open listings. `search` takes up to 10 words that must all appear ("quote a phrase" to keep it together). `country` takes ISO 3166 alpha-2 codes, comma-separated (`IL,DE`). `city` takes city names, comma-separated. `company` takes company domains. `department`, `seniority` and `workplace` (`remote`, `hybrid`, `onsite`) narrow further. `skills` takes a comma-separated skill list, and with `sort=match` ranks listings by how many of those skills they mention. Other `sort` values are `age` (default), `company`, `title`, `location` and `ats`. `limit` is 1 to 500, `offset` pages through.
+- [GET /api/jobs/{id}](https://opentechjobs.org/api/help): one listing, with its full description.
+- [GET /api/companies](https://opentechjobs.org/api/companies): every tracked company and the hiring system it uses.
+- [GET /api/stats](https://opentechjobs.org/api/stats): board-wide numbers, including open roles, new and closed listings, top hiring companies, categories and seniority.
+- [GET /api/facets](https://opentechjobs.org/api/facets): the filter values that currently have listings, including countries and their cities.
+- [GET /api/health](https://opentechjobs.org/api/health): how fresh the data is.
+
+## Optional
+
+- [GET /api/pipeline-status](https://opentechjobs.org/api/pipeline-status): scraper pipeline state.
+- /api/me/alerts: saved searches that email new matches. Requires signing in.
