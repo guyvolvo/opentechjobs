@@ -388,7 +388,7 @@ actually follow the curve.
 
 ### Chips
 - **Style** (`.chip`): signal-green background, paper text, uppercase,
-  700 weight, 11px, 0.06em tracking, 4px radius, a single filter-state
+  700 weight, 12px, 0.06em tracking, 4px radius, a single filter-state
   pill (e.g. the active company filter). Hover inverts to ink.
 
 ### View switch and match explanation

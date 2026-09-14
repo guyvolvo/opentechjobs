@@ -1,226 +1,322 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-10T10:48:33Z",
+  "generatedAt": "2026-09-14T11:57:18Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
       "paper": {
         "role": "neutral",
         "displayName": "Paper",
-        "canonical": "#f3f6e4",
+        "canonical": "#f2f0ef",
+        "oklch": "oklch(95.6% 0.003 48.7)",
         "tonalRamp": [
-          "#232922",
-          "#3d4634",
-          "#586346",
-          "#747f57",
-          "#909c6b",
-          "#adba82",
-          "#cad79c",
-          "#e9f5c0"
-        ]
+          "#0c0b0a",
+          "#262524",
+          "#434241",
+          "#626160",
+          "#848281",
+          "#a6a4a4",
+          "#cac9c8",
+          "#f0eeed"
+        ],
+        "note": "Dark mode #17181c."
       },
       "ink": {
         "role": "neutral",
         "displayName": "Ink",
         "canonical": "#40513b",
+        "oklch": "oklch(41.4% 0.042 138.6)",
         "tonalRamp": [
-          "#141c12",
-          "#233020",
-          "#324430",
-          "#435840",
-          "#546c51",
-          "#688164",
-          "#7f9679",
-          "#98ac91"
-        ]
+          "#030f01",
+          "#1a2a16",
+          "#374732",
+          "#556750",
+          "#768971",
+          "#98ac93",
+          "#bcd0b6",
+          "#e1f6db"
+        ],
+        "note": "Dark mode #ededec."
       },
       "signal-green": {
         "role": "primary",
         "displayName": "Signal Green",
         "canonical": "#609966",
+        "oklch": "oklch(63.0% 0.097 146.8)",
         "tonalRamp": [
-          "#193b1e",
-          "#2c5c32",
-          "#417d47",
-          "#549e5b",
-          "#69b06f",
-          "#8bc490",
-          "#b1d9b4",
-          "#daecdb"
-        ]
+          "#001400",
+          "#003002",
+          "#154f20",
+          "#38703f",
+          "#59925f",
+          "#7cb681",
+          "#9fdba4",
+          "#c4ffc9"
+        ],
+        "note": "Dark mode #2fae60. Bars, focus rings, checkboxes; never text on light paper."
       },
       "muted-grey": {
         "role": "neutral",
         "displayName": "Muted Grey",
         "canonical": "#40513b",
+        "oklch": "oklch(41.4% 0.042 138.6)",
         "tonalRamp": [
-          "#141c12",
-          "#233020",
-          "#324430",
-          "#435840",
-          "#546c51",
-          "#688164",
-          "#7f9679",
-          "#98ac91"
-        ]
+          "#030f01",
+          "#1a2a16",
+          "#374732",
+          "#556750",
+          "#768971",
+          "#98ac93",
+          "#bcd0b6",
+          "#e1f6db"
+        ],
+        "note": "Same as Ink in light mode; dark mode #9a9a9a."
       },
       "hairline-grey": {
         "role": "neutral",
         "displayName": "Hairline Grey",
-        "canonical": "#dce8ce",
+        "canonical": "#d2cfcb",
+        "oklch": "oklch(85.6% 0.006 75.4)",
         "tonalRamp": [
-          "#5a6b4c",
-          "#7e9269",
-          "#a2b78c",
-          "#c0d0ac",
-          "#dce8ce",
-          "#e6efdc",
-          "#f0f6ea",
-          "#f9fbf5"
-        ]
+          "#0d0b08",
+          "#272522",
+          "#44423e",
+          "#63615d",
+          "#85827e",
+          "#a7a4a1",
+          "#ccc9c5",
+          "#f1eeea"
+        ],
+        "note": "Dark mode #2b2c31."
       },
       "alert-red": {
         "role": "error",
         "displayName": "Alert Red",
         "canonical": "#b8362c",
+        "oklch": "oklch(52.7% 0.168 28.6)",
         "tonalRamp": [
-          "#3e120f",
-          "#73221c",
-          "#a53027",
-          "#d04439",
-          "#dc736b",
-          "#e69e98",
-          "#f0c5c1",
-          "#faecea"
-        ]
+          "#380000",
+          "#5f0000",
+          "#850000",
+          "#ac2a22",
+          "#d45144",
+          "#fd7566",
+          "#ff9a89",
+          "#ffc0ad"
+        ],
+        "note": "Offline wordmark and the error banner only."
       },
       "hover-tint": {
         "role": "neutral",
         "displayName": "Hover Tint",
-        "canonical": "#e9efdb",
+        "canonical": "#e8e5e2",
+        "oklch": "oklch(92.3% 0.005 67.8)",
         "tonalRamp": [
-          "#4c583e",
-          "#6c7a58",
-          "#8c9c76",
-          "#a8b992",
-          "#c4d1af",
-          "#dbe4c8",
-          "#e9efdb",
-          "#f5f8ee"
-        ]
+          "#0d0b09",
+          "#272522",
+          "#44413f",
+          "#63615e",
+          "#84827f",
+          "#a7a4a2",
+          "#cbc8c6",
+          "#f1eeeb"
+        ],
+        "note": "Menu option hover. Dark mode #1e1f24."
+      },
+      "row-hover": {
+        "role": "neutral",
+        "displayName": "Row Hover",
+        "canonical": "#e6e3df",
+        "oklch": "oklch(91.7% 0.006 75.4)",
+        "tonalRamp": [
+          "#0d0b08",
+          "#272522",
+          "#44423e",
+          "#63615d",
+          "#84827e",
+          "#a7a4a1",
+          "#cbc9c5",
+          "#f1eeea"
+        ],
+        "note": "Job rows only. Dark mode #23252b."
+      },
+      "row-selected": {
+        "role": "neutral",
+        "displayName": "Row Selected",
+        "canonical": "#dce8d4",
+        "oklch": "oklch(91.6% 0.030 132.6)",
+        "tonalRamp": [
+          "#070e03",
+          "#1f2819",
+          "#3c4635",
+          "#5b6554",
+          "#7c8674",
+          "#9ea996",
+          "#c2ceba",
+          "#e7f3df"
+        ],
+        "note": "The open listing's row. Dark mode #1d3024."
+      },
+      "green-text": {
+        "role": "primary",
+        "displayName": "Green Text",
+        "canonical": "#3f6f45",
+        "oklch": "oklch(49.6% 0.085 147.1)",
+        "tonalRamp": [
+          "#001300",
+          "#002f08",
+          "#1e4e26",
+          "#3e6e44",
+          "#5f9064",
+          "#81b486",
+          "#a5d9a9",
+          "#caffce"
+        ],
+        "note": "Signal Green wherever text is involved, 5.18:1 on paper. Dark mode same as Signal Green."
       },
       "aws-operational": {
         "role": "status",
         "displayName": "Operational",
         "canonical": "#248823",
+        "oklch": "oklch(55.0% 0.164 142.8)",
         "tonalRamp": [
-          "#0b2c0b",
-          "#134a13",
-          "#1a6619",
-          "#248823",
-          "#3fb950",
-          "#63c974",
-          "#93dc9e",
-          "#c6efcc"
-        ]
+          "#001600",
+          "#003500",
+          "#005500",
+          "#047709",
+          "#399a37",
+          "#5fbe5b",
+          "#84e47f",
+          "#aaffa4"
+        ],
+        "note": "Pipeline state only. Dark mode #3fb950."
       },
       "aws-degraded": {
         "role": "status",
         "displayName": "Degraded",
         "canonical": "#ff9900",
+        "oklch": "oklch(77.2% 0.174 64.6)",
         "tonalRamp": [
-          "#4d2e00",
-          "#804d00",
-          "#b36b00",
-          "#ff9900",
-          "#ffab33",
-          "#ffbd5c",
-          "#ffd28f",
-          "#ffe8c2"
-        ]
+          "#320000",
+          "#560000",
+          "#7b1b00",
+          "#a04100",
+          "#c66500",
+          "#ed8900",
+          "#ffae32",
+          "#ffd361"
+        ],
+        "note": "Pipeline state only. Dark mode #ffab33."
       },
       "aws-outage": {
         "role": "status",
         "displayName": "Disrupted",
         "canonical": "#d13212",
+        "oklch": "oklch(56.5% 0.200 32.7)",
         "tonalRamp": [
-          "#3f0f05",
-          "#6b1a08",
-          "#9c260c",
-          "#d13212",
-          "#ff5d47",
-          "#ff8371",
-          "#ffab9e",
-          "#ffd4cd"
-        ]
+          "#3f0000",
+          "#670000",
+          "#8f0000",
+          "#b70c00",
+          "#e04225",
+          "#ff6a4b",
+          "#ff9070",
+          "#ffb694"
+        ],
+        "note": "Pipeline state only. Dark mode #ff5d47."
       },
       "aws-maintenance": {
         "role": "status",
         "displayName": "Scheduled",
         "canonical": "#0073bb",
+        "oklch": "oklch(54.0% 0.141 246.7)",
         "tonalRamp": [
-          "#00243b",
-          "#003e63",
-          "#00588c",
-          "#0073bb",
-          "#539fe5",
-          "#7bb6ec",
-          "#a8cef3",
-          "#d4e7f9"
-        ]
+          "#000042",
+          "#002164",
+          "#004387",
+          "#0065ac",
+          "#2888d1",
+          "#51acf8",
+          "#77d1ff",
+          "#9cf7ff"
+        ],
+        "note": "Pipeline state only. Dark mode #539fe5."
+      },
+      "scrim": {
+        "role": "overlay",
+        "displayName": "Scrim",
+        "canonical": "rgba(38, 36, 34, 0.32)",
+        "note": "Dims the board behind the job sheet and nothing else. Dark mode rgba(0, 0, 0, 0.58). Not elevation."
       }
     },
     "typographyMeta": {
       "display-wordmark": {
         "displayName": "Display / Wordmark",
-        "purpose": "The topbar wordmark only (\"OpenMarket.IL\"). 13px below the 640px breakpoint."
+        "purpose": "The topbar wordmark only. 13px below the 640px breakpoint."
       },
       "display-section-title": {
         "displayName": "Display / Section Title",
-        "purpose": "The two section titles (\"Job Board\" / \"Market Stats\") only -- never at table-row or data-dense sizes."
+        "purpose": "Page titles only, sentence case. 24px inside the Statistics column. Never at data-dense sizes."
       },
       "title-metric": {
         "displayName": "Title / Metric",
-        "purpose": "The large number on a metric tile -- the one place body copy gets genuinely large."
-      },
-      "subtitle": {
-        "displayName": "Subtitle",
-        "purpose": "The job-detail panel's title (.job-detail-title) -- more prominent than table-row body text, without competing with the two display-face headings."
+        "purpose": "The large number on a metric tile, tabular figures."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Filters, table cells, panel prose, buttons -- everything data-dense."
+        "purpose": "Filters, table cells, panel prose, bar-chart labels. 13 to 14px."
+      },
+      "ui": {
+        "displayName": "UI",
+        "purpose": "Source Sans 3 for controls: buttons, inputs, selects, the view switch, chips and badges. 13px, sentence case."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Uppercase micro-labels: column headers, panel titles, chips, result count, topnav."
+        "purpose": "Column headers, panel titles, the result count. Sentence case, normal tracking; nothing is uppercased by CSS."
       }
     },
     "shadows": [],
     "motion": [
       {
-        "name": "torch-flicker",
-        "value": "steps(1) 1.6s infinite, hand-placed irregular opacity keyframes (6%, 11%, 19%, 27%, 33%, 41%, 52%, 58%, 69%, 74%, 83%, 89%)",
-        "purpose": "Live-status dot -- jump-cut flicker meant to read as a torch/redstone lamp, not a smooth pulse. Killed outright (not still pulsing) when offline."
+        "name": "ticker-scroll",
+        "value": "translateX(0) to translateX(-50%), linear 70s, paused on hover and keyboard focus",
+        "purpose": "The topbar ticker. Sits at 80% opacity until pointer or focus is on it; keeps moving with reduced motion on."
       },
       {
-        "name": "ticker-scroll",
-        "value": "translateX(0) to translateX(-50%), linear 40s, paused on hover",
-        "purpose": "Seamless looping marquee of the board's own current top listings between the wordmark and the online/offline status."
+        "name": "stats-collapse",
+        "value": "grid-template-columns 0.35s ease; content opacity 0.2s ease",
+        "purpose": "Folding the Statistics column to its 62px rail. Applied before first paint on a returning visit, so it never animates on load."
+      },
+      {
+        "name": "skills-fold",
+        "value": "grid-template-rows 0fr to 1fr, 0.25s ease; chevron rotate 180deg 0.25s ease",
+        "purpose": "The My skills toggle in Best matches, opening downward to its content's own height."
+      },
+      {
+        "name": "status-updating-spin",
+        "value": "rotate 360deg, linear, 2.4s per revolution",
+        "purpose": "The Updating status ring. Keeps turning with reduced motion, since a stopped spinner reads as a hung one."
+      },
+      {
+        "name": "menu-chevron",
+        "value": "transform 120ms ease",
+        "purpose": "Multi-select group chevrons turning to show an expanded country."
       }
     ],
     "breakpoints": [
       {
-        "name": "tablet-stack",
-        "value": "960px"
+        "name": "stack",
+        "value": "960px",
+        "purpose": "Workspace stacks (stats under board); the job sheet goes full-screen; ticker hides; no Statistics toggle."
       },
       {
-        "name": "phone-stack",
-        "value": "640px"
+        "name": "tablet",
+        "value": "720px"
       },
       {
-        "name": "filter-bar-wrap",
-        "value": "900px (container query on #board, not viewport -- the two-column workspace grid decouples #board's actual width from the viewport width)"
+        "name": "phone",
+        "value": "640px",
+        "purpose": "Filter row wraps to one full-width field per row; wordmark drops to 13px."
       }
     ]
   },
@@ -229,83 +325,112 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Default action button -- ink surface, inverts to signal green on hover.",
-      "html": "<button class=\"ds-btn-primary\">Reset</button>",
-      "css": ".ds-btn-primary { border: 2px solid var(--black); background: var(--black); color: var(--white); height: 38px; padding: 0 16px; font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer; } .ds-btn-primary:hover, .ds-btn-primary:focus-visible { background: var(--green); border-color: var(--green); }"
+      "description": "Default action. Ink surface, 4px radius, flips to Signal Green on hover.",
+      "html": "<button class=\"ds-btn-primary\">Apply filters</button>",
+      "css": ".ds-btn-primary { border: 2px solid var(--black); background: var(--black); color: var(--white); height: 38px; padding: 0 16px; border-radius: 4px; font-family: var(--font-ui); font-size: 13px; font-weight: 700; cursor: pointer; } .ds-btn-primary:hover { background: var(--green); border-color: var(--green); } .ds-btn-primary:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "Secondary action button -- paper surface, fully inverts to ink on hover (mirror of Primary's hover, not a separate treatment).",
+      "description": "Secondary action. Paper surface, inverts fully to ink on hover.",
       "html": "<button class=\"ds-btn-ghost\">Reset</button>",
-      "css": ".ds-btn-ghost { border: 2px solid var(--black); background: var(--white); color: var(--black); height: 38px; padding: 0 16px; font-family: var(--font); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; cursor: pointer; } .ds-btn-ghost:hover, .ds-btn-ghost:focus-visible { background: var(--black); color: var(--white); border-color: var(--black); }"
+      "css": ".ds-btn-ghost { border: 2px solid var(--black); background: var(--white); color: var(--black); height: 38px; padding: 0 16px; border-radius: 4px; font-family: var(--font-ui); font-size: 13px; font-weight: 700; cursor: pointer; } .ds-btn-ghost:hover { background: var(--black); color: var(--white); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }"
+    },
+    {
+      "name": "Apply Link",
+      "kind": "button",
+      "refersTo": null,
+      "description": "The row's primary action, in Green Text so the label keeps its contrast.",
+      "html": "<a class=\"ds-apply\" href=\"#\">Apply ↗</a>",
+      "css": ".ds-apply { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 4px; background: var(--green-text); color: var(--white); font-family: var(--font-ui); font-size: 13px; font-weight: 700; text-decoration: none; } .ds-apply:hover { background: var(--black); } .ds-apply:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }"
     },
     {
       "name": "Filter Chip",
       "kind": "chip",
       "refersTo": "chip",
-      "description": "Active single-value filter pill (e.g. the company filter) -- green by default, inverts to ink on hover.",
-      "html": "<button class=\"ds-chip\">snyk.io <span aria-hidden=\"true\">✕</span></button>",
-      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--green); color: var(--white); border: 2px solid var(--green); font-family: var(--font); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 10px; cursor: pointer; } .ds-chip:hover, .ds-chip:focus-visible { background: var(--black); border-color: var(--black); }"
+      "description": "A single active filter, e.g. the company filter. Green by default, ink on hover.",
+      "html": "<button class=\"ds-chip\">Wix <span aria-hidden=\"true\">✕</span></button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--green-text); color: var(--white); border: 2px solid var(--green-text); border-radius: 4px; font-family: var(--font-ui); font-size: 12px; font-weight: 700; padding: 6px 10px; cursor: pointer; } .ds-chip:hover { background: var(--black); border-color: var(--black); } .ds-chip:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }"
     },
     {
-      "name": "Text Input",
+      "name": "Filter Toggle",
       "kind": "input",
-      "refersTo": "input-text",
-      "description": "Search/keyword filter field -- 2px ink border, inset green focus ring.",
-      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"SEARCH TITLE, COMPANY, LOCATION…\" />",
-      "css": ".ds-input { border: 2px solid var(--black); background: var(--white); color: var(--black); padding: 9px 10px; height: 38px; width: 100%; font-family: var(--font); font-size: 13px; } .ds-input:focus { outline: 2px solid var(--green); outline-offset: -2px; }"
+      "refersTo": null,
+      "description": "A filter-bar dropdown toggle. 1.5px ink border, turns Green Text and bold when a value is picked.",
+      "html": "<button class=\"ds-ms-toggle\">Date posted <svg viewBox=\"0 0 10 6\" width=\"10\" height=\"6\" aria-hidden=\"true\"><path d=\"M1 1l4 4 4-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button> <button class=\"ds-ms-toggle ds-on\">Israel <svg viewBox=\"0 0 10 6\" width=\"10\" height=\"6\" aria-hidden=\"true\"><path d=\"M1 1l4 4 4-4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button>",
+      "css": ".ds-ms-toggle { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; height: 38px; min-width: 120px; padding: 0 12px; border: 1.5px solid var(--black); border-radius: 4px; background: var(--white); color: var(--black); font-family: var(--font-ui); font-size: 13px; cursor: pointer; } .ds-ms-toggle.ds-on { color: var(--green-text); border-color: var(--green-text); font-weight: 700; } .ds-ms-toggle:hover { background: var(--hover-bg); } .ds-ms-toggle:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": null,
+      "description": "The board's search field. Inset green focus ring that reads as a border change, not a halo.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search\" />",
+      "css": ".ds-input { height: 38px; width: 100%; padding: 0 12px; border: 1.5px solid var(--black); border-radius: 4px; background: var(--white); color: var(--black); font-family: var(--font-ui); font-size: 13px; } .ds-input:focus { outline: 2px solid var(--green); outline-offset: -2px; }"
+    },
+    {
+      "name": "View Switch",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "All listings, Best matches, Saved. One segmented control; the active segment is filled ink.",
+      "html": "<div class=\"ds-seg\" role=\"tablist\"><button class=\"ds-seg-btn\">All listings</button><button class=\"ds-seg-btn ds-active\" aria-selected=\"true\">Best matches</button><button class=\"ds-seg-btn\">★ Saved</button></div>",
+      "css": ".ds-seg { display: inline-flex; border: 1.5px solid var(--black); border-radius: 4px; overflow: hidden; } .ds-seg-btn { height: 30px; padding: 0 12px; border: 0; background: var(--white); color: var(--black); font-family: var(--font-ui); font-size: 13px; font-weight: 700; cursor: pointer; } .ds-seg-btn + .ds-seg-btn { border-left: 1.5px solid var(--black); } .ds-seg-btn.ds-active { background: var(--black); color: var(--white); } .ds-seg-btn:not(.ds-active):hover { background: var(--hover-bg); } .ds-seg-btn:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }"
+    },
+    {
+      "name": "Match Line",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "A Best matches row: shared skills as chips on one line, missing skills as faded text, each cut to a +N when out of room.",
+      "html": "<div class=\"ds-match\"><span class=\"ds-match-count\">6 of your 14 skills</span><span class=\"ds-match-chip\">Python</span><span class=\"ds-match-chip\">AWS</span><span class=\"ds-match-chip\">Terraform</span><span class=\"ds-more\">+3</span></div><div class=\"ds-miss\">Missing skills: Go, Kafka, Redis <span class=\"ds-more\">+2</span></div>",
+      "css": ".ds-match, .ds-miss { display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; font-size: 12px; } .ds-match-count { font-weight: 700; color: var(--black); margin-right: 2px; } .ds-match-chip { font-family: var(--font-ui); font-weight: 700; color: var(--green-text); border: 2px solid var(--green-text); border-radius: 4px; padding: 1px 5px; } .ds-miss { margin-top: 4px; color: var(--grey); opacity: 0.7; } .ds-more { font-family: var(--font-ui); font-weight: 700; color: var(--grey); padding: 1px 2px; }"
     },
     {
       "name": "Metric Card",
       "kind": "card",
-      "refersTo": "metric-card",
-      "description": "One tile in the top metrics strip -- part of the black-hairline card grid, not individually bordered.",
-      "html": "<div class=\"ds-metric-card\"><div class=\"ds-metric-label\">Open Jobs</div><div class=\"ds-metric-value\">4,705</div></div>",
-      "css": ".ds-metric-card { background: var(--white); color: var(--black); padding: 18px 16px; min-height: 116px; display: flex; flex-direction: column; justify-content: space-between; } .ds-metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--grey); } .ds-metric-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 10px; color: var(--black); }"
+      "refersTo": null,
+      "description": "One Statistics tile. Sharp, laid on the 2px hairline grid rather than bordered itself.",
+      "html": "<div class=\"ds-metric-grid\"><div class=\"ds-metric-card\"><div class=\"ds-metric-label\">Open roles</div><div class=\"ds-metric-value\">986</div></div></div>",
+      "css": ".ds-metric-grid { display: grid; background: var(--grey-line); border: 2px solid var(--grey-line); border-radius: 4px; overflow: hidden; } .ds-metric-card { background: var(--white); color: var(--black); padding: 18px 16px; min-height: 116px; display: flex; flex-direction: column; justify-content: space-between; } .ds-metric-label { font-size: 12px; font-weight: 700; color: var(--grey); } .ds-metric-value { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--green-text); }"
     },
     {
       "name": "Status Glyph",
       "kind": "custom",
       "refersTo": null,
-      "description": "Signature pipeline-state indicator. Three states on AWS's service-health vocabulary: a tick in a ring while current, a bang past two missed write cycles, a cross past the freshness threshold. The shape carries the state, not the colour, so it survives greyscale, a red-green colourblind reader and the 13px the topbar renders it at. One sprite defined per document, referenced by <use> in both places the state appears. Replaced a square block that torch-flickered on steps(1) timing.",
-      "html": "<svg width=\"0\" height=\"0\" aria-hidden=\"true\"><symbol id=\"status-positive\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M7.7 12.3 10.7 15.3 16.4 9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></symbol></svg><svg class=\"ds-status-icon\" role=\"img\" aria-label=\"Operational\"><use href=\"#status-positive\"></use></svg>",
-      "css": ".ds-status-icon { width: 13px; height: 13px; display: block; color: var(--aws-operational); } .ds-status-icon.ds-degraded { color: var(--aws-degraded); } .ds-status-icon.ds-outage { color: var(--aws-outage); }"
-    },
-    {
-      "name": "GitHub Icon Link",
-      "kind": "custom",
-      "refersTo": null,
-      "description": "Replaces a text \"source\" link -- inline SVG, ink by default, signal green on hover, sends visitors to the repo.",
-      "html": "<a class=\"ds-icon-link\" href=\"#\" aria-label=\"View source on GitHub\"><svg viewBox=\"0 0 16 16\" width=\"18\" height=\"18\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z\"/></svg></a>",
-      "css": ".ds-icon-link { display: inline-flex; align-items: center; color: var(--black); } .ds-icon-link:hover { color: var(--green); }"
+      "description": "Pipeline state. A tick, bang or cross in a ring, or a turning ring while updating. The shape carries the state, not the colour.",
+      "html": "<svg width=\"0\" height=\"0\" aria-hidden=\"true\"><symbol id=\"ds-status-positive\" viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/><path d=\"M7.7 12.3 10.7 15.3 16.4 9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></symbol></svg><span class=\"ds-status\"><svg class=\"ds-status-icon\" role=\"img\" aria-label=\"Live\"><use href=\"#ds-status-positive\"></use></svg>Live</span>",
+      "css": ".ds-status { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-ui); font-size: 13px; color: var(--black); } .ds-status-icon { width: 13px; height: 13px; color: var(--aws-operational); }"
     }
   ],
   "narrative": {
     "northStar": "The Exchange Ticker",
-    "overview": "A market terminal, not a careers site: sage-cream paper, deep forest-green ink, a single lighter green reserved for the one number or status that matters right now, and a scrolling headline strip up top like a ticker tape. Everything reads as a live instrument panel over a job market, not as a brand experience -- density and legibility win over warmth every time there's a conflict between them. The one indulgence is a single display face (Overused Grotesk, weight 400), kept to two places (the wordmark and the two section titles) so it reads as a signature, not a typeface choice bleeding into body text.",
+    "overview": "A market terminal, not a careers site: neutral paper, deep forest-green ink, a single lighter green reserved for the one number or status that matters right now, and a scrolling headline strip up top like a ticker tape. Everything reads as a live instrument panel over a job market, not as a brand experience. Density and legibility win over warmth every time there's a conflict between them. The one indulgence is a single display face (Overused Grotesk, weight 400), kept to two places (the wordmark and the two section titles) so it reads as a signature, not a typeface choice bleeding into body text.\n\nConfirmed visual rejections: no box-shadow used for depth, no decorative color, no third accent hue, no drop-in UI framework look. Every discrete bordered box (buttons, chips, badges, inputs, floating panels) uses a flat 4px radius. See Shapes below for exactly what stays sharp instead (grid-tile cards, the table, dividers) and why.",
     "keyCharacteristics": [
-      "Flat, two-tone (sage-cream/forest-green) surfaces with color used as signal, not decoration",
+      "Flat, two-tone (neutral paper/forest-green ink) surfaces with color used as signal, not decoration",
       "Depth built entirely from 2px hairline grids, never shadows",
       "One bold display face for brand moments; Helvetica for everything data-dense",
       "Light and dark are two deliberately tuned palettes, not a hex inversion",
-      "A live-status vocabulary (the ticker, the status-dot torch flicker) borrowed from terminals/dashboards, not marketing sites"
+      "A live-status vocabulary (the ticker, the status glyph) borrowed from terminals/dashboards and service-health pages, not marketing sites"
     ],
     "rules": [
       {
         "name": "The One Voice Rule",
-        "body": "Green marks exactly one \"this matters\" element at a time. If everything is green, nothing is -- it never appears as decoration, only on live status, primary metrics, and the handful of buttons/links that actually do something.",
+        "body": "Green marks exactly one \"this matters\" element at a time. If everything is green, nothing is. It never appears as decoration, only on live status, primary metrics, and the handful of buttons/links that actually do something.",
         "section": "colors"
       },
       {
         "name": "The Token Rule",
-        "body": "Light and dark mode are two independently tuned palettes, not a hex inversion of each other -- but every rule in the system still reads var(--white)/var(--black) (never a literal hex), so retuning either palette only ever means editing the two :root blocks. A hardcoded #fff/#000 anywhere breaks that.",
+        "body": "Light and dark mode are two independently tuned palettes, not a hex inversion of each other, but every rule in the system still reads `var(--white)`/`var(--black)` (never a literal hex), so retuning either palette only ever means editing the two `:root` blocks. A hardcoded `#fff`/`#000` anywhere breaks that.",
         "section": "colors"
       },
       {
-        "name": "The Two-Voice Rule",
-        "body": "Helvetica (via --font) carries everything dense; Overused Grotesk (via --font-display) is reserved for exactly two brand-level spots. No third typeface is part of the system.",
+        "name": "The Three-Voice Rule",
+        "body": "Helvetica (via `--font`) carries everything dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs, selects, the view switch, chips and badges. Overused Grotesk (via `--font-display`) is reserved for the wordmark and section titles. No fourth typeface.",
+        "section": "typography"
+      },
+      {
+        "name": "No forced capitals",
+        "body": "Nothing is uppercased by CSS, and labels are written in sentence case, status words included (\"Live\", \"Degraded\"). Uppercase with wide tracking read as shouting across a dense page, and at 10 to 11px it was the smallest text on it. Where other sections of this file still describe a label as uppercase or tracked, they predate this rule.",
         "section": "typography"
       },
       {
@@ -315,19 +440,19 @@
       }
     ],
     "dos": [
-      "Do keep border-radius at 0 everywhere, no exceptions.",
-      "Do build all depth/separation from the 2px black rule grid or a 1px hairline -- never a shadow.",
-      "Do read every color from a var(--token), never a literal hex, so retuning a palette only ever means editing the two :root blocks.",
+      "Do use 4px radius on every discrete bordered box (see Shapes above); keep it at 0 only for the grid-tile cards, table, and dividers that stay sharp there. Check with the user before adding a new sharp exception, not before rounding something new.",
+      "Do build all depth/separation from the 2px black rule grid or a 1px hairline, never a shadow.",
+      "Do read every color from a `var(--token)`, never a literal hex, so retuning a palette only ever means editing the two `:root` blocks.",
       "Do keep green to exactly one \"this matters most\" element at a time.",
-      "Do keep Overused Grotesk (display) scoped to the wordmark and the two section titles only -- never at data-dense sizes.",
-      "Do let --gutter's clamp() drive side padding instead of a fixed max-width container, so the page keeps scaling at ultra-wide widths.",
-      "Do give any element holding an unbreakable-width child (a curl command, a long label) min-width: 0 -- this codebase has hit the grid/flex default-overflow bug repeatedly and the fix is always this."
+      "Do keep Overused Grotesk (display) scoped to the wordmark and the two section titles only, never at data-dense sizes.",
+      "Do let `--gutter`'s `clamp()` drive side padding instead of a fixed `max-width` container, so the page keeps scaling at ultra-wide widths.",
+      "Do give any element holding an unbreakable-width child (a curl command, a long label) `min-width: 0`. This codebase has hit the grid/flex default-overflow bug repeatedly and the fix is always this."
     ],
     "donts": [
       "Don't add a second accent color. Signal Green is the only one; a second dilutes what green means everywhere else.",
-      "Don't use Alert Red outside the offline-status dot and the error-state banner -- it has exactly two meanings today.",
-      "Don't introduce a third typeface without folding it into the Two-Voice Rule as a named, scoped exception -- an unscoped one-off is exactly how \"two voices\" quietly becomes three.",
-      "Don't reach for box-shadow for elevation, ever, even subtly -- the one prior violation (a smoothly-pulsing circular status dot) was treated as a bug and corrected, not kept as a soft exception."
+      "Don't use Alert Red outside the error-state banner and the error-state banner. It has exactly two meanings today.",
+      "Don't introduce a third typeface without folding it into the Two-Voice Rule as a named, scoped exception (see the flagged `.api-path`/`.param` monospace usage in Typography above), an unscoped one-off is exactly how \"two voices\" quietly becomes three.",
+      "Don't reach for `box-shadow` for elevation, ever, even subtly. The one prior violation (a glowing, smoothly-pulsing status dot) was treated as a bug and corrected, not kept as a soft exception. The status glyph is round now and still obeys this: no fill, no shadow, no easing."
     ]
   }
 }
