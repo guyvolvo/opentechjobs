@@ -374,6 +374,17 @@ actually follow the curve.
   700 weight, 11px, 0.06em tracking, 4px radius, a single filter-state
   pill (e.g. the active company filter). Hover inverts to ink.
 
+### View switch and match explanation
+All listings, Best matches and Saved are one segmented control above the
+result count, the same `.seg` control as the Explore page. Filters apply
+in every view. Best matches only orders what they leave (the API's
+`skills_mode=rank`), so a role is never hidden for missing a keyword. In
+that view a panel names the CV skills the order is built from, each one
+removable, and every matching row says how many of them it shares, which
+ones, and which of its own listed skills the CV lacks. Plain counts, no
+percentage and no "AI" language: the ranking is a count of shared skill
+tags and says so.
+
 ### Cards / Containers
 - **Corner style:** square (0px) for a grid-tile card (metric/panel tile,
   supplied by the shared grid's own border, not the tile. See Shapes

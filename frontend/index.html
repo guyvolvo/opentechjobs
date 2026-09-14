@@ -168,22 +168,29 @@
                   <option value="age:asc">Newest</option>
                   <option value="age:desc">Oldest</option>
                 </select>
-                <label class="toggle"><input type="checkbox" id="f-starred" /> ★ Saved</label>
                 <button class="btn ghost" id="f-reset">Reset</button>
               </div>
+            </div>
+
+            <!-- Which listings the board shows. Saved used to be a checkbox
+                 among the filters, and the CV match a chip that only
+                 appeared once a link from /account had set it, so neither
+                 was something a reader could find. Filters apply in every
+                 view: Best matches orders what they leave, it does not
+                 replace them. -->
+            <div class="view-switch seg" id="view-switch" role="tablist" aria-label="Which listings to show">
+              <button type="button" class="seg-btn active" data-view="all" role="tab" aria-selected="true">All listings</button>
+              <button type="button" class="seg-btn" data-view="matches" role="tab" aria-selected="false">Best matches</button>
+              <button type="button" class="seg-btn" data-view="saved" role="tab" aria-selected="false">★ Saved</button>
             </div>
 
             <button id="company-chip" class="chip" style="display:none" title="Clear company filter">
               <span class="chip-label"></span> ✕
             </button>
-            <!-- The CV match, arriving as ?skills= from /account.
-                 A ranked board looks like an unranked one, so this is
-                 the only thing on screen saying the list has been cut
-                 to your skills and ordered by how many each job
-                 mentions. -->
-            <button id="match-chip" class="chip chip-match" style="display:none" title="Clear CV match">
-              <span class="chip-label"></span> ✕
-            </button>
+            <!-- Best matches only: the CV skills the order is built from.
+                 A ranked board looks like an unranked one, so this is the
+                 only thing on screen saying what the order means. -->
+            <div class="match-panel" id="match-panel" hidden></div>
             <div id="result-count" class="result-count"></div>
 
             <!-- Skeleton rows replaced the text loader (see jobsSkeletonHtml

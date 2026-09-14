@@ -192,8 +192,14 @@ il = aggregates.compute_scoped_stats(counted, {"country": "IL"})
 scans = [s for s in counted.sql if "FROM jobs" in s]
 check("the scoped block is three passes over jobs, not twenty",
       len(scans) <= 3, f"{len(scans)} passes: {[' '.join(s.split())[:60] for s in scans]}")
+# Everything else is a schema probe, apart from the one companies lookup
+# that gives the top-companies chart its logos (aggregates._with_logos),
+# which reads ten rows by primary key and is not a probe at all.
+probes = [s for s in counted.sql if "FROM jobs" not in s and "FROM companies" not in s]
 check("and the schema probes are not repeated per clause",
-      len(counted.sql) <= 5, f"{len(counted.sql)} total executes")
+      len(probes) <= 2, f"{len(probes)} probes: {[' '.join(s.split())[:60] for s in probes]}")
+check("and the logo lookup is one query, not one per company",
+      sum("FROM companies" in s for s in counted.sql) <= 1, f"{len(counted.sql)} total executes")
 
 check("open_jobs counts the filtered set", il["open_jobs"] == 6, str(il))
 check("and differs from the global number",

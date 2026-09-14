@@ -23,6 +23,36 @@ from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where
                          has_fts_index, has_places)
 
 
+def _with_logos(conn, rows: list[dict]) -> list[dict]:
+    """Attach each company's resolved logo_url to a bar list's rows.
+
+    The company chart drew its icons by guessing favicon paths on the
+    domain, which misses every company whose icon lives anywhere else.
+    Elbit's is under www.elbitsystems.com/themes/elbit/favicon/, so the
+    biggest employer on the board showed a monogram in the chart while its
+    own listing rows, which carry the resolved URL, showed the logo.
+    Reported live.
+
+    Looked up for the ten or so rows a list shows rather than joined into
+    the grouping, which runs over every company.
+    """
+    domains = [r["domain"] for r in rows if r.get("domain")]
+    if not domains:
+        return rows
+    try:
+        found = {d: url for d, url in conn.execute(
+            f"SELECT domain, logo_url FROM companies WHERE domain IN ({','.join('?' * len(domains))})",
+            domains)}
+    except Exception:
+        # No companies table or no logo_url column yet (deploy skew). The
+        # chart falls back to guessing, as it always did.
+        return rows
+    for r in rows:
+        if r.get("domain"):
+            r["logo_url"] = found.get(r["domain"])
+    return rows
+
+
 def compute_facets(conn, params: dict) -> dict:
 
     def counts_by(column_expr: str, exclude_param: str, limit: int) -> list[dict]:
@@ -267,8 +297,8 @@ def compute_scoped_stats(conn, params: dict) -> dict:
     # A NULL domain is a group here but not a company, and the global
     # COUNT(DISTINCT company_domain) does not count it either.
     companies_hiring = sum(1 for r in per_company if r["domain"] is not None)
-    top_companies = [{"domain": r["domain"], "n": r["n"]}
-                     for r in per_company[:SCOPED_TOP_COMPANIES]]
+    top_companies = _with_logos(conn, [{"domain": r["domain"], "n": r["n"]}
+                                       for r in per_company[:SCOPED_TOP_COMPANIES]])
 
     # A row per job, same as the global age block: SQLite has no median,
     # and the sort runs over the filtered set, which is smaller than the
@@ -638,10 +668,10 @@ def compute_stats(conn, params: dict | None = None) -> dict:
         "workplace": [dict(r) for r in workplace],
         "top_skills": top_skills,
         "skills_coverage": {"with_skills": skilled, "open_jobs": open_jobs_fresh},
-        "top_companies": [dict(r) for r in top_companies],
+        "top_companies": _with_logos(conn, [dict(r) for r in top_companies]),
         "top_departments": [dict(r) for r in top_departments],
         "top_locations": [dict(r) for r in top_locations],
-        "top_movers_7d": [dict(r) for r in top_movers],
+        "top_movers_7d": _with_logos(conn, [dict(r) for r in top_movers]),
         "daily_new_jobs": daily_new_jobs,
         "open_jobs_history": open_jobs_history,
         "seniority_breakdown": [dict(r) for r in seniority_breakdown],

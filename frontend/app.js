@@ -976,7 +976,7 @@ function renderBarList(rows, nameKey, { clickable = false, limit = 0 } = {}) {
       const extra = limit && i >= limit ? " bar-row-extra" : "";
       return `
       <div class="bar-row${clickable ? " clickable" : ""}${extra}" ${clickable ? `data-company="${name}"` : ""}>
-        <div class="name" title="${name}">${clickable ? companyLogoImg(r[nameKey], 16) : ""}${name}</div>
+        <div class="name" title="${name}">${clickable ? companyLogoImg(r[nameKey], 16, "", r.logo_url || null) : ""}${name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${(r.n / max) * 100}%"></div></div>
         <div class="n">${fmtInt(r.n)}</div>
       </div>`;
@@ -1187,7 +1187,6 @@ function wireCompanyBarClicks(el) {
       state.company = [row.dataset.company];
       state.starred_only = false;
       state.offset = 0;
-      document.getElementById("f-starred").checked = false;
       msCompany.setSelected(state.company);
       loadJobs();
       loadTicker();
@@ -1200,20 +1199,103 @@ function wireCompanyBarClicks(el) {
 
 let lastJobsResponse = null;
 
-// Sits beside the company chip and behaves the same way. A ranked board
-// looks identical to an unranked one, so without this the reader has no
-// way to tell that two thousand listings have quietly become forty, or
-// to get back.
-function renderMatchChip() {
-  const chip = document.getElementById("match-chip");
-  if (!chip) return;
-  if (!state.skills.length) {
-    chip.style.display = "none";
+// All listings, Best matches, Saved. Derived from state rather than
+// stored, so a link carrying ?skills= or ?starred=1 lands on the right
+// view with nothing else to keep in step.
+function currentView() {
+  if (state.starred_only) return "saved";
+  return state.skills.length ? "matches" : "all";
+}
+
+function paintViewSwitch() {
+  const view = currentView();
+  document.querySelectorAll("#view-switch [data-view]").forEach((b) => {
+    const on = b.dataset.view === view;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", String(on));
+  });
+}
+
+// The CV match, stated. A ranked board looks like an unranked one, so in
+// Best matches this names what the order is built from and lets the
+// reader drop a skill without leaving the board. Adding skills is the CV
+// analyser's job, on /account, so this links there instead of growing a
+// second editor.
+function renderMatchPanel() {
+  const panel = document.getElementById("match-panel");
+  if (!panel) return;
+  if (!state.skills.length || state.starred_only) {
+    panel.hidden = true;
+    panel.innerHTML = "";
     return;
   }
-  chip.style.display = "inline-flex";
-  chip.querySelector(".chip-label").textContent =
-    `Matching ${state.skills.length} skill${state.skills.length === 1 ? "" : "s"}`;
+  const n = state.skills.length;
+  panel.hidden = false;
+  panel.innerHTML = `<span class="match-panel-label">Ranked by ${n} CV skill${n === 1 ? "" : "s"}</span>`
+    // data-match-skill, not data-skill: renderJobRows wires every
+    // [data-skill] on the page as "search for this skill", and that
+    // handler stops propagation, so a shared attribute turned removing a
+    // skill here into a text search for it.
+    + state.skills.map((s) => `<button type="button" class="match-skill" data-match-skill="${escapeHtml(s)}"`
+      + ` title="Stop matching on ${escapeHtml(s)}">${escapeHtml(s)} <span aria-hidden="true">✕</span></button>`).join("")
+    + `<a class="link match-panel-edit" href="/account#cv">Edit skills</a>`;
+}
+
+// Best matches with nothing to rank by. Says what the view needs rather
+// than showing a board that looks exactly like All listings.
+function showMatchesPrompt() {
+  const panel = document.getElementById("match-panel");
+  panel.hidden = false;
+  panel.innerHTML = getAuthTokens()
+    ? `<span class="match-panel-label">Best matches orders listings by the skills on your CV.</span>`
+      + ` <a class="link match-panel-edit" href="/account#cv">Analyze your CV</a>`
+    : `<span class="match-panel-label">Best matches orders listings by the skills on your CV.`
+      + ` Sign in, then analyze your CV on your account page.</span>`;
+}
+
+// The skills the CV analyser saved to the reader's profile. Null when
+// signed out or when nothing has been saved yet.
+async function profileSkills() {
+  if (!getAuthTokens()) return null;
+  try {
+    const data = await authedFetch("/me/profile");
+    const skills = (data && data.profile && data.profile.skills) || (data && data.skills) || [];
+    return skills.length ? skills : null;
+  } catch {
+    return null;
+  }
+}
+
+async function setView(view) {
+  state.offset = 0;
+  if (view === "saved") {
+    state.starred_only = true;
+    loadJobs();
+    return;
+  }
+  state.starred_only = false;
+  if (view === "all") {
+    state.skills = [];
+    if (state.sort === "match") setActiveSortHeader("age", "asc");
+    loadJobs();
+    loadTicker();
+    return;
+  }
+  // Best matches keeps every filter already set: it orders what they
+  // leave. Skills already on the board, from a link out of the CV
+  // analyser or an earlier visit, are used as they are.
+  if (!state.skills.length) {
+    const skills = await profileSkills();
+    if (!skills) {
+      paintViewSwitch();
+      showMatchesPrompt();
+      return;
+    }
+    state.skills = skills;
+  }
+  setActiveSortHeader("match", "asc");
+  loadJobs();
+  loadTicker();
 }
 
 function renderCompanyChip() {
@@ -1239,6 +1321,8 @@ function currentFilterParams() {
     city: state.city.join(","),
     workplace: state.workplace.join(","),
     skills: state.skills.join(","),
+    // Rank, never filter. See job_filters.build_jobs_where.
+    skills_mode: state.skills.length ? "rank" : "",
     confidence: state.confidence,
     max_age_days: state.max_age_days,
   };
@@ -1479,7 +1563,7 @@ function applyStoredFilters() {
 function applyStateToFilterUI() {
   document.getElementById("f-search").value = state.search;
   document.getElementById("f-date-posted").value = state.max_age_days || "";
-  document.getElementById("f-starred").checked = state.starred_only;
+  paintViewSwitch();
   msDepartment.setSelected(state.department);
   msSeniority.setSelected(state.seniority);
   msCompany.setSelected(state.company);
@@ -1632,7 +1716,8 @@ async function loadJobs() {
   const tbody = document.getElementById("jobs-body");
   const starred = getStarred();
   renderCompanyChip();
-  renderMatchChip();
+  renderMatchPanel();
+  paintViewSwitch();
 
   // Not awaited, and above the starred_only branch on purpose. The
   // listings are what the reader came for and the sidebar must never
@@ -1819,10 +1904,7 @@ function renderJobs(data, starred) {
   matchedSkills = new Set(data.matched_skills || []);
   document.getElementById("pagination").style.display = "flex";
   if (!data.jobs.length) {
-    document.getElementById("jobs-empty").innerHTML = emptyState(
-      state.skills.length
-        ? "No open listing mentions any of your skills. Clear the match to see everything."
-        : "No listings match these filters.");
+    document.getElementById("jobs-empty").innerHTML = emptyState("No listings match these filters.");
     document.getElementById("jobs-empty").style.display = "block";
     document.getElementById("jobs-body").innerHTML = "";
     document.getElementById("result-count").innerHTML = "";
@@ -1833,7 +1915,8 @@ function renderJobs(data, starred) {
   const from = state.offset + 1;
   const to = Math.min(state.offset + data.jobs.length, data.total);
   document.getElementById("result-count").innerHTML =
-    `<b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> open listings`;
+    `<b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> open listings`
+    + (state.skills.length && state.sort === "match" ? ", best matches first" : "");
 }
 
 // "Company · Department · Location (Workplace)" -- one scannable line
@@ -1909,13 +1992,22 @@ function jobSalaryHtml(j) {
 // two or three of your own skills it shares, or nothing at all. Without
 // it a ranked board is indistinguishable from an unranked one, and the
 // order looks arbitrary rather than earned.
+//
+// It says how many, and which of the listing's own skills the CV lacks,
+// as plain counts. No percentage: the ranking is a count of shared skill
+// tags, and a score dressed up as more than that would be the one
+// unexplainable thing on the row.
 function jobMatchHtml(j) {
   if (!matchedSkills.size) return "";
-  const hits = (j.skills || "").split(",").filter((s) => matchedSkills.has(s));
+  const listed = (j.skills || "").split(",").filter(Boolean);
+  const hits = listed.filter((s) => matchedSkills.has(s));
   if (!hits.length) return "";
-  return `<div class="job-match">${hits
-    .map((s) => `<span class="match-chip">${escapeHtml(s)}</span>`)
-    .join("")}</div>`;
+  const asks = listed.filter((s) => !matchedSkills.has(s));
+  return `<div class="job-match">`
+    + `<span class="job-match-count">${hits.length} of your ${matchedSkills.size} skills</span>`
+    + hits.map((s) => `<span class="match-chip">${escapeHtml(s)}</span>`).join("")
+    + (asks.length ? `<span class="job-match-asks">Also asks for ${asks.map(escapeHtml).join(", ")}</span>` : "")
+    + `</div>`;
 }
 
 function jobSkillsHtml(j) {
@@ -2787,10 +2879,9 @@ function wireFilters() {
     loadJobs();
   });
 
-  document.getElementById("f-starred").addEventListener("change", (e) => {
-    state.starred_only = e.target.checked;
-    loadJobs();
-    // Not loadTicker(): "starred" is a client-local view, not an API filter.
+  document.getElementById("view-switch").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-view]");
+    if (btn) setView(btn.dataset.view);
   });
 
   document.getElementById("f-reset").addEventListener("click", () => {
@@ -2814,7 +2905,6 @@ function wireFilters() {
     msCompany.reset();
     msLocation.reset();
     msWorkplace.reset();
-    document.getElementById("f-starred").checked = false;
     setActiveSortHeader("age", "asc");
     loadJobs();
     loadTicker();
@@ -2828,9 +2918,11 @@ function wireFilters() {
     loadTicker();
   });
 
-  document.getElementById("match-chip").addEventListener("click", () => {
-    state.skills = [];
-    if (state.sort === "match") setActiveSortHeader("age", "asc");
+  document.getElementById("match-panel").addEventListener("click", (e) => {
+    const chip = e.target.closest(".match-skill");
+    if (!chip) return;
+    state.skills = state.skills.filter((s) => s !== chip.dataset.matchSkill);
+    if (!state.skills.length && state.sort === "match") setActiveSortHeader("age", "asc");
     state.offset = 0;
     loadJobs();
     loadTicker();
@@ -2869,7 +2961,6 @@ function updateFiltersToggleLabel() {
   if (state.city.length) n++;
   if (state.workplace.length) n++;
   if (state.max_age_days) n++;
-  if (state.starred_only) n++;
   if (state.sort !== "age" || state.dir !== "asc") n++;
   document.getElementById("filters-toggle").textContent = n ? `Filters (${n})` : "Filters";
 }
@@ -4158,7 +4249,7 @@ async function boot() {
   // run before wireFilters() creates the actual controls -- state.israel_only
   // (read at creation time by ms-location's pinned "Israel (only)"
   // checkbox) needs to already be right by then. applyStateToFilterUI()
-  // below handles the rest (the multi-selects/#f-search/#f-starred),
+  // below handles the rest (the multi-selects/#f-search/the view switch),
   // which all need wireFilters() to have already assigned msDepartment
   // etc. first.
   applyStoredFilters();

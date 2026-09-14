@@ -1663,14 +1663,41 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
    brackets sit right against the first/last chip (no gap token
    consumed for them) via negative margins, rather than reading as
    their own separately-spaced list items. */
-/* The CV match chip. Same shape as the company chip beside it, in the
-   quieter outline treatment: it is a statement about the whole board
-   rather than one more filter value, and two solid green chips side by
-   side read as a pair of equals. */
-.chip-match {
-  background: none;
-  color: var(--green-text);
+/* All listings / Best matches / Saved: the Explore page's segmented
+   control, a touch taller to sit with the filter row above it. */
+.view-switch { margin-bottom: 12px; }
+.view-switch .seg-btn { height: 30px; padding: 0 12px; }
+
+/* What Best matches is ordered by, each skill removable. */
+.match-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
 }
+.match-panel[hidden] { display: none; }
+.match-panel-label { color: var(--grey); margin-right: 2px; }
+.match-skill {
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--green-text);
+  background: none;
+  border: 1px solid var(--green-text);
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.match-skill:hover { background: var(--green-text); color: var(--white); }
+.match-skill:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.match-panel-edit { font-size: 12px; margin-left: 4px; }
+
+/* The row's own explanation: how many of your skills, which, and what
+   the listing asks for that the CV does not have. */
+.job-match { align-items: center; }
+.job-match-count { font-size: 12px; font-weight: 700; color: var(--black); margin-right: 2px; }
+.job-match-asks { font-size: 12px; color: var(--grey); margin-left: 4px; }
 
 .skill-bracket { color: var(--grey); }
 .skill-bracket:first-child { margin-right: -6px; }

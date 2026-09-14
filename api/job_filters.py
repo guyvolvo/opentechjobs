@@ -431,7 +431,13 @@ def build_jobs_where(params: dict, has_fts: bool = False,
         args.extend([q, q, q, q])
 
     wanted = wanted_skills(params)
-    if wanted:
+    # skills_mode=rank is the board's Best matches. Every listing the other
+    # filters leave stays on the list and the match only orders it, so a
+    # role whose tags miss a skill the reader has is ranked low instead of
+    # hidden, and probe.py keeping only a job's first five skills makes
+    # that miss common. Alerts never send it: an alert built from a CV
+    # still means listings that mention at least one of its skills.
+    if wanted and params.get("skills_mode") != "rank":
         # OR, not AND. This is the CV match, and a person who knows a
         # dozen things is not looking for the job that demands all
         # twelve. It ranks by how many overlap instead (see
