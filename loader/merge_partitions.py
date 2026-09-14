@@ -137,7 +137,11 @@ def apply_company_logos(conn: sqlite3.Connection, logos: dict | None) -> int:
         return 0
     rows = [(v["url"], domain) for domain, v in logos.items()
             if isinstance(v, dict) and v.get("url")]
-    if not rows:
+    # Same as load_to_sqlite.apply_company_logos: a rejected logo is taken
+    # down only while the board still holds that exact URL.
+    cleared = [(domain, v["cleared"]) for domain, v in logos.items()
+               if isinstance(v, dict) and not v.get("url") and v.get("cleared")]
+    if not rows and not cleared:
         return 0
     cols = {r[1] for r in conn.execute("PRAGMA table_info(companies)")}
     if "logo_url" not in cols:
@@ -145,7 +149,10 @@ def apply_company_logos(conn: sqlite3.Connection, logos: dict | None) -> int:
         # nowhere to put these and that is not an error.
         return 0
     with conn:
-        conn.executemany("UPDATE companies SET logo_url = ? WHERE domain = ?", rows)
+        if rows:
+            conn.executemany("UPDATE companies SET logo_url = ? WHERE domain = ?", rows)
+        if cleared:
+            conn.executemany("UPDATE companies SET logo_url = NULL WHERE domain = ? AND logo_url = ?", cleared)
     return conn.execute(
         "SELECT COUNT(*) FROM companies WHERE logo_url IS NOT NULL"
     ).fetchone()[0]

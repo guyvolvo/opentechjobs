@@ -31,6 +31,7 @@ Order, best first:
   1. the ATS's own copy, keyed on the token
   2. whatever the company's site declares in <link rel="...icon">
   3. Google's favicon service, rejected if it returns its 16x16 placeholder
+     or a parked domain's registrar icon (see PLACEHOLDER_ICONS)
   4. nothing, and the caller draws a lettered square
 
 Not og:image. It looks tempting and is always the wrong shape: a social
@@ -40,6 +41,7 @@ Every candidate is fetched and checked before it is accepted, so a
 soft-404 HTML page served as apple-touch-icon.png cannot win.
 """
 
+import hashlib
 import re
 import sys
 from html.parser import HTMLParser
@@ -66,6 +68,39 @@ ORIGIN = "https://opentechjobs.org"
 # Google answers 200 for a domain it has nothing for, with a generic
 # globe that is always exactly this size whatever sz you ask for.
 GOOGLE_PLACEHOLDER = (16, 16)
+
+# Icons that are not any company's logo, however many companies end up
+# showing them. Wix's listings showed GoDaddy's logo: its recorded domain,
+# wix2.com (from its SmartRecruiters account name), is a parked GoDaddy
+# domain, and Google answers a parked domain with the registrar's icon,
+# full size and a perfectly valid image. Fingerprinting Google's favicon
+# for all 4,206 companies with open listings (2026-09-14) found 101 more
+# domains returning that exact image, and every icon shared by three or
+# more unrelated domains turned out to be a parking page or a hosting or
+# framework default. At least 25 companies were displaying one.
+#
+# The key is icon_fingerprint() of the body as Google serves it at sz=128.
+PLACEHOLDER_ICONS = {
+    "c20af3aed3deab7c": "GoDaddy parked domain (102 domains)",
+    "0e81a4f2798c5e8d": "parked domain, blue triangle (28)",
+    "80dcf26cf6a6d55b": "parked domain, house (23)",
+    "19ce073b22e247e3": "grey cube placeholder (19)",
+    "4c175bcbfb18979b": "parked domain, green arrows (11)",
+    "1b4b91c96c452abd": "parked domain, nP (10)",
+    "fce576d17f7b2cbb": "WordPress default (7)",
+    "48af32a99eee0f67": "parked domain, blue star (5)",
+    "ad2b832bb245da24": "parked domain, b (5)",
+    "93bb05c501df2dd1": "parked domain, orange D (4)",
+    "a9849fc58e73d025": "React default (3)",
+    "157aa89d1ad45eb6": "OVH hosting default (3)",
+    "c8cdaf2f2680ecd3": "Vercel default (3)",
+    "21699edc740c476f": "shared placeholder, loop (3)",
+    "2245fb06a5d8654d": "Salesforce parked domain (3)",
+}
+
+
+def icon_fingerprint(body: bytes) -> str:
+    return hashlib.sha1(body).hexdigest()[:16]
 
 
 def _is_image(resp) -> bool:
@@ -95,6 +130,8 @@ def check_image(sess, url: str) -> bool:
     if r.status_code != 200 or not _is_image(r) or len(r.content) < MIN_BYTES:
         return False
     if _png_size(r.content) == GOOGLE_PLACEHOLDER and "s2/favicons" in url:
+        return False
+    if icon_fingerprint(r.content) in PLACEHOLDER_ICONS:
         return False
     return True
 

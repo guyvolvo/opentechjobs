@@ -1105,9 +1105,18 @@ def apply_company_logos(conn: sqlite3.Connection, path: Path) -> int:
         return 0
     rows = [(v["url"], domain) for domain, v in (logos or {}).items()
             if isinstance(v, dict) and v.get("url")]
-    if not rows:
+    # A logo the resolver found and later rejected, a parked domain's
+    # registrar icon for one, is named in "cleared". Null it, but only
+    # while the board still holds that exact URL, so a newer good logo is
+    # never taken down by an old answer.
+    cleared = [(domain, v["cleared"]) for domain, v in (logos or {}).items()
+               if isinstance(v, dict) and not v.get("url") and v.get("cleared")]
+    if not rows and not cleared:
         return 0
-    conn.executemany("UPDATE companies SET logo_url = ? WHERE domain = ?", rows)
+    if rows:
+        conn.executemany("UPDATE companies SET logo_url = ? WHERE domain = ?", rows)
+    if cleared:
+        conn.executemany("UPDATE companies SET logo_url = NULL WHERE domain = ? AND logo_url = ?", cleared)
     return conn.execute("SELECT COUNT(*) FROM companies WHERE logo_url IS NOT NULL").fetchone()[0]
 
 

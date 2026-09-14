@@ -177,6 +177,20 @@ url, source = cl.resolve_logo(s, "nothing.example", "jazzhr", "x")
 check("and a company with no logo anywhere says so",
       url is None and source == "none", f"{source} {url}")
 
+# Parked domains. Google answers one with the registrar's own icon, full
+# size and a perfectly valid image, which is how Wix's listings came to
+# show GoDaddy's logo. Those icons are rejected by fingerprint.
+parked = png(128, 128, pad=5000)
+cl.PLACEHOLDER_ICONS[cl.icon_fingerprint(parked)] = "test parked icon"
+s = FakeSession({"s2/favicons": Resp(200, "image/png", parked)})
+check("a parked domain's icon from Google is rejected",
+      not cl.check_image(s, cl.google_favicon("wix2.example")))
+url, source = cl.resolve_logo(s, "wix2.example", "smartrecruiters", "wix2")
+check("so a parked domain gets no logo rather than the registrar's",
+      url is None and source == "none", f"{source} {url}")
+check("GoDaddy's real parking icon is on the list",
+      "c20af3aed3deab7c" in cl.PLACEHOLDER_ICONS)
+
 print()
 if failures:
     print("%d failed:" % len(failures))
