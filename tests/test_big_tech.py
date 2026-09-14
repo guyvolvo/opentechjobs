@@ -223,6 +223,10 @@ sess = Sess(gets=[g_page([g_row("11", "Known", [IL1]), g_row("12", "New", [US])]
 jobs = probe.f_google(sess, "ALL", known_ids={"11"})
 check("google ALL: a known job comes without its description",
       jobs[0].description is None and jobs[1].description, repr([j.description for j in jobs]))
+sess = Sess(gets=[g_page([g_row("11", "One", [IL1]), g_row("12", "Two", [US]), g_row("13", "Three", [US])], 3)])
+jobs = probe.f_google(sess, "ALL", description_budget=2)
+check("google ALL: the description budget caps how many jobs carry text",
+      sum(1 for j in jobs if j.description) == 2 and len(jobs) == 3, repr([bool(j.description) for j in jobs]))
 
 A_WORLD = [dict(A_ROWS[0]), dict(A_ROWS[1])]
 sess = Sess(gets=[csrf], posts=[Resp(200, body={"res": {"searchResults": A_WORLD, "totalRecords": 2}})])

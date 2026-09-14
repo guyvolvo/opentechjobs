@@ -1828,7 +1828,25 @@ def _fetch_all(fn, items, workers=8, attempts=3, backoff=0.5):
     return None if any(r is None for r in results) else results
 
 
-def _amazon_row(j, token, want, known_ids):
+class _Budget:
+    """How many descriptions a read may still build. Shared by the page
+    workers, so it is locked. None means no limit."""
+
+    def __init__(self, limit):
+        self.left = limit
+        self._lock = threading.Lock()
+
+    def take(self):
+        if self.left is None:
+            return True
+        with self._lock:
+            if self.left <= 0:
+                return False
+            self.left -= 1
+            return True
+
+
+def _amazon_row(j, token, want, known_ids, budget=None):
     category = _txt(j.get("business_category")).lower()
     if want == "aws" and category != "aws":
         return None
@@ -1843,7 +1861,7 @@ def _amazon_row(j, token, want, known_ids):
     # already have: at 6KB a posting, Amazon's whole world is 128MB of text
     # the loader would only compare and discard.
     body = None
-    if not (known_ids and jid in known_ids):
+    if not (known_ids and jid in known_ids) and (budget is None or budget.take()):
         body = "\n\n".join(_txt(j.get(k)) for k in
                            ("description", "basic_qualifications", "preferred_qualifications")
                            if _txt(j.get(k)))
@@ -1898,29 +1916,29 @@ def _amazon_slices(sess, extra=""):
 # one read under the offset ceiling, about a third of Amazon's pages, which
 # is what lets AWS poll hourly while the rest of Amazon waits four hours.
 # The rest cannot be asked for that way, there is no "not" filter, so it
-# reads everything and drops AWS after. A read is kept briefly per filter,
-# so two pins over the same pages in one run share it.
-_AMAZON_GLOBAL_TTL_S = 600
-_amazon_global_rows: dict[str, tuple[float, list]] = {}
-
-
-def _amazon_global(sess, token, want, known_ids):
+# reads everything and drops AWS after.
+#
+# Each page becomes Jobs as it arrives, and a Job carries text only while
+# the description budget lasts. Keeping the raw pages instead is what ran
+# the first global run out of memory at 1024MB: 22,000 postings at 6KB of
+# text each, plus a cache of the same pages for a second pin that the AWS
+# filter meant never came.
+def _amazon_global(sess, token, want, known_ids, description_budget=None):
     extra = "&business_category%5B%5D=aws" if want == "aws" else ""
-    cached = _amazon_global_rows.get(extra)
-    if cached is not None and time.monotonic() - cached[0] < _AMAZON_GLOBAL_TTL_S:
-        return _amazon_jobs(cached[1], token, want, known_ids)
     slices = _amazon_slices(sess, extra)
     if slices is None:
         return None
     pages = [(query, offset) for query, n in slices
              for offset in range(0, min(n, AMAZON_OFFSET_CEILING), AMAZON_PAGE)]
 
+    budget = _Budget(description_budget)
+
     def page(item):
         query, offset = item
         d = get_json(sess, f"{AMAZON_SEARCH}?result_limit={AMAZON_PAGE}&offset={offset}{query}")
         if not isinstance(d, dict) or not isinstance(d.get("jobs"), list):
             return None
-        return d["jobs"]
+        return [job for job in (_amazon_row(j, token, want, known_ids, budget) for j in d["jobs"]) if job]
 
     # Gentler than the other sites. At eight at a time amazon.jobs throttled
     # enough pages that three tries could not get them all, and the whole
@@ -1928,28 +1946,22 @@ def _amazon_global(sess, token, want, known_ids):
     got = _fetch_all(page, pages, workers=4, attempts=6, backoff=2.0)
     if got is None:
         return None
-    _amazon_global_rows[extra] = (time.monotonic(), got)
-    return _amazon_jobs(got, token, want, known_ids)
-
-
-def _amazon_jobs(pages, token, want, known_ids):
     out, seen = [], set()
-    for rows in pages:
-        for j in rows:
-            job = _amazon_row(j, token, want, known_ids)
-            if job and job.external_id not in seen:
+    for jobs in got:
+        for job in jobs:
+            if job.external_id not in seen:
                 seen.add(job.external_id)
                 out.append(job)
     return out
 
 
-def f_amazon(sess, token, known_ids=None):
+def f_amazon(sess, token, known_ids=None, description_budget=None):
     m = _AMAZON_TOKEN_RE.match(_txt(token))
     if not m:
         return None
     country, want = m.group(1), m.group(2)
     if country == "ALL":
-        return _amazon_global(sess, token, want, known_ids)
+        return _amazon_global(sess, token, want, known_ids, description_budget)
     out, offset = [], 0
     while True:
         d = get_json(sess, f"{AMAZON_SEARCH}?normalized_country_code%5B%5D={country}"
@@ -2116,7 +2128,7 @@ def _google_field(row, i):
     return v[1] if isinstance(v, list) and len(v) > 1 else None
 
 
-def f_google(sess, token, known_ids=None):
+def f_google(sess, token, known_ids=None, description_budget=None):
     place = _country_token(token)
     if not place:
         return None
@@ -2147,6 +2159,7 @@ def f_google(sess, token, known_ids=None):
     if rest is None:
         return None
 
+    budget = _Budget(description_budget)
     out, seen = [], set()
     for data in [first, *rest]:
         for row in data[0] or []:
@@ -2161,7 +2174,7 @@ def f_google(sess, token, known_ids=None):
                 continue
             seen.add(jid)
             body = None
-            if not (known_ids and jid in known_ids):
+            if not (known_ids and jid in known_ids) and budget.take():
                 body = "\n\n".join(_clean_text(x) for x in
                                    (_google_field(row, 10), _google_field(row, 3), _google_field(row, 4))
                                    if x and _clean_text(x)) or None

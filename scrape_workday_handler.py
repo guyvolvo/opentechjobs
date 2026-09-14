@@ -46,6 +46,7 @@ the new value is non-empty, so an unfetched (None) description is a
 correct no-op there, not a silent wipe.
 """
 
+import gc
 import json
 import os
 import sqlite3
@@ -82,9 +83,14 @@ probe.FETCH_FULL_DESCRIPTIONS = True
 # NEW_DESCRIPTIONS_PER_RUN a company, and the first run's backlog drains
 # over the next few hours instead of one run that cannot finish.
 BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon")
-# 400, measured: Apple's detail calls ran 800 in about 220s from a desk,
-# and a run has Workday, four global reads and the load to fit in 900s.
-NEW_DESCRIPTIONS_PER_RUN = 400
+# Two budgets, because the two kinds of description cost different things.
+# Microsoft and Apple need a request per description, so theirs is a time
+# budget: 300 calls fits a run beside Workday, four global reads and the
+# load in 900s. Google and Amazon carry the text in their listing pages, so
+# theirs is a memory budget: the first global run built all 25,000 of them
+# and died at 1024MB before writing anything.
+NEW_DESCRIPTIONS_PER_RUN = 1000
+DETAIL_CALLS_PER_RUN = 300
 # Left for the load and the fragments once polling is done.
 BIG_TECH_TIME_RESERVE_MS = 300_000
 
@@ -187,7 +193,9 @@ def _poll_big_tech(sess, ats: str, domain: str, pin: dict, described: set[str]) 
     token = pin.get("token")
     kwargs = {"known_ids": described}
     if ats in ("microsoft", "apple"):
-        kwargs["detail_budget"] = NEW_DESCRIPTIONS_PER_RUN
+        kwargs["detail_budget"] = DETAIL_CALLS_PER_RUN
+    else:
+        kwargs["description_budget"] = NEW_DESCRIPTIONS_PER_RUN
     try:
         jobs = probe.FETCHERS[ats](sess, token, **kwargs)
         err = None
@@ -212,8 +220,10 @@ def _poll_big_tech(sess, ats: str, domain: str, pin: dict, described: set[str]) 
             # Over this run's budget. Tags stay (they came from the full
             # text); the text itself waits, so the next run sends it.
             j.description = None
-    return {"domain": domain, "ats": ats, "token": token, "job_count": len(jobs), "tried": 1,
-            "error": None, "retryable": False, "jobs": [asdict(j) for j in jobs]}
+    rows = [asdict(j) for j in jobs]
+    del jobs
+    return {"domain": domain, "ats": ats, "token": token, "job_count": len(rows), "tried": 1,
+            "error": None, "retryable": False, "jobs": rows}
 
 
 def lambda_handler(event, context):
@@ -279,8 +289,12 @@ def lambda_handler(event, context):
     n_jobs = sum(r["job_count"] for r in hits)
     print(f"{len(hits)}/{len(results)} workday and big-tech companies re-verified, {n_jobs} jobs")
 
+    # Streamed to disk rather than built as one string beside the list it
+    # came from, and freed before the loader starts: the subprocess shares
+    # this Lambda's memory ceiling with everything this process still holds.
     resolved_path = TMP / "resolved-workday.json"
-    resolved_path.write_text(json.dumps(results), encoding="utf-8")
+    with resolved_path.open("w", encoding="utf-8") as fh:
+        json.dump(results, fh)
 
     _write_status(s3, "loading", f"writing {n_jobs} Workday jobs to jobs-partition-workday.db")
     # Was 60, matching scrape_handler.py's own (also-since-fixed) loader
@@ -321,6 +335,8 @@ def lambda_handler(event, context):
     # reads it back to skip description re-fetches, which is the whole
     # reason a run is 65 seconds instead of many minutes.
     fragments = put_fragment(BUCKET, results)
+    results = None
+    gc.collect()
     print(f"delta fragments: {len(fragments)} written"
           if fragments else "delta fragments: (nothing to apply, none written)")
 
