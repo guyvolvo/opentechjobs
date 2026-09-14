@@ -1704,7 +1704,7 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
   font-weight: 700;
   color: var(--green-text);
   border: var(--rule) solid var(--green-text);
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 1px 5px;
 }
 /* + (adjacent sibling), not :not(:last-child) -- .skill-bracket's "]"
@@ -1804,7 +1804,7 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
   color: var(--grey);
   background: color-mix(in srgb, var(--grey) 8%, transparent);
   border: var(--rule) solid color-mix(in srgb, var(--grey) 30%, transparent);
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 1px 5px;
 }
 .job-match-count, .match-chip { flex: none; }
