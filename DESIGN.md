@@ -479,6 +479,19 @@ own history (see Motion), and the square is gone: a ring reads as a
 status mark where a square read as a decoration that happened to change
 colour.
 
+### Not found
+Any address the site does not have gets `404.html` with a real 404
+status, served by the CloudFront function rather than S3's bare XML
+AccessDenied. The number is a small Label, not a headline. The heading
+says what is missing when the address makes it clear (a listing under
+`/jobs/`, a company under `/companies/`), one sentence says why, and the
+page offers a search box, All listings, Best matches and Go back. A stale
+link to a role usually still names it, so those words are pre-filled as
+a search instead of guessing which current listing was meant. A `?job=`
+link to a listing that has left the board gets the same message in the
+job sheet. No illustration, no redirect, nothing that pretends to know
+more than it does.
+
 ## Do's and Don'ts
 
 ### Do:

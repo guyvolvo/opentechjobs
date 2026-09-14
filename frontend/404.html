@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GXP63R1JP1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GXP63R1JP1');
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Not found | OpenTechJobs</title>
+  <meta name="robots" content="noindex" />
+  <!-- Every path here is absolute. CloudFront serves this page for any
+       address the site does not have, /jobs/some-old-role included, and a
+       relative "style.css" would resolve to /jobs/style.css from there. -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png" />
+  <link rel="stylesheet" href="/style.css" />
+  <script>
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container">
+      <a class="wordmark" href="/">
+        <img src="/logo-horizontal.png" alt="OpenTechJobs.org" class="wordmark-logo" />
+      </a>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <section class="section not-found">
+      <div class="container">
+        <p class="not-found-code">404</p>
+        <h2 class="section-title" id="nf-title">Page not found</h2>
+        <p class="not-found-lede" id="nf-lede">This page does not exist. The link may be mistyped or out of date.</p>
+
+        <form class="not-found-search" action="/" method="get" role="search">
+          <input type="text" name="search" id="nf-search" placeholder="Search listings" aria-label="Search listings" />
+          <button class="btn" type="submit">Search</button>
+        </form>
+
+        <div class="not-found-actions">
+          <a class="btn ghost btn-small" href="/">All listings</a>
+          <a class="btn ghost btn-small" href="/?view=matches">Best matches</a>
+          <button class="btn ghost btn-small" type="button" id="nf-back" hidden>Go back</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      var path = location.pathname;
+      var title = document.getElementById("nf-title");
+      var lede = document.getElementById("nf-lede");
+      var search = document.getElementById("nf-search");
+
+      // Say what kind of thing is missing when the address makes it clear.
+      var m = path.match(/^\/(jobs?|listings?|companies|company)\/([^\/]+)/i);
+      if (m && /^(jobs?|listings?)$/i.test(m[1])) {
+        title.textContent = "Listing not found";
+        lede.textContent = "This listing is no longer on the board, or the link is out of date. Roles get filled and taken down, so links to them go stale.";
+      } else if (m) {
+        title.textContent = "Company not found";
+        lede.textContent = "There is no company page at this address. Search for the company to see its open roles.";
+      }
+
+      // A stale link to a role usually still names it. Offer those words as
+      // a search instead of guessing which current listing was meant.
+      if (m) {
+        var words = "";
+        try { words = decodeURIComponent(m[2]); } catch (e) { words = m[2]; }
+        words = words.replace(/\.html?$/i, "").replace(/[-_+.]+/g, " ")
+          .replace(/\b[0-9a-f]{8,}\b/gi, "").replace(/\s+/g, " ").trim();
+        if (/[a-z]{3}/i.test(words)) search.value = words;
+      }
+
+      // Only when there is somewhere on this site to go back to.
+      var back = document.getElementById("nf-back");
+      if (history.length > 1 && document.referrer.indexOf(location.origin) === 0) {
+        back.hidden = false;
+        back.addEventListener("click", function () { history.back(); });
+      }
+    })();
+  </script>
+</body>
+</html>

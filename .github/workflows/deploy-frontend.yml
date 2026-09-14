@@ -74,6 +74,16 @@ jobs:
             --exclude "explore/*" \
             --cache-control "no-cache"
 
+      - name: Mark 404.html for a real 404 status
+        run: |
+          # infra/cloudfront.tf's not_found_status function turns this
+          # metadata header into a 404 status for the not-found page. The
+          # sync above uploads the file without it, so this runs after.
+          aws s3 cp frontend/404.html "s3://${{ vars.FRONTEND_BUCKET }}/404.html" \
+            --metadata otj-status=404 \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "no-cache"
+
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation \

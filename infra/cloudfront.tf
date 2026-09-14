@@ -35,6 +35,34 @@ locals {
 # index.html is deliberately left alone. default_root_object already
 # maps / to it, and redirecting /index.html to / risks a loop with that
 # substitution depending on which side of the function it happens.
+# Gives the 404 page a real 404 status. legacy_domain_redirect serves
+# 404.html for addresses the site does not have, but S3 answers for that
+# object with a 200, and a not-found page with a 200 is a soft 404 to a
+# search engine. deploy-frontend.yml uploads 404.html with an otj-status
+# metadata header, and this turns the header into the status.
+#
+# It keys on the response, not the URI. A viewer-response function sees
+# the request the viewer sent, so it would see /jobs/some-old-role rather
+# than the /404.html the request function rewrote it to.
+resource "aws_cloudfront_function" "not_found_status" {
+  name    = "${var.project_name}-not-found-status"
+  runtime = "cloudfront-js-2.0"
+  comment = "404 status for 404.html"
+  publish = true
+  code    = <<-EOT
+    function handler(event) {
+      var response = event.response;
+      var marker = response.headers["x-amz-meta-otj-status"];
+      if (marker && marker.value === "404") {
+        response.statusCode = 404;
+        response.statusDescription = "Not Found";
+        delete response.headers["x-amz-meta-otj-status"];
+      }
+      return response;
+    }
+  EOT
+}
+
 resource "aws_cloudfront_function" "legacy_domain_redirect" {
   name    = "${var.project_name}-legacy-domain-redirect"
   runtime = "cloudfront-js-2.0"
@@ -66,6 +94,8 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
         headers: { location: { value: location } }
       };
     }
+
+    var PAGES = { "/account": true, "/stats": true, "/privacy": true };
 
     function handler(event) {
       var request = event.request;
@@ -101,8 +131,14 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       // /account -> account.html on the way to S3, invisibly. Anything
       // with an extension is a real file (style.css, logo.png, the
       // vendored .mjs) and is already named correctly.
+      //
+      // Any other address with no extension gets the 404 page. S3 used to
+      // answer those with its bare AccessDenied XML, which is what a
+      // mistyped or stale link showed. not_found_status below gives the
+      // page a real 404 status. A new page has to be listed in PAGES, or
+      // it will be served as not found.
       if (uri !== "/" && last.indexOf(".") === -1) {
-        request.uri = uri + ".html";
+        request.uri = PAGES[uri] ? uri + ".html" : "/404.html";
       }
       return request;
     }
@@ -166,6 +202,11 @@ resource "aws_cloudfront_distribution" "main" {
     function_association {
       event_type   = "viewer-request"
       function_arn = aws_cloudfront_function.legacy_domain_redirect.arn
+    }
+
+    function_association {
+      event_type   = "viewer-response"
+      function_arn = aws_cloudfront_function.not_found_status.arn
     }
   }
 

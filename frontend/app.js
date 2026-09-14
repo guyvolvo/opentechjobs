@@ -2315,6 +2315,16 @@ async function openJobDetail(id) {
     if (known) {
       panel.innerHTML = renderJobDetailBody(known, { descriptionError: err.message });
       wireJobDetailPanel(known);
+    } else if (/no job with that id/i.test(err.message)) {
+      // A shared or bookmarked link to a listing that has left the board.
+      // It used to read "Could not load this job: no job with that id",
+      // which sounds like the site broke rather than the role closing.
+      panel.innerHTML = `<div class="job-gone">
+        <p class="job-gone-label">Listing not found</p>
+        <p>This listing is no longer on the board. Roles get filled and taken down, so links to them go stale.</p>
+        <button type="button" class="btn ghost btn-small" data-gone-close>Back to listings</button>
+      </div>`;
+      panel.querySelector("[data-gone-close]").addEventListener("click", closeJobDetailAndSync);
     } else {
       panel.innerHTML = `<div class="error-state">Could not load this job: ${escapeHtml(err.message)}</div>`;
     }
@@ -4252,6 +4262,12 @@ async function boot() {
   // below handles the rest (the multi-selects/#f-search/the view switch),
   // which all need wireFilters() to have already assigned msDepartment
   // etc. first.
+  // The address as the visitor typed it, read once before anything can
+  // rewrite it. loadJobs() below runs syncUrl(), which rebuilds the URL
+  // from state, and ?job= and ?view= are not state until they have been
+  // acted on. Reading location.search after that found them already gone,
+  // so a deep link to a job opened nothing.
+  const bootParams = new URLSearchParams(location.search);
   applyStoredFilters();
   applyStateFromUrl(location.search);
 
@@ -4268,12 +4284,17 @@ async function boot() {
   await refreshStats();
   loadJobs();
 
+  // ?view=matches opens Best matches directly, for the 404 page and any
+  // other link that wants it. Not filter state: setView works out the
+  // skills, and the next syncUrl drops the param.
+  if (bootParams.get("view") === "matches") setView("matches");
+
   // A deep link to one specific job (see jobPermalink) opens after the
   // above, not folded into applyStateToFilterUI -- it's not a filter
   // control, and openJobDetail needs the DOM/state from everything above
   // to already be in place. loadJobs() just ran its own syncUrl() with
   // no job selected yet, so this needs its own explicit re-sync after.
-  const deepLinkJobId = new URLSearchParams(location.search).get("job");
+  const deepLinkJobId = bootParams.get("job");
   if (deepLinkJobId) {
     await openJobDetail(deepLinkJobId);
     syncUrl();

@@ -1997,6 +1997,43 @@ footer {
    the padding takes the tappable box to 33px without moving anything. */
 .legal-back .link { display: inline-block; padding: 8px 0; }
 
+/* 404.html. The privacy page's reading column, with the three things a
+   reader needs to get back to the board: search, the listings, and the
+   page they came from. The number is a small label, not a headline. */
+.not-found .container { max-width: 640px; padding-top: 48px; padding-bottom: 64px; }
+.not-found-code,
+.job-gone-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--grey);
+  margin: 0 0 8px;
+}
+.not-found-lede { margin: 0 0 24px; }
+.not-found-search { display: flex; gap: 8px; margin-bottom: 16px; }
+.not-found-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+}
+.not-found-search input:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+.not-found-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Links styled as buttons. .btn is written for <button>, which centres its
+   own text; an <a> needs it said, and loses the link underline. */
+.not-found-actions a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+.not-found-actions [hidden] { display: none; }
+
+/* The sheet's version, for a ?job= link to a listing that has gone. */
+.job-gone { padding: 24px 0; }
+.job-gone p { margin: 0 0 16px; }
+
 /* Responsive */
 
 @media (max-width: 960px) {
