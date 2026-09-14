@@ -52,6 +52,10 @@ _ALLOWED_FILTER_KEYS = {
     "min_age_days", "max_age_days", "skills", "ids",
 }
 
+# Best matches: how many days since posting cost one matched skill in the
+# ranking. See the sort_key == "match" branch in route_jobs.
+MATCH_RECENCY_DAYS = 14
+
 # How long CloudFront may serve a cached answer, as distinct from how
 # long a browser may. Kept below the interval at which the underlying
 # snapshot can change, so a reader never sees an answer older than the
@@ -348,8 +352,19 @@ def route_jobs(params: dict) -> dict:
     # Overlap first, date second. The ten closest fits are the whole
     # point of asking for a match, and any other order scatters them
     # through two thousand rows.
+    # Recency counts too. Ranked on overlap alone, the top of an Israeli
+    # DevOps match was postings 29 to 42 days old, with a three-day-old
+    # role sharing one skill fewer below all of them. Reported live, asking
+    # for Best matches to sort by age as well. So every
+    # MATCH_RECENCY_DAYS since posting costs one matched skill: a fresh
+    # 4-of-7 now ranks above a six-week-old 5-of-7, and a fresh 1-of-7
+    # still cannot jump a strong match. Ties go newest first, as before.
+    # match_score in the response stays the plain count, which is what the
+    # row's "4 of your 7 skills" says.
     if sort_key == "match":
-        order_sql = f"{score_sql} DESC, {order_sql}"
+        age_steps = (f"CAST(MAX(0, julianday('now') - julianday(COALESCE(posted_at, first_seen)))"
+                     f" / {MATCH_RECENCY_DAYS} AS INTEGER)")
+        order_sql = f"({score_sql} - {age_steps}) DESC, {order_sql}"
         order_args = list(score_args)
 
     limit = _int_param(params, "limit", default=100, lo=1, hi=500)

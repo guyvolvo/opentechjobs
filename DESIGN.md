@@ -383,7 +383,10 @@ that view a panel names the CV skills the order is built from, each one
 removable, and every matching row says how many of them it shares, which
 ones, and which of its own listed skills the CV lacks. Plain counts, no
 percentage and no "AI" language: the ranking is a count of shared skill
-tags and says so.
+tags and says so. The order counts recency as well: every two weeks since
+posting costs one matched skill, so a fresh close match outranks a stale
+slightly closer one. The row still shows the plain skill count, and the
+panel's label says the order includes recency.
 
 ### Cards / Containers
 - **Corner style:** square (0px) for a grid-tile card (metric/panel tile,

@@ -1209,6 +1209,10 @@ function currentView() {
 
 function paintViewSwitch() {
   const view = currentView();
+  // "Best match" in the Sort dropdown only means something with skills to
+  // rank by, and it is the one way back after picking Newest in that view.
+  const matchOption = document.querySelector('#f-sort option[value="match:asc"]');
+  if (matchOption) matchOption.hidden = !state.skills.length;
   document.querySelectorAll("#view-switch [data-view]").forEach((b) => {
     const on = b.dataset.view === view;
     b.classList.toggle("active", on);
@@ -1231,7 +1235,9 @@ function renderMatchPanel() {
   }
   const n = state.skills.length;
   panel.hidden = false;
-  panel.innerHTML = `<span class="match-panel-label">Ranked by ${n} CV skill${n === 1 ? "" : "s"}</span>`
+  panel.innerHTML = `<span class="match-panel-label"`
+    + ` title="Every two weeks since a role was posted counts as one matching skill fewer, so newer roles rank higher.">`
+    + `Ranked by ${n} CV skill${n === 1 ? "" : "s"} and how recent</span>`
     // data-match-skill, not data-skill: renderJobRows wires every
     // [data-skill] on the page as "search for this skill", and that
     // handler stops propagation, so a shared attribute turned removing a
@@ -1916,7 +1922,7 @@ function renderJobs(data, starred) {
   const to = Math.min(state.offset + data.jobs.length, data.total);
   document.getElementById("result-count").innerHTML =
     `<b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> open listings`
-    + (state.skills.length && state.sort === "match" ? ", best matches first" : "");
+    + (state.skills.length && state.sort === "match" ? ", best and newest matches first" : "");
 }
 
 // "Company · Department · Location (Workplace)" -- one scannable line
@@ -2995,7 +3001,7 @@ function setActiveSortHeader(key, dir) {
   // sorts (Newest/Oldest), so clicking the Age header updates it and
   // clicking the Listing header falls back to its blank "Sort" placeholder
   // rather than showing a now-wrong stale option.
-  document.getElementById("f-sort").value = key === "age" ? `age:${dir}` : "";
+  document.getElementById("f-sort").value = key === "age" ? `age:${dir}` : key === "match" ? "match:asc" : "";
 }
 
 // boot
@@ -4270,6 +4276,12 @@ async function boot() {
   const bootParams = new URLSearchParams(location.search);
   applyStoredFilters();
   applyStateFromUrl(location.search);
+  // Skills saved from an earlier visit bring the saved sort back with
+  // them, and that was usually Newest. Best matches then came back in
+  // plain date order, listings with no matching skill mixed in, looking
+  // exactly like All listings. Reported live from a screenshot. Only a
+  // link that names its own sort keeps it.
+  if (state.skills.length && !state.starred_only && !bootParams.has("sort")) state.sort = "match";
 
   wireAuth();
   // Not awaited. The board renders from localStorage the moment it can,
