@@ -639,10 +639,10 @@ function pipelineAlive() {
 // mid-word by the panel's overflow, and OFFLINE was quietly overflowing
 // the same tile without being obvious enough for anyone to catch.
 const STATUS_LEVELS = {
-  operational: { symbol: "status-positive", label: "Operational", text: "LIVE" },
-  degraded: { symbol: "status-warning", label: "Degraded", text: "DEGRADED" },
-  outage: { symbol: "status-negative", label: "No recent updates", text: "OFFLINE" },
-  updating: { symbol: "status-updating", label: "Updating", text: "UPDATING" },
+  operational: { symbol: "status-positive", label: "Operational", text: "Live" },
+  degraded: { symbol: "status-warning", label: "Degraded", text: "Degraded" },
+  outage: { symbol: "status-negative", label: "No recent updates", text: "Offline" },
+  updating: { symbol: "status-updating", label: "Updating", text: "Updating" },
 };
 
 function apiStatusFields() {
@@ -884,7 +884,7 @@ function renderScopedMetrics(stats) {
       // under it really is global. A filtered count beneath a label
       // reading GLOBAL OPEN JOBS is the failure this whole section
       // exists to rule out.
-      label: narrowed ? "Open Roles" : "Global Open Jobs",
+      label: narrowed ? "Open roles" : "Global open jobs",
       value: fmtInt(d.open_jobs),
       // open_jobs_best_effort is a whole-board figure with no scoped
       // twin in the contract, so it cannot ride along under a filtered
@@ -893,7 +893,7 @@ function renderScopedMetrics(stats) {
       hl: true,
     },
     {
-      label: "Companies Hiring",
+      label: "Companies hiring",
       value: fmtInt(d.companies_hiring),
       sub: narrowed ? "with a matching open role" : "with a fresh open role",
     },
@@ -903,7 +903,7 @@ function renderScopedMetrics(stats) {
       // the same way, so both said the wrong period. Caught while
       // relabelling the panel for scoping, which is the whole point of
       // that exercise: a number nobody can name is worse than no number.
-      label: "New Listings in 24h",
+      label: "New listings in 24h",
       value: `+${fmtInt(d.new_jobs_24h)}`,
       sub: `${fmtInt(d.new_jobs_7d)} in 7d`,
       hl: d.new_jobs_24h > 0,
@@ -914,7 +914,7 @@ function renderScopedMetrics(stats) {
       sub: `${fmtInt(d.closed_jobs_7d)} in 7d`,
     },
     {
-      label: "Median Open Age",
+      label: "Median open age",
       value: fmtAge(d.median_open_days),
       sub: `oldest ${fmtAge(d.oldest_open_days)}`,
     },
@@ -946,7 +946,7 @@ function renderPipelineTile() {
   el.innerHTML = `
       <div class="metric-card ${status.level === "operational" ? "highlight" : status.level}" id="metric-api-status"
            title="Freshness of the whole pipeline across every company we poll. Never narrowed by the board's filters.">
-        <div class="label">Data Health</div>
+        <div class="label">Data health</div>
         <div>
           <div class="value">${statusIconHtml(status.level)}${escapeHtml(status.value)}</div>
           <div class="sub">${status.sub}</div>
@@ -1089,15 +1089,15 @@ function renderPanels(stats) {
 
   el.innerHTML = `
     <div class="panel">
-      <div class="panel-title">New Listings, Last 14 Days</div>
+      <div class="panel-title">New listings, last 14 days</div>
       ${renderTrendChart(stats.daily_new_jobs)}
     </div>
     <div class="panel">
-      <div class="panel-title">Open Jobs Over Time</div>
+      <div class="panel-title">Open jobs over time</div>
       ${renderOpenJobsChart(stats.open_jobs_history)}
     </div>
     <div class="panel">
-      <div class="panel-title">Fastest Growing (New Reqs, 7D)</div>
+      <div class="panel-title">Fastest growing (new reqs, 7d)</div>
       ${
         stats.top_movers_7d.length
           ? renderBarList(stats.top_movers_7d, "domain", { clickable: true })
@@ -1105,18 +1105,18 @@ function renderPanels(stats) {
       }
     </div>
     <div class="panel">
-      <div class="panel-title">Top Categories</div>
+      <div class="panel-title">Top categories</div>
       ${renderBarList(stats.top_departments, "department")}
     </div>
     <div class="panel">
-      <div class="panel-title">Seniority Spread</div>
+      <div class="panel-title">Seniority spread</div>
       ${renderBarList(
         stats.seniority_breakdown.map((r) => ({ seniority: SENIORITY_LABELS[r.seniority] || r.seniority, n: r.n })),
         "seniority"
       )}
     </div>
     <div class="panel">
-      <div class="panel-title">Dormant Listings</div>
+      <div class="panel-title">Dormant listings</div>
       ${renderGhostStat(stats.ghost, stats.totals.open_jobs)}
     </div>`;
 
@@ -3713,7 +3713,7 @@ function renderAuthState() {
   const tokens = getAuthTokens();
   if (!tokens) {
     area.innerHTML = `
-      <button class="auth-trigger" id="auth-trigger" type="button">Sign In</button>
+      <button class="auth-trigger" id="auth-trigger" type="button">Sign in</button>
       <div class="auth-panel" id="auth-panel" hidden>
         <button class="auth-provider-btn" id="auth-google" type="button">
           <svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.348 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
@@ -4247,6 +4247,27 @@ function wireAlertCreateForm() {
 // the Lambda.
 const STATS_POLL_MS = 120_000;
 
+// The Statistics column folds away to the right (see .stats-toggle in
+// style.css). Remembered per browser; the head script in index.html
+// applies a saved collapse before first paint.
+const STATS_COLLAPSED_KEY = "iljobs_stats_collapsed";
+
+function wireStatsToggle() {
+  const btn = document.getElementById("stats-toggle");
+  if (!btn) return;
+  const paint = () => {
+    const collapsed = document.documentElement.classList.contains("stats-collapsed");
+    btn.setAttribute("aria-expanded", String(!collapsed));
+    btn.title = collapsed ? "Show statistics" : "Hide statistics";
+  };
+  paint();
+  btn.addEventListener("click", () => {
+    const collapsed = document.documentElement.classList.toggle("stats-collapsed");
+    try { localStorage.setItem(STATS_COLLAPSED_KEY, collapsed ? "1" : "0"); } catch {}
+    paint();
+  });
+}
+
 async function boot() {
   // Pages other than the board load this file for its auth helpers and
   // createMultiSelect, and have none of the board's markup. Everything
@@ -4292,6 +4313,7 @@ async function boot() {
   applyStateToFilterUI();
   wireJobDetail();
   wireThemeToggle();
+  wireStatsToggle();
   loadTicker();
   await refreshStats();
   loadJobs();

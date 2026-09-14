@@ -62,6 +62,13 @@
     if (localStorage.getItem("iljobs_theme") === "dark") {
       document.documentElement.setAttribute("data-theme", "dark");
     }
+    // Same for a Statistics column collapsed on an earlier visit (see
+    // wireStatsToggle in app.js), so it does not open and ease shut.
+    try {
+      if (localStorage.getItem("iljobs_stats_collapsed") === "1") {
+        document.documentElement.classList.add("stats-collapsed");
+      }
+    } catch (e) {}
   </script>
 </head>
 <body>
@@ -227,6 +234,12 @@
     </section>
 
     <aside class="stats-board" id="stats-board">
+      <!-- Folds the column away to the right. Collapsed, this button is
+           all that stays, as a slim tab. -->
+      <button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true" aria-controls="stats-board" title="Hide statistics">
+        <span class="stats-toggle-icon" aria-hidden="true">›</span>
+        <span class="stats-toggle-label">Statistics</span>
+      </button>
       <h2 class="section-title">Statistics</h2>
       <a class="link stats-more" href="/stats">Explore advanced statistics</a>
 

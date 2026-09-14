@@ -24,7 +24,7 @@ typography:
     fontSize: "34px"
     fontWeight: 400
     lineHeight: 1
-    letterSpacing: "0.1em"
+    letterSpacing: "normal"
   title-metric:
     fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "30px"
@@ -37,12 +37,18 @@ typography:
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "normal"
-  label:
-    fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif"
-    fontSize: "11px"
+  ui:
+    fontFamily: "\"Source Sans 3\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "13px"
     fontWeight: 700
     lineHeight: 1.3
-    letterSpacing: "0.08em"
+    letterSpacing: "normal"
+  label:
+    fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "12px"
+    fontWeight: 700
+    lineHeight: 1.3
+    letterSpacing: "normal"
 rounded:
   none: "0px"
   default: "4px"
@@ -213,6 +219,7 @@ blocks. A hardcoded `#fff`/`#000` anywhere breaks that.
 
 **Display Font:** Overused Grotesk, weight 400 (self-hosted, variable font spanning 300–900), falling back to Helvetica Neue / Helvetica / Arial
 **Body Font:** Helvetica Neue, falling back to Helvetica, Arial, sans-serif
+**UI Font:** Source Sans 3 (self-hosted, variable 200–900) for controls: buttons, inputs, selects, the view switch, chips and badges
 
 **Character:** A dense, no-serif system voice everywhere text-heavy
 (tables, filters, panels), broken only at brand moments by one bold,
@@ -221,9 +228,9 @@ grotesque-sans display face, never the reverse.
 ### Hierarchy
 - **Display / Wordmark** (400, 15px, 0.02em tracking, Overused Grotesk): the
   topbar wordmark only ("OpenMarket.IL"). 13px below the 640px breakpoint.
-- **Display / Section Title** (400, 34px, uppercase, 1 line-height,
-  0.1em tracking, Overused Grotesk): page titles only. Inside the
-  Statistics column it drops to 24px (1.1 line-height, 0.06em tracking),
+- **Display / Section Title** (400, 34px, sentence case, 1 line-height,
+  Overused Grotesk): page titles only. Inside the
+  Statistics column it drops to 24px (1.1 line-height),
   because there it sits beside 13px filter controls and at 34px was the
   loudest thing on the page. Never used at table-row or data-dense sizes.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
@@ -239,13 +246,23 @@ grotesque-sans display face, never the reverse.
   its title rather than repeating it at the same weight.
 - **Body** (400, 13–14px): filters, table cells, panel prose, buttons,
   bar-chart labels.
-- **Label** (700, 10–12px, uppercase, 0.06–0.1em tracking): column
-  headers, panel titles, chip text, the result count, the topnav.
+- **Label** (700, 12px, sentence case, normal tracking): column
+  headers, panel titles, the result count. Controls carrying label-style
+  text (buttons, the view switch, chips) are 13px in Source Sans 3.
 
 ### Named Rules
-**The Two-Voice Rule.** Helvetica (via `--font`) carries everything
-dense; Overused Grotesk (via `--font-display`) is reserved for exactly two
-brand-level spots. No third typeface is part of the system.
+**The Three-Voice Rule.** Helvetica (via `--font`) carries everything
+dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs,
+selects, the view switch, chips and badges. Overused Grotesk (via
+`--font-display`) is reserved for the wordmark and section titles. No
+fourth typeface.
+
+**No forced capitals.** Nothing is uppercased by CSS, and labels are
+written in sentence case, status words included ("Live", "Degraded").
+Uppercase with wide tracking read as shouting across a dense page, and
+at 10 to 11px it was the smallest text on it. Where other sections of
+this file still describe a label as uppercase or tracked, they predate
+this rule.
 
 ### Open inconsistency (flagged, not fixed here)
 `.api-path` and `.param` in the footer's API Reference (added this
@@ -481,6 +498,14 @@ The stepped motion voice it belonged to still lives in the load bar's
 own history (see Motion), and the square is gone: a ring reads as a
 status mark where a square read as a decoration that happened to change
 colour.
+
+### Statistics column collapse
+A toggle at the top of the Statistics column folds it away to the right
+on desktop. The grid column eases (0.35s) from its normal width to a 40px
+tab that keeps only a vertical "Statistics" button, and the column's
+content fades out. The choice is remembered per browser and applied
+before first paint, so a returning visit does not animate. Below 960px
+the column stacks under the board and has no toggle.
 
 ### Not found
 Any address the site does not have gets `404.html` with a real 404

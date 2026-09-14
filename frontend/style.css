@@ -24,6 +24,26 @@
   font-display: swap;
 }
 
+/* Source Sans 3 for controls (buttons, inputs, the view switch, chips,
+   badges), per request. Self-hosted for the same reason as Overused
+   Grotesk: no third-party font request on every page view. The variable
+   files cover weights 200 to 900; latin-ext carries the accented letters
+   company and city names need. OFL, licence beside the files. */
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("fonts/SourceSans3-VF-latin.woff2") format("woff2-variations");
+  font-weight: 200 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("fonts/SourceSans3-VF-latin-ext.woff2") format("woff2-variations");
+  font-weight: 200 900;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
   --white: #f2f0ef;
   --black: #40513b;
@@ -66,6 +86,7 @@
   --aws-maintenance: #0073bb;
   --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-display: "Overused Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-ui: "Source Sans 3", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
   /* Side padding for .workspace/.container. Scales with viewport
      (20px floor, 64px ceiling) instead of a fixed max-width box. */
@@ -139,7 +160,7 @@ a.link:hover { background: var(--green-text); color: var(--white); }
 .icon-link:hover { color: var(--green-text); }
 
 button, input, select {
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 13px;
   color: var(--black);
   caret-color: var(--black); /* belt-and-suspenders on top of color-scheme: light above */
@@ -158,15 +179,13 @@ button, input, select {
   font-family: var(--font-display);
   font-size: 34px;
   font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   line-height: 1;
   margin: 0 0 12px;
 }
 /* Inside the Statistics column the title sits beside 13px filter
    controls, and at 34px it was the loudest thing on the page. 24px
    still reads as the column's label. */
-.stats-board .section-title { font-size: 24px; line-height: 1.1; letter-spacing: 0.06em; }
+.stats-board .section-title { font-size: 24px; line-height: 1.1; }
 
 /* Topbar */
 
@@ -235,9 +254,7 @@ button, input, select {
   align-items: center;
   gap: 8px;
   padding: 0 20px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 12px;
   color: var(--black);
   text-decoration: none;
   white-space: nowrap;
@@ -266,19 +283,15 @@ button, input, select {
   align-items: center;
   gap: 28px;
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .theme-toggle {
   background: none;
   border: none;
-  font-family: var(--font-display);
-  font-size: 12px;
+  font-family: var(--font-ui);
+  font-size: 13px;
   font-weight: 700;
   color: inherit;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   padding: 0;
   cursor: pointer;
   border-bottom: 1px solid transparent;
@@ -296,12 +309,10 @@ button, input, select {
 .auth-trigger {
   background: none;
   border: none;
-  font-family: var(--font-display);
-  font-size: 12px;
+  font-family: var(--font-ui);
+  font-size: 13px;
   font-weight: 700;
   color: inherit;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   padding: 0;
   cursor: pointer;
   border-bottom: 1px solid transparent;
@@ -342,12 +353,10 @@ button, input, select {
 .auth-signout {
   background: none;
   border: none;
-  font-family: var(--font-display);
-  font-size: 11px;
+  font-family: var(--font-ui);
+  font-size: 13px;
   font-weight: 700;
   color: inherit;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   padding: 0;
   cursor: pointer;
 }
@@ -357,8 +366,6 @@ button, input, select {
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   margin-bottom: 10px;
 }
 
@@ -431,10 +438,8 @@ button, input, select {
   border: 1px solid var(--black);
   border-radius: 4px;
   padding: 3px 8px;
-  font-family: var(--font);
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-family: var(--font-ui);
+  font-size: 13px;
   color: var(--black);
   cursor: pointer;
 }
@@ -478,7 +483,7 @@ button, input, select {
   padding: 9px 10px;
   height: 38px;
   width: 100%;
-  font-family: var(--font);
+  font-family: var(--font-ui);
 }
 .alert-create-fields input[type="text"]:focus { outline: 2px solid var(--green); outline-offset: -2px; }
 .alert-create-fields label.toggle {
@@ -490,8 +495,6 @@ button, input, select {
   border: var(--rule) solid var(--black);
   border-radius: 4px;
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   cursor: pointer;
 }
 .alert-create-fields label.toggle input { accent-color: var(--green); }
@@ -538,7 +541,7 @@ button, input, select {
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 13px; /* Body, matching .filters input/.ms-toggle -- 12.5px sat in the gap between Label and Body for no reason */
   font-weight: 700;
   text-align: left;
@@ -549,9 +552,7 @@ button, input, select {
 
 .auth-divider {
   text-align: center;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   color: var(--grey);
   margin: 10px 0;
 }
@@ -567,7 +568,7 @@ button, input, select {
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 13px;
 }
 .auth-email-form input:focus { outline: 2px solid var(--green); outline-offset: -2px; }
@@ -688,6 +689,59 @@ button, input, select {
 .stats-board .metrics-grid { grid-template-columns: repeat(2, 1fr); }
 .stats-board .panel-grid { grid-template-columns: 1fr; }
 
+/* Collapsing the Statistics column, per request. The toggle folds the
+   column away to the right and the board takes the width, the grid column
+   easing between its normal width and a 40px tab. Desktop only: below
+   960px the column already stacks under the board. The ease runs with
+   reduced motion on too, because it was asked for and it moves once, when
+   clicked; a collapse saved from an earlier visit is applied by the head
+   script in index.html before first paint, so a return does not animate. */
+.stats-toggle { display: none; }
+@media (min-width: 961px) {
+  .workspace { transition: grid-template-columns 0.35s ease; }
+  .stats-board > :not(.stats-toggle) { transition: opacity 0.2s ease, visibility 0.2s; }
+  .stats-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: absolute;
+    top: 12px;
+    right: max(calc(var(--gutter) / 2), 16px);
+    height: 28px;
+    min-width: 28px;
+    padding: 0 8px;
+    border: 1.5px solid var(--black);
+    border-radius: 4px;
+    background: var(--white);
+    color: var(--black);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .stats-toggle:hover { background: var(--black); color: var(--white); }
+  .stats-toggle:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+  .stats-toggle-icon { font-size: 16px; line-height: 1; transition: transform 0.35s ease; }
+  .stats-toggle-label { display: none; }
+
+  html.stats-collapsed .workspace { grid-template-columns: 1fr 40px; }
+  html.stats-collapsed .stats-board { overflow: hidden; padding: 12px 0 0; }
+  html.stats-collapsed .stats-board > :not(.stats-toggle) { opacity: 0; visibility: hidden; }
+  html.stats-collapsed .stats-toggle {
+    position: static;
+    flex-direction: column;
+    height: auto;
+    width: 30px;
+    margin: 0 auto;
+    padding: 10px 0;
+  }
+  html.stats-collapsed .stats-toggle-label { display: inline; writing-mode: vertical-rl; }
+  html.stats-collapsed .stats-toggle-icon { transform: rotate(180deg); }
+}
+
+/* The topnav's API link is a control like the buttons beside it. */
+.topnav a.link { font-family: var(--font-ui); }
+
 /* The three labelled blocks of the Statistics column (see index.html for
    why they exist). The heading is the Label step DESIGN.md already
    documents (700, 10-12px, uppercase, 0.06-0.1em), the same one
@@ -699,10 +753,8 @@ button, input, select {
 .stats-section + .stats-section { margin-top: 26px; }
 
 .stats-section-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   line-height: 1.3;
   color: var(--black);
   margin: 0 0 4px;
@@ -785,9 +837,7 @@ button, input, select {
 }
 
 .metric-card .label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 12px;
   color: var(--grey);
 }
 
@@ -890,9 +940,7 @@ button, input, select {
 }
 
 .panel-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 12px;
   color: var(--grey);
   margin-bottom: 12px;
   font-weight: 700;
@@ -927,11 +975,9 @@ button, input, select {
   background: none;
   border: none;
   color: var(--green-text);
-  font-family: var(--font);
-  font-size: 12px;
+  font-family: var(--font-ui);
+  font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   cursor: pointer;
 }
 .bar-more:hover { text-decoration: underline; }
@@ -948,10 +994,8 @@ button, input, select {
 .trend-legend {
   display: flex;
   gap: 14px;
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--grey);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   margin-top: 6px;
 }
 .trend-legend .dot { display: inline-block; width: 7px; height: 7px; margin-right: 4px; }
@@ -961,10 +1005,8 @@ button, input, select {
 .trend-axis {
   display: flex;
   justify-content: space-between;
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--grey);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   margin-top: 4px;
 }
 
@@ -1094,9 +1136,7 @@ button, input, select {
 }
 .job-detail-company {
   color: var(--grey);
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 12px;
   margin-top: 4px;
   overflow-wrap: anywhere;
 }
@@ -1112,6 +1152,7 @@ button, input, select {
   border-bottom: 1px solid var(--black);
 }
 .job-detail-apply {
+  font-family: var(--font-ui);
   display: inline-flex;
   align-items: center;
   height: 38px;
@@ -1120,10 +1161,8 @@ button, input, select {
   color: var(--white);
   border: var(--rule) solid var(--green-text);
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -1146,17 +1185,13 @@ button, input, select {
 .job-detail-meta-row .label {
   flex: 0 0 92px;
   color: var(--grey);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 10.5px;
+  font-size: 12px;
   padding-top: 1px;
 }
 .job-detail-meta-row .value { overflow-wrap: anywhere; }
 
 .job-detail-description-title {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 12px;
   color: var(--grey);
   font-weight: 700;
   margin-bottom: 10px;
@@ -1171,9 +1206,7 @@ button, input, select {
 .job-detail-desc-heading {
   display: block;
   font-weight: 700;
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   color: var(--grey);
   margin-top: 12px;
 }
@@ -1270,7 +1303,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 13px;
   text-align: left;
   cursor: pointer;
@@ -1307,7 +1340,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 12px;
 }
 
@@ -1373,10 +1406,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   border-radius: 4px;
   background: none;
   color: var(--grey);
-  font-family: var(--font);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-family: var(--font-ui);
+  font-size: 13px;
   cursor: pointer;
 }
 .ms-clear:hover { border-color: var(--black); color: var(--black); }
@@ -1413,15 +1444,14 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 }
 
 .btn {
+  font-family: var(--font-ui);
   border: var(--rule) solid var(--black);
   border-radius: 4px;
   background: var(--black);
   color: var(--white);
   height: 38px;
   padding: 0 16px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1437,11 +1467,9 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   color: var(--white);
   border: var(--rule) solid var(--green-text);
   border-radius: 4px;
-  font-family: var(--font);
-  font-size: 11px;
+  font-family: var(--font-ui);
+  font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   padding: 6px 10px;
   margin-bottom: 12px;
   cursor: pointer;
@@ -1449,9 +1477,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .chip:hover { background: var(--black); border-color: var(--black); }
 
 .result-count {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   color: var(--grey);
   margin-bottom: 12px;
 }
@@ -1469,9 +1495,7 @@ table.jobs {
 }
 table.jobs thead th {
   text-align: left;
-  text-transform: uppercase;
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   color: var(--grey);
   border-bottom: var(--rule) solid var(--black);
   padding: 0 10px 10px;
@@ -1628,7 +1652,7 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
   border: none;
   padding: 0;
   color: var(--grey);
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 12px;
   cursor: pointer;
 }
@@ -1644,10 +1668,9 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 }
 
 .match-chip {
-  font-size: 10.5px;
+  font-family: var(--font-ui);
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--green-text);
   border: var(--rule) solid var(--green-text);
   border-radius: 3px;
@@ -1680,7 +1703,7 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 .match-panel[hidden] { display: none; }
 .match-panel-label { color: var(--grey); margin-right: 2px; }
 .match-skill {
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 12px;
   color: var(--green-text);
   background: none;
@@ -1749,12 +1772,11 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
    not just colored text, so it reads as the row's one button, not a
    same-weight sibling to Save link. Hover inverts to ink, like .chip/.btn. */
 .job-links a.apply-link {
+  font-family: var(--font-ui);
   display: inline-flex;
   align-items: center;
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--white);
   background: var(--green-text);
   border: var(--rule) solid var(--green-text);
@@ -1766,10 +1788,8 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 .job-links a.apply-link:hover { background: var(--black); border-color: var(--black); }
 
 .copy-link-btn {
-  font-size: 10.5px;
+  font-size: 13px;
   font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--grey);
   text-decoration: none;
   border: none;
@@ -1783,10 +1803,9 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 .copy-link-btn.copied { color: var(--green-text); font-weight: 700; border-color: var(--green-text); }
 
 .badge {
+  font-family: var(--font-ui);
   display: inline-block;
-  font-size: 9.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12px;
   border: 1px solid var(--black);
   border-radius: 4px;
   padding: 2px 6px;
@@ -1858,8 +1877,6 @@ table.jobs thead th[data-sort="age"] { text-align: center; }
   text-align: center;
   color: var(--grey);
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 .empty-state strong { display: block; color: var(--black); font-weight: 700; }
 .empty-state span { display: block; margin-top: 8px; text-transform: none; letter-spacing: 0; font-size: 12.5px; }
@@ -1928,9 +1945,7 @@ footer {
    own footer-meta link) reuses .api-endpoint/.api-params/.api-method
    above plus these three, its only page-specific rules. */
 .api-help h3 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   margin: 0 0 16px;
 }
 .api-help-intro { font-size: 12.5px; color: var(--grey); max-width: 720px; margin: 0 0 28px; }
@@ -2003,10 +2018,8 @@ footer {
 .not-found .container { max-width: 640px; padding-top: 48px; padding-bottom: 64px; }
 .not-found-code,
 .job-gone-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--grey);
   margin: 0 0 8px;
 }
@@ -2117,9 +2130,7 @@ footer {
   table.jobs td[data-label]::before {
     content: attr(data-label) ": ";
     color: var(--grey);
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
+    font-size: 12px;
   }
 }
 
@@ -2511,9 +2522,7 @@ footer {
   border-bottom: 1px solid var(--grey-line);
 }
 .panel-title {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: 12px;
   color: var(--grey);
   font-weight: 700;
 }
@@ -2568,7 +2577,7 @@ footer {
   gap: 8px;
   align-items: baseline;
 }
-.sx-type { color: var(--grey); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+.sx-type { color: var(--grey); font-size: 12px; }
 
 /* Starter queries. */
 .explore-templates { display: flex; flex-direction: column; padding: 4px 0; }
@@ -2594,10 +2603,8 @@ footer {
    Bars/Line. */
 .seg { display: inline-flex; border: 1.5px solid var(--black); border-radius: 4px; overflow: hidden; }
 .seg-btn {
-  font-family: var(--font);
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-family: var(--font-ui);
+  font-size: 13px;
   font-weight: 700;
   height: 28px;
   padding: 0 10px;
@@ -2614,7 +2621,7 @@ footer {
 .btn-small { height: 30px; padding: 0 12px; font-size: 11px; white-space: nowrap; }
 
 .explore-status { margin-left: auto; color: var(--grey); font-size: 11.5px; font-variant-numeric: tabular-nums; text-align: right; }
-.explore-hint { color: var(--grey); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+.explore-hint { color: var(--grey); font-size: 12px; }
 /* The last run's measurement. Green while a query is running: the one
    thing on the page that is happening right now. */
 .explore-metric {
@@ -2633,14 +2640,12 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .qb-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 150px; min-width: 0; }
 .qb-field-limit { flex: 0 0 72px; }
 .qb-label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   color: var(--grey);
   font-weight: 700;
 }
 .qb-select, .qb-input {
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 12.5px;
   color: var(--black);
   border: 1.5px solid var(--black);
@@ -2680,7 +2685,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   align-items: center;
 }
 .qb-filter-name { font-size: 12px; font-weight: 700; }
-.qb-filter-op { font-size: 10.5px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.06em; }
+.qb-filter-op { font-size: 12px; color: var(--grey); }
 .qb-filter .ms { min-width: 0; }
 .qb .ms-toggle { height: 32px; padding: 5px 8px; font-size: 12.5px; }
 .qb-date { flex: 1 1 130px; }
@@ -2740,9 +2745,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   text-overflow: ellipsis;
 }
 .explore-table th {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   color: var(--grey);
   font-weight: 700;
   position: sticky;
@@ -2783,9 +2786,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .xbar-axis { padding-top: 4px; margin-top: 2px; align-items: start; }
 .xbar-axis .xbar-name, .xbar-axis .xbar-n {
   font-family: var(--font);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 12px;
   color: var(--grey);
   font-weight: 700;
 }
@@ -2871,8 +2872,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-block-title {
   margin: 0;
   font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 .account-hint { color: var(--grey); font-size: 11.5px; }
 .account-email { margin: 0 0 8px; font-weight: 700; }
@@ -2880,10 +2879,8 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-fields { display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
 .account-field { display: flex; flex-direction: column; gap: 4px; }
 .account-label {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--grey);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 .account-toggle { align-self: flex-start; }
 .account-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
@@ -2923,7 +2920,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
-  font-family: var(--font);
+  font-family: var(--font-ui);
   font-size: 11.5px;
   padding: 4px 8px;
   display: inline-flex;
