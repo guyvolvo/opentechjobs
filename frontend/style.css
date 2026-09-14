@@ -213,9 +213,12 @@ button, input, select {
   width: max-content;
   animation: ticker-scroll 70s linear infinite; /* fallback; app.js sets 7s per item */
 }
-.ticker:hover, .ticker:focus-within { opacity: 1; }
+/* :focus-visible, not :focus-within. Clicking a ticker link opens it in
+   a new tab and leaves focus on the link, and :focus-within kept the
+   ticker paused after the reader came back. Only keyboard focus pauses. */
+.ticker:hover, .ticker:has(:focus-visible) { opacity: 1; }
 .ticker:hover .ticker-track,
-.ticker:focus-within .ticker-track { animation-play-state: paused; } /* let a visitor actually read/click one without it sliding away */
+.ticker:has(:focus-visible) .ticker-track { animation-play-state: paused; } /* let a visitor actually read/click one without it sliding away */
 
 @keyframes ticker-scroll {
   from { transform: translateX(0); }
@@ -2334,9 +2337,6 @@ footer {
   .btn-busy::after { animation: none; }
   /* The sheet still opens and closes, it just arrives already there. */
   .job-detail, #job-scrim { transition: none; }
-  /* The ticker stops and becomes a row you scroll sideways yourself. */
-  .ticker-track { animation: none; }
-  .ticker { overflow-x: auto; scrollbar-width: none; }
 }
 
 /* Screen-reader-only announcement for the skeleton states above. The

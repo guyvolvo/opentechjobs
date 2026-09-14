@@ -422,8 +422,9 @@ list is duplicated once in the DOM, animated `translateX(0)` to
 `translateX(-50%)`, over 70 seconds. It pauses on hover and on keyboard
 focus, and sits at 80% opacity until the pointer or focus is on it, so it
 stays ambient instead of being the first thing on the page anyone
-notices. With reduced motion it does not move at all and becomes a row
-you scroll sideways.
+notices. It keeps moving with reduced motion on: stopping it there left
+the ticker frozen for anyone with Windows animation effects turned off,
+and hover already gives every reader a way to pause it.
 
 ### The Status Glyph (signature component)
 A 13px outlined mark in the topbar and a 24px one on the Data Health
