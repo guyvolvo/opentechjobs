@@ -171,6 +171,49 @@ jobs:
             --key jobs-full-discover.db \
             ${{ github.event.inputs.domains == '' && '--prune-stale' || '--skip-known' }}
 
+      # A targeted run still has to reach the fast poll, which reads only
+      # known.json. --skip-known above stops the wholesale replace that
+      # wiped the file on 2026-09-11, and on its own that also meant a
+      # re-resolved company waited for tomorrow's full sweep. Seven
+      # companies pinned on 2026-09-14 resolved here and stayed off the
+      # board for exactly that reason. So this upserts just this run's
+      # hits by domain, the way merge_discovered_batch.py does, and every
+      # other company in the file is left alone.
+      - name: Upsert this run's resolved companies into known.json
+        if: ${{ github.event.inputs.domains != '' }}
+        env:
+          DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+        run: |
+          python -c "
+          import json, os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'loader')
+          sys.path.insert(0, 'api')
+          from load_to_sqlite import s3_pull, s3_push
+          hits = [r for r in json.load(open('resolved.json', encoding='utf-8')) if r.get('ats')]
+          if not hits:
+              print('nothing resolved, known.json untouched')
+              raise SystemExit(0)
+          bucket = os.environ['DATA_BUCKET']
+          path = Path('known-targeted.json')
+          existed, _ = s3_pull(bucket, 'known.json', path)
+          if not existed:
+              print('known.json not in S3, leaving it for the full sweep to create')
+              raise SystemExit(0)
+          known = json.loads(path.read_text(encoding='utf-8'))
+          before = len(known)
+          by_domain = {e['domain']: e for e in known}
+          for r in hits:
+              by_domain[r['domain']] = {'domain': r['domain'], 'ats': r['ats'], 'token': r.get('token')}
+          merged = list(by_domain.values())
+          # The same guard in the other direction: an upsert can only grow
+          # the file or keep its size. Anything smaller means a bad pull.
+          assert len(merged) >= before, (len(merged), before)
+          path.write_text(json.dumps(merged, ensure_ascii=False), encoding='utf-8')
+          s3_push(bucket, 'known.json', path)
+          print(f'upserted {len(hits)} companies into known.json ({before} -> {len(merged)})')
+          "
+
       - name: "Report status: idle"
         run: |
           python -c "
