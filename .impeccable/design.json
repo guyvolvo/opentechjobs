@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-14T13:41:12Z",
+  "generatedAt": "2026-09-14T15:04:14Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -269,6 +269,10 @@
       "body": {
         "displayName": "Body",
         "purpose": "Filters, table cells, panel prose, bar-chart labels. 13 to 14px."
+      },
+      "input-touch": {
+        "displayName": "Input / Touch",
+        "purpose": "Text fields, selects and textareas on touch screens. 16px is the floor below which iPhone Safari zooms the page on focus."
       },
       "ui": {
         "displayName": "UI",

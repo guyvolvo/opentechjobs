@@ -49,6 +49,12 @@ typography:
     fontWeight: 700
     lineHeight: 1.3
     letterSpacing: "normal"
+  input-touch:
+    fontFamily: "\"Source Sans 3\", \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "16px"
+    fontWeight: 400
+    lineHeight: 1.3
+    letterSpacing: "normal"
   label:
     fontFamily: "\"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "12px"
@@ -256,6 +262,11 @@ grotesque-sans display face, never the reverse.
   its title rather than repeating it at the same weight.
 - **Body** (400, 13–14px): filters, table cells, panel prose, buttons,
   bar-chart labels.
+- **Input / Touch** (400, 16px): every text field, select and textarea on
+  a touch screen (`pointer: coarse`). Safari on iPhone zooms the whole
+  page when a field under 16px takes focus and leaves it zoomed, so this
+  is a floor set by the platform, not a type choice. Desktop fields keep
+  the 13px Body/UI size.
 - **Label** (700, 12px, sentence case, normal tracking): column
   headers, panel titles, the result count. Controls carrying label-style
   text (buttons, the view switch, chips) are 13px in Source Sans 3.
