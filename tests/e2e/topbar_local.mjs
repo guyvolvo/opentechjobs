@@ -43,7 +43,12 @@ for (const [name, engine, device] of [["iphone", webkit, devices["iPhone 14"]], 
         .filter((el) => el.offsetParent !== null)
         .map((el) => ({ label: el.textContent.trim().slice(0, 10) || el.getAttribute("aria-label") || el.className, ...box(el),
           fontSize: getComputedStyle(el).fontSize }));
-      return { barHeight: Math.round(bar.getBoundingClientRect().height), viewport: innerWidth,
+      const acct = document.querySelector(".account-icon"), gh = document.querySelector(".topnav .icon-link svg");
+      const centre = (el) => { const b = el.getBoundingClientRect(); return Math.round(b.top + b.height / 2); };
+      const icons = acct && gh ? { accountBox: acct.getBoundingClientRect().width,
+        accountRing: acct.getBoundingClientRect().width * 18 / 24, githubMark: gh.getBoundingClientRect().width,
+        sameCentreLine: centre(acct) === centre(gh) } : null;
+      return { icons, barHeight: Math.round(bar.getBoundingClientRect().height), viewport: innerWidth,
         overflow: document.documentElement.scrollWidth > innerWidth, controls };
     });
     const state = signedIn ? "signed-in" : "signed-out";
