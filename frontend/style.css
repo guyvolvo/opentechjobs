@@ -1920,6 +1920,10 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 table.jobs thead th[data-sort="age"] { text-align: center; }
 .age-cell { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .age-cell.fresh { color: var(--green-text); font-weight: 700; }
+/* The age again, beside the salary, for phone and tablet widths only.
+   There the row stacks, and the Age cell used to take a line of its own
+   under the salary. Hidden here, where the Age column does the job. */
+.age-inline { display: none; }
 
 .star-btn {
   border: none;
@@ -2226,6 +2230,22 @@ footer {
      after the logo, so it shrinks and wraps its text instead. */
   table.jobs td.title-cell > .job-card-body { flex: 1 1 0; min-width: 0; }
   table.jobs .job-salary-col { flex: 1 0 100%; padding-top: 4px; }
+  /* Salary and age on one line. Reported live from a phone: the
+     estimate sat on one row and "Age: 11M" on the next, two lines of a
+     card spent on two short values. The age is rendered inside the
+     salary block for this width (see .age-inline) and the stacked Age
+     cell hides. */
+  table.jobs .job-salary-col { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+  .age-inline {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .age-inline-label { color: var(--grey); font-size: 12px; }
+  .age-inline.fresh { color: var(--green-text); font-weight: 700; }
+  table.jobs td.age-cell { display: none; }
   table.jobs .job-skills-col { flex: 0 1 auto; padding-top: 4px; }
   table.jobs tr { padding: 10px 0; }
   /* Reported live: redundant at this width -- opening a listing's own
