@@ -3193,7 +3193,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .hero-bar a { color: inherit; text-decoration: none; }
 .hero-bar a:hover { color: var(--green-text); }
-.hero-bar a:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 2px; }
+.hero-bar a:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
 .hero-nav a + a::before { content: ", "; color: var(--black); }
 
 .hero {
@@ -3300,7 +3300,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-cta-link {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(40px, 7vw, 7.5rem);
+  font-size: clamp(52px, 9vw, 10rem);
   line-height: 1;
   letter-spacing: -0.03em;
   color: var(--green-text);

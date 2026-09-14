@@ -574,7 +574,7 @@ rows under a 2px rule, heading in Display / Feature beside a 16px
 paragraph, each rising into place once as it scrolls into view on an
 exponential ease-out; visible without script, and without that motion
 when reduced motion is on, where the tickers slow to a third. It ends on
-a large green "Search N open jobs" link. Overused Grotesk throughout,
+a large green "Search N open jobs" link, set at the Hero Ticker size. Overused Grotesk throughout,
 colours from the board's own tokens, so it follows the theme.
 
 ### Not found
