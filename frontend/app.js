@@ -1996,7 +1996,7 @@ function jobSalaryHtml(j) {
   const note = SALARY_SOURCE_NOTE[source] || SALARY_SOURCE_NOTE.estimated;
   const cls = isEstimate ? `job-salary estimate ${escapeHtml(source)}` : "job-salary";
   return `<span class="${cls}" data-salary-source="${escapeHtml(source)}" title="${escapeHtml(note)}">`
-    + `${isEstimate ? "Est. " : ""}${escapeHtml(j.salary_text)}</span>`;
+    + `${isEstimate ? '<span class="salary-est-label">Est.</span> ' : ""}${escapeHtml(j.salary_text)}</span>`;
 }
 
 // Plain text, no chip/badge container (confirmed live) -- each one
@@ -2135,6 +2135,7 @@ function renderJobRows(jobs, starred) {
           </button>
         </td>
         <td class="title-cell">
+          <span class="age-inline ${fresh ? "fresh" : ""}">${fmtAge(age)}</span>
           ${companyLogoImg(j.company_domain, 64, "listing", j.logo_url)}
           <div class="job-card-body">
             <div class="job-card-title">
@@ -2150,7 +2151,7 @@ function renderJobRows(jobs, starred) {
               <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
             </div>
           </div>
-          <div class="job-salary-col">${jobSalaryHtml(j)}<span class="age-inline ${fresh ? "fresh" : ""}"><span class="age-inline-label">Age:</span> ${fmtAge(age)}</span></div>
+          <div class="job-salary-col">${jobSalaryHtml(j)}</div>
           <!-- Skills chips pulled from the UI for now, per request, while
                salary gets more attention -- jobSkillsHtml/.skill-chip and
                its click-to-filter wiring are still intact below, just
