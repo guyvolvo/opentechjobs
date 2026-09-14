@@ -1946,10 +1946,10 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 table.jobs thead th[data-sort="age"] { text-align: center; }
 .age-cell { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .age-cell.fresh { color: var(--green-text); font-weight: 700; }
-/* The age again, beside the salary, for phone and tablet widths only.
-   There the row stacks, and the Age cell used to take a line of its own
-   under the salary. Hidden here, where the Age column does the job. */
-.age-inline { display: none; }
+/* The age again, at the end of the details line, for phone and tablet
+   widths only (see the 960px block). Hidden here, where the Age column
+   does the job. */
+.meta-age { display: none; }
 
 .star-btn {
   border: none;
@@ -2248,14 +2248,15 @@ footer {
      -- deliberately given a 100%-wide basis, the standard "always start
      a new flex line" trick -- drops to its own row underneath, every
      time, regardless of content length. */
-  /* A grid on phones, not the wrapping flex row it was. The age sits in
-     the logo column on the title's line, and the salary drops under
-     Apply, starting at Apply's own left edge. Reported live twice: the
-     salary chip and Apply were both filled green on different left
-     edges, and the age took a line of its own. .job-card-body dissolves
+  /* A grid on phones, not the wrapping flex row it was. The logo is
+     column one on its own, level with the top of the title, and the salary
+     drops under Apply, starting at Apply's own left edge. Reported live:
+     the salary chip and Apply were both filled green on different left
+     edges; then that the age above the logo and the logo itself shifted
+     with every extra line a title wrapped to. .job-card-body dissolves
      (display: contents) so the title, meta, match lines and links are
      direct grid items in column two and flow down it in order; the logo
-     spans the rows beside them. */
+     spans the rows beside them from the first. */
   table.jobs td.title-cell {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
@@ -2263,8 +2264,7 @@ footer {
     column-gap: 0;
     align-items: start;
   }
-  table.jobs td.title-cell > .age-inline { grid-column: 1; grid-row: 1; }
-  table.jobs td.title-cell > .company-logo.listing { grid-column: 1; grid-row: 2 / span 6; align-self: start; margin-top: 6px; }
+  table.jobs td.title-cell > .company-logo.listing { grid-column: 1; grid-row: 1 / span 7; align-self: start; margin-top: 2px; }
   table.jobs td.title-cell > .job-card-body { display: contents; }
   table.jobs td.title-cell > .job-card-body > *,
   table.jobs td.title-cell > .job-salary-col { grid-column: 2; }
@@ -2276,20 +2276,15 @@ footer {
      A basis of zero means this column is always sized by what is left
      after the logo, so it shrinks and wraps its text instead. */
   table.jobs .job-salary-col { padding-top: 6px; }
-  /* The age, over the logo, level with the title's first line. Centred
-     on the logo column and set on the title's line height so it reads as
-     part of that line. The stacked Age cell hides. */
-  .age-inline {
-    display: block;
-    justify-self: center;
-    margin: 0 14px 0 8px;
-    font-size: 12px;
-    line-height: 1.7;
-    color: var(--grey);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-  .age-inline.fresh { color: var(--green-text); font-weight: 700; }
+  /* The age at the end of the details line, "ScaleOps · R&D · Tel Aviv ·
+     1H 14M", in that line's own size and weight; green when the listing
+     is fresh, the line's grey otherwise. It used to sit above the logo,
+     where every extra line of title moved the logo away from it. The
+     stacked Age cell hides. */
+  .meta-age { display: inline; }
+  /* Only the value turns green; the dot before it stays the line's grey,
+     like every other separator in it. */
+  .meta-age-value.fresh { color: var(--green-text); }
   table.jobs td.age-cell { display: none; }
   /* The salary as text under Apply, not a second green button: "Est."
      in the regular grey, the figure in green. Filled green on a phone row

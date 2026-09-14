@@ -2145,7 +2145,6 @@ function renderJobRows(jobs, starred) {
           </button>
         </td>
         <td class="title-cell">
-          <span class="age-inline ${fresh ? "fresh" : ""}">${fmtAge(age)}</span>
           ${companyLogoImg(j.company_domain, 64, "listing", j.logo_url)}
           <div class="job-card-body">
             <div class="job-card-title">
@@ -2154,7 +2153,7 @@ function renderJobRows(jobs, starred) {
               ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
               ${j.closed_at ? '<span class="badge closed" title="This listing is no longer open">Closed</span>' : ""}
             </div>
-            <div class="job-meta">${jobMetaLine(j)}</div>
+            <div class="job-meta">${jobMetaLine(j)}<span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAge(age)}</span></span></div>
             ${jobMatchHtml(j)}
             <div class="job-links">
               <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
