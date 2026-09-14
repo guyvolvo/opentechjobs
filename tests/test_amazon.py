@@ -156,15 +156,20 @@ def global_answer(url):
 urls = []
 orig = probe.get_json
 probe.get_json = lambda sess, url: (urls.append(url), global_answer(url))[1]
-probe._amazon_global_rows = None
+probe._amazon_global_rows.clear()
 try:
     everywhere = probe.f_amazon(None, "ALL")
     first_read = len(urls)
+    rest_half = probe.f_amazon(None, "ALL|-aws")
+    second_read = len(urls)
     aws_half = probe.f_amazon(None, "ALL|aws")
 finally:
     probe.get_json = orig
-check("the second pin in a run reuses the first pin's read",
-      len(urls) == first_read and [j.external_id for j in aws_half] == ["1"], repr((first_read, len(urls))))
+check("a second pin over the same pages in one run reuses the read",
+      second_read == first_read and [j.external_id for j in rest_half] == ["2"], repr((first_read, second_read)))
+check("AWS is asked for on the server, as its own read",
+      len(urls) > second_read and all("business_category%5B%5D=aws" in u for u in urls[second_read:]),
+      repr(urls[second_read:second_read + 2]))
 check("ALL splits the US by state and reads every slice",
       any("normalized_state_name%5B%5D=Washington" in u for u in urls)
       and any("normalized_country_code%5B%5D=ISR" in u and "offset=0" in u for u in urls), repr(urls[:6]))
@@ -175,7 +180,7 @@ check("the same job in two slices is kept once",
 
 probe.get_json = lambda sess, url: None if "New+York" in url or "New%20York" in url else global_answer(url)
 probe.time.sleep = lambda s: None
-probe._amazon_global_rows = None
+probe._amazon_global_rows.clear()
 try:
     partial = probe.f_amazon(None, "ALL")
 finally:
@@ -184,7 +189,7 @@ check("a slice that keeps failing makes the whole read fail, so no job is closed
       partial is None, repr(partial and len(partial)))
 
 probe.get_json = lambda sess, url: global_answer(url)
-probe._amazon_global_rows = None
+probe._amazon_global_rows.clear()
 try:
     known = probe.f_amazon(None, "ALL", known_ids={"1"})
 finally:

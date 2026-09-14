@@ -844,7 +844,7 @@ function renderScopeLine() {
   const mode = currentScopeMode();
   const applied = activeFilterSummary().join(" · ");
   if (mode === "global") {
-    el.textContent = "No filters applied, so these are whole-board totals.";
+    el.textContent = "No filters applied";
     return;
   }
   if (mode === "pending") {

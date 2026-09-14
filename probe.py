@@ -1876,13 +1876,13 @@ def _amazon_facet(sess, query, facet):
     return out
 
 
-def _amazon_slices(sess):
-    countries = _amazon_facet(sess, "", "normalized_country_code")
+def _amazon_slices(sess, extra=""):
+    countries = _amazon_facet(sess, extra, "normalized_country_code")
     if not countries:
         return None
     slices = []
     for code, n in countries:
-        query = f"&normalized_country_code%5B%5D={requests.utils.quote(code)}"
+        query = f"{extra}&normalized_country_code%5B%5D={requests.utils.quote(code)}"
         if n < AMAZON_OFFSET_CEILING:
             slices.append((query, n))
             continue
@@ -1894,20 +1894,22 @@ def _amazon_slices(sess):
     return slices
 
 
-# aws.amazon.com and amazon.com are two pins over one set of pages, split
-# by business_category after the read. Reading the world twice cost about
-# 67 seconds a run for nothing, so the raw rows are kept briefly and the
-# second pin in the same run reuses them.
+# AWS is asked for on the server (business_category[]=aws): 8,193 roles in
+# one read under the offset ceiling, about a third of Amazon's pages, which
+# is what lets AWS poll hourly while the rest of Amazon waits four hours.
+# The rest cannot be asked for that way, there is no "not" filter, so it
+# reads everything and drops AWS after. A read is kept briefly per filter,
+# so two pins over the same pages in one run share it.
 _AMAZON_GLOBAL_TTL_S = 600
-_amazon_global_rows: tuple[float, list] | None = None
+_amazon_global_rows: dict[str, tuple[float, list]] = {}
 
 
 def _amazon_global(sess, token, want, known_ids):
-    global _amazon_global_rows
-    cached = _amazon_global_rows
+    extra = "&business_category%5B%5D=aws" if want == "aws" else ""
+    cached = _amazon_global_rows.get(extra)
     if cached is not None and time.monotonic() - cached[0] < _AMAZON_GLOBAL_TTL_S:
         return _amazon_jobs(cached[1], token, want, known_ids)
-    slices = _amazon_slices(sess)
+    slices = _amazon_slices(sess, extra)
     if slices is None:
         return None
     pages = [(query, offset) for query, n in slices
@@ -1926,7 +1928,7 @@ def _amazon_global(sess, token, want, known_ids):
     got = _fetch_all(page, pages, workers=4, attempts=6, backoff=2.0)
     if got is None:
         return None
-    _amazon_global_rows = (time.monotonic(), got)
+    _amazon_global_rows[extra] = (time.monotonic(), got)
     return _amazon_jobs(got, token, want, known_ids)
 
 

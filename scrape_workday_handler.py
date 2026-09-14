@@ -109,7 +109,7 @@ def _write_status(s3, phase: str, detail: str = "") -> None:
         print(f"status.json write failed (non-fatal): {e!r}")
 
 
-def _known_state_by_domain() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
+def _known_state_by_domain() -> tuple[dict[str, set[str]], dict[str, set[str]], dict[str, str]]:
     """This partition's own currently-open jobs, per company, from
     whatever load_to_sqlite.py's own pull-modify-push cycle last wrote --
     see probe.f_workday's own known_external_ids docstring for what this
@@ -126,30 +126,61 @@ def _known_state_by_domain() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
     like today), which is exactly what SHOULD happen the very first time
     this ever runs, before any partition exists at all.
 
-    Returns two maps: every open job per company, and the open jobs that
-    already have a description. The second is what the big-tech reads use:
-    a job is new to them until it has been described once.
+    Returns three maps: every open job per company, the open jobs that
+    already have a description (a job is new to the big-tech reads until
+    it has been described once), and when each company was last read
+    successfully, taken from its jobs' last_seen, which only a successful
+    poll moves. That last one is what every_hours is measured against.
     """
     path = TMP / "known-workday-state.db"
     try:
         existed, _ = s3_pull(BUCKET, "jobs-partition-workday.db", path)
         if not existed:
-            return {}, {}
+            return {}, {}, {}
         conn = sqlite3.connect(path)
         rows = conn.execute(
             "SELECT company_domain, external_id, description_sha IS NOT NULL FROM jobs WHERE closed_at IS NULL"
         ).fetchall()
+        polled = dict(conn.execute("SELECT company_domain, MAX(last_seen) FROM jobs GROUP BY company_domain").fetchall())
         conn.close()
     except Exception as e:
         print(f"couldn't read known Workday state (non-fatal, treating everything as new this cycle): {e!r}")
-        return {}, {}
+        return {}, {}, {}
     by_domain: dict[str, set[str]] = {}
     described: dict[str, set[str]] = {}
     for domain, external_id, has_description in rows:
         by_domain.setdefault(domain, set()).add(external_id)
         if has_description:
             described.setdefault(domain, set()).add(external_id)
-    return by_domain, described
+    return by_domain, described, polled
+
+
+# Slack under the interval, so a board set to every hour is still due on an
+# hourly schedule that fires a minute or two early.
+DUE_SLACK_S = 600
+
+
+def _due(pin: dict, last_polled: str | None, now: datetime | None = None) -> bool:
+    """Whether a pin is due this run. every_hours in companies.yml, default
+    1. The heavy global boards that change slowly (Apple, Google, Microsoft,
+    the non-AWS half of Amazon) are read every four hours instead of every
+    hour, which is most of this Lambda's run time and none of what makes the
+    board fresh. Unknown or unparseable history counts as due.
+    """
+    try:
+        hours = float(pin.get("every_hours") or 1)
+    except (TypeError, ValueError):
+        hours = 1.0
+    if not last_polled:
+        return True
+    try:
+        last = datetime.fromisoformat(str(last_polled).replace("Z", "+00:00"))
+    except ValueError:
+        return True
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    now = now or datetime.now(timezone.utc)
+    return (now - last).total_seconds() >= hours * 3600 - DUE_SLACK_S
 
 
 def _poll_big_tech(sess, ats: str, domain: str, pin: dict, described: set[str]) -> dict:
@@ -193,7 +224,11 @@ def lambda_handler(event, context):
         print("no workday or big-tech pins in companies.yml, skipping")
         return {"skipped": True}
 
-    known_ids, described = _known_state_by_domain()
+    known_ids, described, polled = _known_state_by_domain()
+    not_due = [d for d, pin in pins.items() if not _due(pin, polled.get(d))]
+    not_due += [d for _, d, pin in big_tech if not _due(pin, polled.get(d))]
+    if not_due:
+        print(f"not due this run (every_hours): {', '.join(sorted(not_due))}")
     print(f"known state: {sum(len(v) for v in known_ids.values())} open jobs across "
           f"{len(known_ids)} companies from the last partition")
 
@@ -202,6 +237,8 @@ def lambda_handler(event, context):
     sess = probe.session()
     results = []
     for domain, pin in pins.items():
+        if domain in not_due:
+            continue
         try:
             jobs = probe.f_workday(sess, pin["tenant"], pin["wd"], pin["site"], israel_facets=pin.get("israel_facets"),
                                     known_external_ids=known_ids.get(domain))
@@ -228,6 +265,8 @@ def lambda_handler(event, context):
         })
 
     for ats, domain, pin in big_tech:
+        if domain in not_due:
+            continue
         if context is not None and context.get_remaining_time_in_millis() < BIG_TECH_TIME_RESERVE_MS:
             results.append({"domain": domain, "ats": None, "token": None, "job_count": 0, "tried": 0,
                             "error": "out of time this run", "retryable": True, "jobs": []})

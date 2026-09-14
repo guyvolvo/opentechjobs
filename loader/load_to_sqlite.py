@@ -1035,16 +1035,46 @@ def update_meta(conn: sqlite3.Connection) -> None:
         )
 
 
+def _etag_marker(path: Path) -> Path:
+    return path.with_name(path.name + ".etag")
+
+
 def s3_pull(bucket: str, key: str, dest: Path) -> tuple[bool, str | None]:
     """Returns (existed, ETag). The ETag is this function's real point --
-    see s3_push_conditional's own docstring for why."""
+    see s3_push_conditional's own docstring for why.
+
+    Skips the download when dest already is the object in S3. The applier
+    used to pull the whole 284MB snapshot every five minutes only to push
+    it straight back, and a warm Lambda keeps /tmp between runs, so most of
+    those downloads fetched the bytes it had just uploaded. That round trip
+    was the largest line on the AWS bill.
+
+    Safe because of how the marker beside the file is kept. It holds the
+    ETag of the last successful conditional push of that exact file, and
+    this function deletes it before handing the file to a caller. A run
+    that changes the file and then fails to push leaves no marker, so the
+    next run downloads. A file is reused only when its marker survived and
+    still matches what S3 holds now.
+
+    Streams to disk rather than reading the object into memory, which is
+    what made the applier need 2GB.
+    """
     import boto3
     from botocore.exceptions import ClientError
 
     s3 = boto3.client("s3")
+    marker = _etag_marker(dest)
     try:
+        remote = s3.head_object(Bucket=bucket, Key=key)["ETag"]
+        clean = dest.exists() and marker.exists() and marker.read_text(encoding="utf-8").strip() == remote
+        marker.unlink(missing_ok=True)
+        if clean:
+            print(f"s3://{bucket}/{key}: local copy is current ({remote}), not downloading", file=sys.stderr)
+            return True, remote
         resp = s3.get_object(Bucket=bucket, Key=key)
-        dest.write_bytes(resp["Body"].read())
+        with open(dest, "wb") as fh:
+            for chunk in resp["Body"].iter_chunks(8 * 1024 * 1024):
+                fh.write(chunk)
         return True, resp["ETag"]
     except ClientError as e:
         code = e.response["Error"]["Code"]
@@ -1101,18 +1131,27 @@ def s3_push_conditional(bucket: str, key: str, src: Path, etag: str | None) -> b
     from botocore.exceptions import ClientError
 
     s3 = boto3.client("s3")
-    kwargs: dict = {"Bucket": bucket, "Key": key, "Body": src.read_bytes()}
+    kwargs: dict = {"Bucket": bucket, "Key": key}
     if etag is not None:
         kwargs["IfMatch"] = etag
     else:
         kwargs["IfNoneMatch"] = "*"
+    # A file handle, not read_bytes(): the SDK streams it, so a 284MB
+    # snapshot no longer sits in memory for the length of the upload.
+    marker = _etag_marker(src)
+    marker.unlink(missing_ok=True)
     try:
-        s3.put_object(**kwargs)
-        return True
+        with open(src, "rb") as fh:
+            resp = s3.put_object(Body=fh, **kwargs)
     except ClientError as e:
         if e.response["Error"]["Code"] in ("PreconditionFailed", "412"):
             return False
         raise
+    # What S3 now holds is exactly this file, so the next s3_pull of it
+    # can skip the download. See s3_pull.
+    if resp.get("ETag"):
+        marker.write_text(resp["ETag"], encoding="utf-8")
+    return True
 
 
 def apply_company_logos(conn: sqlite3.Connection, path: Path) -> int:
@@ -1250,8 +1289,12 @@ def main() -> int:
 
         etag = None
         if args.bucket:
-            if args.out.exists():
-                args.out.unlink()
+            # No unlink first any more. s3_pull downloads unless the local
+            # file carries a marker from its own successful push and S3
+            # still holds that version, and it removes the marker before
+            # returning, so the ETag this attempt conditions on is always
+            # the one S3 has now. A failed or conflicting attempt leaves no
+            # marker, and the retry downloads.
             existed, etag = s3_pull(args.bucket, args.key, args.out)
             print(f"pulled existing jobs.db from s3://{args.bucket}/{args.key}: {existed}", file=sys.stderr)
 

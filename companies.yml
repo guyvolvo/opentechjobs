@@ -392,6 +392,7 @@ amazon:
     source: own-careers-api
   - domain: amazon.com
     token: "ALL|-aws"
+    every_hours: 4
     jobs_seen: 13
     source: own-careers-api
 
@@ -403,6 +404,7 @@ microsoft:
   # amazon above. Counts as of 2026-09-14.
   - domain: microsoft.com
     token: "ALL"
+    every_hours: 4
     jobs_seen: 19
     source: own-careers-api
 
@@ -410,6 +412,7 @@ google:
   # The results page's own embedded data, twenty rows a page.
   - domain: google.com
     token: "ALL"
+    every_hours: 4
     jobs_seen: 96
     source: own-careers-page
 
@@ -417,6 +420,7 @@ apple:
   # jobs.apple.com's search API, which wants a CSRF token first.
   - domain: apple.com
     token: "ALL"
+    every_hours: 4
     jobs_seen: 122
     source: own-careers-api
 
