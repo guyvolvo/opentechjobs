@@ -1799,11 +1799,155 @@ def _amazon_date(v):
     return _normalize_date(f"{m.group(3)}-{month:02d}-{int(m.group(2)):02d}T00:00:00+00:00")
 
 
-def f_amazon(sess, token):
+def _fetch_all(fn, items, workers=8, attempts=3, backoff=0.5):
+    """fn over items, concurrently, each retried a few times. The results in
+    order, or None if any item still failed.
+
+    None rather than whatever did come back, on purpose. A global board is
+    hundreds of pages, and a read with one page missing looks exactly like
+    every job on that page having closed: the loader closes whatever a poll
+    did not return. Measured on Amazon's first global read, 35 of 374 pages
+    failed on the first try. So a partial read is no read, the company keeps
+    its listings, and the next run tries again.
+    """
+    def one(item):
+        for attempt in range(attempts):
+            try:
+                value = fn(item)
+            except Exception:
+                value = None
+            if value is not None:
+                return value
+            time.sleep(backoff * (attempt + 1))
+        return None
+
+    if not items:
+        return []
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(one, items))
+    return None if any(r is None for r in results) else results
+
+
+def _amazon_row(j, token, want, known_ids):
+    category = _txt(j.get("business_category")).lower()
+    if want == "aws" and category != "aws":
+        return None
+    if want == "-aws" and category == "aws":
+        return None
+    jid = _txt(j.get("id_icims")) or _txt(j.get("id"))
+    if not jid:
+        return None
+    # The qualifications carry most of the technology names, and the
+    # description proper is mostly prose about the team, so skill tagging
+    # gets much better results from all three. Not built for a job we
+    # already have: at 6KB a posting, Amazon's whole world is 128MB of text
+    # the loader would only compare and discard.
+    body = None
+    if not (known_ids and jid in known_ids):
+        body = "\n\n".join(_txt(j.get(k)) for k in
+                           ("description", "basic_qualifications", "preferred_qualifications")
+                           if _txt(j.get(k)))
+    where = _txt(j.get("normalized_location")) or _txt(j.get("location"))
+    return Job("amazon", token, jid, _txt(j.get("title")),
+               where,
+               "https://www.amazon.jobs" + _txt(j.get("job_path")),
+               _amazon_date(j.get("posted_date")),
+               _txt(j.get("job_category")) or None,
+               len(body or ""),
+               _clean_text(body) if body else None)
+
+
+# amazon.jobs stops paging at offset 10,000, and it has about 22,000 open
+# roles. So the global read splits by country, and splits any country too
+# big for one read (the US, 13,360) by state.
+AMAZON_OFFSET_CEILING = 10000
+
+
+def _amazon_facet(sess, query, facet):
+    d = get_json(sess, f"{AMAZON_SEARCH}?result_limit=1{query}&facets%5B%5D={facet}")
+    rows = (d.get("facets") or {}).get(f"{facet}_facet") if isinstance(d, dict) else None
+    if not isinstance(rows, list):
+        return None
+    out = []
+    for x in rows:
+        if isinstance(x, dict) and len(x) == 1:
+            (k, v), = x.items()
+            out.append((k, int(v or 0)))
+    return out
+
+
+def _amazon_slices(sess):
+    countries = _amazon_facet(sess, "", "normalized_country_code")
+    if not countries:
+        return None
+    slices = []
+    for code, n in countries:
+        query = f"&normalized_country_code%5B%5D={requests.utils.quote(code)}"
+        if n < AMAZON_OFFSET_CEILING:
+            slices.append((query, n))
+            continue
+        states = _amazon_facet(sess, query, "normalized_state_name")
+        if not states:
+            return None
+        slices.extend((query + f"&normalized_state_name%5B%5D={requests.utils.quote(name)}", m)
+                      for name, m in states)
+    return slices
+
+
+# aws.amazon.com and amazon.com are two pins over one set of pages, split
+# by business_category after the read. Reading the world twice cost about
+# 67 seconds a run for nothing, so the raw rows are kept briefly and the
+# second pin in the same run reuses them.
+_AMAZON_GLOBAL_TTL_S = 600
+_amazon_global_rows: tuple[float, list] | None = None
+
+
+def _amazon_global(sess, token, want, known_ids):
+    global _amazon_global_rows
+    cached = _amazon_global_rows
+    if cached is not None and time.monotonic() - cached[0] < _AMAZON_GLOBAL_TTL_S:
+        return _amazon_jobs(cached[1], token, want, known_ids)
+    slices = _amazon_slices(sess)
+    if slices is None:
+        return None
+    pages = [(query, offset) for query, n in slices
+             for offset in range(0, min(n, AMAZON_OFFSET_CEILING), AMAZON_PAGE)]
+
+    def page(item):
+        query, offset = item
+        d = get_json(sess, f"{AMAZON_SEARCH}?result_limit={AMAZON_PAGE}&offset={offset}{query}")
+        if not isinstance(d, dict) or not isinstance(d.get("jobs"), list):
+            return None
+        return d["jobs"]
+
+    # Gentler than the other sites. At eight at a time amazon.jobs throttled
+    # enough pages that three tries could not get them all, and the whole
+    # read failed. Four at a time with longer waits gets through.
+    got = _fetch_all(page, pages, workers=4, attempts=6, backoff=2.0)
+    if got is None:
+        return None
+    _amazon_global_rows = (time.monotonic(), got)
+    return _amazon_jobs(got, token, want, known_ids)
+
+
+def _amazon_jobs(pages, token, want, known_ids):
+    out, seen = [], set()
+    for rows in pages:
+        for j in rows:
+            job = _amazon_row(j, token, want, known_ids)
+            if job and job.external_id not in seen:
+                seen.add(job.external_id)
+                out.append(job)
+    return out
+
+
+def f_amazon(sess, token, known_ids=None):
     m = _AMAZON_TOKEN_RE.match(_txt(token))
     if not m:
         return None
     country, want = m.group(1), m.group(2)
+    if country == "ALL":
+        return _amazon_global(sess, token, want, known_ids)
     out, offset = [], 0
     while True:
         d = get_json(sess, f"{AMAZON_SEARCH}?normalized_country_code%5B%5D={country}"
@@ -1817,28 +1961,9 @@ def f_amazon(sess, token):
             return out or None
         rows = d.get("jobs") or []
         for j in rows:
-            category = _txt(j.get("business_category")).lower()
-            if want == "aws" and category != "aws":
-                continue
-            if want == "-aws" and category == "aws":
-                continue
-            jid = _txt(j.get("id_icims")) or _txt(j.get("id"))
-            if not jid:
-                continue
-            # The qualifications carry most of the technology names, and
-            # the description proper is mostly prose about the team, so
-            # skill tagging gets much better results from all three.
-            body = "\n\n".join(_txt(j.get(k)) for k in
-                                ("description", "basic_qualifications", "preferred_qualifications")
-                                if _txt(j.get(k)))
-            where = _txt(j.get("normalized_location")) or _txt(j.get("location"))
-            out.append(Job("amazon", token, jid, _txt(j.get("title")),
-                           where,
-                           "https://www.amazon.jobs" + _txt(j.get("job_path")),
-                           _amazon_date(j.get("posted_date")),
-                           _txt(j.get("job_category")) or None,
-                           len(body),
-                           _clean_text(body)))
+            job = _amazon_row(j, token, want, known_ids)
+            if job:
+                out.append(job)
         offset += AMAZON_PAGE
         # hits counts the country, not the category filter, so paging has
         # to follow the raw row count and not len(out).
@@ -1848,20 +1973,34 @@ def f_amazon(sess, token):
 
 
 # Microsoft, Google and Apple run their own careers sites, like Amazon.
-# Same guard as f_amazon: the token is an upper-case country code, and a
-# guessed token is a lower-case slug off a domain, so none of these makes
-# a request until a pin in companies.yml names it.
+# Same guard as f_amazon: the token is an upper-case code, and a guessed
+# token is a lower-case slug off a domain, so none of these makes a request
+# until a pin in companies.yml names it. "ALL" reads the whole world,
+# which is what the board wants; a country code reads one country.
 #
-# Meta is not here. Its jobs page answers a plain request with a 400 and
-# loads listings through an internal GraphQL call, which is not a public
-# read endpoint in any sense worth relying on.
-_COUNTRY_TOKENS = {"ISR": ("Israel", "IL")}
+# Read globally they are big: 2,192, 3,258 and 6,077 roles, hundreds of
+# pages each. That is why they poll from the hourly Lambda
+# (scrape_workday_handler.py) and not the five-minute sweep, and why a
+# description is fetched only for a job the caller does not already have
+# (known_ids) and only up to detail_budget of them a run. A global read
+# with no budget given fetches no descriptions at all: the discovery pass
+# calls these too, and its database never reaches the board.
+#
+# Meta is not here. Its listings load through an internal GraphQL call
+# with persisted query ids, which Meta can change on any deploy.
+_COUNTRY_TOKENS = {"ALL": (None, None), "ISR": ("Israel", "IL")}
 _BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
 
 
 def _country_token(token):
     return _COUNTRY_TOKENS.get(token) if isinstance(token, str) else None
+
+
+def _description_budget(country, detail_budget):
+    if detail_budget is not None:
+        return detail_budget
+    return None if country else 0
 
 
 def _epoch_date(v):
@@ -1873,6 +2012,7 @@ def _epoch_date(v):
 
 MICROSOFT_SEARCH = "https://apply.careers.microsoft.com/api/pcsx/search"
 MICROSOFT_DETAIL = "https://apply.careers.microsoft.com/api/pcsx/position_details"
+_MICROSOFT_PAGE = 10
 
 
 def _microsoft_location(p, country, code):
@@ -1883,56 +2023,77 @@ def _microsoft_location(p, country, code):
     names = []
     for raw in p.get("locations") or []:
         parts = [x.strip() for x in _txt(raw).split(",") if x.strip() and x.strip() != "Multiple Locations"]
-        if parts and parts[0] == country:
-            name = ", ".join(reversed(parts))
-            if name not in names:
-                names.append(name)
-    std = p.get("standardizedLocations") or []
-    if not names and any(_txt(x) == code or _txt(x).endswith(", " + code) for x in std):
+        if not parts or (country and parts[0] != country):
+            continue
+        name = ", ".join(reversed(parts))
+        if name not in names:
+            names.append(name)
+    std = [_txt(x) for x in p.get("standardizedLocations") or [] if _txt(x)]
+    if not country:
+        return "; ".join(names) or "; ".join(std)
+    if not names and any(x == code or x.endswith(", " + code) for x in std):
         names.append(country)
     return "; ".join(n for n in names if n != country) or (country if names else "")
 
 
-def f_microsoft(sess, token):
+def f_microsoft(sess, token, known_ids=None, detail_budget=None):
     place = _country_token(token)
     if not place:
         return None
     country, code = place
-    out, start = [], 0
-    while True:
+
+    def search(start):
         d = get_json(sess, f"{MICROSOFT_SEARCH}?domain=microsoft.com&query="
-                           f"&location={country}&start={start}")
+                           f"&location={country or ''}&start={start}")
         data = d.get("data") if isinstance(d, dict) else None
-        if not isinstance(data, dict):
-            # Same rule as f_amazon: a blip part way through keeps what it has.
-            return out or None
-        rows = data.get("positions") or []
-        for p in rows:
+        if not isinstance(data, dict) or not isinstance(data.get("positions"), list):
+            return None
+        return data
+
+    first = search(0)
+    if first is None:
+        return None
+    count = int(first.get("count") or 0)
+    rest = _fetch_all(search, list(range(_MICROSOFT_PAGE, count, _MICROSOFT_PAGE)))
+    if rest is None:
+        return None
+
+    rows, seen = [], set()
+    for data in [first, *rest]:
+        for p in data["positions"]:
             pid = _txt(p.get("id"))
             where = _microsoft_location(p, country, code)
             # The location parameter is a search, not a filter, so a role
             # elsewhere that mentions the country can come back too.
-            if not pid or not where:
+            if not pid or pid in seen or (country and not where):
                 continue
-            # Always, not only behind FETCH_FULL_DESCRIPTIONS: that flag is
-            # on for the daily discovery pass, whose database never reaches
-            # the board, so Microsoft's roles showed no description at all.
-            # Reported live. It is one request per role for a board of
-            # about twenty, which the fast poll can afford.
-            body = None
-            detail = get_json(sess, f"{MICROSOFT_DETAIL}?position_id={pid}&domain=microsoft.com&hl=en")
-            ddata = detail.get("data") if isinstance(detail, dict) else None
-            if isinstance(ddata, dict):
-                body = _clean_text(ddata.get("jobDescription"))
-            out.append(Job("microsoft", token, pid, _txt(p.get("name")), where,
-                           "https://apply.careers.microsoft.com" + _txt(p.get("positionUrl")),
-                           _epoch_date(p.get("postedTs")),
-                           _txt(p.get("department")) or None,
-                           len(body or ""), body,
-                           workplace_type=_ATS_WORKPLACE_MAP.get(_txt(p.get("workLocationOption")).lower()) or None))
-        start += len(rows)
-        if not rows or start >= int(data.get("count") or 0):
-            break
+            seen.add(pid)
+            rows.append((pid, where, p))
+
+    budget = _description_budget(country, detail_budget)
+    wanted = [pid for pid, _, _ in rows if not (known_ids and pid in known_ids)]
+    if budget is not None:
+        wanted = wanted[:budget]
+
+    def detail(pid):
+        d = get_json(sess, f"{MICROSOFT_DETAIL}?position_id={pid}&domain=microsoft.com&hl=en")
+        data = d.get("data") if isinstance(d, dict) else None
+        return (_clean_text(data.get("jobDescription")) or "") if isinstance(data, dict) else ""
+
+    bodies = {}
+    if wanted:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            bodies = dict(zip(wanted, pool.map(detail, wanted)))
+
+    out = []
+    for pid, where, p in rows:
+        body = bodies.get(pid) or None
+        out.append(Job("microsoft", token, pid, _txt(p.get("name")), where,
+                       "https://apply.careers.microsoft.com" + _txt(p.get("positionUrl")),
+                       _epoch_date(p.get("postedTs")),
+                       _txt(p.get("department")) or None,
+                       len(body or ""), body,
+                       workplace_type=_ATS_WORKPLACE_MAP.get(_txt(p.get("workLocationOption")).lower()) or None))
     return out
 
 
@@ -1953,50 +2114,60 @@ def _google_field(row, i):
     return v[1] if isinstance(v, list) and len(v) > 1 else None
 
 
-def f_google(sess, token):
+def f_google(sess, token, known_ids=None):
     place = _country_token(token)
     if not place:
         return None
     country, code = place
-    out, seen, page = [], set(), 1
+    where_param = f"location={country}&" if country else ""
+
     # The results page carries its own data in a script block; there is no
     # public JSON endpoint behind it any more. Twenty rows a page.
-    while page <= 50:
+    def page(n):
         try:
-            r = sess.get(f"{GOOGLE_RESULTS}?location={country}&page={page}", timeout=TIMEOUT,
+            r = sess.get(f"{GOOGLE_RESULTS}?{where_param}page={n}", timeout=TIMEOUT,
                          headers={"User-Agent": _BROWSER_UA, "Accept-Language": "en-US,en;q=0.9"})
         except requests.RequestException:
-            return out or None
+            return None
         m = _GOOGLE_DATA_RE.search(r.text) if r.status_code == 200 else None
         try:
             data = json.loads(m.group(1)) if m else None
         except ValueError:
             data = None
-        if not isinstance(data, list) or not data:
-            return out or None
-        rows = data[0] or []
-        for row in rows:
+        return data if isinstance(data, list) and data else None
+
+    first = page(1)
+    if first is None:
+        return None
+    total = first[2] if len(first) > 2 and isinstance(first[2], int) else 0
+    pages = min(-(-total // _GOOGLE_PAGE), 500)
+    rest = _fetch_all(page, list(range(2, pages + 1)))
+    if rest is None:
+        return None
+
+    out, seen = [], set()
+    for data in [first, *rest]:
+        for row in data[0] or []:
             if not isinstance(row, list) or len(row) < 10:
                 continue
             jid, title = _txt(row[0]), _txt(row[1])
             if not jid or jid in seen:
                 continue
-            places = [loc for loc in (row[9] or []) if isinstance(loc, list) and len(loc) > 5 and loc[5] == code]
-            if not places:
+            places = [loc for loc in (row[9] or []) if isinstance(loc, list) and len(loc) > 5
+                      and (not code or loc[5] == code)]
+            if code and not places:
                 continue
             seen.add(jid)
-            body = "\n\n".join(_clean_text(x) for x in
-                                (_google_field(row, 10), _google_field(row, 3), _google_field(row, 4))
-                                if x and _clean_text(x))
+            body = None
+            if not (known_ids and jid in known_ids):
+                body = "\n\n".join(_clean_text(x) for x in
+                                   (_google_field(row, 10), _google_field(row, 3), _google_field(row, 4))
+                                   if x and _clean_text(x)) or None
             created = row[12][0] if len(row) > 12 and isinstance(row[12], list) and row[12] else None
             out.append(Job("google", token, jid, title,
                            "; ".join(_txt(loc[0]) for loc in places),
                            f"{GOOGLE_RESULTS}{jid}-{_google_slug(title)}",
-                           _epoch_date(created), None, len(body), body or None))
-        total = data[2] if len(data) > 2 and isinstance(data[2], int) else 0
-        if not rows or page * _GOOGLE_PAGE >= total:
-            break
-        page += 1
+                           _epoch_date(created), None, len(body or ""), body))
     return out
 
 
@@ -2012,9 +2183,6 @@ def _apple_description(sess, pid, headers):
     """The whole posting from jobDetails. The search result only carries
     the summary, which is Apple's standard paragraph about itself, so every
     Apple role read the same and none said what the job was. Reported live.
-    One request per role, always: the discovery pass's descriptions never
-    reach the board, so gating this on FETCH_FULL_DESCRIPTIONS would mean
-    never.
     """
     try:
         r = sess.get(f"{APPLE_BASE}/api/v1/jobDetails/{pid}?locale=en-us", timeout=TIMEOUT,
@@ -2032,7 +2200,7 @@ def _apple_description(sess, pid, headers):
     return "\n\n".join(parts) or None
 
 
-def f_apple(sess, token):
+def f_apple(sess, token, known_ids=None, detail_budget=None):
     place = _country_token(token)
     if not place:
         return None
@@ -2048,37 +2216,66 @@ def f_apple(sess, token):
     if not csrf:
         return None
     headers.update({"X-Apple-CSRF-Token": csrf, "Origin": APPLE_BASE, "Content-Type": "application/json"})
-    out, seen, page = [], set(), 1
-    while page <= 60:
+    filters = {"locations": [f"postLocation-{token}"]} if country else {}
+
+    def search(page):
         # "format" looks optional and is not: without it the same request
         # comes back with no results and a total of zero.
-        body = {"query": "", "filters": {"locations": [f"postLocation-{token}"]}, "page": page,
-                "locale": "en-us", "sort": "newest",
+        body = {"query": "", "filters": filters, "page": page, "locale": "en-us", "sort": "newest",
                 "format": {"longDate": "MMMM D, YYYY", "mediumDate": "MMM D, YYYY"}}
         try:
             resp = sess.post(f"{APPLE_BASE}/api/v1/search", json=body, timeout=TIMEOUT, headers=headers)
             res = resp.json().get("res") if resp.status_code == 200 else None
-        except (requests.RequestException, ValueError):
+        except (requests.RequestException, ValueError, AttributeError):
             res = None
-        if not isinstance(res, dict):
-            return out or None
-        rows = res.get("searchResults") or []
-        for j in rows:
+        if not isinstance(res, dict) or not isinstance(res.get("searchResults"), list):
+            return None
+        return res
+
+    first = search(1)
+    if first is None:
+        return None
+    total = int(first.get("totalRecords") or 0)
+    pages = min(-(-total // _APPLE_PAGE), 500)
+    rest = _fetch_all(search, list(range(2, pages + 1)))
+    if rest is None:
+        return None
+
+    rows, seen = [], set()
+    for res in [first, *rest]:
+        for j in res["searchResults"]:
             pid = _txt(j.get("positionId")) or _txt(j.get("id"))
-            places = [loc for loc in (j.get("locations") or []) if _txt(loc.get("countryName")) == country]
-            if not pid or pid in seen or not places:
+            places = [loc for loc in (j.get("locations") or [])
+                      if not country or _txt(loc.get("countryName")) == country]
+            if not pid or pid in seen or (country and not places):
                 continue
             seen.add(pid)
-            summary = _apple_description(sess, pid, headers) or _clean_text(j.get("jobSummary"))
-            out.append(Job("apple", token, pid, _txt(j.get("postingTitle")),
-                           "; ".join(f"{_txt(loc.get('name'))}, {country}" for loc in places),
-                           f"{APPLE_BASE}/en-il/details/{pid}/{_txt(j.get('transformedPostingTitle'))}",
-                           _normalize_date(j.get("postDateInGMT")),
-                           _txt((j.get("team") or {}).get("teamName")) or None,
-                           len(summary or ""), summary or None))
-        if not rows or page * _APPLE_PAGE >= int(res.get("totalRecords") or 0):
-            break
-        page += 1
+            rows.append((pid, places, j))
+
+    budget = _description_budget(country, detail_budget)
+    wanted = [pid for pid, _, _ in rows if not (known_ids and pid in known_ids)]
+    if budget is not None:
+        wanted = wanted[:budget]
+    bodies = {}
+    if wanted:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            bodies = dict(zip(wanted, pool.map(lambda pid: _apple_description(sess, pid, headers), wanted)))
+
+    out = []
+    for pid, places, j in rows:
+        body = bodies.get(pid)
+        # The summary stands in only on a read with no budget, where every
+        # job was asked for. With a budget, a job left undescribed stays
+        # undescribed, so the next run still sees it as new and asks.
+        if not body and budget is None and not (known_ids and pid in known_ids):
+            body = _clean_text(j.get("jobSummary"))
+        where = "; ".join(f"{_txt(loc.get('name'))}, {_txt(loc.get('countryName')) or country}"
+                          for loc in places)
+        out.append(Job("apple", token, pid, _txt(j.get("postingTitle")), where,
+                       f"{APPLE_BASE}/en-il/details/{pid}/{_txt(j.get('transformedPostingTitle'))}",
+                       _normalize_date(j.get("postDateInGMT")),
+                       _txt((j.get("team") or {}).get("teamName")) or None,
+                       len(body or ""), body or None))
     return out
 
 
@@ -2177,6 +2374,11 @@ FETCHERS: dict[str, Callable] = {
     "google": f_google,
     "apple": f_apple,
 }
+
+# Boards too big or too slow for the five-minute sweep. They poll from the
+# hourly Lambda (scrape_workday_handler.py), which reads them with known
+# state so a run only describes jobs it has not seen.
+SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple"})
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered
@@ -3390,7 +3592,10 @@ def main() -> int:
         # dispatch) -- no tight timeout there, and pagination stays at
         # full strength for that path. A staler Workday listing beats a
         # pipeline that silently stops updating everything else too.
-        known = [e for e in entries if e.get("ats") and e.get("token") and e.get("ats") != "workday"]
+        # The big-tech sites are out for the same reason, at a larger
+        # scale: read globally they are hundreds of pages each. They poll
+        # from the hourly Lambda instead (scrape_workday_handler.py).
+        known = [e for e in entries if e.get("ats") and e.get("token") and e.get("ats") not in SLOW_BOARD_ATS]
 
         # A domain can be stuck on something worse than what companies.yml
         # already knows for certain. Reported live: team8.vc has a working

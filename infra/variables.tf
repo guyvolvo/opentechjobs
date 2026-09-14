@@ -84,7 +84,7 @@ variable "scrape_workday_memory_mb" {
 
 variable "scrape_workday_timeout_s" {
   type        = number
-  default     = 600
+  default     = 900
   description = "Was 120 (a real run measured 51-55s with VACUUM included), then 300 the same day after turning on probe.FETCH_FULL_DESCRIPTIONS unconditionally (fixing 'most Workday listings have no description', at the cost of a per-job detail fetch that used to be conditional across up to WORKDAY_MAX_JOBS=60 per pinned company). Bumped again to 600, confirmed live: a real run's probe+description phase alone measured ~72s, and its own loader subprocess call needed its timeout raised 60->300s after hitting TimeoutExpired outright against a jobs.db that had crossed 1GB -- 300 (function) was too close to that same 300 (loader alone), leaving no room for the probe phase on top. Timeout ceilings are free by themselves; watch actual CloudWatch Duration after this ships and tighten once jobs.db's growth curve is better understood, not before."
 }
 

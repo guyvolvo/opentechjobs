@@ -387,34 +387,36 @@ amazon:
   # the rest of the group; in Israel that is a handful of roles and they
   # land under amazon.com, which is where their listings point anyway.
   - domain: aws.amazon.com
-    token: "ISR|aws"
+    token: "ALL|aws"
     jobs_seen: 151
     source: own-careers-api
   - domain: amazon.com
-    token: "ISR|-aws"
+    token: "ALL|-aws"
     jobs_seen: 13
     source: own-careers-api
 
 microsoft:
-  # Microsoft's own careers search (Eightfold behind the scenes, but only
+  # Every token here is "ALL", the whole world, as the board is global.
+  # These four poll hourly from scrape_workday_handler.py, not the
+  # five-minute sweep. Microsoft's own careers search (Eightfold behind the scenes, but only
   # reachable through Microsoft's host). Token is a country code, like
   # amazon above. Counts as of 2026-09-14.
   - domain: microsoft.com
-    token: "ISR"
+    token: "ALL"
     jobs_seen: 19
     source: own-careers-api
 
 google:
   # The results page's own embedded data, twenty rows a page.
   - domain: google.com
-    token: "ISR"
+    token: "ALL"
     jobs_seen: 96
     source: own-careers-page
 
 apple:
   # jobs.apple.com's search API, which wants a CSRF token first.
   - domain: apple.com
-    token: "ISR"
+    token: "ALL"
     jobs_seen: 122
     source: own-careers-api
 

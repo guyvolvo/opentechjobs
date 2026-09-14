@@ -133,14 +133,65 @@ check("but a failure on the first page is no board at all", jobs is None)
 # The pins that make this reachable at all.
 pins = probe.load_pins().get("amazon", {})
 check("both boards are pinned", set(pins) == {"amazon.com", "aws.amazon.com"}, repr(sorted(pins)))
-check("and they ask for different halves",
-      pins.get("aws.amazon.com", {}).get("token") == "ISR|aws"
-      and pins.get("amazon.com", {}).get("token") == "ISR|-aws",
+check("and they ask for different halves of the whole world",
+      pins.get("aws.amazon.com", {}).get("token") == "ALL|aws"
+      and pins.get("amazon.com", {}).get("token") == "ALL|-aws",
       repr({d: p.get("token") for d, p in pins.items()}))
 check("the pipe survived YAML's typing",
       all(isinstance(p["token"], str) and "|" in p["token"] for p in pins.values()))
 check("amazon is registered as a fetcher, so the generic pin path finds it",
       probe.FETCHERS.get("amazon") is probe.f_amazon)
+
+# The global read: by country, and a country past the offset ceiling by state.
+def global_answer(url):
+    if "facets%5B%5D=normalized_country_code" in url:
+        return {"facets": {"normalized_country_code_facet": [{"USA": 12000}, {"ISR": 150}]}, "jobs": []}
+    if "facets%5B%5D=normalized_state_name" in url:
+        return {"facets": {"normalized_state_name_facet": [{"Washington": 6000}, {"New York": 6000}]}, "jobs": []}
+    if "offset=0" in url:
+        return {"hits": 1, "jobs": [ROWS[0] if "ISR" in url else ROWS[1]]}
+    return {"hits": 1, "jobs": []}
+
+
+urls = []
+orig = probe.get_json
+probe.get_json = lambda sess, url: (urls.append(url), global_answer(url))[1]
+probe._amazon_global_rows = None
+try:
+    everywhere = probe.f_amazon(None, "ALL")
+    first_read = len(urls)
+    aws_half = probe.f_amazon(None, "ALL|aws")
+finally:
+    probe.get_json = orig
+check("the second pin in a run reuses the first pin's read",
+      len(urls) == first_read and [j.external_id for j in aws_half] == ["1"], repr((first_read, len(urls))))
+check("ALL splits the US by state and reads every slice",
+      any("normalized_state_name%5B%5D=Washington" in u for u in urls)
+      and any("normalized_country_code%5B%5D=ISR" in u and "offset=0" in u for u in urls), repr(urls[:6]))
+check("and never pages a slice past the offset ceiling",
+      not any("offset=10000" in u for u in urls), repr([u for u in urls if "offset=" in u][-3:]))
+check("the same job in two slices is kept once",
+      sorted(j.external_id for j in everywhere) == ["1", "2"], repr([j.external_id for j in everywhere]))
+
+probe.get_json = lambda sess, url: None if "New+York" in url or "New%20York" in url else global_answer(url)
+probe.time.sleep = lambda s: None
+probe._amazon_global_rows = None
+try:
+    partial = probe.f_amazon(None, "ALL")
+finally:
+    probe.get_json = orig
+check("a slice that keeps failing makes the whole read fail, so no job is closed by a missing page",
+      partial is None, repr(partial and len(partial)))
+
+probe.get_json = lambda sess, url: global_answer(url)
+probe._amazon_global_rows = None
+try:
+    known = probe.f_amazon(None, "ALL", known_ids={"1"})
+finally:
+    probe.get_json = orig
+check("a job we already have is read without its description",
+      {j.external_id: j.description for j in known}.get("1") is None
+      and {j.external_id: j.description for j in known}.get("2"), repr({j.external_id: j.description for j in known}))
 
 domains = set((ROOT / "domains.txt").read_text(encoding="utf-8").split())
 check("and both domains are in the sweep",

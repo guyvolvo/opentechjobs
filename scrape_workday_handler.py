@@ -75,6 +75,19 @@ from load_to_sqlite import s3_pull  # noqa: E402
 # "new/changed jobs only" rather than "every open job, every cycle."
 probe.FETCH_FULL_DESCRIPTIONS = True
 
+# Microsoft, Google, Apple and Amazon, read globally. Same Lambda for the
+# same reason Workday is here: hundreds of pages a company is too slow for
+# the five-minute sweep. About 33,000 roles between them, so each run
+# describes only jobs this partition has no description for yet, at most
+# NEW_DESCRIPTIONS_PER_RUN a company, and the first run's backlog drains
+# over the next few hours instead of one run that cannot finish.
+BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon")
+# 400, measured: Apple's detail calls ran 800 in about 220s from a desk,
+# and a run has Workday, four global reads and the load to fit in 900s.
+NEW_DESCRIPTIONS_PER_RUN = 400
+# Left for the load and the fragments once polling is done.
+BIG_TECH_TIME_RESERVE_MS = 300_000
+
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
 
@@ -96,7 +109,7 @@ def _write_status(s3, phase: str, detail: str = "") -> None:
         print(f"status.json write failed (non-fatal): {e!r}")
 
 
-def _known_external_ids_by_domain() -> dict[str, set[str]]:
+def _known_state_by_domain() -> tuple[dict[str, set[str]], dict[str, set[str]]]:
     """This partition's own currently-open jobs, per company, from
     whatever load_to_sqlite.py's own pull-modify-push cycle last wrote --
     see probe.f_workday's own known_external_ids docstring for what this
@@ -112,36 +125,79 @@ def _known_external_ids_by_domain() -> dict[str, set[str]]:
     just gets treated as new this one cycle (full description fetches,
     like today), which is exactly what SHOULD happen the very first time
     this ever runs, before any partition exists at all.
+
+    Returns two maps: every open job per company, and the open jobs that
+    already have a description. The second is what the big-tech reads use:
+    a job is new to them until it has been described once.
     """
     path = TMP / "known-workday-state.db"
     try:
         existed, _ = s3_pull(BUCKET, "jobs-partition-workday.db", path)
         if not existed:
-            return {}
+            return {}, {}
         conn = sqlite3.connect(path)
-        rows = conn.execute("SELECT company_domain, external_id FROM jobs WHERE closed_at IS NULL").fetchall()
+        rows = conn.execute(
+            "SELECT company_domain, external_id, description_sha IS NOT NULL FROM jobs WHERE closed_at IS NULL"
+        ).fetchall()
         conn.close()
     except Exception as e:
         print(f"couldn't read known Workday state (non-fatal, treating everything as new this cycle): {e!r}")
-        return {}
+        return {}, {}
     by_domain: dict[str, set[str]] = {}
-    for domain, external_id in rows:
+    described: dict[str, set[str]] = {}
+    for domain, external_id, has_description in rows:
         by_domain.setdefault(domain, set()).add(external_id)
-    return by_domain
+        if has_description:
+            described.setdefault(domain, set()).add(external_id)
+    return by_domain, described
+
+
+def _poll_big_tech(sess, ats: str, domain: str, pin: dict, described: set[str]) -> dict:
+    token = pin.get("token")
+    kwargs = {"known_ids": described}
+    if ats in ("microsoft", "apple"):
+        kwargs["detail_budget"] = NEW_DESCRIPTIONS_PER_RUN
+    try:
+        jobs = probe.FETCHERS[ats](sess, token, **kwargs)
+        err = None
+    except Exception as e:
+        jobs, err = None, repr(e)
+    if jobs is None:
+        # A partial global read returns None (see probe._fetch_all), so the
+        # company keeps its listings rather than losing a page's worth.
+        return {"domain": domain, "ats": None, "token": None, "job_count": 0, "tried": 1,
+                "error": err or f"no complete {ats} read this run", "retryable": True, "jobs": []}
+    undescribed = {j.external_id for j in jobs if not j.description}
+    jobs = probe._fill_classifications(jobs, domain)
+    new = 0
+    for j in jobs:
+        if j.external_id in undescribed:
+            # Skills from the title alone would replace the tags the full
+            # text gave this job last time. Empty keeps the stored ones.
+            j.skills = []
+            continue
+        new += 1
+        if new > NEW_DESCRIPTIONS_PER_RUN:
+            # Over this run's budget. Tags stay (they came from the full
+            # text); the text itself waits, so the next run sends it.
+            j.description = None
+    return {"domain": domain, "ats": ats, "token": token, "job_count": len(jobs), "tried": 1,
+            "error": None, "retryable": False, "jobs": [asdict(j) for j in jobs]}
 
 
 def lambda_handler(event, context):
     s3 = boto3.client("s3")
     pins = probe.PINS.get("workday", {})
-    if not pins:
-        print("no workday pins in companies.yml, skipping")
+    big_tech = [(ats, domain, pin) for ats in BIG_TECH_ATS for domain, pin in probe.PINS.get(ats, {}).items()]
+    if not pins and not big_tech:
+        print("no workday or big-tech pins in companies.yml, skipping")
         return {"skipped": True}
 
-    known_ids = _known_external_ids_by_domain()
+    known_ids, described = _known_state_by_domain()
     print(f"known state: {sum(len(v) for v in known_ids.values())} open jobs across "
           f"{len(known_ids)} companies from the last partition")
 
-    _write_status(s3, "scraping", f"re-checking {len(pins)} Workday companies")
+    _write_status(s3, "scraping", f"re-checking {len(pins)} Workday and {len(big_tech)} big-tech companies")
 
     sess = probe.session()
     results = []
@@ -171,9 +227,18 @@ def lambda_handler(event, context):
             "jobs": [asdict(j) for j in probe._fill_classifications(jobs)],
         })
 
+    for ats, domain, pin in big_tech:
+        if context is not None and context.get_remaining_time_in_millis() < BIG_TECH_TIME_RESERVE_MS:
+            results.append({"domain": domain, "ats": None, "token": None, "job_count": 0, "tried": 0,
+                            "error": "out of time this run", "retryable": True, "jobs": []})
+            continue
+        r = _poll_big_tech(sess, ats, domain, pin, described.get(domain, set()))
+        print(f"{domain}: {ats} {'%d jobs' % r['job_count'] if r['ats'] else r['error']}")
+        results.append(r)
+
     hits = [r for r in results if r["ats"]]
     n_jobs = sum(r["job_count"] for r in hits)
-    print(f"{len(hits)}/{len(results)} workday companies re-verified, {n_jobs} jobs")
+    print(f"{len(hits)}/{len(results)} workday and big-tech companies re-verified, {n_jobs} jobs")
 
     resolved_path = TMP / "resolved-workday.json"
     resolved_path.write_text(json.dumps(results), encoding="utf-8")
@@ -193,7 +258,7 @@ def lambda_handler(event, context):
          "--resolved", str(resolved_path), "--out", str(TMP / "jobs-partition-workday.db"),
          "--bucket", BUCKET, "--key", "jobs-partition-workday.db",
          "--skip-vacuum", "--skip-known", "--drop-description"],
-        capture_output=True, text=True, timeout=300,
+        capture_output=True, text=True, timeout=420,
     )
     if load.stderr:
         print(load.stderr)

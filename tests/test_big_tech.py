@@ -187,6 +187,57 @@ check("lever: a miss on the US host tries the EU one", jobs == [] and "api.eu.le
 jobs, urls = with_get_json(lambda u: [], lambda: probe.f_lever(None, "palantir"))
 check("lever: a hit on the US host asks nothing more", len(urls) == 1, repr(urls))
 
+# Global reads.
+MS_WORLD = [dict(MS_ROWS[0]), dict(MS_ROWS[1])]
+
+
+def ms_world(url):
+    if "position_details" in url:
+        return {"data": {"jobDescription": "<p>Kubernetes</p>"}}
+    start = int(url.rsplit("start=", 1)[1])
+    return {"data": {"count": 25, "positions": ([dict(MS_ROWS[0], id=100 + i) for i in range(25)])[start:start + 10]}}
+
+
+jobs, urls = with_get_json(ms_world, lambda: probe.f_microsoft(None, "ALL"))
+check("microsoft ALL: no location filter, every page read",
+      all("location=&" in u for u in urls if "search" in u) and len(jobs) == 25, repr((len(jobs), urls[:2])))
+check("microsoft ALL: with no budget given, no description calls at all",
+      not any("position_details" in u for u in urls), repr([u for u in urls if "position_details" in u][:2]))
+jobs, urls = with_get_json(ms_world, lambda: probe.f_microsoft(None, "ALL", known_ids={"100", "101"}, detail_budget=5))
+detail_ids = sorted(u.split("position_id=")[1].split("&")[0] for u in urls if "position_details" in u)
+check("microsoft ALL: descriptions only for jobs not already known, up to the budget",
+      detail_ids == ["102", "103", "104", "105", "106"], repr(detail_ids))
+world = [dict(MS_ROWS[1], id=7)]
+jobs, _ = with_get_json(lambda u: {"data": {"count": 1, "positions": world}}, lambda: probe.f_microsoft(None, "ALL"))
+check("microsoft ALL: a role outside Israel is kept, place read city first",
+      [j.location for j in jobs] == ["Redmond, Washington, United States"], repr([j.location for j in jobs]))
+probe.time.sleep = lambda s: None
+jobs, _ = with_get_json(lambda u: None if "start=10" in u else ms_world(u), lambda: probe.f_microsoft(None, "ALL"))
+check("microsoft ALL: a page that keeps failing fails the read", jobs is None)
+
+sess = Sess(gets=[g_page([g_row("11", "Tel Aviv Role", [IL1]), g_row("12", "US Only", [US])], 2)])
+jobs = probe.f_google(sess, "ALL")
+check("google ALL: no location in the URL, roles everywhere kept",
+      "location=" not in sess.calls[0][1] and [j.external_id for j in jobs] == ["11", "12"], repr((sess.calls[0][1], jobs)))
+sess = Sess(gets=[g_page([g_row("11", "Known", [IL1]), g_row("12", "New", [US])], 2)])
+jobs = probe.f_google(sess, "ALL", known_ids={"11"})
+check("google ALL: a known job comes without its description",
+      jobs[0].description is None and jobs[1].description, repr([j.description for j in jobs]))
+
+A_WORLD = [dict(A_ROWS[0]), dict(A_ROWS[1])]
+sess = Sess(gets=[csrf], posts=[Resp(200, body={"res": {"searchResults": A_WORLD, "totalRecords": 2}})])
+jobs = probe.f_apple(sess, "ALL", detail_budget=0)
+post = [c for c in sess.calls if c[0] == "POST"][0]
+check("apple ALL: no location filter, roles everywhere kept",
+      post[2]["json"]["filters"] == {} and sorted(j.external_id for j in jobs) == ["1", "200611225"], repr(post[2]["json"]))
+check("apple ALL: Cupertino reads as Cupertino, United States",
+      any(j.location == "Cupertino, United States" for j in jobs), repr([j.location for j in jobs]))
+check("apple ALL: with no budget left, no summary is stored in place of the posting",
+      all(j.description is None for j in jobs), repr([j.description for j in jobs]))
+
+check("the fast sweep leaves every big-tech board to the hourly Lambda",
+      {"workday", "amazon", "microsoft", "google", "apple"} <= probe.SLOW_BOARD_ATS)
+
 # Lever's whole posting.
 posting = {"id": "p1", "text": "Senior SOTIF Analyst", "categories": {"location": "Jerusalem, Israel", "team": "Software"},
            "hostedUrl": "https://jobs.eu.lever.co/mobileye/p1", "createdAt": 1788258419000,
@@ -206,7 +257,7 @@ for name in ("microsoft", "google", "apple"):
     check(f"{name} is a registered fetcher", probe.FETCHERS.get(name) is getattr(probe, f"f_{name}"))
 pins = probe.load_pins()
 expect = {
-    ("microsoft", "microsoft.com"): "ISR", ("google", "google.com"): "ISR", ("apple", "apple.com"): "ISR",
+    ("microsoft", "microsoft.com"): "ALL", ("google", "google.com"): "ALL", ("apple", "apple.com"): "ALL",
     ("lever", "mobileye.com"): "mobileye", ("ashby", "monday.com"): "monday.com",
     ("greenhouse", "navan.com"): "tripactions",
 }
