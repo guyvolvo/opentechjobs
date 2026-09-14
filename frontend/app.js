@@ -1989,6 +1989,16 @@ const SALARY_SOURCE_NOTE = {
 // Falls back to the older salary_is_estimate boolean, because a cached
 // page or a bootstrap.json written before salary_source existed will
 // arrive without it, and "table" is what every estimate was then.
+// The arrow on Apply, drawn rather than typed. It was the character ↗
+// (U+2197), which iOS renders as a colour emoji inside a button unless the
+// font is told otherwise, so every Apply on an iPhone carried a blue emoji
+// tile. Reported live. An inline SVG in currentColor looks the same on
+// every platform and follows the button's own colour on hover.
+const EXTERNAL_ARROW_SVG =
+  '<svg class="external-arrow" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">'
+  + '<path d="M2.5 7.5 7.5 2.5M3.5 2.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6"'
+  + ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 function jobSalaryHtml(j) {
   if (!j.salary_text) return `<span class="job-salary undisclosed">Undisclosed</span>`;
   const source = j.salary_source || (j.salary_is_estimate ? "table" : "disclosed");
@@ -2147,7 +2157,7 @@ function renderJobRows(jobs, starred) {
             <div class="job-meta">${jobMetaLine(j)}</div>
             ${jobMatchHtml(j)}
             <div class="job-links">
-              <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
+              <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
               <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
             </div>
           </div>
@@ -2348,7 +2358,7 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
          one (renderJobRows) copies something different (the external
          apply URL, not this page's permalink) and stays. -->
     <div class="job-detail-actions">
-      <a class="job-detail-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ↗</a>
+      <a class="job-detail-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
       <button type="button" class="job-detail-star ${starred ? "on" : ""}" data-star="${job.id}">${starred ? "★ Saved" : "☆ Save"}</button>
     </div>
 

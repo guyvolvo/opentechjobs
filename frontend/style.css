@@ -1171,6 +1171,11 @@ button, input, select {
   white-space: nowrap;
 }
 .job-detail-apply:hover { background: var(--black); border-color: var(--black); }
+/* The drawn arrow on both Apply buttons (see EXTERNAL_ARROW_SVG in
+   app.js). Both buttons are already inline-flex and centred, so the gap
+   is all it needs. */
+.job-detail-apply, .job-links a.apply-link { gap: 5px; }
+.external-arrow { flex: none; display: block; }
 .job-detail-star {
   border: var(--rule) solid var(--black);
   border-radius: 4px;
