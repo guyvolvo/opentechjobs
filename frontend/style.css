@@ -30,9 +30,14 @@
   --green: #609966;
   --green-bright: #80ad85;
   --grey: #40513b;
-  --grey-line: #c7d9b3; /* reported live: the original #dce8ce sat too close to --white's #f3f6e4 to read as a visible line at all */
+  /* Neutral, not green. The structure (row dividers, panel and tile
+     borders, bar tracks) used to be a sage tint, which made the whole
+     page read green before any of the green that means something. Green
+     is now kept for signals only. 1.37:1 on paper, a touch clearer than
+     the old #c7d9b3 at 1.32:1. */
+  --grey-line: #d2cfcb;
   --red: #b8362c;
-  --hover-bg: #e9efdb;
+  --hover-bg: #e8e5e2; /* neutral too; was the sage #e9efdb at 1.04:1 */
   /* Row states, apart from --hover-bg (which still tints menu options)
      so hovering a row and having it open never look the same. Hover is
      neutral, selected carries the green. The old shared tint was 1.04:1
@@ -48,7 +53,7 @@
      because it has to darken in both themes, and --black is a light
      colour in dark mode -- reusing it there would brighten the page
      behind the sheet instead of pushing it back. */
-  --scrim: rgba(64, 81, 59, 0.34);
+  --scrim: rgba(38, 36, 34, 0.32);
 
   /* AWS service-health status colours, used only for pipeline state.
      Kept apart from --green/--red, which are brand and carry the One
@@ -2144,7 +2149,7 @@ footer {
    weight (see DESIGN.md's color spec), which is exactly what a
    placeholder should be: present, structural, not competing with real
    content. No new gray token, and no #2A2A2A-style neutral, which would
-   read as a foreign object against the sage-cream ground.
+   read as a foreign object against the paper.
    Sharp corners, not 4px: these live inside the table and the stat grid,
    both of which DESIGN.md keeps at radius 0. */
 .skeleton {

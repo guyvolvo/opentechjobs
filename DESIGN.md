@@ -1,14 +1,14 @@
 ---
 name: OpenTechJobs
-description: Swiss-grid job board for the Israeli tech market, ground-truthed data, zero decoration, on an earthy sage-and-cream ground.
+description: Swiss-grid job board for the Israeli tech market, ground-truthed data, zero decoration, forest-green ink on neutral paper.
 colors:
-  paper: "#f3f6e4"
+  paper: "#f2f0ef"
   ink: "#40513b"
   signal-green: "#609966"
   muted-grey: "#40513b"
-  hairline-grey: "#c7d9b3"
+  hairline-grey: "#d2cfcb"
   alert-red: "#b8362c"
-  hover-tint: "#e9efdb"
+  hover-tint: "#e8e5e2"
   row-hover: "#e6e3df"
   row-selected: "#dce8d4"
   green-text: "#3f6f45"
@@ -78,7 +78,7 @@ components:
 
 **Creative North Star: "The Exchange Ticker"**
 
-A market terminal, not a careers site: sage-cream paper, deep forest-green
+A market terminal, not a careers site: neutral paper, deep forest-green
 ink, a single lighter green reserved for the one number or status that matters right
 now, and a scrolling headline strip up top like a ticker tape. Everything
 reads as a live instrument panel over a job market, not as a brand
@@ -95,7 +95,7 @@ flat 4px radius. See Shapes below for exactly what stays sharp instead
 (grid-tile cards, the table, dividers) and why.
 
 **Key Characteristics:**
-- Flat, two-tone (sage-cream/forest-green) surfaces with color used as signal, not decoration
+- Flat, two-tone (neutral paper/forest-green ink) surfaces with color used as signal, not decoration
 - Depth built entirely from 2px hairline grids, never shadows
 - One bold display face for brand moments; Helvetica for everything data-dense
 - Light and dark are two deliberately tuned palettes, not a hex inversion
@@ -103,11 +103,14 @@ flat 4px radius. See Shapes below for exactly what stays sharp instead
 
 ## Colors
 
-Two-tone by design, sage-tinted cream paper, deep forest-green ink,
+Two-tone by design, neutral paper, deep forest-green ink,
 with exactly one accent color and one reserved alert color, both used
-sparingly enough that their rarity is the signal. Light mode is a fully
-earthy, monochromatic-green palette; dark mode is untouched, still a
-plain near-black/white inversion.
+sparingly enough that their rarity is the signal. In light mode the
+structure is neutral (paper, dividers, borders, hover tints) and green is
+kept for signals: LIVE, active filters, Apply, salary badges, positive
+metrics, links and chart emphasis. The structure used to be sage too,
+which made the whole page read green before any green that meant
+anything. Dark mode is a plain near-black/white inversion.
 
 ### Primary
 - **Signal Green** (`#609966`, `--green`; dark mode `#2fae60`): the one
@@ -125,8 +128,8 @@ plain near-black/white inversion.
   and checkboxes have no text in them and keep `--green`.
 
 ### Neutral
-- **Paper** (`#f3f6e4`, `--white`; dark mode `#17181c`): the base
-  surface, a sage-tinted cream, not pure white; dark mode is a tuned
+- **Paper** (`#f2f0ef`, `--white`; dark mode `#17181c`): the base
+  surface, a warm neutral, not pure white; dark mode is a tuned
   near-black, not pure black. Never applied as a "panel" color. Every
   ink surface (buttons, the metrics/panel grid background, the topbar
   hover) is a deliberate component, not the page.
@@ -139,14 +142,15 @@ plain near-black/white inversion.
   text, labels, metadata, placeholders, the offline-state wordmark.
   Light mode reads this at full ink darkness (the earlier softer tint
   wasn't legible enough); dark mode keeps its own true muted grey.
-- **Hairline Grey** (`#c7d9b3`, `--grey-line`; dark mode `#2b2c31`): the
+- **Hairline Grey** (`#d2cfcb`, `--grey-line`; dark mode `#2b2c31`): the
   quiet dividers, table row separators, bar-chart tracks, input borders
   one step down from a full 2px rule, and (reported live, too
   high-contrast at full `--black`) the Statistics grid's own gap/border
-  color, `var(--rule)`'s 2px width kept, just recolored. Darkened from an
-  earlier `#dce8ce` in light mode, same reasoning as Muted Grey above:
-  too close to `--white`'s `#f3f6e4` to read as a visible line at all.
-- **Hover Tint** (`#e9efdb`, `--hover-bg`; dark mode `#1e1f24`): the one
+  color, `var(--rule)`'s 2px width kept, just recolored. Neutral in light
+  mode, 1.37:1 on paper. It was the sage `#c7d9b3` (and before that
+  `#dce8ce`, too faint to see), and a green tint on every divider and
+  border was most of why the page read green.
+- **Hover Tint** (`#e8e5e2`, `--hover-bg`; dark mode `#1e1f24`): the one
   soft, non-binary surface in the system, reserved for menu option hover
   states where a hard color flip would be too loud.
 - **Row Hover** (`#e6e3df`, `--row-hover`; dark mode `#23252b`) and
@@ -155,7 +159,7 @@ plain near-black/white inversion.
   the open listing's row carries the green tint. They used to share the
   Hover Tint, which at 1.04:1 against paper was barely visible and made
   hovering and selecting look the same.
-- **Scrim** (`rgba(64,81,59,0.34)`, `--scrim`; dark mode
+- **Scrim** (`rgba(38,36,34,0.32)`, `--scrim`; dark mode
   `rgba(0,0,0,0.58)`): dims the board behind the job sheet,
   and nothing else. It gets its own token instead of reusing `--black`
   because it has to darken in both themes, and `--black` is a light color
