@@ -41,7 +41,7 @@
       <h1 class="hero-word">OpenTechJobs</h1>
       <div class="hero-block" role="region" aria-label="Board statistics">
         <div class="hero-ticker to-right" aria-hidden="true"><div class="hero-ticker-track" id="ticker-top"></div></div>
-        <div class="hero-ticker to-left" aria-hidden="true"><div class="hero-ticker-track" id="ticker-bottom"></div></div>
+        <div class="hero-ticker hero-logos to-left" aria-hidden="true"><div class="hero-ticker-track" id="ticker-logos"></div></div>
         <p class="sr-only" id="hero-stats-text">Loading board statistics.</p>
       </div>
     </section>
@@ -84,49 +84,60 @@
   </footer>
 
   <script>
-    // Two tickers of live board numbers, from the same static stats.json the
-    // board's Statistics column reads, so this page costs no API call.
+    // A ticker of live board numbers over a row of the busiest companies'
+    // logos, both from the same static stats.json the board's Statistics
+    // column reads, so this page costs no API call.
     (function () {
       const fmt = (n) => Number(n || 0).toLocaleString("en-US");
-      const SKILL_CASE = { llm: "LLM", aws: "AWS", sql: "SQL", "ci/cd": "CI/CD", gcp: "GCP", ai: "AI" };
-      const skillName = (s) => String(s || "").split(" ").map((w) => SKILL_CASE[w] || w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
       function item(num, label) {
         return `<span class="hero-ticker-item"><span class="hero-num">${num}</span> ${label}</span>`;
       }
-      function fill(el, items) {
+      function logo(c) {
+        return `<span class="hero-logo"><img src="${esc(c.logo_url)}" alt="" loading="eager" decoding="async" /></span>`;
+      }
+      function fill(el, items, minItems) {
         // Repeated until one copy is wider than any screen, then doubled, so
         // the track can loop by moving exactly half its width.
-        const once = items.join("");
-        let half = once;
-        while (half.length < once.length * 3) half += once;
-        el.innerHTML = half + half;
+        let half = [];
+        while (half.length < minItems) half = half.concat(items);
+        el.innerHTML = half.join("") + half.join("");
       }
 
       function render(stats) {
         const t = stats.totals || {}, th = stats.throughput || {}, age = stats.age || {}, loc = stats.location || {};
-        const top = [
+        fill(document.getElementById("ticker-top"), [
           item(fmt(t.open_jobs), "open jobs"),
           item(fmt(t.companies_hiring), "companies hiring"),
           item(fmt(th.new_jobs_24h), "new in 24 hours"),
-          item(fmt(loc.israel), "in Israel"),
-        ];
-        const skills = (stats.top_skills || []).slice(0, 4).map((s) => item(fmt(s.n), skillName(s.skill)));
-        const bottom = [
           item(fmt(th.closed_jobs_24h), "closed in 24 hours"),
+          item(fmt(loc.israel), "in Israel"),
           item(Math.round(age.median_open_days || 0), "days median age"),
-          ...skills,
-        ];
-        fill(document.getElementById("ticker-top"), top);
-        fill(document.getElementById("ticker-bottom"), bottom);
+        ], 12);
+
+        // top_companies_logos is the busiest thirty that have a logo. Until
+        // a precompute has written it, the ten-row chart list stands in,
+        // minus the ones without a logo.
+        const companies = (stats.top_companies_logos || (stats.top_companies || []).filter((c) => c.logo_url)).slice(0, 30);
+        const row = document.getElementById("ticker-logos");
+        if (companies.length) {
+          fill(row, companies.map(logo), 30);
+          // A logo that no longer loads leaves the row rather than showing a
+          // broken image. Every copy of it fails the same way, so the two
+          // halves stay the same width and the loop stays seamless.
+          row.querySelectorAll("img").forEach((img) => {
+            img.addEventListener("error", () => img.parentElement.remove(), { once: true });
+          });
+        }
         document.getElementById("cta-count").textContent = `${fmt(t.open_jobs)} open jobs`;
         document.getElementById("hero-stats-text").textContent =
-          `${fmt(t.open_jobs)} open jobs at ${fmt(t.companies_hiring)} companies hiring, ${fmt(th.new_jobs_24h)} new in the last 24 hours.`;
+          `${fmt(t.open_jobs)} open jobs at ${fmt(t.companies_hiring)} companies hiring, ${fmt(th.new_jobs_24h)} new in the last 24 hours.` +
+          (companies.length ? ` Most open roles: ${companies.slice(0, 10).map((c) => c.name || c.domain).join(", ")}.` : "");
       }
 
       function labelsOnly() {
-        fill(document.getElementById("ticker-top"), ["open jobs", "companies hiring", "new in 24 hours"].map((l) => item("", l)));
-        fill(document.getElementById("ticker-bottom"), ["closed in 24 hours", "days median age", "top skills"].map((l) => item("", l)));
+        fill(document.getElementById("ticker-top"), ["open jobs", "companies hiring", "new in 24 hours"].map((l) => item("", l)), 12);
       }
 
       labelsOnly();

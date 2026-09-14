@@ -53,6 +53,47 @@ def _with_logos(conn, rows: list[dict]) -> list[dict]:
     return rows
 
 
+def top_companies_with_logos(conn, limit: int = 30) -> list[dict]:
+    """The busiest companies that have a resolved logo, for /hero's logo row.
+
+    Companies without one are skipped rather than drawn as a monogram: a
+    row of letters says nothing on a page that is there to show who hires.
+    The grouping is capped at a few times the limit before logos are
+    looked up, so this reads a couple of hundred company rows, not all
+    of them. Two domains that resolved to the same image (a parent and a
+    subsidiary on one favicon) show once.
+    """
+    rows = conn.execute(
+        f"""
+        SELECT company_domain AS domain, COUNT(*) AS n
+        FROM jobs
+        WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}
+        GROUP BY company_domain
+        ORDER BY n DESC
+        LIMIT ?
+        """,
+        (limit * 6,),
+    ).fetchall()
+    rows = _with_logos(conn, [dict(r) for r in rows])
+    names: dict[str, str] = {}
+    if any(c[1] == "company_name" for c in conn.execute("PRAGMA table_info(companies)")):
+        domains = [r["domain"] for r in rows if r.get("logo_url")]
+        if domains:
+            names = {d: n for d, n in conn.execute(
+                f"SELECT domain, company_name FROM companies WHERE domain IN ({','.join('?' * len(domains))})",
+                domains) if n}
+    out, seen = [], set()
+    for r in rows:
+        url = r.get("logo_url")
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        out.append({"domain": r["domain"], "name": names.get(r["domain"]), "n": r["n"], "logo_url": url})
+        if len(out) == limit:
+            break
+    return out
+
+
 def compute_facets(conn, params: dict) -> dict:
 
     def counts_by(column_expr: str, exclude_param: str, limit: int) -> list[dict]:

@@ -35,7 +35,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 sys.path.insert(0, str(_ROOT / "api"))
 
-from aggregates import compute_facets, compute_stats  # noqa: E402
+from aggregates import compute_facets, compute_stats, top_companies_with_logos  # noqa: E402
 from job_filters import register_functions  # noqa: E402
 
 PREFIX = "precomputed/"
@@ -65,6 +65,9 @@ def build(db_path: Path) -> dict[str, dict]:
         # connection rather than a second pass over the whole route.
         stats["top_locations_israel"] = compute_stats(
             conn, {"israel_only": "1"})["top_locations"]
+        # For /hero's row of logos. Only here, not in compute_stats: the page
+        # reads the static file, and the live /api/stats has no use for it.
+        stats["top_companies_logos"] = top_companies_with_logos(conn)
         # Keyed by confidence, because that is the one filter the page
         # always sends and never leaves empty. The board defaults to
         # "all" (verified plus best-effort, shown with a badge), while

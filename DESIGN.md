@@ -3,6 +3,7 @@ name: OpenTechJobs
 description: Swiss-grid job board for the Israeli tech market, ground-truthed data, zero decoration, forest-green ink on neutral paper.
 colors:
   paper: "#f2f0ef"
+  paper-fixed: "#f2f0ef"
   ink: "#40513b"
   signal-green: "#609966"
   muted-grey: "#40513b"
@@ -563,13 +564,16 @@ the column stacks under the board and has no toggle.
 ### Hero page (/hero, draft)
 A landing page modelled on an editorial reference: a small utility row
 (name, a comma-separated nav, GitHub), the OpenTechJobs wordmark set as
-wide as the page (Display / Hero, sized from the hero's container width), and below it a full-width block in
-Green Text with 4px corners where the reference has a photograph. At the
-block's foot, two tickers of live board numbers from `stats.json` in
-Display / Hero Ticker: the top row drifts right over 60 seconds (open
-jobs, companies hiring, new in 24 hours, in Israel), the bottom row runs
-left over 38 (closed in 24 hours, median age, the busiest skills). Items
-are separated by a drawn dot. Below the hero, the features as full-width
+wide as the page (Display / Hero, sized from the hero's container width), and below it a full-width band in Green Text with 4px corners where the
+reference has a photograph. The band fits what it holds, with the same
+green showing above and below. Its top line is a ticker of live board
+numbers from `stats.json` in Display / Hero Ticker, drifting right over 60
+seconds (open jobs, companies hiring, new and closed in 24 hours, in
+Israel, median age), items separated by a drawn dot. Under it, half that
+line's height, a row of the thirty busiest companies' logos runs left over
+38 seconds, each on a tile of Paper Fixed with 4px corners: paper that stays paper in
+dark mode, because logos are drawn for a light page. Only companies with a
+resolved logo appear, and one that fails to load leaves the row. Below the hero, the features as full-width
 rows under a 2px rule, heading in Display / Feature beside a 16px
 paragraph, each rising into place once as it scrolls into view on an
 exponential ease-out; visible without script, and without that motion

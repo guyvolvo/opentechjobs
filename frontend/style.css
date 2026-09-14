@@ -46,6 +46,10 @@
 
 :root {
   --white: #f2f0ef;
+  /* Paper that stays paper in dark mode, for the one place a surface has
+     to stay light whatever the theme: behind other companies' logos,
+     which are drawn for a light page and vanish on a dark one. */
+  --paper-fixed: #f2f0ef;
   --black: #40513b;
   --green: #609966;
   --green-bright: #80ad85;
@@ -3197,11 +3201,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-nav a + a::before { content: ", "; color: var(--black); }
 
 .hero {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-height: 100svh;
-  padding: 0 var(--gutter) var(--gutter);
+  padding: 0 var(--gutter);
   container-type: inline-size;
 }
 /* Sized to the hero's own width so the word runs edge to edge the way the
@@ -3217,17 +3217,21 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   margin: 0.14em 0 0.1em -0.05em;
   white-space: nowrap;
 }
-/* The block the reference fills with a photograph. Here it is the board's
-   green, and the two tickers sit at its foot. Paper text on --green-text is
-   5.2:1 in light and 6.2:1 in dark. */
+/* The block the reference fills with a photograph. Here it is a band of the
+   board's green, sized to what it holds: a line of live numbers over a row
+   of company logos half its height. Paper text on --green-text is 5.2:1 in
+   light and 6.2:1 in dark.
+   The same green shows above the numbers and below the logos. The line box
+   carries empty space above the capitals, about 0.18em in this face, so
+   the top padding gives that much back and the visible margins match. */
 .hero-block {
+  --ticker-size: clamp(52px, 9vw, 10rem);
+  --band-pad: clamp(16px, 2.6vw, 36px);
   position: relative;
-  flex: 1 1 auto;
-  min-height: 300px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding-bottom: clamp(14px, 2.4vw, 32px);
+  gap: clamp(8px, 1.2vw, 18px);
+  padding: calc(var(--band-pad) - 0.18 * var(--ticker-size)) 0 var(--band-pad);
   background: var(--green-text);
   color: var(--white);
   border-radius: 4px;
@@ -3239,7 +3243,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   width: max-content;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(52px, 9vw, 10rem);
+  font-size: var(--ticker-size);
   line-height: 1.04;
   letter-spacing: -0.03em;
   white-space: nowrap;
@@ -3250,6 +3254,24 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    twice, so moving exactly half its width loops without a seam. */
 .hero-ticker.to-right .hero-ticker-track { animation: hero-ticker-right 60s linear infinite; }
 .hero-ticker.to-left .hero-ticker-track { animation: hero-ticker-left 38s linear infinite; }
+/* Half the height of the line of numbers above it: 0.52 of the type size
+   against that line's 1.04. Each logo sits on a paper tile that stays paper
+   in dark mode, so a black mark like Apple's stays visible in either
+   theme. The height is set on the row, not the tiles, so the band doesn't
+   jump when the logos arrive. */
+.hero-logos { height: calc(var(--ticker-size) * 0.52); }
+.hero-logos .hero-ticker-track { height: 100%; }
+.hero-logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  aspect-ratio: 1;
+  margin-right: calc(var(--ticker-size) * 0.16);
+  background: var(--paper-fixed);
+  border-radius: 4px;
+}
+.hero-logo img { width: 62%; height: 62%; object-fit: contain; }
 @keyframes hero-ticker-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 @keyframes hero-ticker-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .hero-ticker-item { display: inline-flex; align-items: center; }
@@ -3326,10 +3348,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 @media (max-width: 720px) {
   .hero-bar { font-size: 12px; flex-wrap: wrap; row-gap: 4px; }
   .hero-feature { grid-template-columns: 1fr; }
-  /* A phone screen is tall and narrow: filling it with green leaves an
-     empty column, so the block takes a fixed share instead. */
-  .hero { min-height: 0; }
-  .hero-block { flex: none; height: 58svh; min-height: 320px; max-height: 520px; }
 }
 /* Slower, not still, as with the board's ticker. */
 @media (prefers-reduced-motion: reduce) {

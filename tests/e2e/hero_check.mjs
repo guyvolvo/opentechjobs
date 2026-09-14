@@ -1,6 +1,8 @@
-// /hero: desktop and phone, light and dark. Checks the tickers carry real
-// numbers and move in opposite directions, the wordmark fits, nothing
-// scrolls sideways, and the feature rows reveal on scroll. Screenshots.
+// /hero: desktop and phone, light and dark. Checks the numbers ticker
+// carries real numbers, the logo row under it is half its height, drops a
+// logo that fails to load, and runs the other way, the green band shows
+// the same margin above and below, the wordmark fits, nothing scrolls
+// sideways, and the feature rows reveal on scroll. Screenshots.
 // Run from tests/e2e:  node hero_check.mjs
 import { chromium, devices } from "@playwright/test";
 import { spawn } from "node:child_process";
@@ -16,7 +18,13 @@ const STATS = {
   throughput: { new_jobs_24h: 38776, closed_jobs_24h: 6727 },
   age: { median_open_days: 21.3 },
   location: { israel: 2984 },
-  top_skills: [{ skill: "python", n: 19336 }, { skill: "llm", n: 16476 }, { skill: "aws", n: 14835 }, { skill: "machine learning", n: 12883 }],
+  top_companies_logos: [
+    ...["#ff9900", "#232f3e", "#4285f4", "#00a4ef", "#111111", "#e4002b"].map((fill, i) => ({
+      domain: `c${i}.com`, name: `Company ${i}`, n: 1000 - i,
+      logo_url: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><circle cx='5' cy='5' r='5' fill='${fill}'/></svg>`),
+    })),
+    { domain: "broken.com", name: "Broken", n: 10, logo_url: "http://127.0.0.1:8832/no-such-logo.png" },
+  ],
 };
 
 const failures = [];
@@ -44,25 +52,54 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       const x = (id) => new DOMMatrixReadOnly(getComputedStyle(document.getElementById(id)).transform).m41;
       const word = document.querySelector(".hero-word").getBoundingClientRect();
       return { overflow: document.documentElement.scrollWidth > innerWidth, wordRight: word.right, vw: innerWidth,
-        top0: x("ticker-top"), bottom0: x("ticker-bottom"),
-        topText: document.getElementById("ticker-top").textContent.slice(0, 60),
-        bottomText: document.getElementById("ticker-bottom").textContent.slice(0, 80),
+        top0: x("ticker-top"), bottom0: x("ticker-logos"),
+        topText: document.getElementById("ticker-top").textContent,
+        tiles: document.querySelectorAll("#ticker-logos .hero-logo").length,
+        broken: document.querySelectorAll('#ticker-logos img[src*="no-such-logo"]').length,
+        numbersH: document.querySelector(".hero-ticker.to-right").getBoundingClientRect().height,
+        logosH: document.querySelector(".hero-logos").getBoundingClientRect().height,
+        tileH: document.querySelector("#ticker-logos .hero-logo")?.getBoundingClientRect().height,
         cta: document.getElementById("cta-count").textContent, theme: document.documentElement.getAttribute("data-theme") };
     });
+    // The margin above the capitals and below the logo tiles, measured in
+    // pixels from a screenshot of the band: the first and last rows that
+    // contain anything other than the band's green.
+    const band = await page.locator(".hero-block").boundingBox();
+    const shot = await page.screenshot({ clip: band });
+    const margins = await page.evaluate(async (b64) => {
+      const img = new Image();
+      img.src = "data:image/png;base64," + b64;
+      await img.decode();
+      const c = document.createElement("canvas");
+      c.width = img.width; c.height = img.height;
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data;
+      const x0 = Math.round(c.width * 0.04), x1 = Math.round(c.width * 0.96);
+      const [r0, g0, b0] = [d[(10 * c.width + Math.round(c.width / 2)) * 4], d[(10 * c.width + Math.round(c.width / 2)) * 4 + 1], d[(10 * c.width + Math.round(c.width / 2)) * 4 + 2]];
+      const rowHasInk = (y) => { for (let x = x0; x < x1; x++) { const i = (y * c.width + x) * 4; if (Math.abs(d[i] - r0) + Math.abs(d[i + 1] - g0) + Math.abs(d[i + 2] - b0) > 90) return true; } return false; };
+      let top = 0; while (top < c.height && !rowHasInk(top)) top++;
+      let bottom = 0; while (bottom < c.height && !rowHasInk(c.height - 1 - bottom)) bottom++;
+      const dpr = window.devicePixelRatio || 1;
+      return { top: +(top / dpr).toFixed(1), bottom: +(bottom / dpr).toFixed(1), height: +(c.height / dpr).toFixed(1) };
+    }, shot.toString("base64"));
+    check(`${tag}: same green margin above and below`, Math.abs(margins.top - margins.bottom) <= 3, JSON.stringify(margins));
     await page.screenshot({ path: `hero-${label}-${theme}-top.png` });
     await page.waitForTimeout(1500);
     const later = await page.evaluate(() => {
       const x = (id) => new DOMMatrixReadOnly(getComputedStyle(document.getElementById(id)).transform).m41;
-      return { top1: x("ticker-top"), bottom1: x("ticker-bottom") };
+      return { top1: x("ticker-top"), bottom1: x("ticker-logos") };
     });
     check(`${tag}: no sideways scroll`, !m.overflow);
     check(`${tag}: the wordmark fits the page`, m.wordRight <= m.vw, `${m.wordRight} > ${m.vw}`);
-    check(`${tag}: tickers carry live numbers`, m.topText.includes("176,465") && m.bottomText.includes("6,727") && /LLM|Python/.test(m.bottomText), `${m.topText} | ${m.bottomText}`);
-    check(`${tag}: top ticker moves right, bottom moves left`, later.top1 > m.top0 && later.bottom1 < m.bottom0, JSON.stringify({ ...m, ...later }));
+    check(`${tag}: the numbers ticker carries live numbers`, m.topText.includes("176,465") && m.topText.includes("6,727") && m.topText.includes("21 days"), m.topText.slice(0, 120));
+    check(`${tag}: the logo row shows the logos and drops the broken one`, m.tiles >= 60 && m.tiles % 6 === 0 && m.broken === 0, JSON.stringify({ tiles: m.tiles, broken: m.broken }));
+    check(`${tag}: logo row is half the numbers line`, Math.abs(m.logosH / m.numbersH - 0.5) < 0.02 && Math.abs(m.tileH - m.logosH) < 1, JSON.stringify({ numbersH: m.numbersH, logosH: m.logosH, tileH: m.tileH }));
+    check(`${tag}: numbers move right, logos move left`, later.top1 > m.top0 && later.bottom1 < m.bottom0, JSON.stringify({ ...m, ...later }));
     check(`${tag}: the search link names the count`, m.cta === "176,465 open jobs", m.cta);
     if (theme === "dark") check(`${tag}: dark theme applied`, m.theme === "dark", String(m.theme));
 
-    const feature = page.locator(".hero-feature").nth(2);
+    const feature = page.locator(".hero-feature").last();
     const before = await feature.evaluate((el) => getComputedStyle(el.querySelector("h2")).opacity);
     await feature.scrollIntoViewIfNeeded();
     await page.waitForTimeout(1100);
