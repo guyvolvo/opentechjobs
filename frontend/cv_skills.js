@@ -20,7 +20,10 @@
   const ASTRAL = new RegExp("[" + String.fromCodePoint(0x10000) + "-" + String.fromCodePoint(0x10ffff) + "]", "gu");
   const BULLET_CHARS = ch(0x2022, 0x00b7, 0x25aa, 0x25e6, 0x25cf);
   const DEHYPHEN = /([A-Za-z])-[ \t]*\n[ \t]*([A-Za-z])/g;
-  const LETTER_SPACED = /(?<![A-Za-z0-9])((?:[A-Za-z] ){2,}[A-Za-z])(?![A-Za-z0-9])/g;
+  // No lookbehind: Safari only has it from iOS 16.4, and on anything older
+  // this line was a SyntaxError that stopped the whole analyser loading.
+  // The character before the run is captured and put back instead.
+  const LETTER_SPACED = /(^|[^A-Za-z0-9])((?:[A-Za-z] ){2,}[A-Za-z])(?![A-Za-z0-9])/g;
   const BOUNDARY = /\n|[.;!?](?=\s|$)/g;
   const BULLETS = new RegExp("^[\\s" + BULLET_CHARS + "*\\-]+");
 
@@ -29,7 +32,7 @@
     t = t.replace(/\r\n?/g, "\n").replace(DROP, "").replace(DASHES, "-");
     t = t.replace(ASTRAL, ch(0xfffd)).replace(LINE_SEPS, "\n");
     t = t.replace(DEHYPHEN, "$1$2");
-    return t.replace(LETTER_SPACED, (_, g) => g.replace(/ /g, ""));
+    return t.replace(LETTER_SPACED, (_, before, g) => before + g.replace(/ /g, ""));
   }
 
   const asciiLower = (t) => t.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32));

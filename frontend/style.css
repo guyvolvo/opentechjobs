@@ -137,6 +137,25 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* iOS-only behaviour, so the iPhone site matches the Android one.
+   text-size-adjust: Safari enlarges text on its own when a phone turns
+   landscape; this keeps the sizes the stylesheet sets. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* Safari draws text inputs with its own inner shadow and rounding
+   underneath the borders set here. */
+input[type="text"], input[type="search"], input[type="email"], textarea {
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* Safari zooms the whole page when a field under 16px takes focus, and
+   leaves it zoomed. Every field here is 12.5 to 13px, so tapping Search on
+   an iPhone zoomed the board in; Android does not do this. 16px on touch
+   screens only, desktop keeps its sizes. !important because the fields'
+   own rules are more specific, and this must win over all of them. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px !important; }
+}
+
 ::selection { background: var(--black); color: var(--white); }
 
 /* Custom scrollbars, theme-tokened like the rest of the page. The thumb's
@@ -517,6 +536,7 @@ button, input, select {
   right: 0;
   width: 260px;
   max-height: calc(100vh - 80px);
+  max-height: calc(100dvh - 80px);
   overflow-y: auto;
   background: var(--white);
   border: var(--rule) solid var(--black);
@@ -667,6 +687,7 @@ button, input, select {
   position: sticky;
   top: 57px; /* topbar height + its 2px bottom rule */
   max-height: calc(100vh - 57px);
+  max-height: calc(100dvh - 57px);
   overflow-y: auto;
   /* container-type: this panel's real width is clamp(360px, 28vw, 460px)
      (see .workspace), decoupled from the viewport the same way #board's
@@ -2196,6 +2217,9 @@ footer {
     inset: 0;
     width: 100vw;
     height: 100vh;
+    /* dvh: the visible viewport. 100vh on iPhone includes the space under
+       Safari's toolbar, which put the bottom of the sheet behind it. */
+    height: 100dvh;
     border-width: var(--rule) 0 0 0;
     transform: translateY(100%);
   }
@@ -2393,6 +2417,7 @@ footer {
     right: 0;
     width: auto;
     max-height: 75vh;
+    max-height: 75dvh;
     border-radius: 4px 4px 0 0;
     border-width: var(--rule) var(--rule) 0 var(--rule);
   }
