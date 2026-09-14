@@ -135,27 +135,12 @@ check("the list is capped",
       len(job_filters.wanted_skills({"skills": ",".join(job_filters.SKILL_LABELS)}))
       == job_filters.MAX_MATCH_SKILLS)
 
-# Best matches on the board ranks without filtering. A role whose tags
-# miss every skill stays on the list, at the bottom, because probe.py
-# keeps only a job's first five skills and a missing tag is not proof the
-# job does not want the skill.
-ranked = run({"skills": MINE, "sort": "match", "skills_mode": "rank"})
-rids = [j["id"] for j in ranked["jobs"]]
-check("rank mode keeps every listing", sorted(rids) == sorted(j[0] for j in JOBS), repr(rids))
-check("rank mode still leads with the best overlap", rids[0] == "a", repr(rids))
-check("and puts the no-overlap listings after every match",
-      set(rids[3:]) == {"c", "d", "e"} and set(rids[:3]) == {"a", "b", "f"}, repr(rids))
-check("the total counts everything the other filters leave",
-      ranked["total"] == len(JOBS), repr(ranked["total"]))
-check("the matched skills are still echoed for the rows",
-      ranked["matched_skills"] == res["matched_skills"], repr(ranked["matched_skills"]))
-# An alert never sends skills_mode, so the filter it relies on is intact.
+# Best matches on the board is the same filter an alert uses. The old
+# skills_mode=rank kept every listing and made the count meaningless, so
+# a leftover link that still sends it gets the filter too.
 where_filter, _ = job_filters.build_jobs_where({"skills": MINE})
-where_rank, _ = job_filters.build_jobs_where({"skills": MINE, "skills_mode": "rank"})
-check("without rank mode the skills still filter, as alerts need",
-      "skills" in where_filter and "skills" not in where_rank, f"{where_filter!r} / {where_rank!r}")
-check("any other skills_mode value filters as before",
-      job_filters.build_jobs_where({"skills": MINE, "skills_mode": "whatever"})[0] == where_filter)
+check("a stale skills_mode=rank link still filters",
+      job_filters.build_jobs_where({"skills": MINE, "skills_mode": "rank"})[0] == where_filter)
 
 # No skills asked for: nothing about the board changes.
 plain = run({})

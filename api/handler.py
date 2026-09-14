@@ -303,9 +303,8 @@ def route_jobs(params: dict) -> dict:
     where_sql, args = build_jobs_where(params, has_fts_index(conn), has_places(conn))
 
     # The CV match. build_jobs_where has already narrowed the list to
-    # rows carrying at least one of these (unless skills_mode=rank, where
-    # nothing is narrowed); this counts how many, so the board can lead
-    # with the closest fit rather than the newest one.
+    # rows carrying at least one of these; this counts how many, so the
+    # board can lead with the closest fit rather than the newest one.
     wanted = wanted_skills(params)
     score_sql, score_args = skills_score_sql(wanted)
 

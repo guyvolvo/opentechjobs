@@ -1705,17 +1705,58 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 .view-switch { margin-bottom: 12px; }
 .view-switch .seg-btn { height: 30px; padding: 0 12px; }
 
-/* What Best matches is ordered by, each skill removable. */
+/* What Best matches is ordered by, each skill removable. The skills fold
+   down under "Your skills"; grid rows animate to the content's own
+   height, which a max-height guess cannot. */
 .match-panel {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
   margin-bottom: 12px;
   font-size: 13px;
 }
 .match-panel[hidden] { display: none; }
-.match-panel-label { color: var(--grey); margin-right: 2px; }
+.match-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.match-panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--black);
+  background: none;
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  height: 26px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.match-panel-toggle:hover { background: var(--hover-bg); }
+.match-panel-toggle:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.match-panel-count { color: var(--grey); font-weight: 400; font-variant-numeric: tabular-nums; }
+.match-panel-toggle svg { transition: transform 0.25s ease; }
+.match-panel-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.match-skills-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+.match-skills-wrap.open { grid-template-rows: 1fr; }
+.match-skills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition: visibility 0.25s;
+}
+.match-skills-wrap.open .match-skills { visibility: visible; padding-top: 8px; }
+.match-panel-label { color: var(--grey); }
 .match-skill {
   font-family: var(--font-ui);
   font-size: 12px;
@@ -1728,7 +1769,7 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 }
 .match-skill:hover { background: var(--green-text); color: var(--white); }
 .match-skill:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-.match-panel-edit { font-size: 12px; margin-left: 4px; }
+.match-panel-edit { font-size: 12px; }
 
 /* The row's own explanation: how many of your skills, which, and what
    the listing asks for that the CV does not have. */

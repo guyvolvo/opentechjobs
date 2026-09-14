@@ -1225,6 +1225,15 @@ function paintViewSwitch() {
 // reader drop a skill without leaving the board. Adding skills is the CV
 // analyser's job, on /account, so this links there instead of growing a
 // second editor.
+//
+// The skills fold away under "Your skills". Forty of them wrapped to three
+// rows above the results, so they start folded and the choice is kept.
+const MATCH_SKILLS_OPEN_KEY = "iljobs_match_skills_open";
+
+function matchSkillsOpen() {
+  try { return localStorage.getItem(MATCH_SKILLS_OPEN_KEY) === "1"; } catch { return false; }
+}
+
 function renderMatchPanel() {
   const panel = document.getElementById("match-panel");
   if (!panel) return;
@@ -1234,16 +1243,23 @@ function renderMatchPanel() {
     return;
   }
   panel.hidden = false;
-  panel.innerHTML = `<span class="match-panel-label"`
-    + ` title="Ordered by how many of your CV skills a role mentions, with newer roles counted higher: every two weeks since posting counts as one skill fewer.">`
+  const open = matchSkillsOpen();
+  panel.innerHTML = `<div class="match-panel-head">`
+    + `<button type="button" class="match-panel-toggle" aria-expanded="${open}" aria-controls="match-skills">`
+    + `Your skills <span class="match-panel-count">${state.skills.length}</span>${MS_CHEVRON_SVG}</button>`
+    + `<span class="match-panel-label"`
+    + ` title="Listings that share at least one of your CV skills, ordered by how many, with newer roles counted higher: every two weeks since posting counts as one skill fewer.">`
     + `Ranked by relevance</span>`
+    + `<a class="link match-panel-edit" href="/account#cv">Edit skills</a>`
+    + `</div>`
+    + `<div class="match-skills-wrap${open ? " open" : ""}" id="match-skills"><div class="match-skills">`
     // data-match-skill, not data-skill: renderJobRows wires every
     // [data-skill] on the page as "search for this skill", and that
     // handler stops propagation, so a shared attribute turned removing a
     // skill here into a text search for it.
     + state.skills.map((s) => `<button type="button" class="match-skill" data-match-skill="${escapeHtml(s)}"`
-      + ` title="Stop matching on ${escapeHtml(s)}">${escapeHtml(s)} <span aria-hidden="true">✕</span></button>`).join("")
-    + `<a class="link match-panel-edit" href="/account#cv">Edit skills</a>`;
+      + `${open ? "" : " tabindex=\"-1\""} title="Stop matching on ${escapeHtml(s)}">${escapeHtml(s)} <span aria-hidden="true">✕</span></button>`).join("")
+    + `</div></div>`;
 }
 
 // Best matches with nothing to rank by. Says what the view needs rather
@@ -1326,8 +1342,6 @@ function currentFilterParams() {
     city: state.city.join(","),
     workplace: state.workplace.join(","),
     skills: state.skills.join(","),
-    // Rank, never filter. See job_filters.build_jobs_where.
-    skills_mode: state.skills.length ? "rank" : "",
     confidence: state.confidence,
     max_age_days: state.max_age_days,
   };
@@ -2935,6 +2949,18 @@ function wireFilters() {
   });
 
   document.getElementById("match-panel").addEventListener("click", (e) => {
+    const toggle = e.target.closest(".match-panel-toggle");
+    if (toggle) {
+      const open = toggle.getAttribute("aria-expanded") !== "true";
+      try { localStorage.setItem(MATCH_SKILLS_OPEN_KEY, open ? "1" : "0"); } catch {}
+      toggle.setAttribute("aria-expanded", String(open));
+      document.getElementById("match-skills").classList.toggle("open", open);
+      document.querySelectorAll("#match-skills .match-skill").forEach((b) => {
+        if (open) b.removeAttribute("tabindex");
+        else b.setAttribute("tabindex", "-1");
+      });
+      return;
+    }
     const chip = e.target.closest(".match-skill");
     if (!chip) return;
     state.skills = state.skills.filter((s) => s !== chip.dataset.matchSkill);

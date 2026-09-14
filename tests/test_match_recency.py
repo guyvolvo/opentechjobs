@@ -77,7 +77,7 @@ conn.commit()
 job_filters.register_functions(conn)
 handler.get_connection = lambda: conn
 
-res = handler.route_jobs({"skills": MINE, "skills_mode": "rank", "sort": "match"})
+res = handler.route_jobs({"skills": MINE, "sort": "match"})
 ids = [j["id"] for j in res["jobs"]]
 
 check("a fresh 4-skill match outranks a 5-skill match three steps old",
@@ -88,15 +88,15 @@ check("among equal adjusted scores the order is newest first",
       ids[:3] == ["fresh4", "fresh4b", "mid5"], repr(ids))
 check("a fresh 1-skill match does not jump a strong older one",
       ids.index("stale5") < ids.index("fresh1"), repr(ids))
-check("a listing with no matching skill still comes last, however new",
-      ids[-1] == "none", repr(ids))
+check("a listing with no matching skill is not on the list, however new",
+      "none" not in ids and res["total"] == len(JOBS) - 1, repr(ids))
 check("match_score stays the plain skill count",
       {j["id"]: j["match_score"] for j in res["jobs"]}["stale5"] == 5,
       repr({j["id"]: j["match_score"] for j in res["jobs"]}))
 
 # Another sort is still exactly that sort.
-by_age = [j["id"] for j in handler.route_jobs({"skills": MINE, "skills_mode": "rank", "sort": "age"})["jobs"]]
-check("sort=age is plain newest first", by_age[0] == "none", repr(by_age))
+by_age = [j["id"] for j in handler.route_jobs({"skills": MINE, "sort": "age"})["jobs"]]
+check("sort=age is plain newest first", by_age[:2] == ["fresh1", "fresh4"], repr(by_age))
 
 print()
 if failures:

@@ -394,11 +394,12 @@ actually follow the curve.
 ### View switch and match explanation
 All listings, Best matches and Saved are one segmented control above the
 result count, the same `.seg` control as the Explore page. Filters apply
-in every view. Best matches only orders what they leave (the API's
-`skills_mode=rank`), so a role is never hidden for missing a keyword. In
-that view a panel names the CV skills the order is built from, each one
-removable, and every matching row says how many of them it shares, which
-ones, and which of its own listed skills the CV lacks. Plain counts, no
+in every view. Best matches narrows what they leave to listings that share
+at least one CV skill, and the count says how many that is. In that view
+a panel names the CV skills, folded under a "Your skills" toggle with the
+count and a chevron (folded by default, the choice kept per browser), each
+skill removable once open. Every matching row says how many of them it
+shares, which ones, and which of its own listed skills the CV lacks. Plain counts, no
 percentage and no "AI" language: the ranking is a count of shared skill
 tags and says so. The order counts recency as well: every two weeks since
 posting costs one matched skill, so a fresh close match outranks a stale
