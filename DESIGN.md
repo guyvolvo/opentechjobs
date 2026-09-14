@@ -436,7 +436,7 @@ tile, both drawn from one `<symbol>` sprite defined once per document
 and referenced by `<use>`. One function paints both, so the two places
 the state appears cannot drift apart.
 
-Three states, not two. The snapshot is written every five minutes, so
+Four states, not two. The snapshot is written every five minutes, so
 one twelve minutes old has missed two cycles while still sitting inside
 the twenty-minute threshold that decides whether the board claims to be
 current at all. A binary indicator had nothing to say about that, which
@@ -445,9 +445,16 @@ is exactly where the interesting failures are.
 - **Operational**, a tick in a ring
 - **Degraded**, a bang in a ring, past two missed cycles
 - **Disrupted**, a cross in a ring, past the freshness threshold
+- **Updating**, a spinning ring with one quarter drawn solid, in ink
+  rather than a status colour. Shown instead of Degraded or Disrupted
+  while the merge has reported in within the last 10 minutes without an
+  error, because then the data is late but on its way, and OFFLINE would
+  scare a visitor over nothing. Capped at 45 minutes of old data, after
+  which it is Disrupted regardless. With reduced motion it keeps turning
+  at 2.4s a revolution, since a stopped spinner reads as a hung one.
 
-**The shape carries the state, not the colour.** A tick, a bang and a
-cross survive greyscale, a red-green colourblind reader, and the 13px
+**The shape carries the state, not the colour.** A tick, a bang, a
+cross and a turning ring survive greyscale, a red-green colourblind reader, and the 13px
 the topbar renders them at. Colour alone survives none of those, which
 is the whole reason this is not still a coloured square.
 

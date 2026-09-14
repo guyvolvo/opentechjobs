@@ -602,6 +602,16 @@ button, input, select {
 }
 .status-icon.degraded { color: var(--aws-degraded); }
 .status-icon.outage { color: var(--aws-outage); }
+/* Updating: the data is older than it should be, but the merge reported
+   in within the last few minutes, so an update is on its way rather than
+   the pipeline being down. Ink, not a status colour, because it is not a
+   warning. */
+.status-icon.updating {
+  color: var(--grey);
+  transform-origin: 50% 50%;
+  animation: status-spin 0.9s linear infinite;
+}
+@keyframes status-spin { to { transform: rotate(360deg); } }
 
 /* The Data Health tile shows the same state next to a 30px number, so
    the glyph is sized to that line rather than the topbar's. */
@@ -819,6 +829,7 @@ button, input, select {
    colour choice. */
 .metric-card.degraded .value { color: var(--aws-degraded); }
 .metric-card.outage .value { color: var(--aws-outage); }
+.metric-card.updating .value { color: var(--black); }
 .metric-card .sub {
   font-size: 11.5px;
   color: var(--grey);
@@ -2342,6 +2353,9 @@ footer {
   .btn-busy::after { animation: none; }
   /* The sheet still opens and closes, it just arrives already there. */
   .job-detail, #job-scrim { transition: none; }
+  /* Still turning, at under half the speed. A stopped spinner reads as a
+     hung one, which is the exact worry this state exists to remove. */
+  .status-icon.updating { animation-duration: 2.4s; }
 }
 
 /* Screen-reader-only announcement for the skeleton states above. The

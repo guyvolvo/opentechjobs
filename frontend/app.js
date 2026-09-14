@@ -610,6 +610,29 @@ const FRESH_THRESHOLD_MINUTES = 20;
 // one. A single late merge is ordinary.
 const DEGRADED_AFTER_MINUTES = 10;
 
+// Old data with a live pipeline behind it is not an outage. Reported
+// live: the tile said OFFLINE at 21 minutes while the merge had reported
+// in two minutes earlier and was batching the next update. That scares a
+// visitor over nothing.
+//
+// The merge writes its status on every 5-minute run, idle or not, and the
+// API already marks a merge that died mid-run as "unknown" after 15
+// minutes. So a merge status younger than PIPELINE_HEARTBEAT_MINUTES that
+// is not an error means the pipeline is alive, and the status shows
+// UPDATING with a spinner instead of DEGRADED or OFFLINE.
+//
+// UPDATING_CEILING_MINUTES keeps that honest. A merge that keeps running
+// without ever applying anything is still a broken pipeline, and past 45
+// minutes of old data the status says OFFLINE whatever the heartbeat says.
+const PIPELINE_HEARTBEAT_MINUTES = 10;
+const UPDATING_CEILING_MINUTES = 45;
+
+function pipelineAlive() {
+  const merge = pipelinePhase && pipelinePhase.merge;
+  if (!merge || !merge.at || ["error", "unknown"].includes(merge.phase)) return false;
+  return (Date.now() - new Date(merge.at).getTime()) / 60000 <= PIPELINE_HEARTBEAT_MINUTES;
+}
+
 // DEGRADED is eight characters and the tile is narrow, so the type is
 // sized to the longest word rather than the words cut to the type (see
 // #metric-api-status .value). It used to render as DEGRADE, clipped
@@ -619,6 +642,7 @@ const STATUS_LEVELS = {
   operational: { symbol: "status-positive", label: "Operational", text: "LIVE" },
   degraded: { symbol: "status-warning", label: "Degraded", text: "DEGRADED" },
   outage: { symbol: "status-negative", label: "No recent updates", text: "OFFLINE" },
+  updating: { symbol: "status-updating", label: "Updating", text: "UPDATING" },
 };
 
 function apiStatusFields() {
@@ -638,7 +662,8 @@ function apiStatusFields() {
   const minutesSince = lastCheckedAt === null || readAt === null ? null : (readAt - lastCheckedAt) / 60000;
   const age = minutesSince ?? 9999;
   const fresh = age <= FRESH_THRESHOLD_MINUTES;
-  const level = !fresh ? "outage" : age > DEGRADED_AFTER_MINUTES ? "degraded" : "operational";
+  let level = !fresh ? "outage" : age > DEGRADED_AFTER_MINUTES ? "degraded" : "operational";
+  if (level !== "operational" && age <= UPDATING_CEILING_MINUTES && pipelineAlive()) level = "updating";
   const spelled = fmtDataAge(minutesSince);
   return {
     fresh,
@@ -662,7 +687,7 @@ function paintStatusIcon(el, level) {
   const spec = STATUS_LEVELS[level] || STATUS_LEVELS.operational;
   const use = el.querySelector("use");
   if (use) use.setAttribute("href", `#${spec.symbol}`);
-  el.classList.remove("degraded", "outage");
+  el.classList.remove("degraded", "outage", "updating");
   if (level !== "operational") el.classList.add(level);
   el.setAttribute("aria-label", spec.label);
 }
@@ -714,7 +739,16 @@ function tickApiStatus() {
   card.classList.toggle("highlight", level === "operational");
   card.classList.toggle("degraded", level === "degraded");
   card.classList.toggle("outage", level === "outage");
-  card.querySelector(".value").innerHTML = `${statusIconHtml(level)}${escapeHtml(value)}`;
+  card.classList.toggle("updating", level === "updating");
+  // Only when it changes. This runs every second, and rewriting the markup
+  // each time recreates the glyph, which restarted the Updating spinner's
+  // rotation every second and made it stutter.
+  const valueEl = card.querySelector(".value");
+  const valueHtml = `${statusIconHtml(level)}${escapeHtml(value)}`;
+  if (valueEl.dataset.painted !== valueHtml) {
+    valueEl.innerHTML = valueHtml;
+    valueEl.dataset.painted = valueHtml;
+  }
   card.querySelector(".sub").textContent = sub;
   const syncEl = card.querySelector(".sync-countdown");
   if (syncEl) syncEl.textContent = pipelineActivityText() ?? "";
