@@ -400,9 +400,8 @@ a panel names the CV skills, folded under a "My skills" toggle with the
 count and a chevron (folded by default, the choice kept per browser), each
 skill removable once open. Every matching row says how many of them it
 shares, which ones, and which of its own listed skills the CV lacks
-(labelled "Missing skills"). Missing skills are chips too, pushed back with a
-faint grey fill and outline; their text stays full --grey for contrast,
-so only the chip fades, never the label. Each of those is one line that
+(labelled "Missing skills"). Missing skills are plain comma-separated text at
+70% opacity, faded behind the matched chips. Each of those is one line that
 never wraps.
 Skills that do not fit are hidden from the end and counted in a grey +N,
 with their names in its tooltip. Plain counts, no

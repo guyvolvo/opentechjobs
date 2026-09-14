@@ -2031,7 +2031,7 @@ function jobMatchHtml(j) {
     + `</div>`
     + (asks.length
       ? `<div class="job-match-asks skill-line"><span class="job-match-asks-label">Missing skills:</span>`
-        + asks.map((s) => `<span class="miss-chip" data-fit>${escapeHtml(s)}</span>`).join("")
+        + asks.map((s) => `<span data-fit>${escapeHtml(s)}</span>`).join("")
         + more + `</div>`
       : "");
 }
