@@ -75,22 +75,11 @@ let msDepartment, msSeniority, msCompany, msLocation, msWorkplace;
 // scrolls off the current page.
 let selectedJobId = null;
 
-// Two breakpoints, because the detail panel has three layouts and only
-// two of them behave the same way.
-//
-// Above 1300px it is an in-flow sticky column beside the list. At or
-// below that the list has no room left to share, so the panel leaves the
-// flow and comes back as a sheet over the board: right-hand under
-// 1300px, full-screen under 960px (see style.css). Everything the sheet
-// needs from JS -- the .open class, the scroll lock on the page behind
-// it, skipping the scroll bookkeeping the in-flow layout needs -- is the
-// same for both, so that is one query.
-//
-// The second is only for the swipe-to-close gesture, which is written
-// against the bottom sheet's translateY and would fight the side sheet's
-// translateX. Both mirror a real media query in style.css. Reading the
-// width from a literal in two places is how these drift apart.
-const DETAIL_SHEET_QUERY = window.matchMedia("(max-width: 1300px)");
+// The detail panel is a sheet over the board at every width: right-hand
+// above 960px, full-screen below (see style.css). This query is only for
+// the swipe-to-close gesture, which is written against the bottom
+// sheet's translateY and would fight the side sheet's translateX. It
+// mirrors the real media query in style.css.
 const MOBILE_SHEET_QUERY = window.matchMedia("(max-width: 960px)");
 
 // Guards the close-then-reopen race: closeJobDetail's hidden=true is
@@ -2157,22 +2146,15 @@ async function openJobDetail(id) {
     : `<div class="loading-state">Loading job…</div>`;
   if (known) wireJobDetailPanel(known);
 
-  if (DETAIL_SHEET_QUERY.matches) {
-    // Sheet layout (see style.css): lock the page behind it so the
-    // sheet's own scroll doesn't also scroll the list underneath, and
-    // slide it in on the next frame. The class goes on after hidden=false
-    // has painted, or there's no off-screen starting position for the
-    // transition to animate from.
-    document.body.style.overflow = "hidden";
-    requestAnimationFrame(() => {
-      panel.classList.add("open");
-      document.getElementById("job-scrim")?.classList.add("open");
-    });
-  }
-  // Above 1300px there is deliberately nothing to do. The panel is a
-  // sticky in-flow column that's already in view, and the old code that
-  // scrolled the page to find it was compensating for the stacked layout
-  // that used to exist below 1300px. That layout is gone.
+  // Lock the page behind the sheet so the sheet's own scroll doesn't
+  // also scroll the list underneath, and slide it in on the next frame.
+  // The class goes on after hidden=false has painted, or there's no
+  // off-screen starting position for the transition to animate from.
+  document.body.style.overflow = "hidden";
+  requestAnimationFrame(() => {
+    panel.classList.add("open");
+    document.getElementById("job-scrim")?.classList.add("open");
+  });
 
   try {
     const full = await getJSON(`/jobs/${encodeURIComponent(id)}`);
@@ -2203,54 +2185,19 @@ async function openJobDetailAndPush(id) {
 
 function closeJobDetail() {
   const panel = document.getElementById("job-detail");
-  // Where the row sat on screen before the panel goes away. Reported
-  // live: closing a listing dumped the reader at the bottom of the page
-  // instead of back where they were. In the wide layout the panel is
-  // part of the document flow, so removing it can make the page shorter
-  // and the browser clamps the scroll position to the new maximum, which
-  // is the footer. The sheet layouts are position:fixed and never affect
-  // the page's height, so this is a no-op there.
-  //
-  // Anchored to the row rather than to a saved scrollY, because the
-  // document height changes underneath: restoring a raw offset would
-  // land somewhere else, or be clamped away entirely. Keeping the row
-  // visually still is what "where I was" actually means.
-  const anchorRow = selectedJobId
-    ? document.querySelector(`tr[data-id="${selectedJobId}"]`)
-    : null;
-  const anchorTop = anchorRow ? anchorRow.getBoundingClientRect().top : null;
-
-  if (DETAIL_SHEET_QUERY.matches) {
-    panel.classList.remove("open");
-    document.getElementById("job-scrim")?.classList.remove("open");
-    document.body.style.overflow = "";
-    // Delayed to match style.css's 0.25s slide-out transition -- an
-    // immediate hidden=true would cut straight to display:none, same as
-    // no animation at all. Cleared by the next openJobDetail (see its
-    // own comment) so switching jobs mid-close can't get yanked shut.
-    jobDetailCloseTimer = setTimeout(() => {
-      panel.hidden = true;
-      panel.innerHTML = "";
-    }, 250);
-  } else {
+  panel.classList.remove("open");
+  document.getElementById("job-scrim")?.classList.remove("open");
+  document.body.style.overflow = "";
+  // Delayed to match style.css's 0.25s slide-out transition -- an
+  // immediate hidden=true would cut straight to display:none, same as
+  // no animation at all. Cleared by the next openJobDetail (see its
+  // own comment) so switching jobs mid-close can't get yanked shut.
+  jobDetailCloseTimer = setTimeout(() => {
     panel.hidden = true;
     panel.innerHTML = "";
-  }
+  }, 250);
   document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.remove("selected");
   selectedJobId = null;
-
-  // Put the row back where it was. Skipped on either sheet layout, which
-  // is position:fixed and never affected the page's height to begin
-  // with, and skipped when the row isn't on this page at all (a deep
-  // link, or the list moved on underneath). Instant, not smooth: this is undoing
-  // an unwanted jump, and animating it would draw attention to the very
-  // movement it exists to hide.
-  if (!DETAIL_SHEET_QUERY.matches && anchorRow && anchorTop !== null) {
-    const drift = anchorRow.getBoundingClientRect().top - anchorTop;
-    if (Math.abs(drift) > 1) {
-      window.scrollTo({ top: window.scrollY + drift, behavior: "auto" });
-    }
-  }
 }
 
 // Same reasoning as openJobDetailAndPush -- closing via the header
@@ -2272,29 +2219,10 @@ function wireJobDetail() {
   });
 
   // Clicking the dimmed board closes the sheet. Standard for anything
-  // covering the page, and it's the nearest target at the width where
-  // the scrim exists at all: the close button is over on the far side of
+  // covering the page, and it's the nearest target: the close button is over on the far side of
   // the sheet, but the thing the reader is looking at is the list.
   document.getElementById("job-scrim")?.addEventListener("click", () => {
     if (selectedJobId !== null) closeJobDetailAndSync();
-  });
-
-  // Crossing 1300px with a job open swaps the panel between an in-flow
-  // column and a sheet, and the scroll lock belongs to only one of them.
-  // Without this, resizing from a sheet to the wide layout leaves the
-  // page permanently unscrollable with nothing on screen to explain it.
-  DETAIL_SHEET_QUERY.addEventListener("change", (e) => {
-    const scrim = document.getElementById("job-scrim");
-    const panel = document.getElementById("job-detail");
-    if (e.matches && selectedJobId !== null) {
-      document.body.style.overflow = "hidden";
-      panel.classList.add("open");
-      scrim?.classList.add("open");
-    } else {
-      document.body.style.overflow = "";
-      panel.classList.remove("open");
-      scrim?.classList.remove("open");
-    }
   });
 
   wireJobDetailSwipe();

@@ -141,7 +141,7 @@ plain near-black/white inversion.
   soft, non-binary surface in the system, reserved for row/option hover
   states where a hard color flip would be too loud.
 - **Scrim** (`rgba(64,81,59,0.34)`, `--scrim`; dark mode
-  `rgba(0,0,0,0.58)`): dims the board behind the job sheet below 1300px,
+  `rgba(0,0,0,0.58)`): dims the board behind the job sheet,
   and nothing else. It gets its own token instead of reusing `--black`
   because it has to darken in both themes, and `--black` is a light color
   in dark mode. This is the one translucent value in the system, and it
@@ -263,17 +263,15 @@ container use `--gutter` (`clamp(20px, 4vw, 64px)`) for side padding, so
 the page keeps scaling with viewport width all the way to ultra-wide
 instead of plateauing inside a fixed box.
 
-The job detail panel has three layouts across two breakpoints. Above
-1300px it is an in-flow sticky column beside the list, which is the
-default and the one the system is really built around. Below that the
-list has no width left to share (at a 1200px viewport it would be left
-with roughly 330px of table), so the panel leaves the flow and returns as
-a sheet over the board: right-hand under 1300px, full-screen and
-swipe-to-dismiss under 960px. Both lock the page's scroll and dim it with
-`--scrim`. This replaced a stacked in-flow panel that rendered below the
-entire list, where opening a listing scrolled the reader to the footer.
-Being out of the flow is the point: the page's height never changes, so
-there is no jump to correct.
+The job detail panel is always a sheet over the board, never in the
+page's flow. Above 960px it slides in from the right at
+`clamp(380px, 46vw, 560px)` and covers the Market Stats column; below
+960px it is full-screen and swipe-to-dismiss. Both lock the page's
+scroll and dim it with `--scrim`. Above 1300px it used to be a sticky
+column squeezed in beside the list, which left the description too
+little room, and before that a stacked panel below the entire list,
+which scrolled the reader to the footer. Being out of the flow is the
+point: the page's height never changes, so there is no jump to correct.
 
 The filter row stays a single line above the mobile breakpoint (flex
 `nowrap`, matching the table's own width), shrinking each field rather
