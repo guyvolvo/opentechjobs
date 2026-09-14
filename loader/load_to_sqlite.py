@@ -51,6 +51,7 @@ for _candidate in (_LOADER_DIR.parent / "api", _LOADER_DIR.parent, _LOADER_DIR):
         sys.path.insert(0, str(_candidate))
         break
 from countries import city_string, country_string  # noqa: E402
+from same_company import SAME_COMPANY  # noqa: E402
 
 SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
 
@@ -252,11 +253,22 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
     # Probed once here rather than per job: which delete strategy the FTS
     # table supports is a property of the file, not of a row.
     rowid_delete = _fts_supports_rowid_delete(conn)
+    # Before the loop, and whether or not this payload mentions them: a
+    # duplicate that stopped being polled would otherwise keep its open
+    # jobs forever, since only a --batch run ever prunes.
+    _demote_same_company(conn, ts)
 
     for r in data:
         domain = r["domain"]
         ats = r.get("ats")
         token = r.get("token")
+
+        # One company already on the board under another domain, on a
+        # different ATS (see api/same_company.py). Skipped outright, even
+        # when "unchanged": either branch below would write its ats back
+        # and put it straight into known.json again.
+        if domain in SAME_COMPANY:
+            continue
 
         # "unchanged": probe.py's conditional re-poll got a 304 (or the
         # normalized content hash matched), so it deliberately did NOT
@@ -734,7 +746,8 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
     )
 
 
-def _demote_alias(conn: sqlite3.Connection, domain: str, canonical_domain: str, ats: str, token: str, ts: str) -> None:
+def _demote_alias(conn: sqlite3.Connection, domain: str, canonical_domain: str, ats: str | None,
+                  token: str | None, ts: str, reason: str | None = None) -> None:
     """`domain` resolves to the exact same (ats, token) board as
     `canonical_domain` -- not a second real company, just a second name
     for the same one (a legacy domain, an alternate TLD, ...). Close out
@@ -756,8 +769,27 @@ def _demote_alias(conn: sqlite3.Connection, domain: str, canonical_domain: str, 
             ats = NULL, token = NULL, confidence = NULL, job_count = 0,
             error = excluded.error, last_checked = excluded.last_checked
         """,
-        (domain, f"alias of {canonical_domain} (both resolve to {ats}:{token})", ts, ts),
+        (domain, reason or f"alias of {canonical_domain} (both resolve to {ats}:{token})", ts, ts),
     )
+
+
+def _demote_same_company(conn: sqlite3.Connection, ts: str) -> int:
+    """Close and demote every api/same_company.py duplicate that is still
+    resolved or still has open jobs. A no-op once they are done, so
+    last_checked does not move on every load for a domain nobody polls.
+    """
+    n = 0
+    for domain, keep in SAME_COMPANY.items():
+        live = conn.execute(
+            "SELECT 1 FROM companies WHERE domain = ? AND ats IS NOT NULL "
+            "UNION ALL SELECT 1 FROM jobs WHERE company_domain = ? AND closed_at IS NULL LIMIT 1",
+            (domain, domain),
+        ).fetchone()
+        if live:
+            _demote_alias(conn, domain, keep, None, None, ts,
+                          reason=f"same company as {keep} (see api/same_company.py)")
+            n += 1
+    return n
 
 
 def prune_stale_companies(conn: sqlite3.Connection, current_domains: set[str], ts: str) -> int:
@@ -1126,7 +1158,8 @@ def export_known(conn: sqlite3.Connection, path: Path) -> int:
     discovered company is available to the next fast poll immediately.
     """
     rows = conn.execute("SELECT domain, ats, token FROM companies WHERE ats IS NOT NULL").fetchall()
-    known = [{"domain": r["domain"], "ats": r["ats"], "token": r["token"]} for r in rows]
+    known = [{"domain": r["domain"], "ats": r["ats"], "token": r["token"]} for r in rows
+             if r["domain"] not in SAME_COMPANY]
     path.write_text(json.dumps(known, ensure_ascii=False), encoding="utf-8")
     return len(known)
 

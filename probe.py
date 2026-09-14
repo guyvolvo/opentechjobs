@@ -58,11 +58,13 @@ try:
     from countries import city_string, country_string
     from job_filters import IL_KEYWORDS
     from skills import SKILL_LABELS, extract_labels
+    from same_company import SAME_COMPANY
 except ImportError:
     sys.path.insert(0, str(Path(__file__).with_name("api")))
     from countries import city_string, country_string
     from job_filters import IL_KEYWORDS
     from skills import SKILL_LABELS, extract_labels
+    from same_company import SAME_COMPANY
 
 UA = "ats-probe/0.2 (+https://github.com/guyvolvo/REPLACE-ME)"
 TIMEOUT = 12
@@ -3133,6 +3135,9 @@ def main() -> int:
             lines = [l for l in lines if not l.lstrip().startswith("#")]
             raw = " ".join(lines).replace('"', " ").replace("'", " ")
             domains += [t for t in re.split(r"[\s,]+", raw) if t and "." in t]
+        # A second domain for a company already on the board under
+        # another one. See api/same_company.py.
+        domains = [d for d in domains if d.lower() not in SAME_COMPANY]
         if not domains:
             ap.print_help()
             return 2

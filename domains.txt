@@ -959,7 +959,6 @@ stripe.com
 drweng.com
 opswat.co
 cyluscybersecurity.com
-wayve.ai
 teads.com
 tipaltisolutions.com
 placerlabs.com
@@ -4103,7 +4102,6 @@ velaaprivateislandmaldives.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 autofleet.io
-wayve.fr
 alten.net
 avamere.com
 apex.ai
