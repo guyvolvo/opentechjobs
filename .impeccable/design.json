@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-14T11:57:18Z",
+  "generatedAt": "2026-09-14T12:06:04Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -254,6 +254,10 @@
         "displayName": "Display / Wordmark",
         "purpose": "The topbar wordmark only. 13px below the 640px breakpoint."
       },
+      "display-error-code": {
+        "displayName": "Display / Error Code",
+        "purpose": "The 404 numeral only. 96px at phone width to 160px, at least 2.8 times the section title beneath it."
+      },
       "display-section-title": {
         "displayName": "Display / Section Title",
         "purpose": "Page titles only, sentence case. 24px inside the Statistics column. Never at data-dense sizes."
@@ -425,7 +429,7 @@
       },
       {
         "name": "The Three-Voice Rule",
-        "body": "Helvetica (via `--font`) carries everything dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs, selects, the view switch, chips and badges. Overused Grotesk (via `--font-display`) is reserved for the wordmark and section titles. No fourth typeface.",
+        "body": "Helvetica (via `--font`) carries everything dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs, selects, the view switch, chips and badges. Overused Grotesk (via `--font-display`) is reserved for the wordmark, section titles and the 404 numeral. No fourth typeface.",
         "section": "typography"
       },
       {

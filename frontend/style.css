@@ -2092,9 +2092,21 @@ footer {
 
 /* 404.html. The privacy page's reading column, with the three things a
    reader needs to get back to the board: search, the listings, and the
-   page they came from. The number is a small label, not a headline. */
+   page they came from. */
 .not-found .container { max-width: 640px; padding-top: 48px; padding-bottom: 64px; }
-.not-found-code,
+/* The numeral is the page's one display moment, in the grotesque face.
+   96px at phone width up to 160px, so it stays at least 2.8 times the
+   34px "Page not found" beneath it at every width. It was a 12px label,
+   asked to be made much bigger. */
+.not-found-code {
+  font-family: var(--font-display);
+  font-size: clamp(96px, 22vw, 160px);
+  font-weight: 400;
+  line-height: 0.85;
+  letter-spacing: -0.02em;
+  color: var(--black);
+  margin: 0 0 20px;
+}
 .job-gone-label {
   font-size: 12px;
   font-weight: 700;

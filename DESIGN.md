@@ -19,6 +19,12 @@ typography:
     fontWeight: 400
     lineHeight: 1
     letterSpacing: "0.02em"
+  display-error-code:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "clamp(96px, 22vw, 160px)"
+    fontWeight: 400
+    lineHeight: 0.85
+    letterSpacing: "-0.02em"
   display-section-title:
     fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "34px"
@@ -233,6 +239,10 @@ grotesque-sans display face, never the reverse.
   Statistics column it drops to 24px (1.1 line-height),
   because there it sits beside 13px filter controls and at 34px was the
   loudest thing on the page. Never used at table-row or data-dense sizes.
+- **Display / Error Code** (400, 96px at phone width to 160px, 0.85
+  line-height, Overused Grotesk): the 404 numeral only, the one oversized
+  display moment. At least 2.8 times the section title under it at every
+  width.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
   metric tile, the one place body copy gets genuinely large.
 - **Subtitle** (700, 17px): the job-detail panel's title (`.job-detail-title`),
@@ -254,8 +264,8 @@ grotesque-sans display face, never the reverse.
 **The Three-Voice Rule.** Helvetica (via `--font`) carries everything
 dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs,
 selects, the view switch, chips and badges. Overused Grotesk (via
-`--font-display`) is reserved for the wordmark and section titles. No
-fourth typeface.
+`--font-display`) is reserved for the wordmark, section titles and the 404
+numeral. No fourth typeface.
 
 **No forced capitals.** Nothing is uppercased by CSS, and labels are
 written in sentence case, status words included ("Live", "Degraded").
@@ -517,7 +527,8 @@ the column stacks under the board and has no toggle.
 ### Not found
 Any address the site does not have gets `404.html` with a real 404
 status, served by the CloudFront function rather than S3's bare XML
-AccessDenied. The number is a small Label, not a headline. The heading
+AccessDenied. The 404 is the page's headline, in Overused Grotesk at
+96 to 160px, above a 34px "Page not found". The heading
 says what is missing when the address makes it clear (a listing under
 `/jobs/`, a company under `/companies/`), one sentence says why, and the
 page offers a search box, All listings, Best matches and Go back. A stale
