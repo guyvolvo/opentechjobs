@@ -1688,14 +1688,23 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
   overflow: hidden;
   white-space: nowrap;
 }
+.match-more:hover { color: var(--black); text-decoration: underline; }
+.match-more:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px; }
+.skill-line.expanded {
+  flex-wrap: wrap;
+  overflow: visible;
+  white-space: normal;
+}
 .match-more {
   flex: none;
+  background: none;
+  border: 0;
   font-family: var(--font-ui);
   font-size: 12px;
   font-weight: 700;
   color: var(--grey);
   padding: 1px 2px;
-  cursor: default;
+  cursor: pointer;
 }
 
 .match-chip {

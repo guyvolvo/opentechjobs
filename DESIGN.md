@@ -413,8 +413,12 @@ shares, which ones, and which of its own listed skills the CV lacks
 (labelled "Missing skills"). Missing skills are plain comma-separated text at
 70% opacity, faded behind the matched chips. Each of those is one line that
 never wraps.
-Skills that do not fit are hidden from the end and counted in a grey +N,
-with their names in its tooltip. Plain counts, no
+The matched line shows at most three skills, then a grey "+N more ›"
+button that opens the line in place, wrapping, with "Show less" to fold it
+back. When even three do not fit the row, skills are hidden from the end
+until it fits, always keeping the first, and counted in the same button.
+The missing-skills line has no cap, only that fit rule. Hidden names are
+in the button's tooltip. Plain counts, no
 percentage and no "AI" language: the ranking is a count of shared skill
 tags and says so. The order counts recency as well: every two weeks since
 posting costs one matched skill, so a fresh close match outranks a stale

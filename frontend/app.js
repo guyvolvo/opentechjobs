@@ -2021,10 +2021,11 @@ function jobMatchHtml(j) {
   const hits = listed.filter((s) => matchedSkills.has(s));
   if (!hits.length) return "";
   const asks = listed.filter((s) => !matchedSkills.has(s));
-  // One line each, never wrapped: fitSkillLines hides what does not fit
-  // and counts it in the trailing +N.
-  const more = `<span class="match-more" hidden></span>`;
-  return `<div class="job-match skill-line">`
+  // One line each: fitSkillLines shows at most MATCH_CHIPS_SHOWN matched
+  // skills, hides whatever else does not fit, and counts the rest in a
+  // "+N more" button that opens the line in place.
+  const more = `<button type="button" class="match-more" aria-expanded="false" hidden></button>`;
+  return `<div class="job-match skill-line" data-cap="${MATCH_CHIPS_SHOWN}">`
     + `<span class="job-match-count">${hits.length} of your ${matchedSkills.size} skills</span>`
     + hits.map((s) => `<span class="match-chip" data-fit>${escapeHtml(s)}</span>`).join("")
     + more
@@ -2036,24 +2037,41 @@ function jobMatchHtml(j) {
       : "");
 }
 
-// Hide the skills a line has no room for, from the end, and say how many
-// in its +N (the hidden names are in its tooltip). Always keeps the first
-// one, so a narrow row still shows what it matched on. Measured rather
-// than capped at a number, because the room depends on the title column,
-// the window and whether Statistics is folded.
+// Three chips, then "+N more". A row listing eleven matched skills read as
+// a wall of green before the title did, so the matched line stops at
+// three and the rest wait behind a button (reported live). When even three
+// do not fit, the measured rule below still applies: skills are hidden
+// from the end until the line fits, always keeping the first one, because
+// the room depends on the title column, the window and whether Statistics
+// is folded. The missing-skills line has no cap, only the measured rule.
+const MATCH_CHIPS_SHOWN = 3;
+
 function fitSkillLine(line) {
   const items = [...line.querySelectorAll("[data-fit]")];
   const more = line.querySelector(".match-more");
   if (!items.length || !more) return;
   items.forEach((i) => { i.hidden = false; });
   more.hidden = true;
-  if (line.scrollWidth <= line.clientWidth) return;
-  more.hidden = false;
+  if (line.classList.contains("expanded")) {
+    more.hidden = false;
+    more.textContent = "Show less";
+    more.title = "";
+    more.setAttribute("aria-expanded", "true");
+    return;
+  }
+  more.setAttribute("aria-expanded", "false");
+  const cap = Math.max(1, Number(line.dataset.cap) || items.length);
   let hidden = 0;
-  for (let k = items.length - 1; k > 0 && (hidden === 0 || line.scrollWidth > line.clientWidth); k--) {
+  const label = () => { more.textContent = `+${hidden} more ›`; };
+  items.forEach((item, k) => {
+    if (k >= cap) { item.hidden = true; hidden += 1; }
+  });
+  if (hidden) { more.hidden = false; label(); }
+  for (let k = Math.min(cap, items.length) - 1; k > 0 && line.scrollWidth > line.clientWidth; k--) {
+    more.hidden = false;
     items[k].hidden = true;
     hidden += 1;
-    more.textContent = `+${hidden}`;
+    label();
   }
   more.title = items.filter((i) => i.hidden).map((i) => i.textContent).join(", ");
 }
@@ -2143,6 +2161,18 @@ function renderJobRows(jobs, starred) {
     })
     .join("");
   fitSkillLines(true);
+
+  // "+N more" opens its line in place and "Show less" folds it back. Not
+  // the row's own click, which opens the listing.
+  document.querySelectorAll("#jobs-body .match-more").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const line = btn.closest(".skill-line");
+      line.classList.toggle("expanded");
+      fitSkillLine(line);
+    });
+    btn.addEventListener("keydown", (e) => e.stopPropagation());
+  });
 
   document.querySelectorAll("[data-star]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
