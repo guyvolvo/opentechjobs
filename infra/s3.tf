@@ -9,7 +9,16 @@ resource "aws_s3_bucket" "data" {
 resource "aws_s3_bucket_versioning" "data" {
   bucket = aws_s3_bucket.data.id
   versioning_configuration {
-    status = "Enabled" # jobs.db version history = a free rollback if a bad load ships
+    # Suspended, not Enabled. Versioning kept every rewrite of
+    # jobs-read.db, and the applier rewrites that 650MB file every five
+    # minutes. The lifecycle rule below can only expire a version a full
+    # day after it is replaced, so a day of them always sat here: measured
+    # 2026-09-14, 248 old copies holding 153GB of a 185GB bucket, and more
+    # than a third of the AWS bill. Rollback is kept, at daily grain, by
+    # the applier's own copy under backups/ (see scrape_maintenance_handler).
+    # Conditional writes do not need versioning, and suspending deletes
+    # nothing: existing versions expire under the rules below.
+    status = "Suspended"
   }
 }
 
@@ -78,6 +87,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
 
   # A 790MB upload_file goes out as multipart. A failed one leaves its
   # parts behind, billed as storage, invisible to a plain ListObjects.
+  rule {
+    id     = "expire-snapshot-backups"
+    status = "Enabled"
+
+    filter {
+      prefix = "backups/"
+    }
+
+    expiration {
+      days = 7
+    }
+  }
+
   rule {
     id     = "abort-incomplete-uploads"
     status = "Enabled"

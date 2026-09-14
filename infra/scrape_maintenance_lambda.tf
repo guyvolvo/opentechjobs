@@ -94,6 +94,10 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # descriptions/*: the applier now runs the loader, so it writes
           # description blobs too.
           "${aws_s3_bucket.data.arn}/descriptions/*",
+          # backups/*: one server-side copy of jobs-read.db a day, which
+          # replaced the bucket's versioning as the rollback. See
+          # _daily_backup in scrape_maintenance_handler.py.
+          "${aws_s3_bucket.data.arn}/backups/*",
         ]
       },
       {
@@ -136,6 +140,24 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         Action    = ["s3:ListBucket"]
         Resource  = [aws_s3_bucket.frontend.arn]
         Condition = { StringLike = { "s3:prefix" = ["explore/*"] } }
+      },
+      {
+        # alerts.py, which runs here after each apply since alerts moved
+        # off the sweep. Without these the applier logged "ALERTS_TABLE
+        # not set" on every run and no saved alert was ever evaluated.
+        Sid      = "EvaluateAlerts"
+        Effect   = "Allow"
+        Action   = ["dynamodb:Scan", "dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.alerts.arn
+      },
+      {
+        # Resource "*" for the reason given on scrape-fast's grant: the
+        # account is in the SES sandbox, which authorizes against the
+        # recipient's identity too, and recipients are arbitrary users.
+        Sid      = "SendAlertDigests"
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail"]
+        Resource = "*"
       },
       {
         Sid      = "Logs"
@@ -189,6 +211,11 @@ resource "aws_lambda_function" "scrape_maintenance" {
       # Unset would simply mean no bootstrap.json gets published and the
       # site keeps fetching its first page from the API, as it did before.
       FRONTEND_BUCKET = aws_s3_bucket.frontend.bucket
+      # alerts.py reads these. Missing, it skips evaluation silently,
+      # which is what happened from the day alerts moved here.
+      ALERTS_TABLE      = aws_dynamodb_table.alerts.name
+      ALERTS_FROM_EMAIL = var.alerts_from_email
+      SITE_ORIGIN       = "https://${var.domain_name}"
     }
   }
 

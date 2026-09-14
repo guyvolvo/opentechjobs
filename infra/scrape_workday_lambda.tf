@@ -75,6 +75,16 @@ resource "aws_iam_role_policy" "scrape_workday_lambda" {
         ]
       },
       {
+        # salary-matrix.json: read once per container, never written, the
+        # same grant scrape-fast has. Without it every Workday and big-tech
+        # listing went out with no estimated salary: the log said
+        # AccessDenied on every run.
+        Sid      = "SalaryMatrixRead"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = "${aws_s3_bucket.data.arn}/salary-matrix.json"
+      },
+      {
         Sid      = "Logs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]

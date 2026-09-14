@@ -196,6 +196,28 @@ def _rebuild_search_index(s3) -> dict:
     return {"ok": True, **result}
 
 
+def _daily_backup(s3) -> None:
+    """One copy of the snapshot a day, kept seven days (a lifecycle rule
+    on backups/). This is the rollback the bucket's versioning used to be,
+    at daily grain instead of every five minutes: versioning kept a day of
+    650MB copies, 153GB, to protect a file that is rebuilt from the
+    fragments anyway. A server-side copy, so nothing is downloaded, and a
+    HEAD per run to find out whether today's already exists. Never raises:
+    a missed backup is not worth a failed apply.
+    """
+    key = f"backups/jobs-read-{datetime.now(timezone.utc):%Y-%m-%d}.db"
+    try:
+        s3.head_object(Bucket=BUCKET, Key=key)
+        return
+    except Exception:
+        pass
+    try:
+        s3.copy_object(Bucket=BUCKET, Key=key, CopySource={"Bucket": BUCKET, "Key": "jobs-read.db"})
+        print(f"daily backup written: s3://{BUCKET}/{key}")
+    except Exception as e:
+        print(f"daily backup failed (non-fatal): {e!r}")
+
+
 def lambda_handler(event, context):
     # Manual, one-shot, and deliberately not on any schedule:
     #   aws lambda invoke --function-name iljobs-scrape-maintenance     #     --payload '{"rebuild_fts": true}' out.json
@@ -331,6 +353,7 @@ def lambda_handler(event, context):
 
     # Only now: the snapshot carrying them is pushed.
     removed = delete_fragments(BUCKET, keys)
+    _daily_backup(s3)
     print(f"applied {applied_count} company results from {len(keys)} fragments, "
           f"{removed} fragments cleared")
 
