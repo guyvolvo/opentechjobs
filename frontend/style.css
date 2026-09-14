@@ -2379,9 +2379,31 @@ footer {
 }
 
 @media (max-width: 640px) {
-  /* Wordmark + 4 nav items don't fit a 360-390px phone at full size.
-     Tighten rather than let the topbar force wider than the viewport. */
-  .topnav { gap: 14px; font-size: 10.5px; }
+  /* The utility row on a phone. It was 10.5px text in controls 17 to 19px
+     tall, bunched into the left 160px of a 390px screen, right under the
+     browser's address bar: reported live as too tight. The wordmark,
+     ticker and status all hide at this width (below), so the row has the
+     whole width to itself. It spreads across it, the links go back to the
+     13px UI size, and every control is a 44px tap target, which is the
+     height Apple's guidance asks for and what makes the bar taller. */
+  .topbar .container { min-height: 64px; padding-top: 6px; padding-bottom: 6px; }
+  .topnav { flex: 1 1 auto; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .topnav > *, .topnav .auth-area > button, .topnav .auth-area > a { min-height: 44px; }
+  .topnav > a, .topnav > button, .topnav .auth-area > button, .topnav .auth-area > a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+  }
+  /* a.link draws its underline as a bottom border, which on a 44px tap
+     box lands at the bottom of the bar, a long way under "API". An
+     underline sits with the word instead. */
+  .topnav > a.link {
+    border-bottom: 0;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+  }
   .ticker-rule, .ticker { display: none; } /* topbar is already tight without a marquee too */
   /* Dropping the wordmark graphic outright, not just shrinking it
      further (already tried above) -- reported live (2026-09-08): the
