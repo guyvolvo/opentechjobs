@@ -568,12 +568,13 @@ wide as the page (Display / Hero, sized from the hero's container width), and be
 reference has a photograph. The band fits what it holds, with the same
 green showing above and below. Its top line is a ticker of live board
 numbers from `stats.json` in Display / Hero Ticker, drifting right over 60
-seconds (open jobs, companies hiring, new and closed in 24 hours, in
-Israel, median age), items separated by a drawn dot. Under it, half that
-line's height, a row of the thirty busiest companies' logos runs left over
-38 seconds, each on a tile of Paper Fixed with 4px corners: paper that stays paper in
-dark mode, because logos are drawn for a light page. Only companies with a
-resolved logo appear, and one that fails to load leaves the row. Below the hero, the features as full-width
+seconds: global open jobs and how many are remote, separated by a drawn
+dot. Under it, half that line's height, thirty company logos run left over
+38 seconds, each on a tile of Paper Fixed with 4px corners: paper that
+stays paper in dark mode, because logos are drawn for a light page. The
+hand-picked big tech and startups in `api/hot_companies.py` come first,
+busiest first, and the busiest other companies with a logo fill any
+slots left. A logo that fails to load leaves the row. Below the hero, the features as full-width
 rows under a 2px rule, heading in Display / Feature beside a 16px
 paragraph, each rising into place once as it scrolls into view on an
 exponential ease-out; visible without script, and without that motion

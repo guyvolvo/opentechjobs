@@ -18,6 +18,7 @@ const STATS = {
   throughput: { new_jobs_24h: 38776, closed_jobs_24h: 6727 },
   age: { median_open_days: 21.3 },
   location: { israel: 2984 },
+  workplace: [{ workplace: "unstated", n: 96499 }, { workplace: "remote", n: 25841 }, { workplace: "onsite", n: 34716 }],
   top_companies_logos: [
     ...["#ff9900", "#232f3e", "#4285f4", "#00a4ef", "#111111", "#e4002b"].map((fill, i) => ({
       domain: `c${i}.com`, name: `Company ${i}`, n: 1000 - i,
@@ -92,7 +93,7 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
     });
     check(`${tag}: no sideways scroll`, !m.overflow);
     check(`${tag}: the wordmark fits the page`, m.wordRight <= m.vw, `${m.wordRight} > ${m.vw}`);
-    check(`${tag}: the numbers ticker carries live numbers`, m.topText.includes("176,465") && m.topText.includes("6,727") && m.topText.includes("21 days"), m.topText.slice(0, 120));
+    check(`${tag}: the numbers ticker carries live numbers`, m.topText.includes("176,465 open jobs") && m.topText.includes("25,841 remote") && !/Israel|median|24 hours/.test(m.topText), m.topText.slice(0, 120));
     check(`${tag}: the logo row shows the logos and drops the broken one`, m.tiles >= 60 && m.tiles % 6 === 0 && m.broken === 0, JSON.stringify({ tiles: m.tiles, broken: m.broken }));
     check(`${tag}: logo row is half the numbers line`, Math.abs(m.logosH / m.numbersH - 0.5) < 0.02 && Math.abs(m.tileH - m.logosH) < 1, JSON.stringify({ numbersH: m.numbersH, logosH: m.logosH, tileH: m.tileH }));
     check(`${tag}: numbers move right, logos move left`, later.top1 > m.top0 && later.bottom1 < m.bottom0, JSON.stringify({ ...m, ...later }));

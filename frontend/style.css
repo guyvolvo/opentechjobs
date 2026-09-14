@@ -3222,7 +3222,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    of company logos half its height. Paper text on --green-text is 5.2:1 in
    light and 6.2:1 in dark.
    The same green shows above the numbers and below the logos. The line box
-   carries empty space above the capitals, about 0.18em in this face, so
+   carries empty space above the capitals and ascenders, about 0.16em in this face, so
    the top padding gives that much back and the visible margins match. */
 .hero-block {
   --ticker-size: clamp(52px, 9vw, 10rem);
@@ -3231,7 +3231,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   display: flex;
   flex-direction: column;
   gap: clamp(8px, 1.2vw, 18px);
-  padding: calc(var(--band-pad) - 0.18 * var(--ticker-size)) 0 var(--band-pad);
+  padding: calc(var(--band-pad) - 0.16 * var(--ticker-size)) 0 var(--band-pad);
   background: var(--green-text);
   color: var(--white);
   border-radius: 4px;

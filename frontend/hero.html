@@ -52,24 +52,20 @@
         <p>Every listing is read from the company's own hiring system, Greenhouse, Lever, Ashby, Workday and more, and from the careers sites of Microsoft, Google, Apple and Amazon. Nothing is reposted from another board.</p>
       </article>
       <article class="hero-feature">
-        <h2>Ranked against your CV.</h2>
+        <h2>CV Keyword matching</h2>
         <p>Analyze a CV on your account page and Best matches orders the board by the skills you have. The file is read in your browser and never uploaded.</p>
       </article>
       <article class="hero-feature">
-        <h2>Pay, even when it isn't posted.</h2>
+        <h2>Salary estimation</h2>
         <p>A listing without a salary gets an estimate from disclosed pay for the same kind of role, level and place, and it says it is an estimate.</p>
       </article>
       <article class="hero-feature">
-        <h2>Alerts for a saved search.</h2>
+        <h2>Smart alerts</h2>
         <p>Save any search and get an email when new listings match it.</p>
       </article>
       <article class="hero-feature">
         <h2>An open API.</h2>
         <p>The job data is public and free. No key and no sign-up: poll it and build on it.</p>
-      </article>
-      <article class="hero-feature">
-        <h2>Every listing's whole life.</h2>
-        <p>When it was first seen, when it was last seen, and when it closed. Explore runs SQL over all of it in your browser.</p>
       </article>
     </section>
 
@@ -106,19 +102,17 @@
       }
 
       function render(stats) {
-        const t = stats.totals || {}, th = stats.throughput || {}, age = stats.age || {}, loc = stats.location || {};
+        const t = stats.totals || {};
+        const remote = ((stats.workplace || []).find((w) => w.workplace === "remote") || {}).n;
         fill(document.getElementById("ticker-top"), [
           item(fmt(t.open_jobs), "open jobs"),
-          item(fmt(t.companies_hiring), "companies hiring"),
-          item(fmt(th.new_jobs_24h), "new in 24 hours"),
-          item(fmt(th.closed_jobs_24h), "closed in 24 hours"),
-          item(fmt(loc.israel), "in Israel"),
-          item(Math.round(age.median_open_days || 0), "days median age"),
+          item(fmt(remote), "remote"),
         ], 12);
 
-        // top_companies_logos is the busiest thirty that have a logo. Until
-        // a precompute has written it, the ten-row chart list stands in,
-        // minus the ones without a logo.
+        // top_companies_logos is thirty companies, the hand-picked big tech
+        // and startups first (api/hot_companies.py). Until a precompute has
+        // written it, the ten-row chart list stands in, minus the ones
+        // without a logo.
         const companies = (stats.top_companies_logos || (stats.top_companies || []).filter((c) => c.logo_url)).slice(0, 30);
         const row = document.getElementById("ticker-logos");
         if (companies.length) {
@@ -132,12 +126,12 @@
         }
         document.getElementById("cta-count").textContent = `${fmt(t.open_jobs)} open jobs`;
         document.getElementById("hero-stats-text").textContent =
-          `${fmt(t.open_jobs)} open jobs at ${fmt(t.companies_hiring)} companies hiring, ${fmt(th.new_jobs_24h)} new in the last 24 hours.` +
-          (companies.length ? ` Most open roles: ${companies.slice(0, 10).map((c) => c.name || c.domain).join(", ")}.` : "");
+          `${fmt(t.open_jobs)} open jobs, ${fmt(remote)} of them remote.` +
+          (companies.length ? ` Hiring now: ${companies.slice(0, 10).map((c) => c.name || c.domain).join(", ")}.` : "");
       }
 
       function labelsOnly() {
-        fill(document.getElementById("ticker-top"), ["open jobs", "companies hiring", "new in 24 hours"].map((l) => item("", l)), 12);
+        fill(document.getElementById("ticker-top"), ["open jobs", "remote"].map((l) => item("", l)), 12);
       }
 
       labelsOnly();

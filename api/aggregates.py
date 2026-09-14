@@ -21,6 +21,7 @@ from datetime import datetime, timedelta, timezone
 from countries import label_for
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
                          has_fts_index, has_places)
+from hot_companies import GOOGLE_FAVICON, HOT_COMPANIES, LOGO_PINS
 
 
 def _with_logos(conn, rows: list[dict]) -> list[dict]:
@@ -54,41 +55,49 @@ def _with_logos(conn, rows: list[dict]) -> list[dict]:
 
 
 def top_companies_with_logos(conn, limit: int = 30) -> list[dict]:
-    """The busiest companies that have a resolved logo, for /hero's logo row.
+    """The companies on /hero's logo row, hand-picked ones first.
 
-    Companies without one are skipped rather than drawn as a monogram: a
-    row of letters says nothing on a page that is there to show who hires.
-    The grouping is capped at a few times the limit before logos are
-    looked up, so this reads a couple of hundred company rows, not all
-    of them. Two domains that resolved to the same image (a parent and a
-    subsidiary on one favicon) show once.
+    HOT_COMPANIES (hot_companies.py) is big tech and well-known startups,
+    picked by hand because nothing in the data says which companies those
+    are. The picked companies with open jobs come first, busiest first. One
+    without a resolved logo gets its LOGO_PINS image or Google's favicon for
+    its domain. If fewer than `limit` qualify, the busiest companies not
+    already shown fill the rest, and those need a resolved logo of their
+    own: a row of monograms says nothing about who is hiring. Two domains
+    that resolved to the same image show once.
+
+    Counts every company's open jobs rather than a top slice, because a
+    picked company can be far down the list. Once per precompute, over a
+    few thousand groups.
     """
-    rows = conn.execute(
+    ranked = [dict(r) for r in conn.execute(
         f"""
         SELECT company_domain AS domain, COUNT(*) AS n
         FROM jobs
         WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}
         GROUP BY company_domain
         ORDER BY n DESC
-        LIMIT ?
-        """,
-        (limit * 6,),
-    ).fetchall()
-    rows = _with_logos(conn, [dict(r) for r in rows])
+        """
+    )]
+    hot = [r for r in ranked if r["domain"] in HOT_COMPANIES]
+    rest = [r for r in ranked if r["domain"] not in HOT_COMPANIES][:limit * 6]
+    candidates = _with_logos(conn, hot + rest)
     names: dict[str, str] = {}
-    if any(c[1] == "company_name" for c in conn.execute("PRAGMA table_info(companies)")):
-        domains = [r["domain"] for r in rows if r.get("logo_url")]
-        if domains:
-            names = {d: n for d, n in conn.execute(
-                f"SELECT domain, company_name FROM companies WHERE domain IN ({','.join('?' * len(domains))})",
-                domains) if n}
+    if candidates and any(c[1] == "company_name" for c in conn.execute("PRAGMA table_info(companies)")):
+        domains = [r["domain"] for r in candidates]
+        names = {d: n for d, n in conn.execute(
+            f"SELECT domain, company_name FROM companies WHERE domain IN ({','.join('?' * len(domains))})",
+            domains) if n}
     out, seen = [], set()
-    for r in rows:
-        url = r.get("logo_url")
+    for r in candidates:
+        domain = r["domain"]
+        url = LOGO_PINS.get(domain) or r.get("logo_url")
+        if not url and domain in HOT_COMPANIES:
+            url = GOOGLE_FAVICON.format(domain=domain)
         if not url or url in seen:
             continue
         seen.add(url)
-        out.append({"domain": r["domain"], "name": names.get(r["domain"]), "n": r["n"], "logo_url": url})
+        out.append({"domain": domain, "name": names.get(domain), "n": r["n"], "logo_url": url})
         if len(out) == limit:
             break
     return out

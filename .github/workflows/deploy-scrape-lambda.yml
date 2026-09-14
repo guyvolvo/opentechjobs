@@ -39,6 +39,8 @@ on:
       - "api/skills.py"
       - "api/countries.py"
       - "api/same_company.py"
+      - "api/aggregates.py"
+      - "api/hot_companies.py"
       - "companies.yml"
       # The packaging steps themselves. A fix to what gets copied has to
       # be able to deploy itself.
@@ -111,7 +113,8 @@ jobs:
           cp db/schema.sql maintenance/db/
           # aggregates.py: the /stats and /facets bodies, shared with the API
           # so the applier answers exactly what a request would have.
-          cp alerts.py api/job_filters.py api/aggregates.py maintenance/
+          # hot_companies.py: the hand-picked list aggregates.py reads for /hero.
+          cp alerts.py api/job_filters.py api/aggregates.py api/hot_companies.py maintenance/
           pip install --target maintenance requests
           cd maintenance && zip -r ../scrape-maintenance.zip . -x "__pycache__/*" && cd ..
 
