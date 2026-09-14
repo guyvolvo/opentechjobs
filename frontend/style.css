@@ -1968,6 +1968,23 @@ table.jobs thead th[data-sort="age"] { text-align: center; }
 .empty-state strong { display: block; color: var(--black); font-weight: 700; }
 .empty-state span { display: block; margin-top: 8px; text-transform: none; letter-spacing: 0; font-size: 12.5px; }
 .error-state { border-color: var(--red); color: var(--red); }
+/* The job sheet's description placeholder turns the Updating ring beside
+   its text, so a slow description reads as on its way, not stuck. Keeps
+   turning with reduced motion, like the status ring, since a stopped
+   spinner reads as a hung one. */
+.loading-with-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--grey);
+  animation: status-spin 0.9s linear infinite;
+}
 
 /* Footer */
 
@@ -2529,7 +2546,8 @@ footer {
   .job-detail, #job-scrim { transition: none; }
   /* Still turning, at under half the speed. A stopped spinner reads as a
      hung one, which is the exact worry this state exists to remove. */
-  .status-icon.updating { animation-duration: 2.4s; }
+  .status-icon.updating,
+  .loading-spinner { animation-duration: 2.4s; }
 }
 
 /* Screen-reader-only announcement for the skeleton states above. The

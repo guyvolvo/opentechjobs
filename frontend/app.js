@@ -2314,7 +2314,10 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
   if (descriptionError) {
     descriptionHtml = `<div class="error-state">Could not load the full description: ${escapeHtml(descriptionError)}</div>`;
   } else if (descriptionLoading) {
-    descriptionHtml = `<div class="loading-state">Loading description…</div>`;
+    // The same turning ring as the Updating status, drawn from its sprite.
+    descriptionHtml = `<div class="loading-state loading-with-spinner" role="status">`
+      + `<svg class="loading-spinner" aria-hidden="true"><use href="#status-updating"></use></svg>`
+      + `Loading description…</div>`;
   } else if (job.description) {
     descriptionHtml = `<div class="job-detail-description">${renderDescriptionLines(job.description)}</div>`;
   } else {
