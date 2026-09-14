@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-14T15:59:44Z",
+  "generatedAt": "2026-09-14T18:22:29Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -433,7 +433,7 @@
       },
       {
         "name": "The Three-Voice Rule",
-        "body": "Helvetica (via `--font`) carries everything dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs, selects, the view switch, chips and badges. Overused Grotesk (via `--font-display`) is reserved for the wordmark, section titles and the 404 numeral. No fourth typeface.",
+        "body": "Helvetica (via `--font`) carries everything dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs, selects, the view switch, chips and badges. Overused Grotesk (via `--font-display`) is reserved for the wordmark, section titles, the 404 numeral and the /hero page, which is set in it throughout. No fourth typeface.",
         "section": "typography"
       },
       {

@@ -25,6 +25,24 @@ typography:
     fontWeight: 400
     lineHeight: 0.85
     letterSpacing: "-0.02em"
+  display-hero:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "calc(100cqi / 6.1)"
+    fontWeight: 500
+    lineHeight: 0.84
+    letterSpacing: "-0.04em"
+  display-hero-ticker:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "clamp(52px, 9vw, 10rem)"
+    fontWeight: 400
+    lineHeight: 1.04
+    letterSpacing: "-0.03em"
+  display-feature:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "clamp(32px, 4.6vw, 4.5rem)"
+    fontWeight: 400
+    lineHeight: 1
+    letterSpacing: "-0.03em"
   display-section-title:
     fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "34px"
@@ -277,8 +295,9 @@ grotesque-sans display face, never the reverse.
 **The Three-Voice Rule.** Helvetica (via `--font`) carries everything
 dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs,
 selects, the view switch, chips and badges. Overused Grotesk (via
-`--font-display`) is reserved for the wordmark, section titles and the 404
-numeral. No fourth typeface.
+`--font-display`) is reserved for the wordmark, section titles, the 404
+numeral and the /hero page, which is set in it throughout. No fourth
+typeface.
 
 **No forced capitals.** Nothing is uppercased by CSS, and labels are
 written in sentence case, status words included ("Live", "Degraded").
@@ -540,6 +559,23 @@ button whose top edge and height match the filter row's controls, with a
 12px gap from the last of them. The choice is remembered per browser and applied
 before first paint, so a returning visit does not animate. Below 960px
 the column stacks under the board and has no toggle.
+
+### Hero page (/hero, draft)
+A landing page modelled on an editorial reference: a small utility row
+(name, a comma-separated nav, GitHub), the OpenTechJobs wordmark set as
+wide as the page (Display / Hero, sized from the hero's container width), and below it a full-width block in
+Green Text with 4px corners where the reference has a photograph. At the
+block's foot, two tickers of live board numbers from `stats.json` in
+Display / Hero Ticker: the top row drifts right over 60 seconds (open
+jobs, companies hiring, new in 24 hours, in Israel), the bottom row runs
+left over 38 (closed in 24 hours, median age, the busiest skills). Items
+are separated by a drawn dot. Below the hero, the features as full-width
+rows under a 2px rule, heading in Display / Feature beside a 16px
+paragraph, each rising into place once as it scrolls into view on an
+exponential ease-out; visible without script, and without that motion
+when reduced motion is on, where the tickers slow to a third. It ends on
+a large green "Search N open jobs" link. Overused Grotesk throughout,
+colours from the board's own tokens, so it follows the theme.
 
 ### Not found
 Any address the site does not have gets `404.html` with a real 404

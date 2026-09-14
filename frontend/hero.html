@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GXP63R1JP1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GXP63R1JP1');
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenTechJobs</title>
+  <meta name="description" content="Tech job listings read straight from each company's own hiring system, ranked against your CV, with an open API." />
+  <!-- Not in the sitemap yet: this page is a draft at /hero. -->
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png" />
+  <link rel="stylesheet" href="/style.css" />
+  <script>
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+</head>
+<body class="hero-page">
+
+  <header class="hero-bar">
+    <a class="hero-bar-name" href="/">opentechjobs&#8212;org</a>
+    <nav class="hero-nav" aria-label="Site">
+      <a href="/">board</a><a href="/stats">explore</a><a href="/api/help">api</a><a href="/account">account</a>
+    </nav>
+    <a class="hero-bar-name" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">github</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1 class="hero-word">OpenTechJobs</h1>
+      <div class="hero-block" role="region" aria-label="Board statistics">
+        <div class="hero-ticker to-right" aria-hidden="true"><div class="hero-ticker-track" id="ticker-top"></div></div>
+        <div class="hero-ticker to-left" aria-hidden="true"><div class="hero-ticker-track" id="ticker-bottom"></div></div>
+        <p class="sr-only" id="hero-stats-text">Loading board statistics.</p>
+      </div>
+    </section>
+
+    <section class="hero-features" aria-label="What the board does">
+      <article class="hero-feature">
+        <h2>Straight from the source.</h2>
+        <p>Every listing is read from the company's own hiring system, Greenhouse, Lever, Ashby, Workday and more, and from the careers sites of Microsoft, Google, Apple and Amazon. Nothing is reposted from another board.</p>
+      </article>
+      <article class="hero-feature">
+        <h2>Ranked against your CV.</h2>
+        <p>Analyze a CV on your account page and Best matches orders the board by the skills you have. The file is read in your browser and never uploaded.</p>
+      </article>
+      <article class="hero-feature">
+        <h2>Pay, even when it isn't posted.</h2>
+        <p>A listing without a salary gets an estimate from disclosed pay for the same kind of role, level and place, and it says it is an estimate.</p>
+      </article>
+      <article class="hero-feature">
+        <h2>Alerts for a saved search.</h2>
+        <p>Save any search and get an email when new listings match it.</p>
+      </article>
+      <article class="hero-feature">
+        <h2>An open API.</h2>
+        <p>The job data is public and free. No key and no sign-up: poll it and build on it.</p>
+      </article>
+      <article class="hero-feature">
+        <h2>Every listing's whole life.</h2>
+        <p>When it was first seen, when it was last seen, and when it closed. Explore runs SQL over all of it in your browser.</p>
+      </article>
+    </section>
+
+    <section class="hero-cta">
+      <a class="hero-cta-link" href="/">Search <span id="cta-count">the open jobs</span></a>
+    </section>
+  </main>
+
+  <footer class="hero-bar hero-foot">
+    <span>opentechjobs&#8212;org</span>
+    <a href="/privacy">privacy</a>
+  </footer>
+
+  <script>
+    // Two tickers of live board numbers, from the same static stats.json the
+    // board's Statistics column reads, so this page costs no API call.
+    (function () {
+      const fmt = (n) => Number(n || 0).toLocaleString("en-US");
+      const SKILL_CASE = { llm: "LLM", aws: "AWS", sql: "SQL", "ci/cd": "CI/CD", gcp: "GCP", ai: "AI" };
+      const skillName = (s) => String(s || "").split(" ").map((w) => SKILL_CASE[w] || w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+
+      function item(num, label) {
+        return `<span class="hero-ticker-item"><span class="hero-num">${num}</span> ${label}</span>`;
+      }
+      function fill(el, items) {
+        // Repeated until one copy is wider than any screen, then doubled, so
+        // the track can loop by moving exactly half its width.
+        const once = items.join("");
+        let half = once;
+        while (half.length < once.length * 3) half += once;
+        el.innerHTML = half + half;
+      }
+
+      function render(stats) {
+        const t = stats.totals || {}, th = stats.throughput || {}, age = stats.age || {}, loc = stats.location || {};
+        const top = [
+          item(fmt(t.open_jobs), "open jobs"),
+          item(fmt(t.companies_hiring), "companies hiring"),
+          item(fmt(th.new_jobs_24h), "new in 24 hours"),
+          item(fmt(loc.israel), "in Israel"),
+        ];
+        const skills = (stats.top_skills || []).slice(0, 4).map((s) => item(fmt(s.n), skillName(s.skill)));
+        const bottom = [
+          item(fmt(th.closed_jobs_24h), "closed in 24 hours"),
+          item(Math.round(age.median_open_days || 0), "days median age"),
+          ...skills,
+        ];
+        fill(document.getElementById("ticker-top"), top);
+        fill(document.getElementById("ticker-bottom"), bottom);
+        document.getElementById("cta-count").textContent = `${fmt(t.open_jobs)} open jobs`;
+        document.getElementById("hero-stats-text").textContent =
+          `${fmt(t.open_jobs)} open jobs at ${fmt(t.companies_hiring)} companies hiring, ${fmt(th.new_jobs_24h)} new in the last 24 hours.`;
+      }
+
+      function labelsOnly() {
+        fill(document.getElementById("ticker-top"), ["open jobs", "companies hiring", "new in 24 hours"].map((l) => item("", l)));
+        fill(document.getElementById("ticker-bottom"), ["closed in 24 hours", "days median age", "top skills"].map((l) => item("", l)));
+      }
+
+      labelsOnly();
+      fetch("/stats.json", { cache: "no-cache" })
+        .then((r) => (r.ok ? r.json() : fetch("/api/stats").then((x) => x.json())))
+        .then(render)
+        .catch(() => {});
+
+      // Feature rows rise into place as they scroll into view. Visible by
+      // default: the motion is added only where it can run and is wanted.
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (!reduce && "IntersectionObserver" in window) {
+        document.documentElement.classList.add("hero-motion");
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+          });
+        }, { rootMargin: "0px 0px -12% 0px", threshold: 0.2 });
+        document.querySelectorAll(".hero-feature, .hero-cta").forEach((el) => io.observe(el));
+      }
+    })();
+  </script>
+</body>
+</html>

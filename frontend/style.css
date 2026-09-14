@@ -3172,3 +3172,168 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .cv-chip:hover span { color: var(--white); }
 .cv-chip:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .cv-none { color: var(--grey); font-size: 11.5px; }
+
+/* /hero. A draft landing page: a giant wordmark over a full-width block of
+   live board numbers on two tickers, then the features, each rising into
+   place as it scrolls in. Overused Grotesk throughout, a named exception to
+   the Three-Voice Rule (see DESIGN.md), because this page is the brand
+   moment the display face exists for. Colours are the board's own tokens,
+   so both themes work. */
+.hero-page { background: var(--white); color: var(--black); }
+
+.hero-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px var(--gutter) 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 1.3;
+}
+.hero-bar a { color: inherit; text-decoration: none; }
+.hero-bar a:hover { color: var(--green-text); }
+.hero-bar a:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 2px; }
+.hero-nav a + a::before { content: ", "; color: var(--black); }
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: 0 var(--gutter) var(--gutter);
+  container-type: inline-size;
+}
+/* Sized to the hero's own width so the word runs edge to edge the way the
+   reference does: "OpenTechJobs" at this tracking is 6.1em wide. Tracked to
+   the craft floor's -0.04em. */
+.hero-word {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13.4vw;
+  font-size: calc(100cqi / 6.1);
+  line-height: 0.84;
+  letter-spacing: -0.04em;
+  margin: 0.14em 0 0.1em -0.05em;
+  white-space: nowrap;
+}
+/* The block the reference fills with a photograph. Here it is the board's
+   green, and the two tickers sit at its foot. Paper text on --green-text is
+   5.2:1 in light and 6.2:1 in dark. */
+.hero-block {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: clamp(14px, 2.4vw, 32px);
+  background: var(--green-text);
+  color: var(--white);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hero-ticker { overflow: hidden; }
+.hero-ticker-track {
+  display: flex;
+  width: max-content;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(52px, 9vw, 10rem);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  will-change: transform;
+}
+/* Opposite directions, different speeds: the top row drifts right over a
+   minute, the bottom row runs left faster. Each track holds its content
+   twice, so moving exactly half its width loops without a seam. */
+.hero-ticker.to-right .hero-ticker-track { animation: hero-ticker-right 60s linear infinite; }
+.hero-ticker.to-left .hero-ticker-track { animation: hero-ticker-left 38s linear infinite; }
+@keyframes hero-ticker-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@keyframes hero-ticker-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.hero-ticker-item { display: inline-flex; align-items: center; }
+.hero-num { font-variant-numeric: tabular-nums; margin-right: 0.22em; }
+/* A drawn dot between items, sized to the type. */
+.hero-ticker-item::after {
+  content: "";
+  width: 0.14em;
+  height: 0.14em;
+  margin: 0 0.42em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.hero-features {
+  padding: clamp(56px, 9vw, 140px) var(--gutter) clamp(24px, 4vw, 56px);
+}
+.hero-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 16px 56px;
+  align-items: start;
+  padding: clamp(28px, 4vw, 52px) 0;
+  border-top: var(--rule) solid var(--black);
+}
+.hero-feature h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(32px, 4.6vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin: 0;
+  text-wrap: balance;
+}
+.hero-feature p {
+  margin: 0.35em 0 0;
+  max-width: 44ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--grey);
+}
+
+.hero-cta {
+  margin: 0 var(--gutter);
+  padding-block: clamp(24px, 4vw, 56px) clamp(56px, 8vw, 120px);
+  border-top: var(--rule) solid var(--black);
+}
+.hero-cta-link {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(40px, 7vw, 7.5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--green-text);
+  text-decoration: none;
+}
+.hero-cta-link:hover { text-decoration: underline; text-decoration-thickness: 0.04em; text-underline-offset: 0.12em; }
+.hero-cta-link:focus-visible { outline: 2px solid var(--green); outline-offset: 6px; border-radius: 4px; }
+.hero-foot { padding-bottom: 18px; color: var(--grey); }
+
+/* The one authored motion on the page: each feature row rises and fades in
+   once, on an exponential ease-out, as it scrolls into view. Only when the
+   page script added .hero-motion, so without it everything is simply there. */
+.hero-motion .hero-feature > *,
+.hero-motion .hero-cta > * {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hero-motion .hero-feature > p { transition-delay: 0.08s; }
+.hero-motion .hero-feature.in > *,
+.hero-motion .hero-cta.in > * { opacity: 1; transform: none; }
+
+@media (max-width: 720px) {
+  .hero-bar { font-size: 12px; flex-wrap: wrap; row-gap: 4px; }
+  .hero-feature { grid-template-columns: 1fr; }
+  /* A phone screen is tall and narrow: filling it with green leaves an
+     empty column, so the block takes a fixed share instead. */
+  .hero { min-height: 0; }
+  .hero-block { flex: none; height: 58svh; min-height: 320px; max-height: 520px; }
+}
+/* Slower, not still, as with the board's ticker. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-ticker.to-right .hero-ticker-track { animation-duration: 180s; }
+  .hero-ticker.to-left .hero-ticker-track { animation-duration: 120s; }
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

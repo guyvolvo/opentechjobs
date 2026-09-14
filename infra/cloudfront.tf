@@ -95,7 +95,7 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       };
     }
 
-    var PAGES = { "/account": true, "/stats": true, "/privacy": true };
+    var PAGES = { "/account": true, "/stats": true, "/privacy": true, "/hero": true };
 
     function handler(event) {
       var request = event.request;
