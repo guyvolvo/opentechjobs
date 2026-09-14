@@ -1233,11 +1233,10 @@ function renderMatchPanel() {
     panel.innerHTML = "";
     return;
   }
-  const n = state.skills.length;
   panel.hidden = false;
   panel.innerHTML = `<span class="match-panel-label"`
-    + ` title="Every two weeks since a role was posted counts as one matching skill fewer, so newer roles rank higher.">`
-    + `Ranked by ${n} CV skill${n === 1 ? "" : "s"} and how recent</span>`
+    + ` title="Ordered by how many of your CV skills a role mentions, with newer roles counted higher: every two weeks since posting counts as one skill fewer.">`
+    + `Ranked by relevance</span>`
     // data-match-skill, not data-skill: renderJobRows wires every
     // [data-skill] on the page as "search for this skill", and that
     // handler stops propagation, so a shared attribute turned removing a
@@ -1921,8 +1920,7 @@ function renderJobs(data, starred) {
   const from = state.offset + 1;
   const to = Math.min(state.offset + data.jobs.length, data.total);
   document.getElementById("result-count").innerHTML =
-    `<b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> open listings`
-    + (state.skills.length && state.sort === "match" ? ", best and newest matches first" : "");
+    `<b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> open listings`;
 }
 
 // "Company · Department · Location (Workplace)" -- one scannable line
@@ -2617,11 +2615,13 @@ function createLocationSelect(containerId, { placeholder, onChange }) {
   const searchEl = container.querySelector(".ms-search");
 
   function optionHtml(kind, row, checked) {
-    const count = row.n == null ? "" : ` (${fmtInt(row.n)})`;
+    // Its own span, so a long name is what truncates, never the number.
+    // Reported live: "United States (71,7…" with the count cut off.
+    const count = row.n == null ? "" : `<span class="ms-option-count">(${fmtInt(row.n)})</span>`;
     return `
       <label class="ms-option ms-${kind}">
         <input type="checkbox" data-kind="${kind}" value="${escapeHtml(row.value)}" ${checked ? "checked" : ""} />
-        <span class="ms-option-text">${escapeHtml(row.label)}${count}</span>
+        <span class="ms-option-text">${escapeHtml(row.label)}</span>${count}
       </label>`;
   }
 

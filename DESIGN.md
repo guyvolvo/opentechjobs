@@ -402,8 +402,8 @@ ones, and which of its own listed skills the CV lacks. Plain counts, no
 percentage and no "AI" language: the ranking is a count of shared skill
 tags and says so. The order counts recency as well: every two weeks since
 posting costs one matched skill, so a fresh close match outranks a stale
-slightly closer one. The row still shows the plain skill count, and the
-panel's label says the order includes recency.
+slightly closer one. The row still shows the plain skill count. The
+panel says "Ranked by relevance" and explains the rule in its tooltip.
 
 ### Cards / Containers
 - **Corner style:** square (0px) for a grid-tile card (metric/panel tile,

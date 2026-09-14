@@ -1371,10 +1371,16 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
    act from filtering by it. */
 .ms-group-row { display: flex; align-items: center; }
 .ms-group-row .ms-option { flex: 1 1 auto; min-width: 0; }
-/* Country names plus their count outrun the 220px menu (Bosnia and
-   Herzegovina (1,204) does it on its own), and .ms-option is a flex row
-   with a fixed-size checkbox in it, so the text is what has to give. */
-.ms-option-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Country names plus their count outran the menu (Bosnia and Herzegovina
+   (1,204) does it on its own), and .ms-option is a flex row with a
+   fixed-size checkbox in it, so something has to give. The name gives; the
+   count sits in its own span that never shrinks, because a truncated count
+   is the one part of the row that tells the reader nothing. The menu is
+   also wider here than the other dropdowns: it is the only one with a
+   chevron taking 28px of every row. */
+.ms-option-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-option-count { flex: 0 0 auto; margin-left: -4px; color: var(--grey); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ms-menu:has(.ms-group-row) { width: max(100%, 280px); }
 .ms-chevron {
   flex: 0 0 auto;
   display: flex;
@@ -1857,9 +1863,10 @@ table.jobs thead th[data-sort="age"] { text-align: center; }
   justify-content: space-between;
   flex-wrap: wrap; /* page buttons + result-count text won't both fit one row on a phone */
   gap: 10px;
+  /* No rule of its own. The last row already ends in the same hairline,
+     so this drew a second line 20px under it, and a shorter one, because
+     the table bleeds into the gutter and this does not. Reported live. */
   margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--grey-line);
   font-size: 12px;
 }
 .pagination .pages { display: flex; gap: 6px; }
