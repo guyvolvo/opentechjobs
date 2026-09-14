@@ -855,13 +855,6 @@ button, input, select {
   font-weight: 700;
 }
 
-/* Marks a Market overview panel as whole-board, on the panel itself
-   rather than only in the section heading above it: the Statistics
-   column scrolls, so a reader can easily have a chart on screen with
-   the heading that qualifies it already scrolled off. Same size and
-   colour as the title it trails, dropped to regular weight so it reads
-   as a qualifier and not as part of the name. */
-
 .bar-row {
   display: grid;
   grid-template-columns: 1fr 100px 44px;

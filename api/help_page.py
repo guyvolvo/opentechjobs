@@ -47,11 +47,10 @@ HELP_HTML = """<!doctype html>
     <section class="section">
       <div class="container api-help">
         <h2 class="section-title">API Reference</h2>
-        <p class="api-help-intro">Every route below is public and needs no key or account, same data the job board itself runs on -- except /me/alerts, which is Cognito-JWT-gated and scoped to the signed-in caller.</p>
+        <p class="api-help-intro">API endpoints listed below are public and free, except /me/alerts, which requires you to log in.</p>
 
         <div class="api-endpoint">
           <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/jobs</span></div>
-          <p>Search and filter job listings. Every listing carries <span class="param">salary_source</span>, which says what stands behind <span class="param">salary_text</span> and is null when there is no figure at all: <span class="param">disclosed</span> means the employer published that range on the listing itself, <span class="param">table</span> means our Israeli market estimate by role and seniority, and <span class="param">estimated</span> means our estimate from what comparable roles actually pay at that company and location. Only <span class="param">disclosed</span> is the employer's own number. The older <span class="param">salary_is_estimate</span> boolean is still returned and still means "not disclosed".</p>
           <table class="api-params">
             <tbody>
               <tr><td><span class="param">search</span></td><td>Space-separated words, ALL must appear, e.g. <span class="param">kubernetes tel aviv</span>. Matched against title, company, location, category and description. <span class="param">"Quote a phrase"</span> to keep it whole.</td></tr>

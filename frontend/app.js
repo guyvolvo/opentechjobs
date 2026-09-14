@@ -476,7 +476,7 @@ function companyLogoGuess(domain, size, extraClass = "") {
   // sending Salesforce's real icon to the monogram too). 16x16 exactly
   // is Google's own specific "nothing found" size -- but ONLY a
   // meaningful signal when we actually asked for more than that: the
-  // Top Hiring Companies panel calls this with size=16 itself (a real,
+  // Companies with most open roles panel calls this with size=16 itself (a real,
   // correctly-found 16x16 icon there is indistinguishable from the
   // placeholder by dimensions alone), and a second version of this
   // check missed that, wrongly monogram-ing real icons for every
@@ -1057,10 +1057,7 @@ function renderGhostStat(ghost, openJobs) {
     <div class="ghost-sub">${fmtInt(ghost.dormant_count)} of ${fmtInt(ghost.sample_size)} open listings haven't been filled in over ${ghost.threshold_days} days (${fmtInt(openJobs)} open in total).</div>`;
 }
 
-// Every panel in the Market overview block is whole-board, and each one
-// says so on itself rather than relying only on the section heading. The
-// Statistics column scrolls independently, so a reader can easily have a
-// chart on screen with the heading that qualifies it already gone.
+// Every panel in the Market overview block is whole-board.
 function renderPanels(stats) {
   const el = document.getElementById("panel-grid");
 
@@ -1125,7 +1122,7 @@ function renderScopedPanels(stats) {
   const rows = scoped ? latestScoped.data.top_companies : stats.top_companies || [];
   el.innerHTML = `
     <div class="panel">
-      <div class="panel-title">${scoped ? "Top Hirers in This Search" : "Top Hiring Companies"}</div>
+      <div class="panel-title">Companies with most open roles</div>
       ${
         rows.length
           ? renderBarList(rows, "domain", { clickable: true })
