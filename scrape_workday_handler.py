@@ -335,10 +335,14 @@ def lambda_handler(event, context):
     # reads it back to skip description re-fetches, which is the whole
     # reason a run is 65 seconds instead of many minutes.
     fragments = put_fragment(BUCKET, results)
+    # Counted before the list is dropped: the status line below needs it,
+    # and reading len() of the cleared list is what failed every run that
+    # followed the memory fix, after its data had already gone out.
+    n_results = len(results)
     results = None
     gc.collect()
     print(f"delta fragments: {len(fragments)} written"
           if fragments else "delta fragments: (nothing to apply, none written)")
 
-    _write_status(s3, "idle", f"last run: {len(hits)}/{len(results)} Workday companies, {n_jobs} jobs")
+    _write_status(s3, "idle", f"last run: {len(hits)}/{n_results} Workday and big-tech companies, {n_jobs} jobs")
     return {"hits": len(hits), "jobs": n_jobs, "fragments": len(fragments)}
