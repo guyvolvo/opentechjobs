@@ -402,7 +402,7 @@ actually follow the curve.
   pill (e.g. the active company filter). Hover inverts to ink.
 
 ### View switch and match explanation
-All listings, Best matches and Saved are one segmented control above the
+Show all, Best matches and Saved are one segmented control above the
 result count, the same `.seg` control as the Explore page. Filters apply
 in every view. Best matches narrows what they leave to listings that share
 at least one CV skill, and the count says how many that is. In that view

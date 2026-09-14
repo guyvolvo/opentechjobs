@@ -1199,7 +1199,7 @@ function wireCompanyBarClicks(el) {
 
 let lastJobsResponse = null;
 
-// All listings, Best matches, Saved. Derived from state rather than
+// Show all, Best matches, Saved. Derived from state rather than
 // stored, so a link carrying ?skills= or ?starred=1 lands on the right
 // view with nothing else to keep in step.
 function currentView() {
@@ -1263,7 +1263,7 @@ function renderMatchPanel() {
 }
 
 // Best matches with nothing to rank by. Says what the view needs rather
-// than showing a board that looks exactly like All listings.
+// than showing a board that looks exactly like Show all.
 function showMatchesPrompt() {
   const panel = document.getElementById("match-panel");
   panel.hidden = false;
@@ -4468,7 +4468,7 @@ async function boot() {
   // Skills saved from an earlier visit bring the saved sort back with
   // them, and that was usually Newest. Best matches then came back in
   // plain date order, listings with no matching skill mixed in, looking
-  // exactly like All listings. Reported live from a screenshot. Only a
+  // exactly like Show all. Reported live from a screenshot. Only a
   // link that names its own sort keeps it.
   if (state.skills.length && !state.starred_only && !bootParams.has("sort")) state.sort = "match";
 
