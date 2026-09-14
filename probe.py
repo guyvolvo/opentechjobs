@@ -1200,6 +1200,11 @@ def f_greenhouse(sess, token):
 
 def f_lever(sess, token):
     d = get_json(sess, f"https://api.lever.co/v0/postings/{token}?mode=json")
+    # Lever keeps EU customers on a separate host, and the US one answers
+    # "Document not found" for them. Mobileye is one: 183 roles at
+    # jobs.eu.lever.co/mobileye, invisible here until this.
+    if not isinstance(d, list):
+        d = get_json(sess, f"https://api.eu.lever.co/v0/postings/{token}?mode=json")
     if not isinstance(d, list):
         return None
     out = []
@@ -1820,6 +1825,211 @@ def f_amazon(sess, token):
     return out
 
 
+# Microsoft, Google and Apple run their own careers sites, like Amazon.
+# Same guard as f_amazon: the token is an upper-case country code, and a
+# guessed token is a lower-case slug off a domain, so none of these makes
+# a request until a pin in companies.yml names it.
+#
+# Meta is not here. Its jobs page answers a plain request with a 400 and
+# loads listings through an internal GraphQL call, which is not a public
+# read endpoint in any sense worth relying on.
+_COUNTRY_TOKENS = {"ISR": ("Israel", "IL")}
+_BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+               "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
+
+
+def _country_token(token):
+    return _COUNTRY_TOKENS.get(token) if isinstance(token, str) else None
+
+
+def _epoch_date(v):
+    try:
+        return datetime.fromtimestamp(int(v), tz=timezone.utc).isoformat()
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+MICROSOFT_SEARCH = "https://apply.careers.microsoft.com/api/pcsx/search"
+MICROSOFT_DETAIL = "https://apply.careers.microsoft.com/api/pcsx/position_details"
+
+
+def _microsoft_location(p, country, code):
+    """"Israel, Tel Aviv, Herzliya" read back to front, the way every
+    other board writes a place. "Multiple Locations" is Microsoft saying it
+    has not decided, so it is dropped rather than shown as a city.
+    """
+    names = []
+    for raw in p.get("locations") or []:
+        parts = [x.strip() for x in _txt(raw).split(",") if x.strip() and x.strip() != "Multiple Locations"]
+        if parts and parts[0] == country:
+            name = ", ".join(reversed(parts))
+            if name not in names:
+                names.append(name)
+    std = p.get("standardizedLocations") or []
+    if not names and any(_txt(x) == code or _txt(x).endswith(", " + code) for x in std):
+        names.append(country)
+    return "; ".join(n for n in names if n != country) or (country if names else "")
+
+
+def f_microsoft(sess, token):
+    place = _country_token(token)
+    if not place:
+        return None
+    country, code = place
+    out, start = [], 0
+    while True:
+        d = get_json(sess, f"{MICROSOFT_SEARCH}?domain=microsoft.com&query="
+                           f"&location={country}&start={start}")
+        data = d.get("data") if isinstance(d, dict) else None
+        if not isinstance(data, dict):
+            # Same rule as f_amazon: a blip part way through keeps what it has.
+            return out or None
+        rows = data.get("positions") or []
+        for p in rows:
+            pid = _txt(p.get("id"))
+            where = _microsoft_location(p, country, code)
+            # The location parameter is a search, not a filter, so a role
+            # elsewhere that mentions the country can come back too.
+            if not pid or not where:
+                continue
+            body = None
+            if FETCH_FULL_DESCRIPTIONS:
+                detail = get_json(sess, f"{MICROSOFT_DETAIL}?position_id={pid}&domain=microsoft.com&hl=en")
+                ddata = detail.get("data") if isinstance(detail, dict) else None
+                if isinstance(ddata, dict):
+                    body = _clean_text(ddata.get("jobDescription"))
+            out.append(Job("microsoft", token, pid, _txt(p.get("name")), where,
+                           "https://apply.careers.microsoft.com" + _txt(p.get("positionUrl")),
+                           _epoch_date(p.get("postedTs")),
+                           _txt(p.get("department")) or None,
+                           len(body or ""), body,
+                           workplace_type=_ATS_WORKPLACE_MAP.get(_txt(p.get("workLocationOption")).lower()) or None))
+        start += len(rows)
+        if not rows or start >= int(data.get("count") or 0):
+            break
+    return out
+
+
+GOOGLE_RESULTS = "https://www.google.com/about/careers/applications/jobs/results/"
+_GOOGLE_DATA_RE = re.compile(r"AF_initDataCallback\(\{key: 'ds:1'.*?data:(.*?), sideChannel", re.S)
+_GOOGLE_PAGE = 20
+
+
+def _google_slug(title):
+    """The slug Google's own links carry: "Signal/Power Integrity Engineer,
+    PhD Graduate" is signalpower-integrity-engineer-phd-graduate."""
+    kept = re.sub(r"[^a-z0-9 -]", "", title.lower())
+    return re.sub(r"[\s-]+", "-", kept).strip("-")
+
+
+def _google_field(row, i):
+    v = row[i] if len(row) > i else None
+    return v[1] if isinstance(v, list) and len(v) > 1 else None
+
+
+def f_google(sess, token):
+    place = _country_token(token)
+    if not place:
+        return None
+    country, code = place
+    out, seen, page = [], set(), 1
+    # The results page carries its own data in a script block; there is no
+    # public JSON endpoint behind it any more. Twenty rows a page.
+    while page <= 50:
+        try:
+            r = sess.get(f"{GOOGLE_RESULTS}?location={country}&page={page}", timeout=TIMEOUT,
+                         headers={"User-Agent": _BROWSER_UA, "Accept-Language": "en-US,en;q=0.9"})
+        except requests.RequestException:
+            return out or None
+        m = _GOOGLE_DATA_RE.search(r.text) if r.status_code == 200 else None
+        try:
+            data = json.loads(m.group(1)) if m else None
+        except ValueError:
+            data = None
+        if not isinstance(data, list) or not data:
+            return out or None
+        rows = data[0] or []
+        for row in rows:
+            if not isinstance(row, list) or len(row) < 10:
+                continue
+            jid, title = _txt(row[0]), _txt(row[1])
+            if not jid or jid in seen:
+                continue
+            places = [loc for loc in (row[9] or []) if isinstance(loc, list) and len(loc) > 5 and loc[5] == code]
+            if not places:
+                continue
+            seen.add(jid)
+            body = "\n\n".join(_clean_text(x) for x in
+                                (_google_field(row, 10), _google_field(row, 3), _google_field(row, 4))
+                                if x and _clean_text(x))
+            created = row[12][0] if len(row) > 12 and isinstance(row[12], list) and row[12] else None
+            out.append(Job("google", token, jid, title,
+                           "; ".join(_txt(loc[0]) for loc in places),
+                           f"{GOOGLE_RESULTS}{jid}-{_google_slug(title)}",
+                           _epoch_date(created), None, len(body), body or None))
+        total = data[2] if len(data) > 2 and isinstance(data[2], int) else 0
+        if not rows or page * _GOOGLE_PAGE >= total:
+            break
+        page += 1
+    return out
+
+
+APPLE_BASE = "https://jobs.apple.com"
+_APPLE_PAGE = 20
+
+
+def f_apple(sess, token):
+    place = _country_token(token)
+    if not place:
+        return None
+    country, _code = place
+    headers = {"User-Agent": _BROWSER_UA}
+    # The search endpoint wants the CSRF token from this call, and the
+    # cookie it sets, which the session keeps.
+    try:
+        r = sess.get(f"{APPLE_BASE}/api/v1/CSRFToken", timeout=TIMEOUT, headers=headers)
+    except requests.RequestException:
+        return None
+    csrf = r.headers.get("X-Apple-CSRF-Token") if r.status_code == 200 else None
+    if not csrf:
+        return None
+    headers.update({"X-Apple-CSRF-Token": csrf, "Origin": APPLE_BASE, "Content-Type": "application/json"})
+    out, seen, page = [], set(), 1
+    while page <= 60:
+        # "format" looks optional and is not: without it the same request
+        # comes back with no results and a total of zero.
+        body = {"query": "", "filters": {"locations": [f"postLocation-{token}"]}, "page": page,
+                "locale": "en-us", "sort": "newest",
+                "format": {"longDate": "MMMM D, YYYY", "mediumDate": "MMM D, YYYY"}}
+        try:
+            resp = sess.post(f"{APPLE_BASE}/api/v1/search", json=body, timeout=TIMEOUT, headers=headers)
+            res = resp.json().get("res") if resp.status_code == 200 else None
+        except (requests.RequestException, ValueError):
+            res = None
+        if not isinstance(res, dict):
+            return out or None
+        rows = res.get("searchResults") or []
+        for j in rows:
+            pid = _txt(j.get("positionId")) or _txt(j.get("id"))
+            places = [loc for loc in (j.get("locations") or []) if _txt(loc.get("countryName")) == country]
+            if not pid or pid in seen or not places:
+                continue
+            seen.add(pid)
+            # The search result carries a summary, not the full posting;
+            # the detail endpoint wants a signed-in session.
+            summary = _clean_text(j.get("jobSummary"))
+            out.append(Job("apple", token, pid, _txt(j.get("postingTitle")),
+                           "; ".join(f"{_txt(loc.get('name'))}, {country}" for loc in places),
+                           f"{APPLE_BASE}/en-il/details/{pid}/{_txt(j.get('transformedPostingTitle'))}",
+                           _normalize_date(j.get("postDateInGMT")),
+                           _txt((j.get("team") or {}).get("teamName")) or None,
+                           len(summary or ""), summary or None))
+        if not rows or page * _APPLE_PAGE >= int(res.get("totalRecords") or 0):
+            break
+        page += 1
+    return out
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -1853,6 +2063,15 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("personio", "hpe"),          # hpe.com: unrelated German tenant (job titles in German)
     ("personio", "matrix"),       # matrix.co.il, second collision on top of the ashby one above
     ("personio", "monday"),       # monday.com: real board is "Monday" coworking spaces (Spain/Portugal)
+    # Empty boards that guessing settled on because nothing else answered.
+    # Each company's real board is pinned in companies.yml; these stop an
+    # empty pin read from falling back to them.
+    ("workable", "monday"),       # monday.com, really ashby:monday.com
+    ("ashby", "snyk"),            # snyk.io, really Workday
+    ("workable", "mobileye"),     # mobileye.com, really Lever's EU host
+    ("workable", "microsoft"),    # microsoft.com, its own careers site
+    ("workable", "navan"),        # navan.com, really greenhouse:tripactions
+    ("workable", "matrix"),       # matrix.co.il, its own WordPress jobs pages
     ("jazzhr", "electra"),        # electra.co.il: real board is "Electra Aero," an unrelated US eVTOL company
     ("jazzhr", "intuit"),         # intuit.com: real title says "Intuit - Career Page" but the one posting is
                                    # literally titled "Sample Job" -- an unconfigured demo tenant, not the
@@ -1902,6 +2121,9 @@ FETCHERS: dict[str, Callable] = {
     "ness": f_ness,
     # Same idea, keyed on a country code. See the note above f_amazon.
     "amazon": f_amazon,
+    "microsoft": f_microsoft,
+    "google": f_google,
+    "apple": f_apple,
 }
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque

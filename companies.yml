@@ -173,6 +173,15 @@ comeet:
 # empty facet filter is a no-op, same as not passing one at all, so
 # there's nothing useful to cache for those.
 workday:
+  # Snyk: its Ashby token "snyk" is a real but empty board, which is what
+  # guessing settled on. The live board is Workday's wd103 shard.
+  - domain: snyk.io
+    tenant: snyk
+    wd: wd103
+    site: External
+    jobs_seen: 27
+    source: hand-verified
+
   - domain: nvidia.com
     tenant: nvidia
     wd: wd5
@@ -385,3 +394,48 @@ amazon:
     token: "ISR|-aws"
     jobs_seen: 13
     source: own-careers-api
+
+microsoft:
+  # Microsoft's own careers search (Eightfold behind the scenes, but only
+  # reachable through Microsoft's host). Token is a country code, like
+  # amazon above. Counts as of 2026-09-14.
+  - domain: microsoft.com
+    token: "ISR"
+    jobs_seen: 19
+    source: own-careers-api
+
+google:
+  # The results page's own embedded data, twenty rows a page.
+  - domain: google.com
+    token: "ISR"
+    jobs_seen: 96
+    source: own-careers-page
+
+apple:
+  # jobs.apple.com's search API, which wants a CSRF token first.
+  - domain: apple.com
+    token: "ISR"
+    jobs_seen: 122
+    source: own-careers-api
+
+lever:
+  # Found on careers.mobileye.com, which links every role to
+  # jobs.eu.lever.co/mobileye. f_lever tries the EU host after the US one.
+  - domain: mobileye.com
+    token: "mobileye"
+    jobs_seen: 183
+    source: careers-page
+
+ashby:
+  # monday.com's board token is its whole domain, dot included, which no
+  # guess produces. Read off the careers page's embedded positions.
+  - domain: monday.com
+    token: "monday.com"
+    source: careers-page
+
+greenhouse:
+  # Navan was TripActions, and the board kept the old name.
+  - domain: navan.com
+    token: "tripactions"
+    jobs_seen: 216
+    source: hand-verified
