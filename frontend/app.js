@@ -2031,7 +2031,7 @@ function jobMatchHtml(j) {
     + `</div>`
     + (asks.length
       ? `<div class="job-match-asks skill-line"><span class="job-match-asks-label">Missing skills:</span>`
-        + asks.map((s) => `<span data-fit>${escapeHtml(s)}</span>`).join("")
+        + asks.map((s) => `<span class="miss-chip" data-fit>${escapeHtml(s)}</span>`).join("")
         + more + `</div>`
       : "");
 }
@@ -2073,7 +2073,15 @@ function fitSkillLines(force) {
 let skillLinesFrame = 0;
 function watchSkillLines() {
   const body = document.getElementById("jobs-body");
-  if (!body || typeof ResizeObserver === "undefined") return;
+  if (!body) return;
+  // Source Sans arrives after the first rows can render, and its glyphs
+  // are wider than the fallback's, so a line fitted before it loads spills
+  // over without the row changing width.
+  if (document.fonts) {
+    document.fonts.ready.then(() => fitSkillLines(true));
+    document.fonts.addEventListener("loadingdone", () => fitSkillLines(true));
+  }
+  if (typeof ResizeObserver === "undefined") return;
   new ResizeObserver(() => {
     cancelAnimationFrame(skillLinesFrame);
     skillLinesFrame = requestAnimationFrame(() => fitSkillLines(false));

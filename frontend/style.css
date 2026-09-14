@@ -1792,10 +1792,21 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
    the listing asks for that the CV does not have. */
 .job-match { align-items: center; }
 .job-match-count { font-size: 12px; font-weight: 700; color: var(--black); margin-right: 2px; }
-.job-match-asks { display: flex; gap: 4px; margin-top: 4px; font-size: 12px; color: var(--grey); }
+.job-match-asks { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; color: var(--grey); }
 .job-match-asks-label { flex: none; }
-.job-match-asks [data-fit] { flex: none; }
-.job-match-asks [data-fit] + [data-fit]::before { content: ", "; margin-left: -4px; }
+/* Chips like the matched ones, pushed back: the fill and outline are faint
+   so they read as secondary, but the text stays at full --grey, since
+   fading the whole chip would take its label below readable contrast. */
+.miss-chip {
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--grey);
+  background: color-mix(in srgb, var(--grey) 8%, transparent);
+  border: var(--rule) solid color-mix(in srgb, var(--grey) 30%, transparent);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
 .job-match-count, .match-chip { flex: none; }
 
 .skill-bracket { color: var(--grey); }
