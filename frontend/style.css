@@ -1544,7 +1544,18 @@ table.jobs {
   margin-right: calc(-1 * var(--gutter));
   border-collapse: collapse;
   font-size: 13px;
+  /* Fixed, with the star and Age columns given widths below. Left to
+     auto layout, the browser sized columns from their content, and the
+     Best matches rows (whose skill lines ask for more room) squeezed the
+     star column, so the logo, title, salary and Age all sat about 15px
+     further left than on Show all. Reported live. Fixed layout takes the
+     widths from the header, so no row's content can move a column. */
+  table-layout: fixed;
 }
+table.jobs thead th:first-child { width: 44px; }
+/* Age is the last column and carries the gutter bleed as padding (see
+   below), so its width includes that padding. */
+table.jobs thead th[data-sort="age"] { width: calc(110px + var(--gutter)); }
 table.jobs thead th {
   text-align: left;
   font-size: 12px;
