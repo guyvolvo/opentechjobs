@@ -215,6 +215,52 @@ def compute_facets(conn, params: dict) -> dict:
     }
 
 
+COMPANY_SEARCH_LIMIT = 50
+
+
+def search_companies(conn, params: dict) -> dict:
+    """Companies whose domain or name contains `name`, with open-listing
+    counts under every other active filter.
+
+    The Companies dropdown lists the 500 biggest employers and its search
+    box only filtered those, so any company past that line could not be
+    found at all: typing "micr" said No matches while Microsoft had 18
+    Israeli listings. Reported live. This asks the snapshot instead.
+
+    Counted the way the facet is, with the company filter itself dropped,
+    so a company already ticked does not narrow its own search. Two
+    characters at least: one matches half the board and tells nobody
+    anything.
+    """
+    name = str(params.get("name") or "").strip().lower()[:60]
+    if len(name) < 2:
+        return {"companies": []}
+    scoped = dict(params)
+    scoped.pop("company", None)
+    scoped.pop("name", None)
+    where_sql, args = build_jobs_where(scoped, has_fts_index(conn), has_places(conn))
+    needle = "%" + name.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    try:
+        has_name = any(r[1] == "company_name" for r in conn.execute("PRAGMA table_info(companies)"))
+    except Exception:
+        has_name = False
+    name_clause = (" OR company_domain IN (SELECT domain FROM companies"
+                   " WHERE LOWER(company_name) LIKE ? ESCAPE '\\')") if has_name else ""
+    rows = conn.execute(
+        f"""
+        SELECT company_domain AS value, COUNT(*) AS n
+        FROM jobs
+        WHERE {where_sql}
+          AND (LOWER(company_domain) LIKE ? ESCAPE '\\'{name_clause})
+        GROUP BY company_domain
+        ORDER BY n DESC, company_domain
+        LIMIT ?
+        """,
+        [*args, needle, *([needle] if has_name else []), COMPANY_SEARCH_LIMIT],
+    ).fetchall()
+    return {"companies": [dict(r) for r in rows]}
+
+
 def has_board_filters(params: dict) -> bool:
     """Whether this request narrows the board at all.
 

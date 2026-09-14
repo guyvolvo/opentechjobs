@@ -29,7 +29,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 
 from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
-                        has_board_filters)
+                        has_board_filters, search_companies)
 from db import get_connection
 from help_page import HELP_HTML
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
@@ -139,6 +139,11 @@ def lambda_handler(event, context):
             if job is None:
                 return _response(404, json.dumps({"error": "no job with that id"}))
             return _response(200, json.dumps(job, default=str), cache_seconds=60)
+        if path == "/companies/search":
+            # Before /companies. Cached at the edge like the facets: the
+            # same question from the next visitor gets the same answer.
+            return _response(200, json.dumps(search_companies(get_connection(), params), default=str),
+                             cache_seconds=60)
         if path == "/companies":
             return _response(200, json.dumps(route_companies(params), default=str), cache_seconds=60)
         if path == "/stats":

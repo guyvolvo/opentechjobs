@@ -2545,10 +2545,19 @@ function wireJobDetailSwipe() {
 // was already open, same as a native <select> would behave.
 const OPEN_MULTISELECTS = new Set();
 
-function createMultiSelect(containerId, { placeholder, options = [], searchable = false, onChange, pinnedOption = null }) {
+// remoteSearch, when given, is asked for options the list does not hold
+// yet: the Companies list is the 500 biggest employers, and typing a name
+// past that line used to say No matches. keepSelected keeps a picked value
+// selected when a refresh of the list no longer carries it, which is what
+// a company found by search, or named in a shared link, needs.
+function createMultiSelect(containerId, { placeholder, options = [], searchable = false, onChange, pinnedOption = null,
+                                          remoteSearch = null, keepSelected = false }) {
   const container = document.getElementById(containerId);
   const selected = new Set();
   let currentOptions = options;
+  const foundOptions = new Map();
+  let searchSeq = 0;
+  let searchTimer = 0;
 
   container.innerHTML = `
     <button type="button" class="ms-toggle" aria-haspopup="listbox" aria-expanded="false">${escapeHtml(placeholder)}</button>
@@ -2578,9 +2587,21 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
     });
   }
 
+  function allOptions() {
+    const known = new Set(currentOptions.map((o) => o.value));
+    const extra = [...foundOptions.values()].filter((o) => !known.has(o.value));
+    // A selected value neither list carries still gets a row, so it can
+    // be seen and unticked.
+    const missing = keepSelected
+      ? [...selected].filter((v) => !known.has(v) && !foundOptions.has(v)).map((v) => ({ value: v, label: v }))
+      : [];
+    return [...currentOptions, ...extra, ...missing];
+  }
+
   function renderOptions(filterText = "") {
     const q = filterText.trim().toLowerCase();
-    const visible = q ? currentOptions.filter((o) => o.label.toLowerCase().includes(q)) : currentOptions;
+    const pool = allOptions();
+    const visible = q ? pool.filter((o) => o.label.toLowerCase().includes(q)) : pool;
     optionsEl.innerHTML =
       visible
         .map(
@@ -2597,7 +2618,7 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
     if (selected.size === 0) {
       toggle.textContent = placeholder;
     } else if (selected.size === 1) {
-      const opt = currentOptions.find((o) => o.value === [...selected][0]);
+      const opt = allOptions().find((o) => o.value === [...selected][0]);
       toggle.textContent = opt ? opt.label : [...selected][0];
     } else {
       toggle.textContent = `${selected.size} selected`;
@@ -2632,7 +2653,24 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
     onChange([...selected]);
   });
 
-  if (searchEl) searchEl.addEventListener("input", () => renderOptions(searchEl.value));
+  if (searchEl) searchEl.addEventListener("input", () => {
+    renderOptions(searchEl.value);
+    if (!remoteSearch) return;
+    clearTimeout(searchTimer);
+    const q = searchEl.value.trim();
+    if (q.length < 2) return;
+    searchTimer = setTimeout(async () => {
+      const seq = ++searchSeq;
+      try {
+        const found = await remoteSearch(q);
+        if (seq !== searchSeq) return; // a later keystroke has its own answer coming
+        found.forEach((o) => foundOptions.set(o.value, o));
+        renderOptions(searchEl.value);
+      } catch {
+        // Non-fatal: the list keeps what it already had.
+      }
+    }, 250);
+  });
 
   container.querySelector(".ms-clear").addEventListener("click", () => {
     selected.clear();
@@ -2649,9 +2687,11 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
       const current = [...selected];
       currentOptions = opts;
       // Drop any selected value no longer in the new option set (e.g.
-      // Location narrowing to IL-only, dropping a non-IL pick).
+      // Location narrowing to IL-only, dropping a non-IL pick). Not with
+      // keepSelected, where the list is a top-N and a pick outside it is
+      // still a real filter.
       selected.clear();
-      current.filter((v) => opts.some((o) => o.value === v)).forEach((v) => selected.add(v));
+      current.filter((v) => keepSelected || opts.some((o) => o.value === v)).forEach((v) => selected.add(v));
       renderOptions(searchEl ? searchEl.value : "");
       updateLabel();
       // Tell the caller if something was silently dropped, so its state
@@ -2945,6 +2985,13 @@ function wireFilters() {
   msCompany = createMultiSelect("ms-company", {
     placeholder: "Companies",
     searchable: true,
+    keepSelected: true,
+    // The list holds the 500 biggest employers; typing asks the API for
+    // the rest, counted under the other active filters.
+    remoteSearch: async (name) => {
+      const data = await getJSON(`/companies/search?${qs({ ...currentFilterParams(), company: "", name })}`);
+      return (data.companies || []).map((r) => ({ value: r.value, label: `${r.value} (${r.n})` }));
+    },
     onChange: (values) => {
       state.company = values;
       state.offset = 0;
