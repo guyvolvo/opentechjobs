@@ -117,6 +117,9 @@
   --row-hover: #23252b;
   --row-selected: #1d3024;
   --green-text: #2fae60; /* same as --green: already 6.2:1 on #17181c */
+  /* The light red is 3.0:1 on #17181c, under the 4.5:1 text needs, so
+     every red message and the red Reset were faint in dark mode. 6.4:1. */
+  --red: #ff6b5e;
   --scrim: rgba(0, 0, 0, 0.58);
   color-scheme: dark;
 }
@@ -1479,7 +1482,14 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   text-transform: none;
   letter-spacing: normal;
   font-weight: 400;
+  /* Red text, per request: Reset clears every filter at once, and the
+     colour marks it as the undoing control in a row of choosing ones.
+     The border keeps the ghost button's ink. */
+  color: var(--red);
 }
+/* The ghost hover fills the button with ink; red on that fill is
+   unreadable, so the text goes to paper like every other ghost button. */
+#f-reset:hover { color: var(--white); }
 
 .btn {
   font-family: var(--font-ui);

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-14T15:04:14Z",
+  "generatedAt": "2026-09-14T15:59:44Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -458,7 +458,7 @@
     ],
     "donts": [
       "Don't add a second accent color. Signal Green is the only one; a second dilutes what green means everywhere else.",
-      "Don't use Alert Red outside the error-state banner and the error-state banner. It has exactly two meanings today.",
+      "Don't use Alert Red for anything but an error or a control that undoes or removes (Reset, delete, sign out). Not for emphasis, not for a status (that is the status palette).",
       "Don't introduce a third typeface without folding it into the Two-Voice Rule as a named, scoped exception (see the flagged `.api-path`/`.param` monospace usage in Typography above), an unscoped one-off is exactly how \"two voices\" quietly becomes three.",
       "Don't reach for `box-shadow` for elevation, ever, even subtly. The one prior violation (a glowing, smoothly-pulsing status dot) was treated as a bug and corrected, not kept as a soft exception. The status glyph is round now and still obeys this: no fill, no shadow, no easing."
     ]

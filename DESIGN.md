@@ -186,11 +186,13 @@ anything. Dark mode is a plain near-black/white inversion.
   not a shadow.
 
 ### Alert Red (reserved, not decorative)
-- **Alert Red** (`#b8362c`, `--red`): exactly two uses in the whole
-  system, the offline wordmark treatment and the error-state banner.
-  Never a third context; adding a red anywhere else would dilute what it
-  means here. The pipeline indicator used to be the second use and no
-  longer is, having moved to the status palette below.
+- **Alert Red** (`#b8362c`, `--red`; dark mode `#ff6b5e`): errors and the
+  controls that undo or remove something. Error messages and banners,
+  the offline wordmark, sign-out and delete hovers, the danger button,
+  and the filter bar's Reset, whose text is red on the ghost button's ink
+  border (by request). Never decoration, never a status. Contrast is
+  5.1:1 on light paper and 6.4:1 on the dark surface; the dark value is
+  lifted because the light red was 3.0:1 there, too faint for text.
 
 ### Status Palette (pipeline state only)
 Borrowed wholesale from AWS's service-health vocabulary rather than
@@ -576,8 +578,9 @@ more than it does.
 ### Don't:
 - **Don't** add a second accent color. Signal Green is the only one; a
   second dilutes what green means everywhere else.
-- **Don't** use Alert Red outside the error-state banner and the
-  error-state banner. It has exactly two meanings today.
+- **Don't** use Alert Red for anything but an error or a control that
+  undoes or removes (Reset, delete, sign out). Not for emphasis, not for a
+  status (that is the status palette).
 - **Don't** introduce a third typeface without folding it into the
   Two-Voice Rule as a named, scoped exception (see the flagged
   `.api-path`/`.param` monospace usage in Typography above), an
