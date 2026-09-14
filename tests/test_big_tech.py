@@ -108,7 +108,8 @@ check("microsoft: description comes from the detail call", "Kubernetes" in (firs
 check("microsoft: workplace maps across", first.workplace_type == "onsite", repr(first.workplace_type))
 probe.FETCH_FULL_DESCRIPTIONS = False
 jobs, urls = with_get_json(ms_answer, lambda: probe.f_microsoft(None, "ISR"))
-check("microsoft: no detail calls on the fast path", not any("position_details" in u for u in urls), repr(urls))
+check("microsoft: descriptions come on the fast path too, which is the only one the board sees",
+      all(j.description for j in jobs), repr([j.description for j in jobs]))
 jobs, _ = with_get_json(lambda u: None, lambda: probe.f_microsoft(None, "ISR"))
 check("microsoft: nothing on page one is no board", jobs is None)
 
@@ -168,6 +169,16 @@ check("apple: place, url, date and team", a.location == "Herzliya, Israel"
       and a.url == "https://jobs.apple.com/en-il/details/200611225/embedded-fw-engineer"
       and a.posted_at.startswith("2026-07-19") and a.department == "Software and Services", repr(a))
 check("apple: no CSRF token means no board", probe.f_apple(Sess(gets=[Resp(200)]), "ISR") is None)
+check("apple: a failed detail call falls back to the summary", a.description == "Firmware on Apple SoCs.", repr(a.description))
+detail = Resp(200, body={"res": {"jobSummary": "About Apple.", "description": "Build C++ tools.",
+                                 "responsibilities": "Design backend features.",
+                                 "minimumQualifications": "2+ years of Python.", "preferredQualifications": ""}})
+sess = Sess(gets=[csrf, detail], posts=[Resp(200, body={"res": {"searchResults": A_ROWS[:1], "totalRecords": 1}})])
+full = probe.f_apple(sess, "ISR")[0].description or ""
+check("apple: the description is the whole posting, not the summary",
+      all(k in full for k in ("About Apple.", "Build C++ tools.", "Responsibilities", "Design backend features.",
+                              "Minimum qualifications", "2+ years of Python.")), repr(full))
+check("apple: an empty section adds no heading", "Preferred qualifications" not in full, repr(full))
 
 # Lever's EU host.
 jobs, urls = with_get_json(lambda u: [] if "api.eu.lever.co" in u else {"ok": False, "error": "Document not found"},
@@ -175,6 +186,20 @@ jobs, urls = with_get_json(lambda u: [] if "api.eu.lever.co" in u else {"ok": Fa
 check("lever: a miss on the US host tries the EU one", jobs == [] and "api.eu.lever.co" in urls[-1], repr(urls))
 jobs, urls = with_get_json(lambda u: [], lambda: probe.f_lever(None, "palantir"))
 check("lever: a hit on the US host asks nothing more", len(urls) == 1, repr(urls))
+
+# Lever's whole posting.
+posting = {"id": "p1", "text": "Senior SOTIF Analyst", "categories": {"location": "Jerusalem, Israel", "team": "Software"},
+           "hostedUrl": "https://jobs.eu.lever.co/mobileye/p1", "createdAt": 1788258419000,
+           "descriptionPlain": "Mobileye is looking for an analyst.",
+           "lists": [{"text": "What will your job look like:", "content": "<li>Define safety KPIs</li>"},
+                     {"text": "All you need is:", "content": "<li>5 years in functional safety</li>"}],
+           "additionalPlain": "Equal opportunity employer."}
+jobs, _ = with_get_json(lambda u: [posting], lambda: probe.f_lever(None, "mobileye"))
+body = jobs[0].description or ""
+check("lever: the description carries the lists and the closing text, not just the intro",
+      all(k in body for k in ("looking for an analyst", "What will your job look like:", "Define safety KPIs",
+                              "All you need is:", "functional safety", "Equal opportunity")), repr(body))
+check("lever: description_chars counts the whole of it", jobs[0].description_chars == len(body))
 
 # Registration and pins.
 for name in ("microsoft", "google", "apple"):

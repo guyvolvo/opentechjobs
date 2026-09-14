@@ -57,6 +57,39 @@ _ALLOWED_FILTER_KEYS = {
 # ranking. See the sort_key == "match" branch in route_jobs.
 MATCH_RECENCY_DAYS = 14
 
+# The link a Greenhouse listing's Apply button opens. Not the stored url,
+# which is the absolute_url Greenhouse reports: for most companies that
+# is their own careers site with a ?gh_jid= on it, and whether that page
+# can find the job is up to the site. Taboola's cannot. Every one of its
+# job links, with or without gh_jid, redirects to its generic jobs list.
+# Reported live. Greenhouse's own embedded application page answers for
+# every board, checked against Taboola, Navan, JFrog, Lightricks and
+# Similarweb, and always shows the job.
+#
+# Built here rather than only in probe.py, so rows stored before the change
+# get the working link as well. Falls back to the stored url when the
+# company row has no Greenhouse token (a demoted alias).
+GREENHOUSE_APPLY_URL_SQL = """CASE
+    WHEN jobs.ats = 'greenhouse' AND jobs.external_id IS NOT NULL AND (
+        SELECT c.token FROM companies c WHERE c.domain = jobs.company_domain AND c.ats = 'greenhouse'
+    ) IS NOT NULL
+    THEN 'https://job-boards.greenhouse.io/embed/job_app?for=' || (
+        SELECT c.token FROM companies c WHERE c.domain = jobs.company_domain AND c.ats = 'greenhouse'
+    ) || '&token=' || jobs.external_id
+    ELSE jobs.url END AS url"""
+
+
+def _apply_url_select(conn) -> str:
+    # Same deploy-skew guard as company_name and logo_url: a snapshot or a
+    # test database without the companies columns gets the stored url.
+    try:
+        has_external_id = any(r[1] == "external_id" for r in conn.execute("PRAGMA table_info(jobs)"))
+    except Exception:
+        has_external_id = False
+    if has_external_id and _has_company_column(conn, "token") and _has_company_column(conn, "ats"):
+        return GREENHOUSE_APPLY_URL_SQL
+    return "url"
+
 # How long CloudFront may serve a cached answer, as distinct from how
 # long a browser may. Kept below the interval at which the underlying
 # snapshot can change, so a reader never sees an answer older than the
@@ -375,7 +408,8 @@ def route_jobs(params: dict) -> dict:
     rows = conn.execute(
         f"""
         SELECT id, company_domain, ats, title, location, department,
-               category_of(department, title) AS category, seniority, workplace_type, url,
+               category_of(department, title) AS category, seniority, workplace_type,
+               {_apply_url_select(conn)},
                posted_at, confidence, first_seen, last_seen, closed_at,
                skills, salary_text, salary_is_estimate, {salary_source_select(conn)},
                -- The company's own name as its ATS reports it.
@@ -475,7 +509,8 @@ def route_job_detail(job_id: str) -> dict | None:
         f"""
         SELECT id, company_domain, ats, external_id, title, location, department,
                category_of(department, title) AS category, seniority,
-               workplace_type, url, posted_at, description, confidence, first_seen, last_seen, closed_at,
+               workplace_type, {_apply_url_select(conn)},
+               posted_at, description, confidence, first_seen, last_seen, closed_at,
                {company_name_select},
                {logo_select}
         FROM jobs WHERE id = ?

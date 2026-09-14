@@ -1190,12 +1190,33 @@ def f_greenhouse(sess, token):
     d = get_json(sess, f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true")
     if not isinstance(d, dict) or "jobs" not in d:
         return None
+    # Greenhouse's embedded application page, not absolute_url: that is
+    # usually the company's own careers site, and Taboola's cannot find
+    # its own jobs from it. See GREENHOUSE_APPLY_URL_SQL in api/handler.py.
     return [Job("greenhouse", token, str(j.get("id")), _txt(j.get("title")),
-                _txt(j.get("location")), _txt(j.get("absolute_url")),
+                _txt(j.get("location")),
+                f"https://job-boards.greenhouse.io/embed/job_app?for={token}&token={j.get('id')}",
                 _normalize_date(j.get("updated_at")),
                 _txt((j.get("departments") or [{}])[0].get("name")) or None,
                 len(_txt(j.get("content"))), _clean_text(j.get("content")))
             for j in _greenhouse_distinct(d["jobs"])]
+
+
+def _lever_description(j: dict) -> str:
+    """The whole posting, not just its opening. descriptionPlain is only the
+    intro: Lever keeps the responsibilities and requirements in `lists`
+    (a heading and an HTML list each) and the closing text in `additional`.
+    Reading descriptionPlain alone cut Mobileye's roles off after the first
+    paragraphs, before a single requirement. Reported live.
+    """
+    parts = [_clean_text(j.get("descriptionPlain")) or ""]
+    for lst in j.get("lists") or []:
+        heading = _txt(lst.get("text"))
+        items = _clean_text(lst.get("content")) or ""
+        if heading or items:
+            parts.append(f"{heading}\n{items}".strip())
+    parts.append(_clean_text(j.get("additionalPlain")) or "")
+    return "\n\n".join(p for p in parts if p)
 
 
 def f_lever(sess, token):
@@ -1210,10 +1231,11 @@ def f_lever(sess, token):
     out = []
     for j in d:
         c = j.get("categories") or {}
+        body = _lever_description(j)
         out.append(Job("lever", token, _txt(j.get("id")), _txt(j.get("text")),
                        _txt(c.get("location")), _txt(j.get("hostedUrl")),
                        _normalize_date(j.get("createdAt")), _txt(c.get("team")) or None,
-                       len(_txt(j.get("descriptionPlain"))), _clean_text(j.get("descriptionPlain")),
+                       len(body), body or None,
                        workplace_type=_ATS_WORKPLACE_MAP.get(_txt(j.get("workplaceType")).lower()) or None))
     return out
 
@@ -1892,12 +1914,16 @@ def f_microsoft(sess, token):
             # elsewhere that mentions the country can come back too.
             if not pid or not where:
                 continue
+            # Always, not only behind FETCH_FULL_DESCRIPTIONS: that flag is
+            # on for the daily discovery pass, whose database never reaches
+            # the board, so Microsoft's roles showed no description at all.
+            # Reported live. It is one request per role for a board of
+            # about twenty, which the fast poll can afford.
             body = None
-            if FETCH_FULL_DESCRIPTIONS:
-                detail = get_json(sess, f"{MICROSOFT_DETAIL}?position_id={pid}&domain=microsoft.com&hl=en")
-                ddata = detail.get("data") if isinstance(detail, dict) else None
-                if isinstance(ddata, dict):
-                    body = _clean_text(ddata.get("jobDescription"))
+            detail = get_json(sess, f"{MICROSOFT_DETAIL}?position_id={pid}&domain=microsoft.com&hl=en")
+            ddata = detail.get("data") if isinstance(detail, dict) else None
+            if isinstance(ddata, dict):
+                body = _clean_text(ddata.get("jobDescription"))
             out.append(Job("microsoft", token, pid, _txt(p.get("name")), where,
                            "https://apply.careers.microsoft.com" + _txt(p.get("positionUrl")),
                            _epoch_date(p.get("postedTs")),
@@ -1976,6 +2002,34 @@ def f_google(sess, token):
 
 APPLE_BASE = "https://jobs.apple.com"
 _APPLE_PAGE = 20
+_APPLE_SECTIONS = (("jobSummary", None), ("description", "Description"),
+                   ("responsibilities", "Responsibilities"),
+                   ("minimumQualifications", "Minimum qualifications"),
+                   ("preferredQualifications", "Preferred qualifications"))
+
+
+def _apple_description(sess, pid, headers):
+    """The whole posting from jobDetails. The search result only carries
+    the summary, which is Apple's standard paragraph about itself, so every
+    Apple role read the same and none said what the job was. Reported live.
+    One request per role, always: the discovery pass's descriptions never
+    reach the board, so gating this on FETCH_FULL_DESCRIPTIONS would mean
+    never.
+    """
+    try:
+        r = sess.get(f"{APPLE_BASE}/api/v1/jobDetails/{pid}?locale=en-us", timeout=TIMEOUT,
+                     headers={"User-Agent": headers.get("User-Agent", _BROWSER_UA)})
+        res = r.json().get("res") if r.status_code == 200 else None
+    except (requests.RequestException, ValueError, AttributeError):
+        return None
+    if not isinstance(res, dict):
+        return None
+    parts = []
+    for key, heading in _APPLE_SECTIONS:
+        text = _clean_text(res.get(key))
+        if text:
+            parts.append(f"{heading}\n{text}" if heading else text)
+    return "\n\n".join(parts) or None
 
 
 def f_apple(sess, token):
@@ -2015,9 +2069,7 @@ def f_apple(sess, token):
             if not pid or pid in seen or not places:
                 continue
             seen.add(pid)
-            # The search result carries a summary, not the full posting;
-            # the detail endpoint wants a signed-in session.
-            summary = _clean_text(j.get("jobSummary"))
+            summary = _apple_description(sess, pid, headers) or _clean_text(j.get("jobSummary"))
             out.append(Job("apple", token, pid, _txt(j.get("postingTitle")),
                            "; ".join(f"{_txt(loc.get('name'))}, {country}" for loc in places),
                            f"{APPLE_BASE}/en-il/details/{pid}/{_txt(j.get('transformedPostingTitle'))}",
