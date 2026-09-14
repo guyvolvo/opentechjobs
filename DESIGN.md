@@ -9,6 +9,9 @@ colors:
   hairline-grey: "#c7d9b3"
   alert-red: "#b8362c"
   hover-tint: "#e9efdb"
+  row-hover: "#e6e3df"
+  row-selected: "#dce8d4"
+  green-text: "#3f6f45"
 typography:
   display-wordmark:
     fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
@@ -114,6 +117,12 @@ plain near-black/white inversion.
   highlighted metric tile, the most-recent bar in the new-listings chart.
   Never used decoratively. If a green appears, it is pointing at
   something.
+- **Green Text** (`#3f6f45`, `--green-text`; dark mode same as Signal
+  Green): Signal Green wherever text is involved, meaning green text on
+  paper and green fills with paper text on them (Apply, chips, the
+  salary estimate). Signal Green itself is 2.96:1 on light paper, under
+  the 4.5:1 text needs; this is 5.18:1. Bars, chart lines, focus rings
+  and checkboxes have no text in them and keep `--green`.
 
 ### Neutral
 - **Paper** (`#f3f6e4`, `--white`; dark mode `#17181c`): the base
@@ -138,8 +147,14 @@ plain near-black/white inversion.
   earlier `#dce8ce` in light mode, same reasoning as Muted Grey above:
   too close to `--white`'s `#f3f6e4` to read as a visible line at all.
 - **Hover Tint** (`#e9efdb`, `--hover-bg`; dark mode `#1e1f24`): the one
-  soft, non-binary surface in the system, reserved for row/option hover
+  soft, non-binary surface in the system, reserved for menu option hover
   states where a hard color flip would be too loud.
+- **Row Hover** (`#e6e3df`, `--row-hover`; dark mode `#23252b`) and
+  **Row Selected** (`#dce8d4`, `--row-selected`; dark mode `#1d3024`):
+  job rows only. Hover, and keyboard focus inside a row, is neutral;
+  the open listing's row carries the green tint. They used to share the
+  Hover Tint, which at 1.04:1 against paper was barely visible and made
+  hovering and selecting look the same.
 - **Scrim** (`rgba(64,81,59,0.34)`, `--scrim`; dark mode
   `rgba(0,0,0,0.58)`): dims the board behind the job sheet,
   and nothing else. It gets its own token instead of reusing `--black`
@@ -203,8 +218,10 @@ grotesque-sans display face, never the reverse.
 - **Display / Wordmark** (400, 15px, 0.02em tracking, Overused Grotesk): the
   topbar wordmark only ("OpenMarket.IL"). 13px below the 640px breakpoint.
 - **Display / Section Title** (400, 34px, uppercase, 1 line-height,
-  0.1em tracking, Overused Grotesk): the two section titles ("Job Board" /
-  "Statistics") only. Never used at table-row or data-dense sizes.
+  0.1em tracking, Overused Grotesk): page titles only. Inside the
+  Statistics column it drops to 24px (1.1 line-height, 0.06em tracking),
+  because there it sits beside 13px filter controls and at 34px was the
+  loudest thing on the page. Never used at table-row or data-dense sizes.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
   metric tile, the one place body copy gets genuinely large.
 - **Subtitle** (700, 17px): the job-detail panel's title (`.job-detail-title`),
@@ -216,7 +233,8 @@ grotesque-sans display face, never the reverse.
   level with the company and location beneath it, so nothing in the row
   led. Below Subtitle deliberately, so opening a listing still promotes
   its title rather than repeating it at the same weight.
-- **Body** (400, 13–14px): filters, table cells, panel prose, buttons.
+- **Body** (400, 13–14px): filters, table cells, panel prose, buttons,
+  bar-chart labels.
 - **Label** (700, 10–12px, uppercase, 0.06–0.1em tracking): column
   headers, panel titles, chip text, the result count, the topnav.
 
@@ -401,7 +419,11 @@ online/offline status, seamlessly looping the board's own most-recent
 matching listings (not a static sitewide list, it re-queries with
 whatever filters are currently active). Built from CSS alone: the item
 list is duplicated once in the DOM, animated `translateX(0)` to
-`translateX(-50%)`, and pauses on hover.
+`translateX(-50%)`, over 70 seconds. It pauses on hover and on keyboard
+focus, and sits at 80% opacity until the pointer or focus is on it, so it
+stays ambient instead of being the first thing on the page anyone
+notices. With reduced motion it does not move at all and becomes a row
+you scroll sideways.
 
 ### The Status Glyph (signature component)
 A 13px outlined mark in the topbar and a 24px one on the Data Health

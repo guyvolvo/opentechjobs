@@ -33,6 +33,17 @@
   --grey-line: #c7d9b3; /* reported live: the original #dce8ce sat too close to --white's #f3f6e4 to read as a visible line at all */
   --red: #b8362c;
   --hover-bg: #e9efdb;
+  /* Row states, apart from --hover-bg (which still tints menu options)
+     so hovering a row and having it open never look the same. Hover is
+     neutral, selected carries the green. The old shared tint was 1.04:1
+     against paper and barely visible; hover is now 1.13:1. */
+  --row-hover: #e6e3df;
+  --row-selected: #dce8d4;
+  /* Green for text, and for fills that text sits on. --green is 2.96:1
+     on paper, under the 4.5:1 body text needs; this is 5.18:1, and still
+     4.6:1 on --row-hover. --green stays for marks with no text in them:
+     bars, chart lines, focus rings, checkboxes. */
+  --green-text: #3f6f45;
   /* Dims the board behind the job sheet. Its own token
      because it has to darken in both themes, and --black is a light
      colour in dark mode -- reusing it there would brighten the page
@@ -77,6 +88,9 @@
   --grey: #9a9a9a;
   --grey-line: #2b2c31;
   --hover-bg: #1e1f24;
+  --row-hover: #23252b;
+  --row-selected: #1d3024;
+  --green-text: #2fae60; /* same as --green: already 6.2:1 on #17181c */
   --scrim: rgba(0, 0, 0, 0.58);
   color-scheme: dark;
 }
@@ -113,11 +127,11 @@ html { scrollbar-width: thin; scrollbar-color: var(--black) var(--white); }
 *::-webkit-scrollbar-corner { background: var(--white); }
 
 a { color: inherit; }
-a.link { color: var(--green); text-decoration: none; border-bottom: 1px solid var(--green); }
-a.link:hover { background: var(--green); color: var(--white); }
+a.link { color: var(--green-text); text-decoration: none; border-bottom: 1px solid var(--green-text); }
+a.link:hover { background: var(--green-text); color: var(--white); }
 
 .icon-link { display: inline-flex; align-items: center; color: var(--black); }
-.icon-link:hover { color: var(--green); }
+.icon-link:hover { color: var(--green-text); }
 
 button, input, select {
   font-family: var(--font);
@@ -144,6 +158,10 @@ button, input, select {
   line-height: 1;
   margin: 0 0 12px;
 }
+/* Inside the Statistics column the title sits beside 13px filter
+   controls, and at 34px it was the loudest thing on the page. 24px
+   still reads as the column's label. */
+.stats-board .section-title { font-size: 24px; line-height: 1.1; letter-spacing: 0.06em; }
 
 /* Topbar */
 
@@ -182,6 +200,10 @@ button, input, select {
   min-width: 0;
   overflow: hidden;
   height: 20px;
+  /* Ambient, not a headline: slightly faded until the pointer or
+     keyboard focus is on it. Still 4.9:1 in light mode at 0.8. */
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
   display: flex;
   align-items: center; /* .ticker-track's height comes from its own text content, not this 20px window; without this it just sits at the top of the clipped box instead of centered in it */
 }
@@ -189,9 +211,11 @@ button, input, select {
 .ticker-track {
   display: flex;
   width: max-content;
-  animation: ticker-scroll 40s linear infinite;
+  animation: ticker-scroll 70s linear infinite; /* fallback; app.js sets 7s per item */
 }
-.ticker:hover .ticker-track { animation-play-state: paused; } /* let a visitor actually read/click one without it sliding away */
+.ticker:hover, .ticker:focus-within { opacity: 1; }
+.ticker:hover .ticker-track,
+.ticker:focus-within .ticker-track { animation-play-state: paused; } /* let a visitor actually read/click one without it sliding away */
 
 @keyframes ticker-scroll {
   from { transform: translateX(0); }
@@ -211,10 +235,10 @@ button, input, select {
   white-space: nowrap;
   border-right: 1px solid var(--grey-line);
 }
-.ticker-item:hover { color: var(--green); }
+.ticker-item:hover { color: var(--green-text); }
 .ticker-item .bullet { color: var(--green); }
 .ticker-item .ticker-company { color: var(--grey); }
-.ticker-item:hover .ticker-company { color: var(--green); }
+.ticker-item:hover .ticker-company { color: var(--green-text); }
 
 .wordmark {
   display: inline-flex;
@@ -251,7 +275,7 @@ button, input, select {
   cursor: pointer;
   border-bottom: 1px solid transparent;
 }
-.theme-toggle:hover { color: var(--green); border-color: var(--green); }
+.theme-toggle:hover { color: var(--green-text); border-color: var(--green-text); }
 
 /* Auth. Same dropdown shape as .ms-menu (position:relative parent,
    absolute panel, 2px ink border, paper background) -- one hand-built
@@ -274,7 +298,7 @@ button, input, select {
   cursor: pointer;
   border-bottom: 1px solid transparent;
 }
-.auth-trigger:hover, .auth-trigger.active { color: var(--green); border-color: var(--green); }
+.auth-trigger:hover, .auth-trigger.active { color: var(--green-text); border-color: var(--green-text); }
 
 /* The signed-in trigger is a glyph rather than text, so it drops the
    underline the text version uses to show hover and lets the icon's own
@@ -356,7 +380,7 @@ button, input, select {
   color: var(--black);
   text-decoration: none;
 }
-.saved-title:hover { color: var(--green); text-decoration: underline; }
+.saved-title:hover { color: var(--green-text); text-decoration: underline; }
 .saved-meta {
   color: var(--grey);
   font-size: 12px;
@@ -422,7 +446,7 @@ button, input, select {
 .create-alert-feedback {
   margin: 8px 0 0;
   font-size: 11px;
-  color: var(--green);
+  color: var(--green-text);
 }
 .create-alert-feedback.error { color: var(--red); }
 
@@ -781,7 +805,7 @@ button, input, select {
   vertical-align: -2px;
 }
 
-.metric-card.highlight .value { color: var(--green); }
+.metric-card.highlight .value { color: var(--green-text); }
 /* Data Health only. The word and its glyph are one statement, so a
    warning bang beside a green LIVE is a contradiction rather than a
    colour choice. */
@@ -860,7 +884,7 @@ button, input, select {
   grid-template-columns: 1fr 100px 44px;
   align-items: center;
   gap: 12px;
-  font-size: 12.5px;
+  font-size: 13px;
   padding: 6px 0;
 }
 .bar-row .name {
@@ -874,7 +898,25 @@ button, input, select {
 .bar-row:first-child .bar-fill { background: var(--green); }
 .bar-row .n { text-align: right; font-variant-numeric: tabular-nums; }
 .bar-row.clickable { cursor: pointer; }
-.bar-row.clickable .name:hover { color: var(--green); text-decoration: underline; }
+.bar-row.clickable .name:hover { color: var(--green-text); text-decoration: underline; }
+/* The company list renders all 10 and shows 7. The rest are already in
+   the page, so View all expands in place with no request. */
+.panel:not(.expanded) .bar-row-extra { display: none; }
+.bar-more {
+  margin-top: 8px;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: var(--green-text);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.bar-more:hover { text-decoration: underline; }
+.bar-more:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 
 .trend-chart { width: 100%; height: 64px; display: block; overflow: visible; }
 
@@ -1019,8 +1061,8 @@ button, input, select {
   width: auto;
   padding: 0 8px;
   font-size: 11px;
-  color: var(--green);
-  border-color: var(--green);
+  color: var(--green-text);
+  border-color: var(--green-text);
   background: var(--white);
 }
 
@@ -1055,9 +1097,9 @@ button, input, select {
   align-items: center;
   height: 38px;
   padding: 0 16px;
-  background: var(--green);
+  background: var(--green-text);
   color: var(--white);
-  border: var(--rule) solid var(--green);
+  border: var(--rule) solid var(--green-text);
   border-radius: 4px;
   font-size: 12px;
   font-weight: 700;
@@ -1077,8 +1119,8 @@ button, input, select {
   cursor: pointer;
   white-space: nowrap;
 }
-.job-detail-star.on { color: var(--green); border-color: var(--green); }
-.job-detail-star:hover { border-color: var(--green); color: var(--green); }
+.job-detail-star.on { color: var(--green-text); border-color: var(--green-text); }
+.job-detail-star:hover { border-color: var(--green-text); color: var(--green-text); }
 
 .job-detail-meta { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
 .job-detail-meta-row { display: flex; gap: 10px; font-size: 12.5px; }
@@ -1117,7 +1159,6 @@ button, input, select {
   margin-top: 12px;
 }
 
-table.jobs tbody tr.selected { background: var(--hover-bg); }
 table.jobs tbody tr[data-id] { cursor: pointer; }
 
 /* Flex, not a fixed-column grid, so #f-search and the .ms dropdowns can
@@ -1220,7 +1261,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ms-toggle.active { border-color: var(--green); color: var(--green); font-weight: 700; }
+.ms-toggle.active { border-color: var(--green-text); color: var(--green-text); font-weight: 700; }
 .ms-toggle:focus { outline: 2px solid var(--green); outline-offset: -2px; }
 
 /* 4px radius -- same scoped exception as .job-detail above. */
@@ -1299,7 +1340,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 .ms-chevron:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
 /* Collapsed, with cities picked underneath. Without this the board is
    filtered by something the open dropdown gives no sign of at all. */
-.ms-chevron.has-picks { color: var(--green); }
+.ms-chevron.has-picks { color: var(--green-text); }
 .ms-cities { display: flex; flex-direction: column; }
 /* One checkbox plus .ms-option's own 8px gap, so a city's box starts
    where its country's name does instead of at an invented indent. */
@@ -1365,7 +1406,7 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   font-weight: 700;
   cursor: pointer;
 }
-.btn:hover { background: var(--green); border-color: var(--green); }
+.btn:hover { background: var(--green-text); border-color: var(--green-text); }
 .btn.ghost { background: var(--white); color: var(--black); }
 .btn.ghost:hover { background: var(--black); color: var(--white); border-color: var(--black); }
 
@@ -1373,9 +1414,9 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--green);
+  background: var(--green-text);
   color: var(--white);
-  border: var(--rule) solid var(--green);
+  border: var(--rule) solid var(--green-text);
   border-radius: 4px;
   font-family: var(--font);
   font-size: 11px;
@@ -1426,7 +1467,7 @@ table.jobs tbody td:last-child {
 table.jobs thead th[data-sort] { cursor: pointer; }
 table.jobs thead th[data-sort]:hover { color: var(--black); }
 table.jobs thead th.active { color: var(--black); }
-table.jobs thead th.active::after { content: attr(data-dir); margin-left: 4px; color: var(--green); }
+table.jobs thead th.active::after { content: attr(data-dir); margin-left: 4px; color: var(--green-text); }
 
 /* --grey-line, not --black -- DESIGN.md's own color spec names "table
    row separators" as this token's job ("the quiet dividers"). The
@@ -1434,7 +1475,9 @@ table.jobs thead th.active::after { content: attr(data-dir); margin-left: 4px; c
    mode against the near-black background, much louder than a 1px rule
    should be. */
 table.jobs tbody tr { border-bottom: 1px solid var(--grey-line); }
-table.jobs tbody tr:hover { background: var(--hover-bg); }
+table.jobs tbody tr:hover,
+table.jobs tbody tr:focus-within { background: var(--row-hover); }
+table.jobs tbody tr.selected { background: var(--row-selected); }
 table.jobs tbody td { padding: 14px 10px; vertical-align: top; }
 
 /* Card layout: logo, title/meta/actions, salary, skills -- four real
@@ -1491,13 +1534,15 @@ table.jobs .title-cell {
    Row Title rather than left as another undeclared literal. */
 .job-card-title { font-size: 15px; line-height: 1.35; }
 
-table.jobs .title-cell a {
+/* :not(.apply-link): this out-ranked .job-links a.apply-link, so every
+   row's Apply button had ink text on a green fill. */
+table.jobs .title-cell a:not(.apply-link) {
   font-weight: 600;
   text-decoration: none;
   color: var(--black);
   overflow-wrap: anywhere;
 }
-table.jobs .title-cell a:hover { color: var(--green); }
+table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 /* Sentence case, not the system's usual uppercase Label treatment --
    deliberately closer to a normal reading line (company/location names
    read oddly shouted in all-caps) than to a table-header-style tag. */
@@ -1537,7 +1582,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
    "Undisclosed." */
 .job-salary.estimate {
   display: inline-block;
-  background: var(--green);
+  background: var(--green-text);
   color: var(--white);
   border-radius: 4px;
   font-weight: 700;
@@ -1554,8 +1599,8 @@ table.jobs .title-cell a:hover { color: var(--green); }
    same shape, one step quieter. */
 .job-salary.estimate.estimated {
   background: none;
-  color: var(--green);
-  border: 1px solid var(--green);
+  color: var(--green-text);
+  border: 1px solid var(--green-text);
   padding: 1px 7px; /* 1px off the filled chip's padding, so the border doesn't grow the box */
 }
 .job-salary.undisclosed { color: var(--grey); font-weight: 400; }
@@ -1568,7 +1613,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
   font-size: 12px;
   cursor: pointer;
 }
-.skill-chip:hover { color: var(--green); text-decoration: underline; }
+.skill-chip:hover { color: var(--green-text); text-decoration: underline; }
 /* The skills a CV match put this row on the list for. Not buttons:
    clicking one would swap the whole match for a single-keyword filter,
    which is the opposite of what someone reading their matches wants. */
@@ -1584,8 +1629,8 @@ table.jobs .title-cell a:hover { color: var(--green); }
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--green);
-  border: var(--rule) solid var(--green);
+  color: var(--green-text);
+  border: var(--rule) solid var(--green-text);
   border-radius: 3px;
   padding: 1px 5px;
 }
@@ -1605,7 +1650,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
    side read as a pair of equals. */
 .chip-match {
   background: none;
-  color: var(--green);
+  color: var(--green-text);
 }
 
 .skill-bracket { color: var(--grey); }
@@ -1665,8 +1710,8 @@ table.jobs .title-cell a:hover { color: var(--green); }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--white);
-  background: var(--green);
-  border: var(--rule) solid var(--green);
+  background: var(--green-text);
+  border: var(--rule) solid var(--green-text);
   border-radius: 4px;
   padding: 4px 10px;
   text-decoration: none;
@@ -1689,7 +1734,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
   white-space: nowrap;
 }
 .copy-link-btn:hover { color: var(--black); border-color: var(--black); }
-.copy-link-btn.copied { color: var(--green); font-weight: 700; border-color: var(--green); }
+.copy-link-btn.copied { color: var(--green-text); font-weight: 700; border-color: var(--green-text); }
 
 .badge {
   display: inline-block;
@@ -1723,7 +1768,7 @@ table.jobs .title-cell a:hover { color: var(--green); }
    fixed. */
 table.jobs thead th[data-sort="age"] { text-align: center; }
 .age-cell { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.age-cell.fresh { color: var(--green); font-weight: 700; }
+.age-cell.fresh { color: var(--green-text); font-weight: 700; }
 
 .star-btn {
   border: none;
@@ -1734,8 +1779,8 @@ table.jobs thead th[data-sort="age"] { text-align: center; }
   padding: 0;
   line-height: 1;
 }
-.star-btn.on { color: var(--green); }
-.star-btn:hover { color: var(--green); }
+.star-btn.on { color: var(--green-text); }
+.star-btn:hover { color: var(--green-text); }
 
 .pagination {
   display: flex;
@@ -2289,6 +2334,9 @@ footer {
   .btn-busy::after { animation: none; }
   /* The sheet still opens and closes, it just arrives already there. */
   .job-detail, #job-scrim { transition: none; }
+  /* The ticker stops and becomes a row you scroll sideways yourself. */
+  .ticker-track { animation: none; }
+  .ticker { overflow-x: auto; scrollbar-width: none; }
 }
 
 /* Screen-reader-only announcement for the skeleton states above. The
@@ -2494,7 +2542,7 @@ footer {
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-body.explore-busy .explore-metric { color: var(--green); }
+body.explore-busy .explore-metric { color: var(--green-text); }
 
 /* Builder. */
 .qb { display: flex; flex-direction: column; gap: 10px; }

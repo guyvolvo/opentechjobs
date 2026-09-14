@@ -932,14 +932,17 @@ const API_STATUS_TICK_MS = 1_000;
 // Market-insight panels: who's hiring, what for, where. No ATS-vendor
 // breakdown here; that's plumbing, not a market signal (still available
 // as open_jobs_by_ats for anyone polling the raw API).
-function renderBarList(rows, nameKey, { clickable = false } = {}) {
+function renderBarList(rows, nameKey, { clickable = false, limit = 0 } = {}) {
   const max = Math.max(1, ...rows.map((r) => r.n));
   return rows
-    .map((r) => {
+    .map((r, i) => {
       const name = escapeHtml(r[nameKey]);
+      // Rows past `limit` are rendered but hidden until the panel is
+      // expanded (see .bar-row-extra). title= shows a truncated name in full.
+      const extra = limit && i >= limit ? " bar-row-extra" : "";
       return `
-      <div class="bar-row ${clickable ? "clickable" : ""}" ${clickable ? `data-company="${name}"` : ""}>
-        <div class="name">${clickable ? companyLogoImg(r[nameKey], 16) : ""}${name}</div>
+      <div class="bar-row${clickable ? " clickable" : ""}${extra}" ${clickable ? `data-company="${name}"` : ""}>
+        <div class="name" title="${name}">${clickable ? companyLogoImg(r[nameKey], 16) : ""}${name}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${(r.n / max) * 100}%"></div></div>
         <div class="n">${fmtInt(r.n)}</div>
       </div>`;
@@ -1086,8 +1089,15 @@ function renderPanels(stats) {
   wireCompanyBarClicks(el);
 }
 
-// Top hirers, the one bar list the contract can narrow, so it sits in
-// the Current search block with the tiles rather than beside the charts.
+// How many companies show before View all. The API returns 10; at the
+// sidebar's width ten long domains read as a wall. Module-level so the
+// 2-minute stats refresh doesn't collapse a list the reader opened.
+const COMPANY_ROWS_SHOWN = 7;
+let companiesExpanded = false;
+
+// Companies with most open roles, the one bar list the contract can
+// narrow, so it sits in the Current search block with the tiles rather
+// than beside the charts.
 function renderScopedPanels(stats) {
   const el = document.getElementById("scoped-panel-grid");
   const mode = currentScopeMode();
@@ -1109,17 +1119,30 @@ function renderScopedPanels(stats) {
 
   const scoped = mode === "scoped";
   const rows = scoped ? latestScoped.data.top_companies : stats.top_companies || [];
+  const moreLabel = () => (companiesExpanded ? "Show fewer" : `View all ${rows.length}`);
   el.innerHTML = `
-    <div class="panel">
+    <div class="panel${companiesExpanded ? " expanded" : ""}">
       <div class="panel-title">Companies with most open roles</div>
       ${
         rows.length
-          ? renderBarList(rows, "domain", { clickable: true })
+          ? renderBarList(rows, "domain", { clickable: true, limit: COMPANY_ROWS_SHOWN })
           : '<div class="sub" style="color:var(--grey)">No company has a matching open role.</div>'
+      }
+      ${
+        rows.length > COMPANY_ROWS_SHOWN
+          ? `<button type="button" class="bar-more" aria-expanded="${companiesExpanded}">${moreLabel()}</button>`
+          : ""
       }
     </div>`;
 
   wireCompanyBarClicks(el);
+  el.querySelector(".bar-more")?.addEventListener("click", (e) => {
+    companiesExpanded = !companiesExpanded;
+    const btn = e.currentTarget;
+    btn.closest(".panel").classList.toggle("expanded", companiesExpanded);
+    btn.setAttribute("aria-expanded", String(companiesExpanded));
+    btn.textContent = moreLabel();
+  });
 }
 
 // Clicking a company in any bar list filters the board to it. Shared by
@@ -3056,7 +3079,8 @@ async function _loadTicker(seq, signal) {
     track.innerHTML = itemsHtml + itemsHtml;
     // Roughly constant per-item reading speed regardless of list length,
     // rather than a fixed duration that'd crawl for 3 items and race for 10.
-    track.style.animationDuration = `${data.jobs.length * 4}s`;
+    // 7s an item, 70s for the usual 10. Was 4s, which pulled the eye.
+    track.style.animationDuration = `${data.jobs.length * 7}s`;
   } catch {
     // Non-fatal: purely decorative, the board itself doesn't depend on it.
   }
