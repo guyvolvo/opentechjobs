@@ -399,7 +399,10 @@ at least one CV skill, and the count says how many that is. In that view
 a panel names the CV skills, folded under a "My skills" toggle with the
 count and a chevron (folded by default, the choice kept per browser), each
 skill removable once open. Every matching row says how many of them it
-shares, which ones, and which of its own listed skills the CV lacks. Plain counts, no
+shares, which ones, and which of its own listed skills the CV lacks
+(labelled "Missing skills"). Each of those is one line that never wraps.
+Skills that do not fit are hidden from the end and counted in a grey +N,
+with their names in its tooltip. Plain counts, no
 percentage and no "AI" language: the ranking is a count of shared skill
 tags and says so. The order counts recency as well: every two weeks since
 posting costs one matched skill, so a fresh close match outranks a stale

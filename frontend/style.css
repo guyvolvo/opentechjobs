@@ -1680,6 +1680,23 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
   gap: 4px;
   margin-top: 6px;
 }
+/* One line each; fitSkillLine in app.js hides what does not fit behind
+   the +N. */
+.skill-line {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.match-more {
+  flex: none;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--grey);
+  padding: 1px 2px;
+  cursor: default;
+}
 
 .match-chip {
   font-family: var(--font-ui);
@@ -1775,7 +1792,11 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
    the listing asks for that the CV does not have. */
 .job-match { align-items: center; }
 .job-match-count { font-size: 12px; font-weight: 700; color: var(--black); margin-right: 2px; }
-.job-match-asks { font-size: 12px; color: var(--grey); margin-left: 4px; }
+.job-match-asks { display: flex; gap: 4px; margin-top: 4px; font-size: 12px; color: var(--grey); }
+.job-match-asks-label { flex: none; }
+.job-match-asks [data-fit] { flex: none; }
+.job-match-asks [data-fit] + [data-fit]::before { content: ", "; margin-left: -4px; }
+.job-match-count, .match-chip { flex: none; }
 
 .skill-bracket { color: var(--grey); }
 .skill-bracket:first-child { margin-right: -6px; }

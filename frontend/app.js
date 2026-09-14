@@ -2021,11 +2021,63 @@ function jobMatchHtml(j) {
   const hits = listed.filter((s) => matchedSkills.has(s));
   if (!hits.length) return "";
   const asks = listed.filter((s) => !matchedSkills.has(s));
-  return `<div class="job-match">`
+  // One line each, never wrapped: fitSkillLines hides what does not fit
+  // and counts it in the trailing +N.
+  const more = `<span class="match-more" hidden></span>`;
+  return `<div class="job-match skill-line">`
     + `<span class="job-match-count">${hits.length} of your ${matchedSkills.size} skills</span>`
-    + hits.map((s) => `<span class="match-chip">${escapeHtml(s)}</span>`).join("")
-    + (asks.length ? `<span class="job-match-asks">Also asks for ${asks.map(escapeHtml).join(", ")}</span>` : "")
-    + `</div>`;
+    + hits.map((s) => `<span class="match-chip" data-fit>${escapeHtml(s)}</span>`).join("")
+    + more
+    + `</div>`
+    + (asks.length
+      ? `<div class="job-match-asks skill-line"><span class="job-match-asks-label">Missing skills:</span>`
+        + asks.map((s) => `<span data-fit>${escapeHtml(s)}</span>`).join("")
+        + more + `</div>`
+      : "");
+}
+
+// Hide the skills a line has no room for, from the end, and say how many
+// in its +N (the hidden names are in its tooltip). Always keeps the first
+// one, so a narrow row still shows what it matched on. Measured rather
+// than capped at a number, because the room depends on the title column,
+// the window and whether Statistics is folded.
+function fitSkillLine(line) {
+  const items = [...line.querySelectorAll("[data-fit]")];
+  const more = line.querySelector(".match-more");
+  if (!items.length || !more) return;
+  items.forEach((i) => { i.hidden = false; });
+  more.hidden = true;
+  if (line.scrollWidth <= line.clientWidth) return;
+  more.hidden = false;
+  let hidden = 0;
+  for (let k = items.length - 1; k > 0 && (hidden === 0 || line.scrollWidth > line.clientWidth); k--) {
+    items[k].hidden = true;
+    hidden += 1;
+    more.textContent = `+${hidden}`;
+  }
+  more.title = items.filter((i) => i.hidden).map((i) => i.textContent).join(", ");
+}
+
+let skillLinesWidth = 0;
+function fitSkillLines(force) {
+  const body = document.getElementById("jobs-body");
+  if (!body) return;
+  const width = body.clientWidth;
+  if (!force && width === skillLinesWidth) return;
+  skillLinesWidth = width;
+  body.querySelectorAll(".skill-line").forEach(fitSkillLine);
+}
+
+// The window, the sheet and the Statistics fold all change the row width
+// without re-rendering the rows.
+let skillLinesFrame = 0;
+function watchSkillLines() {
+  const body = document.getElementById("jobs-body");
+  if (!body || typeof ResizeObserver === "undefined") return;
+  new ResizeObserver(() => {
+    cancelAnimationFrame(skillLinesFrame);
+    skillLinesFrame = requestAnimationFrame(() => fitSkillLines(false));
+  }).observe(body);
 }
 
 function jobSkillsHtml(j) {
@@ -2082,6 +2134,7 @@ function renderJobRows(jobs, starred) {
       </tr>`;
     })
     .join("");
+  fitSkillLines(true);
 
   document.querySelectorAll("[data-star]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
@@ -4341,6 +4394,7 @@ async function boot() {
   wireJobDetail();
   wireThemeToggle();
   wireStatsToggle();
+  watchSkillLines();
   loadTicker();
   await refreshStats();
   loadJobs();
