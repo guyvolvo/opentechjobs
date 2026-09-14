@@ -1465,6 +1465,10 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   font-weight: 700;
   cursor: pointer;
 }
+/* A link dressed as a button. .btn is written for <button>, which centres its
+   own text; an <a> needs it said, and loses the link underline. Reported
+   twice: on the 404 page and on /account's See matches. */
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .btn:hover { background: var(--green-text); border-color: var(--green-text); }
 .btn.ghost { background: var(--white); color: var(--black); }
 .btn.ghost:hover { background: var(--black); color: var(--white); border-color: var(--black); }

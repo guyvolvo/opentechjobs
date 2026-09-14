@@ -39,7 +39,7 @@ def check(name, ok, detail=""):
 
 
 # The whole point of the shared module.
-tagger = [label for label, _ in probe._SKILL_KEYWORDS]
+tagger = list(probe._SKILL_LABELS)
 check("the profile offers exactly the skills the tagger emits",
       set(profile.SKILLS) == set(tagger),
       f"only in profile: {sorted(set(profile.SKILLS) - set(tagger))}; "

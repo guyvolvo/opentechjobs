@@ -1,0 +1,1216 @@
+{
+  "_about": "Labelled text for the skill extractor. Both engines (api/skills.py for job descriptions, frontend/cv_skills.js for CVs in the browser) must pass every case. expect: labels that must be found. forbid: labels that must not be. Anything else found is allowed, and counted as a false positive only when it is in forbid.",
+  "cases": [
+    {
+      "id": "list-languages",
+      "text": "Languages: Python, Go, TypeScript, C++, C#",
+      "expect": [
+        "Python",
+        "Go",
+        "TypeScript",
+        "C++",
+        "C#"
+      ]
+    },
+    {
+      "id": "cpp-variants",
+      "text": "Embedded C/C++ (C++17), some cpp tooling",
+      "expect": [
+        "C++"
+      ]
+    },
+    {
+      "id": "csharp-dotnet",
+      "text": "Backend in C# on .NET 6 and ASP.NET Core",
+      "expect": [
+        "C#"
+      ]
+    },
+    {
+      "id": "csharp-slash",
+      "text": "Stack: C#/.NET, SQL Server",
+      "expect": [
+        "C#",
+        "SQL"
+      ]
+    },
+    {
+      "id": "java-not-javascript",
+      "text": "Frontend work in JavaScript and TypeScript",
+      "expect": [
+        "JavaScript",
+        "TypeScript"
+      ],
+      "forbid": [
+        "Java"
+      ]
+    },
+    {
+      "id": "java-and-kotlin",
+      "text": "Java 17 / Kotlin services on Spring Boot",
+      "expect": [
+        "Java",
+        "Kotlin",
+        "Spring Boot"
+      ]
+    },
+    {
+      "id": "hyphenated-javascript",
+      "text": "Built dashboards in Java-\nScript and Type-\nScript",
+      "expect": [
+        "JavaScript",
+        "TypeScript"
+      ],
+      "forbid": [
+        "Java"
+      ]
+    },
+    {
+      "id": "hyphenated-kubernetes",
+      "text": "Ran production workloads on Kuber-\nnetes clusters",
+      "expect": [
+        "Kubernetes"
+      ]
+    },
+    {
+      "id": "letter-spaced",
+      "text": "T E C H N I C A L   S K I L L S\nP Y T H O N ,  D O C K E R",
+      "expect": [
+        "Python",
+        "Docker"
+      ]
+    },
+    {
+      "id": "ligature",
+      "text": "Conﬁgured Terraform modules and Ansible playbooks",
+      "expect": [
+        "Terraform",
+        "Ansible"
+      ]
+    },
+    {
+      "id": "go-in-sentence",
+      "text": "Wrote high-throughput backend services in Go and Python.",
+      "expect": [
+        "Go",
+        "Python"
+      ]
+    },
+    {
+      "id": "go-golang",
+      "text": "Golang developer, 5 years",
+      "expect": [
+        "Go"
+      ]
+    },
+    {
+      "id": "go-paren",
+      "text": "Microservices in Go (gRPC, Kafka)",
+      "expect": [
+        "Go",
+        "Microservices",
+        "Kafka"
+      ]
+    },
+    {
+      "id": "go-to-market",
+      "text": "Owned the go-to-market plan for our AWS integration",
+      "expect": [
+        "AWS"
+      ],
+      "forbid": [
+        "Go"
+      ]
+    },
+    {
+      "id": "go-to-market-capital",
+      "text": "Go-to-market lead for the Kubernetes product line",
+      "expect": [
+        "Kubernetes"
+      ],
+      "forbid": [
+        "Go"
+      ]
+    },
+    {
+      "id": "go-live",
+      "text": "Led the go live of the new Python platform. Ready to go when needed.",
+      "expect": [
+        "Python"
+      ],
+      "forbid": [
+        "Go"
+      ]
+    },
+    {
+      "id": "go-sentence-start",
+      "text": "Go through quarterly planning with stakeholders.",
+      "forbid": [
+        "Go"
+      ]
+    },
+    {
+      "id": "github-url-go",
+      "text": "github.com/dana-go  |  dana.go@example.com",
+      "expect": [
+        "Git"
+      ],
+      "forbid": [
+        "Go"
+      ]
+    },
+    {
+      "id": "react-framework",
+      "text": "React, Redux, Next.js",
+      "expect": [
+        "React"
+      ]
+    },
+    {
+      "id": "react-native",
+      "text": "Shipped two apps in React Native",
+      "expect": [
+        "React"
+      ]
+    },
+    {
+      "id": "react-verb",
+      "text": "Able to react to production incidents quickly and calmly.",
+      "forbid": [
+        "React"
+      ]
+    },
+    {
+      "id": "react-verb-capital",
+      "text": "React quickly to changing priorities in a fast-paced team.",
+      "forbid": [
+        "React"
+      ]
+    },
+    {
+      "id": "nextjs-implies-react",
+      "text": "Built the marketing site with Next.js",
+      "expect": [
+        "React"
+      ]
+    },
+    {
+      "id": "swift-ios",
+      "text": "iOS development with Swift and SwiftUI",
+      "expect": [
+        "Swift"
+      ]
+    },
+    {
+      "id": "swift-adjective",
+      "text": "Known for swift delivery and clear communication.",
+      "forbid": [
+        "Swift"
+      ]
+    },
+    {
+      "id": "swift-hobby",
+      "text": "Interests: hiking, chess, Taylor Swift concerts",
+      "forbid": [
+        "Swift"
+      ]
+    },
+    {
+      "id": "spark-data",
+      "text": "ETL pipelines on Apache Spark and PySpark",
+      "expect": [
+        "Spark",
+        "Python"
+      ]
+    },
+    {
+      "id": "spark-verb",
+      "text": "I love to spark ideas in cross-functional teams.",
+      "forbid": [
+        "Spark"
+      ]
+    },
+    {
+      "id": "databricks-implies-spark",
+      "text": "Data platform on Databricks",
+      "expect": [
+        "Spark"
+      ]
+    },
+    {
+      "id": "vue-framework",
+      "text": "Vue 3, Nuxt and Vue.js component libraries",
+      "expect": [
+        "Vue"
+      ]
+    },
+    {
+      "id": "vue-overview",
+      "text": "Gave an overview of the roadmap from the user's point of view",
+      "forbid": [
+        "Vue"
+      ]
+    },
+    {
+      "id": "flask-framework",
+      "text": "REST services in Flask and FastAPI",
+      "expect": [
+        "Flask",
+        "Python",
+        "REST API"
+      ]
+    },
+    {
+      "id": "flask-lab",
+      "text": "Lab technician: prepared each flask and pipette for assays",
+      "forbid": [
+        "Flask"
+      ]
+    },
+    {
+      "id": "angular-framework",
+      "text": "Angular 15 with RxJS",
+      "expect": [
+        "Angular"
+      ]
+    },
+    {
+      "id": "node-framework",
+      "text": "APIs in Node.js / NodeJS with Express",
+      "expect": [
+        "Node.js"
+      ]
+    },
+    {
+      "id": "node-list",
+      "text": "Backend: Node, Express, MongoDB",
+      "expect": [
+        "Node.js",
+        "MongoDB"
+      ]
+    },
+    {
+      "id": "node-graph",
+      "text": "Designed a graph where each node stores a cluster node id",
+      "forbid": [
+        "Node.js"
+      ]
+    },
+    {
+      "id": "ruby-rails",
+      "text": "Ruby on Rails monolith, later Ruby and Go services",
+      "expect": [
+        "Ruby",
+        "Go"
+      ]
+    },
+    {
+      "id": "ruby-name",
+      "text": "References: Ruby Chen, Head of Product",
+      "forbid": [
+        "Ruby"
+      ]
+    },
+    {
+      "id": "rest-plural",
+      "text": "Designed and documented REST APIs and RESTful services",
+      "expect": [
+        "REST API"
+      ]
+    },
+    {
+      "id": "microservice-singular",
+      "text": "Split a monolith into microservice architecture",
+      "expect": [
+        "Microservices"
+      ]
+    },
+    {
+      "id": "micro-services-spaced",
+      "text": "Owned several micro-services in production",
+      "expect": [
+        "Microservices"
+      ]
+    },
+    {
+      "id": "llm-plural",
+      "text": "Fine-tuned large language models and evaluated LLMs for support",
+      "expect": [
+        "LLM"
+      ]
+    },
+    {
+      "id": "llm-tools",
+      "text": "Built agents with LangChain and the OpenAI API, retrieval-augmented generation over docs",
+      "expect": [
+        "LLM",
+        "RAG"
+      ]
+    },
+    {
+      "id": "rag-status",
+      "text": "Reported weekly RAG status to the steering committee",
+      "forbid": [
+        "RAG"
+      ]
+    },
+    {
+      "id": "rag-ai",
+      "text": "RAG pipeline with embeddings in Elasticsearch and an LLM",
+      "expect": [
+        "RAG",
+        "Elasticsearch",
+        "LLM"
+      ]
+    },
+    {
+      "id": "aws-services",
+      "text": "EC2, S3, Lambda, DynamoDB, CloudFormation",
+      "expect": [
+        "AWS"
+      ]
+    },
+    {
+      "id": "eks",
+      "text": "Migrated workloads to EKS",
+      "expect": [
+        "Kubernetes",
+        "AWS"
+      ]
+    },
+    {
+      "id": "gke-bigquery",
+      "text": "GKE clusters and BigQuery analytics",
+      "expect": [
+        "Kubernetes",
+        "GCP"
+      ]
+    },
+    {
+      "id": "aks-devops",
+      "text": "AKS deployments via Azure DevOps",
+      "expect": [
+        "Kubernetes",
+        "Azure",
+        "CI/CD"
+      ]
+    },
+    {
+      "id": "helm-openshift",
+      "text": "Helm charts on OpenShift",
+      "expect": [
+        "Kubernetes"
+      ]
+    },
+    {
+      "id": "ci-tools",
+      "text": "Pipelines in Jenkins, GitHub Actions and ArgoCD",
+      "expect": [
+        "CI/CD",
+        "Git"
+      ]
+    },
+    {
+      "id": "gitlab-ci",
+      "text": "GitLab CI and Bitbucket",
+      "expect": [
+        "CI/CD",
+        "Git"
+      ]
+    },
+    {
+      "id": "linux-distros",
+      "text": "Administered Ubuntu and RHEL servers",
+      "expect": [
+        "Linux"
+      ]
+    },
+    {
+      "id": "postgres-implies-sql",
+      "text": "Postgres and MariaDB performance tuning",
+      "expect": [
+        "PostgreSQL",
+        "MySQL",
+        "SQL"
+      ]
+    },
+    {
+      "id": "nosql-not-sql",
+      "text": "NoSQL stores only: Cassandra and DynamoDB",
+      "expect": [
+        "AWS"
+      ],
+      "forbid": [
+        "SQL"
+      ]
+    },
+    {
+      "id": "elk",
+      "text": "Logging with the ELK stack and OpenSearch",
+      "expect": [
+        "Elasticsearch"
+      ]
+    },
+    {
+      "id": "siem-tools",
+      "text": "SOC analyst: Splunk and Microsoft Sentinel detections",
+      "expect": [
+        "SIEM"
+      ]
+    },
+    {
+      "id": "pentest",
+      "text": "OSCP certified, pen testing with Burp Suite",
+      "expect": [
+        "Penetration Testing"
+      ]
+    },
+    {
+      "id": "azure-ad",
+      "text": "Identity on Azure AD and on-prem Active Directory",
+      "expect": [
+        "Active Directory",
+        "Azure"
+      ]
+    },
+    {
+      "id": "python-libs",
+      "text": "pandas, NumPy, Django",
+      "expect": [
+        "Python",
+        "Django"
+      ]
+    },
+    {
+      "id": "php-laravel",
+      "text": "Laravel and Symfony applications",
+      "expect": [
+        "PHP"
+      ]
+    },
+    {
+      "id": "js-es6",
+      "text": "Modern ES6+ and TypeScript",
+      "expect": [
+        "JavaScript",
+        "TypeScript"
+      ]
+    },
+    {
+      "id": "nlp-spacy",
+      "text": "Entity extraction with spaCy",
+      "expect": [
+        "NLP"
+      ]
+    },
+    {
+      "id": "learning-excluded",
+      "text": "Currently learning Rust and Kotlin. Production experience in Python.",
+      "expect": [
+        "Python"
+      ],
+      "forbid": [
+        "Rust",
+        "Kotlin"
+      ]
+    },
+    {
+      "id": "no-experience-excluded",
+      "text": "No prior experience with Kubernetes; strong Docker background",
+      "expect": [
+        "Docker"
+      ],
+      "forbid": [
+        "Kubernetes"
+      ]
+    },
+    {
+      "id": "machine-learning-not-excluded",
+      "text": "Machine learning with PyTorch and TensorFlow",
+      "expect": [
+        "PyTorch",
+        "TensorFlow"
+      ]
+    },
+    {
+      "id": "learning-then-real",
+      "text": "Currently learning Go.\nBackend engineer: Go, gRPC, PostgreSQL",
+      "expect": [
+        "Go",
+        "PostgreSQL"
+      ]
+    },
+    {
+      "id": "hebrew-mixed",
+      "text": "ניסיון של 5 שנים ב-Python וב-Kubernetes, עבודה עם AWS",
+      "expect": [
+        "Python",
+        "Kubernetes",
+        "AWS"
+      ]
+    },
+    {
+      "id": "spoken-languages",
+      "text": "Languages: Hebrew (native), English (fluent), Russian",
+      "forbid": [
+        "Go",
+        "Rust",
+        "Swift",
+        "Ruby"
+      ]
+    },
+    {
+      "id": "prose-heavy",
+      "text": "A people-first leader who likes to go the extra mile, react calmly under pressure, and spark swift, agile decisions. Ruby, my manager, can confirm.",
+      "forbid": [
+        "Go",
+        "React",
+        "Spark",
+        "Swift",
+        "Ruby"
+      ]
+    },
+    {
+      "id": "digital-not-git",
+      "text": "Digital transformation lead",
+      "forbid": [
+        "Git"
+      ]
+    },
+    {
+      "id": "ts-file",
+      "text": "Converted .js files to .ts across the repo",
+      "expect": [
+        "JavaScript",
+        "TypeScript"
+      ]
+    },
+    {
+      "id": "sql-dialects",
+      "text": "T-SQL and PL/SQL stored procedures",
+      "expect": [
+        "SQL"
+      ]
+    },
+    {
+      "id": "real-frontend-label",
+      "text": "- Language: TypeScript\n\n- Frontend: React, Tailwind CSS, tRPC\n\n- Backend: tRPC, NestJS",
+      "expect": [
+        "TypeScript",
+        "React",
+        "Tailwind CSS",
+        "NestJS"
+      ]
+    },
+    {
+      "id": "real-react-decisively",
+      "text": "- React decisively to change - re-planning, re-prioritising",
+      "forbid": [
+        "React"
+      ]
+    },
+    {
+      "id": "real-ts-clearance",
+      "text": "- Must be eligible to obtain and maintain a U.S. TS clearance",
+      "forbid": [
+        "TypeScript"
+      ]
+    },
+    {
+      "id": "real-swift-proficiency",
+      "text": "- Strong Swift proficiency and a proven track record shipping apps",
+      "expect": [
+        "Swift"
+      ]
+    },
+    {
+      "id": "real-swift-execution",
+      "text": "strategic thinking and swift execution",
+      "forbid": [
+        "Swift"
+      ]
+    },
+    {
+      "id": "real-splunk-observability",
+      "text": "Our tooling: Grafana, Splunk, VictoriaMetrics",
+      "expect": [
+        "Grafana",
+        "Splunk"
+      ],
+      "forbid": [
+        "SIEM"
+      ]
+    },
+    {
+      "id": "emoji-positions",
+      "text": "## 🚀 We build with Go and 🧠 PyTorch",
+      "expect": [
+        "Go",
+        "PyTorch"
+      ]
+    },
+    {
+      "id": "go-experience",
+      "text": "Go experience is a plus",
+      "expect": [
+        "Go"
+      ]
+    },
+    {
+      "id": "observability",
+      "text": "Monitoring with Prometheus, Grafana and Datadog; tracing via OpenTelemetry",
+      "expect": [
+        "Prometheus",
+        "Grafana",
+        "Datadog",
+        "OpenTelemetry"
+      ]
+    },
+    {
+      "id": "c-language",
+      "text": "Embedded C and C++ on ARM, some Python",
+      "expect": [
+        "C",
+        "C++",
+        "Python",
+        "Embedded"
+      ]
+    },
+    {
+      "id": "c-not-level",
+      "text": "Presented to C-level executives after our Series C round",
+      "forbid": [
+        "C"
+      ]
+    },
+    {
+      "id": "c-in-cpp",
+      "text": "C++17 and C# only",
+      "expect": [
+        "C++",
+        "C#"
+      ],
+      "forbid": [
+        "C"
+      ]
+    },
+    {
+      "id": "r-language",
+      "text": "Statistics in R and Python (tidyverse, pandas)",
+      "expect": [
+        "R",
+        "Python",
+        "pandas"
+      ]
+    },
+    {
+      "id": "r-and-d",
+      "text": "Led R&D teams in Haifa",
+      "forbid": [
+        "R"
+      ]
+    },
+    {
+      "id": "excel-verb",
+      "text": "You excel at stakeholder management. Excel wizardry is a plus.",
+      "expect": [
+        "Excel"
+      ]
+    },
+    {
+      "id": "excel-verb-only",
+      "text": "Candidates who excel in ambiguity thrive here",
+      "forbid": [
+        "Excel"
+      ]
+    },
+    {
+      "id": "bash-party",
+      "text": "Hosted the annual summer Bash for 200 employees",
+      "forbid": [
+        "Bash"
+      ]
+    },
+    {
+      "id": "bash-tech",
+      "text": "Automation in Bash and PowerShell",
+      "expect": [
+        "Bash",
+        "PowerShell"
+      ]
+    },
+    {
+      "id": "tools-pm",
+      "text": "Tools: Jira, Confluence, Figma, Tableau, Excel",
+      "expect": [
+        "Jira",
+        "Confluence",
+        "Figma",
+        "Tableau",
+        "Excel"
+      ]
+    },
+    {
+      "id": "oracle-company",
+      "text": "Worked at Oracle Cloud Infrastructure as a product marketer",
+      "forbid": [
+        "Oracle",
+        "SQL"
+      ]
+    },
+    {
+      "id": "unity-word",
+      "text": "Brought unity to a divided team",
+      "forbid": [
+        "Unity"
+      ]
+    },
+    {
+      "id": "unity-engine",
+      "text": "Game development in Unity and Unreal Engine with C#",
+      "expect": [
+        "Unity",
+        "Unreal Engine",
+        "C#"
+      ]
+    },
+    {
+      "id": "jenkins-implies",
+      "text": "Pipelines on Jenkins",
+      "expect": [
+        "Jenkins",
+        "CI/CD"
+      ]
+    },
+    {
+      "id": "scrum-implies-agile",
+      "text": "Certified Scrum Master",
+      "expect": [
+        "Scrum",
+        "Agile"
+      ]
+    },
+    {
+      "id": "testing-tools",
+      "text": "Testing: Jest, Cypress, Playwright, pytest",
+      "expect": [
+        "Jest",
+        "Cypress",
+        "Playwright",
+        "pytest"
+      ]
+    },
+    {
+      "id": "cypress-tree",
+      "text": "Planted a cypress tree outside the office",
+      "forbid": [
+        "Cypress"
+      ]
+    },
+    {
+      "id": "it-windows-ad",
+      "text": "Administered Windows Server 2019, Windows AD and Group Policy for 800 users; DNS and DHCP",
+      "expect": [
+        "Windows Server",
+        "Windows",
+        "Active Directory",
+        "Group Policy",
+        "DNS",
+        "DHCP"
+      ]
+    },
+    {
+      "id": "it-ad-bare",
+      "text": "Skills: AD, Exchange Online, Intune, Office 365",
+      "expect": [
+        "Active Directory",
+        "Exchange",
+        "Intune",
+        "Microsoft 365"
+      ]
+    },
+    {
+      "id": "it-ad-advertising",
+      "text": "Managed AD campaigns and ad spend for the growth team",
+      "forbid": [
+        "Active Directory"
+      ]
+    },
+    {
+      "id": "it-virtualization",
+      "text": "VMware vSphere and ESXi clusters, some Hyper-V and Proxmox",
+      "expect": [
+        "VMware",
+        "Hyper-V",
+        "Proxmox"
+      ]
+    },
+    {
+      "id": "it-networking",
+      "text": "Networking: VLANs, IPsec VPN, SD-WAN, FortiGate and Palo Alto Networks firewalls, Cisco CCNA",
+      "expect": [
+        "Networking",
+        "VLAN",
+        "VPN",
+        "SD-WAN",
+        "Fortinet",
+        "Palo Alto Networks",
+        "Firewalls",
+        "Cisco"
+      ]
+    },
+    {
+      "id": "it-palo-alto-city",
+      "text": "Relocated from Palo Alto to Tel Aviv in 2020",
+      "forbid": [
+        "Palo Alto Networks"
+      ]
+    },
+    {
+      "id": "it-monitoring",
+      "text": "Monitoring with Zabbix, Nagios and PRTG; backups in Veeam",
+      "expect": [
+        "Zabbix",
+        "Nagios",
+        "PRTG",
+        "Veeam",
+        "Backup and Recovery"
+      ]
+    },
+    {
+      "id": "it-itsm",
+      "text": "ITIL v4 certified, ServiceNow ticketing, Tier 2 help desk",
+      "expect": [
+        "ITIL",
+        "ServiceNow",
+        "IT Support"
+      ]
+    },
+    {
+      "id": "it-elk",
+      "text": "Centralised logs on ELK (Elasticsearch, Logstash, Kibana)",
+      "expect": [
+        "Elasticsearch",
+        "Logstash",
+        "Kibana"
+      ]
+    },
+    {
+      "id": "it-linux-certs",
+      "text": "RHCSA certified, Red Hat and SUSE servers, some Solaris",
+      "expect": [
+        "Linux",
+        "Unix"
+      ]
+    },
+    {
+      "id": "it-cloud-providers",
+      "text": "Deployed to Cloudflare Workers, DigitalOcean droplets, Heroku and Netlify",
+      "expect": [
+        "Cloudflare",
+        "DigitalOcean",
+        "Heroku",
+        "Netlify"
+      ]
+    },
+    {
+      "id": "it-identity",
+      "text": "SSO with SAML and OIDC, MFA rollout, Kerberos and LDAP integration",
+      "expect": [
+        "SSO",
+        "SAML",
+        "OAuth",
+        "MFA",
+        "Kerberos",
+        "LDAP"
+      ]
+    },
+    {
+      "id": "it-azure-cert",
+      "text": "Certifications: AZ-104, CompTIA Security+",
+      "expect": [
+        "Azure",
+        "CompTIA"
+      ]
+    },
+    {
+      "id": "it-windows-word",
+      "text": "Short windows of downtime were negotiated with the business",
+      "forbid": [
+        "Windows"
+      ]
+    },
+    {
+      "id": "it-juniper-plant",
+      "text": "Gin tasting with juniper and citrus notes",
+      "forbid": [
+        "Juniper",
+        "Gin"
+      ]
+    },
+    {
+      "id": "it-devops-sre",
+      "text": "DevOps / SRE lead, site reliability for payments",
+      "expect": [
+        "DevOps",
+        "SRE"
+      ]
+    },
+    {
+      "id": "it-oracle-company",
+      "text": "Worked at Oracle Cloud Infrastructure as a product marketer",
+      "expect": [
+        "Oracle Cloud"
+      ],
+      "forbid": [
+        "Oracle",
+        "SQL"
+      ]
+    },
+    {
+      "id": "it-raid-log",
+      "text": "Maintained the RAID log and weekly status for the programme",
+      "forbid": [
+        "RAID",
+        "Storage"
+      ]
+    },
+    {
+      "id": "it-storage",
+      "text": "SAN and NAS administration, RAID 10 arrays on NetApp",
+      "expect": [
+        "Storage",
+        "RAID",
+        "NetApp"
+      ]
+    },
+    {
+      "id": "sec-stack",
+      "text": "SOC analyst: Nessus scans, CrowdStrike EDR, threat hunting with MITRE ATT&CK, GDPR and SOC 2 audits",
+      "expect": [
+        "SOC",
+        "Vulnerability Management",
+        "CrowdStrike",
+        "EDR",
+        "Threat Intelligence",
+        "GDPR",
+        "SOC 2"
+      ]
+    },
+    {
+      "id": "sec-soc2-not-soc",
+      "text": "Led our SOC 2 Type II audit",
+      "expect": [
+        "SOC 2"
+      ],
+      "forbid": [
+        "SOC"
+      ]
+    },
+    {
+      "id": "data-airflow-hvac",
+      "text": "Improved airflow in the server room cooling design",
+      "forbid": [
+        "Airflow"
+      ]
+    },
+    {
+      "id": "data-airflow-tool",
+      "text": "Orchestration: Airflow, dbt, Snowflake",
+      "expect": [
+        "Airflow",
+        "dbt",
+        "Snowflake"
+      ]
+    },
+    {
+      "id": "py-celery-veg",
+      "text": "Catering order: celery, carrots and hummus",
+      "forbid": [
+        "Celery"
+      ]
+    },
+    {
+      "id": "py-celery-tool",
+      "text": "Background jobs with Celery and Redis",
+      "expect": [
+        "Celery",
+        "Redis",
+        "Python"
+      ]
+    },
+    {
+      "id": "pm-tools-business",
+      "text": "Planning in Asana and Notion, specs in Confluence, reports in Power BI and Excel",
+      "expect": [
+        "Asana",
+        "Notion",
+        "Confluence",
+        "Power BI",
+        "Excel"
+      ]
+    },
+    {
+      "id": "pm-asana-yoga",
+      "text": "Yoga instructor, favourite asana is the crow pose",
+      "forbid": [
+        "Asana"
+      ]
+    },
+    {
+      "id": "embedded-stack",
+      "text": "Firmware in C on STM32 and ESP32, FreeRTOS, I2C and SPI drivers, CAN bus",
+      "expect": [
+        "Embedded",
+        "C",
+        "STM32",
+        "ESP32",
+        "RTOS",
+        "Serial Protocols",
+        "CAN Bus"
+      ]
+    },
+    {
+      "id": "frontend-extras",
+      "text": "Next.js, Tailwind, Storybook, ESLint, Vitest and Playwright; WCAG accessibility",
+      "expect": [
+        "Next.js",
+        "React",
+        "Tailwind CSS",
+        "Storybook",
+        "ESLint",
+        "Vitest",
+        "Playwright",
+        "Accessibility"
+      ]
+    },
+    {
+      "id": "ml-extras",
+      "text": "LLM agents with LangGraph, vector search in Pinecone, XGBoost baselines, MLflow tracking",
+      "expect": [
+        "LLM",
+        "LangChain",
+        "AI Agents",
+        "Vector Databases",
+        "XGBoost",
+        "MLflow",
+        "MLOps"
+      ]
+    },
+    {
+      "id": "canva-not-canvas",
+      "text": "Oil paintings on canvas for the office lobby",
+      "forbid": [
+        "Canva"
+      ]
+    },
+    {
+      "id": "canva-tool",
+      "text": "Social graphics in Canva and Figma",
+      "expect": [
+        "Canva",
+        "Figma"
+      ]
+    },
+    {
+      "id": "eeo-accessibility",
+      "text": "We provide reasonable accommodations and accessibility support to all applicants.",
+      "forbid": [
+        "Accessibility"
+      ]
+    },
+    {
+      "id": "bare-metal-cloud",
+      "text": "Runs on bare metal servers and AWS",
+      "expect": [
+        "AWS"
+      ],
+      "forbid": [
+        "Embedded"
+      ]
+    },
+    {
+      "id": "rest-assured-idiom",
+      "text": "Rest assured, we read every application.",
+      "forbid": [
+        "REST Assured",
+        "REST API"
+      ]
+    },
+    {
+      "id": "evm-project",
+      "text": "Tracked EVM and schedule variance for the programme",
+      "forbid": [
+        "Ethereum"
+      ]
+    },
+    {
+      "id": "core-data-platform",
+      "text": "Owns the core data platform for analytics",
+      "forbid": [
+        "Core Data",
+        "iOS"
+      ]
+    },
+    {
+      "id": "dax-index",
+      "text": "Followed the DAX and FTSE indices for the trading desk",
+      "forbid": [
+        "Power BI"
+      ]
+    },
+    {
+      "id": "dax-powerbi",
+      "text": "Power BI reports with DAX measures",
+      "expect": [
+        "Power BI"
+      ]
+    },
+    {
+      "id": "header-over-name",
+      "text": "Interests: Taylor Swift, chess\nReferences: Ruby Chen, Dana Go",
+      "forbid": [
+        "Swift",
+        "Ruby",
+        "Go"
+      ]
+    },
+    {
+      "id": "html-in-url",
+      "text": "Read more at example.com/articles/fast500-winners.html",
+      "forbid": [
+        "HTML"
+      ]
+    },
+    {
+      "id": "html-css-slash",
+      "text": "Web development (JavaScript, HTML/CSS)",
+      "expect": [
+        "JavaScript",
+        "HTML",
+        "CSS"
+      ]
+    },
+    {
+      "id": "stress-testing-finance",
+      "text": "Credit risk models, including IFRS9, stress testing and economic response",
+      "forbid": [
+        "Performance Testing"
+      ]
+    },
+    {
+      "id": "product-managers-colleagues",
+      "text": "Collaborate with product managers, designers and backend engineers",
+      "forbid": [
+        "Product Management"
+      ]
+    },
+    {
+      "id": "product-management-practice",
+      "text": "5 years of product management and product roadmap ownership",
+      "expect": [
+        "Product Management"
+      ]
+    }
+  ]
+}

@@ -213,7 +213,7 @@ def fts_escape(term: str) -> str:
 # nothing outside SKILL_LABELS survives this, and no label contains a
 # LIKE wildcard. It also means a stale bookmark naming a skill we have
 # since dropped narrows the match instead of erroring the board out.
-MAX_MATCH_SKILLS = 20
+MAX_MATCH_SKILLS = 40
 
 
 def wanted_skills(params: dict) -> list[str]:
@@ -230,11 +230,11 @@ def skills_score_sql(wanted: list[str]) -> tuple[str, list]:
     """How many of `wanted` a row carries, as a SELECT expression.
 
     SQLite has no set intersection, so this is one LIKE per skill summed
-    as booleans. Twenty of them is the cap and they run over a column
-    that is at most five comma-joined labels, so it stays cheap.
+    as booleans. Forty of them is the cap and they run over a column
+    that is at most fifteen comma-joined labels, so it stays cheap.
 
-    The count saturates: probe.py stores only the first five skills it
-    finds in a job, so a row matching six of yours still scores five.
+    The count saturates: probe.py stores only the first fifteen skills it
+    finds in a job, so a row matching more of yours than that still scores fifteen.
     Fine for ranking, which is all it is for.
     """
     if not wanted:
@@ -434,7 +434,7 @@ def build_jobs_where(params: dict, has_fts: bool = False,
     # skills_mode=rank is the board's Best matches. Every listing the other
     # filters leave stays on the list and the match only orders it, so a
     # role whose tags miss a skill the reader has is ranked low instead of
-    # hidden, and probe.py keeping only a job's first five skills makes
+    # hidden, and probe.py keeping only a job's first fifteen skills makes
     # that miss common. Alerts never send it: an alert built from a CV
     # still means listings that mention at least one of its skills.
     if wanted and params.get("skills_mode") != "rank":

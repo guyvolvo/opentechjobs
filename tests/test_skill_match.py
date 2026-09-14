@@ -125,7 +125,7 @@ check("an unknown skill is dropped rather than fatal",
 # preventing, since the only way to get here is a link older than the
 # vocabulary.
 check("all-unknown leaves the board unfiltered rather than empty",
-      len(run({"skills": "COBOL"})["jobs"]) == len(JOBS))
+      len(run({"skills": "NotARealSkill"})["jobs"]) == len(JOBS))
 
 check("case and spacing do not matter",
       job_filters.wanted_skills({"skills": " python , AWS "}) == ["Python", "AWS"])

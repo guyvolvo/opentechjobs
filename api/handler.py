@@ -36,6 +36,7 @@ from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
 from saved import is_saved_id, job_id_of, saved_id
 from skills import SKILL_TERMS
+from skills import spec as skill_spec
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
                          has_fts_index, has_places, salary_source_select,
                          skills_score_sql, wanted_skills)
@@ -861,6 +862,10 @@ def route_get_profile(user_id: str) -> dict:
         # same terms probe.py tags jobs with. Not secret, and shipping
         # them is what keeps one vocabulary rather than two.
         "skill_terms": [{"label": label, "needles": needles} for label, needles in SKILL_TERMS],
+        # The full rules for frontend/cv_skills.js, the same ones probe.py tags
+        # jobs with. skill_terms above is the old shape, kept for an account
+        # page still cached from before, until the next deploy replaces it.
+        "skill_spec": skill_spec(),
     }
 
 

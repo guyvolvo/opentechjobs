@@ -12,7 +12,6 @@ const $ = (id) => document.getElementById(id);
 // terms probe.py tags jobs with, so a skill found in a CV is by
 // construction one a listing can carry. A hardcoded copy here drifted
 // from the real list within minutes the first time it was tried.
-let skillTerms = [];
 const draft = { skills: [], seniority: "", workplace: [], israel_only: true };
 
 function setStatus(el, text, isError = false) {
@@ -28,12 +27,12 @@ const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only:
 async function loadProfile() {
   try {
     const data = await authedFetch("/me/profile");
-    return { profile: data.profile || EMPTY_PROFILE, skill_terms: data.skill_terms || [] };
+    return { profile: data.profile || EMPTY_PROFILE, skill_spec: data.skill_spec || null };
   } catch {
     // A profile that will not load is not worth blocking the page for;
     // the alerts below may still work, and an empty form is honest. The
     // pickers just have nothing to offer until the next load.
-    return { profile: { ...EMPTY_PROFILE }, skill_terms: [] };
+    return { profile: { ...EMPTY_PROFILE }, skill_spec: null };
   }
 }
 
@@ -46,32 +45,18 @@ async function loadProfile() {
 // same terms probe.py tags every job description with, so a skill found
 // in a CV is by construction a skill a listing can carry.
 
-let matchers = null;
+// The rules arrive with the profile (skills.spec() in the API) and the
+// engine is frontend/cv_skills.js, the browser twin of the one that tags
+// jobs. See that file and api/skills.py for how matching works.
+let skillSpec = null;
 
-function buildMatchers(terms) {
-  // Mirrors probe.py's _SKILL_KEYWORDS: one case-insensitive,
-  // word-bounded alternation per label. \b behaves the same either side
-  // for the ASCII these needles are made of.
-  return (terms || []).map(({ label, needles }) => ({
-    label,
-    re: new RegExp(
-      "\\b(?:" + needles.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")\\b",
-      "i",
-    ),
-  }));
-}
-
+// Strongest evidence first: when a CV yields more than the profile's 40,
+// the ones it mentions most are the ones kept.
 function skillsIn(text) {
-  // Ordered by where each one appears, like the tagger, so the list
-  // reads the way the document does rather than the way our vocabulary
-  // happens to be sorted.
-  const hits = [];
-  for (const { label, re } of matchers || []) {
-    const m = re.exec(text);
-    if (m) hits.push([m.index, label]);
-  }
-  hits.sort((a, b) => a[0] - b[0]);
-  return hits.map(([, label]) => label);
+  if (!skillSpec || !window.CvSkills) return [];
+  return CvSkills.extract(text, skillSpec)
+    .sort((a, b) => b.count - a.count || a.index - b.index)
+    .map((d) => d.label);
 }
 
 async function textFromPdf(file) {
@@ -79,13 +64,7 @@ async function textFromPdf(file) {
   // came to edit an alert.
   const pdfjs = await import("/vendor/pdfjs/pdf.min.mjs");
   pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.mjs";
-  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
-  const pages = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    const content = await (await doc.getPage(i)).getTextContent();
-    pages.push(content.items.map((it) => it.str).join(" "));
-  }
-  return pages.join("\n");
+  return CvSkills.textFromPdf(pdfjs, await file.arrayBuffer());
 }
 
 async function readCv(file) {
@@ -140,7 +119,6 @@ function paintMatchLink() {
 }
 
 function wireProfile() {
-  matchers = buildMatchers(skillTerms);
   const input = $("cv-file");
 
   $("cv-analyze").addEventListener("click", () => input.click());
@@ -155,12 +133,12 @@ function wireProfile() {
       const found = skillsIn(text);
       // Merge rather than replace: someone who analyses a second CV, or
       // has already added a skill by hand, should not silently lose it.
-      draft.skills = [...new Set([...draft.skills, ...found])].slice(0, 20);
+      draft.skills = [...new Set([...draft.skills, ...found])].slice(0, 40);
       $("cv-result").hidden = false;
       paintChips();
       setStatus("cv-status", found.length
-        ? `Found ${found.length} skill${found.length === 1 ? "" : "s"}. Nothing was uploaded.`
-        : "No known skills found. Nothing was uploaded.");
+        ? `Found ${found.length} skill${found.length === 1 ? "" : "s"}.`
+        : "No known skills found.");
     } catch (err) {
       setStatus("cv-status", "Could not read that file. PDF or plain text.", true);
     } finally {
@@ -358,10 +336,10 @@ async function bootAccount() {
   $("account-email").textContent = decodeJwtEmail(tokens.id_token) || "signed in";
 
   wireLeaving();
-  // Order matters: the matchers are built from the terms the server
-  // returns, so the analyser cannot be wired before they arrive.
+  // Order matters: the analyser runs on the rules the server returns
+  // (skill_spec), so it cannot be wired before they arrive.
   const loaded = await loadProfile();
-  skillTerms = loaded.skill_terms || [];
+  skillSpec = loaded.skill_spec || null;
   wireProfile();
   paintProfile(loaded.profile);
   await wireAlerts();

@@ -57,12 +57,12 @@ except ImportError:
 try:
     from countries import city_string, country_string
     from job_filters import IL_KEYWORDS
-    from skills import SKILL_TERMS
+    from skills import SKILL_LABELS, extract_labels
 except ImportError:
     sys.path.insert(0, str(Path(__file__).with_name("api")))
     from countries import city_string, country_string
     from job_filters import IL_KEYWORDS
-    from skills import SKILL_TERMS
+    from skills import SKILL_LABELS, extract_labels
 
 UA = "ats-probe/0.2 (+https://github.com/guyvolvo/REPLACE-ME)"
 TIMEOUT = 12
@@ -685,46 +685,25 @@ def _classify_workplace(location: str | None) -> str | None:
     return None
 
 
-# Hand-curated, same reasoning as _SENIORITY_RULES/_WORKPLACE_RULES above
-# rather than sourced from an external taxonomy (there's no free "job
-# skill keyword" API/dataset worth round-tripping through for this).
-# Canonical display label -> alternate spellings/casings to match.
-# Order matters where a shorter term is a substring of a longer one's
-# *words* (word-boundary regex alone doesn't save you there, e.g. "C"
-# would match inside "C++" text as its own word) -- longer/specific
-# terms are listed first and _extract_skills dedupes by canonical label
-# so a title matching both "Node.js" and "JavaScript" shows both, not
-# a double-count of one.
-_SKILL_KEYWORDS: list[tuple[str, "re.Pattern[str]"]] = [
-    (label, re.compile(r"\b(?:" + "|".join(re.escape(n) for n in needles) + r")\b", re.IGNORECASE))
-    for label, needles in SKILL_TERMS
-]
+# The vocabulary and the matcher both live in api/skills.py, shared with
+# the CV analyser, which runs the same rules in the browser. The old
+# per-label ... regexes here never matched "C++", "C#", "REST APIs" or
+# "Go", and matched "react to incidents" as React; see that module.
+_SKILL_LABELS = SKILL_LABELS
 
-# First 5 matches, in the order they appear in title+description -- not
+# First 15 matches, in the order they appear in title+description -- not
 # a fixed priority ranking -- so the tags reflect what the posting
 # itself leads with, not this list's own ordering.
-_SKILL_MAX_TAGS = 5
+# 15, not 5: the vocabulary grew from 51 skills to ~200, and five tags cut
+# most postings off before Best matches could see what they ask for.
+_SKILL_MAX_TAGS = 15
 
 
 def _extract_skills(title: str | None, description: str | None) -> list[str]:
     text = f"{title or ''}\n{description or ''}"
     if not text.strip():
         return []
-    found: list[str] = []
-    for label, pattern in _SKILL_KEYWORDS:
-        m = pattern.search(text)
-        if m:
-            found.append((m.start(), label))
-    found.sort(key=lambda t: t[0])
-    seen: set[str] = set()
-    out: list[str] = []
-    for _, label in found:
-        if label not in seen:
-            seen.add(label)
-            out.append(label)
-        if len(out) == _SKILL_MAX_TAGS:
-            break
-    return out
+    return extract_labels(text, limit=_SKILL_MAX_TAGS)
 
 
 # ₪/month gross, Israeli tech market. NOT this project's own data --

@@ -1,0 +1,65 @@
+{
+  "_about": "Held-out full CVs for the skill extractor, written after the engine and not tuned against it. expect lists every vocabulary skill a careful human reader would credit the candidate with; forbid lists traps. Both engines must pass. Invented people and companies.",
+  "documents": [
+    {
+      "id": "backend-go-python",
+      "text": "DANA LEVI\nSenior Backend Engineer · Tel Aviv · dana.levi@example.com · github.com/danalevi\n\nSUMMARY\nBackend engineer with 8 years building payment systems. The go-to person for incident reviews; I react calmly and keep teams moving.\n\nEXPERIENCE\nPayFlow Ltd. — Senior Backend Engineer (2020–present)\n• Rewrote the ledger in Go, cutting p99 latency by 60%\n• Designed REST APIs and gRPC services consumed by 40 microservices\n• Owned PostgreSQL schema migrations and Redis caching\n• Deployed on Kubernetes (EKS) with Helm and Terraform\n\nCartly — Backend Developer (2016–2020)\n• Python/Django monolith, later split into services\n• Kafka consumers for order events\n\nSKILLS\nGo, Python, SQL, Docker, Linux, Git, GitHub Actions\n\nINTERESTS\nTrail running, Taylor Swift concerts, chess",
+      "expect": ["Go", "Python", "REST API", "Microservices", "PostgreSQL", "SQL", "Redis", "Kubernetes", "AWS", "Terraform", "Django", "Kafka", "Docker", "Linux", "Git", "CI/CD"],
+      "forbid": ["React", "Swift"]
+    },
+    {
+      "id": "data-engineer",
+      "text": "Yossi Cohen — Data Engineer\n\nProfile: I build batch and streaming pipelines and love to spark conversations about data quality.\n\nWork\nStreamLabs (2019-2024)\n- Built ETL on Apache Spark (PySpark, Spark SQL) running on Databricks\n- Real-time ingestion with Kafka and Spark Streaming\n- Data lake on AWS: S3, Glue, Athena, EMR\n- Modeled warehouse tables in Snowflake and BigQuery\nNumbers Inc (2016-2019)\n- Scala jobs for billing reconciliation\n- MySQL to PostgreSQL migration\n\nTools: Airflow, dbt, Python, SQL, Docker, Git",
+      "expect": ["Spark", "Python", "SQL", "Kafka", "AWS", "GCP", "Scala", "MySQL", "PostgreSQL", "Docker", "Git"],
+      "forbid": ["Swift"]
+    },
+    {
+      "id": "ios-mobile",
+      "text": "Noa Shapira\niOS & Mobile Developer\n\nAbout me\nI ship polished apps with swift turnaround and a strong eye for UX.\n\nExperience\nAppWorks — Senior iOS Engineer\n* Led the rewrite from Objective-C to Swift and SwiftUI\n* Built the Android companion app in Kotlin\n* Maintained a React Native app for the web team\n* CI with GitHub Actions and Fastlane; Git flow\n\nEducation\nB.Sc. Computer Science, Technion\n\nLanguages\nHebrew (native), English (fluent)",
+      "expect": ["Swift", "Kotlin", "React", "CI/CD", "Git"],
+      "forbid": ["Go", "Rust", "Ruby"]
+    },
+    {
+      "id": "devops-sre",
+      "text": "AVI MIZRAHI  |  DevOps / SRE\n\nT E C H N I C A L   S K I L L S\nCloud: AWS (EC2, EKS, RDS), GCP (GKE)\nContainers: Docker, k8s, Helm charts, OpenShift\nIaC: Terraform, Terragrunt, Ansible\nCI/CD: Jenkins, ArgoCD, GitLab CI\nOS: Linux (Ubuntu, RHEL), Bash\nScripting: Python, Golang\nObservability: Prometheus, Grafana, ELK stack\n\nEXPERIENCE\nCloudOps — Site Reliability Engineer\nMigrated 200 services from on-prem to Kuber-\nnetes; wrote Go tooling for rollouts; on-call lead.\nGo-to-market partner for the platform team.",
+      "expect": ["AWS", "GCP", "Kubernetes", "Docker", "Terraform", "Ansible", "CI/CD", "Git", "Linux", "Python", "Go", "Elasticsearch"],
+      "forbid": []
+    },
+    {
+      "id": "security-analyst",
+      "text": "Maya Ben-David\nSecurity Engineer\n\nCertifications: OSCP, CISSP\n\nExperience\nShieldCo — Security Engineer (2021–now)\n• Built detections in Splunk and Microsoft Sentinel for the SOC\n• Ran internal pen testing with Burp Suite and Nmap\n• Hardened Active Directory and Azure AD conditional access\n• Automated triage scripts in Python on Linux\n\nNotes\nNo prior experience with Kubernetes security; currently learning Rust.",
+      "expect": ["SIEM", "Penetration Testing", "Active Directory", "Azure", "Python", "Linux"],
+      "forbid": ["Kubernetes", "Rust"]
+    },
+    {
+      "id": "frontend",
+      "text": "Lior Katz — Frontend Engineer\n\nI react quickly to feedback and care about accessibility.\n\nStack: React, TypeScript, Next.js, Redux, Tailwind\nAlso: Vue 3, Angular (legacy), Node.js/Express, GraphQL, REST APIs, Jest, Cypress\n\nWebFlowers (2021–2024)\n- Migrated a jQuery app to React with TypeScript\n- Built a design system used across 12 teams\n- Converted .js files to .ts and added strict mode\n\nFreelance (2018–2021)\n- Nuxt and Vue.js marketing sites\n- Node APIs with MongoDB",
+      "expect": ["React", "TypeScript", "Vue", "Angular", "Node.js", "GraphQL", "REST API", "JavaScript", "MongoDB"],
+      "forbid": []
+    },
+    {
+      "id": "product-manager",
+      "text": "Tamar Golan — Senior Product Manager\n\nSummary\nProduct leader who likes to go the extra mile and spark swift, data-informed decisions.\n\nExperience\nRetailOS — Senior PM (2020–2025)\n• Owned go-to-market for the loyalty product; weekly RAG status to execs\n• Ran Agile ceremonies with three Scrum teams\n• Wrote basic SQL queries in Looker for funnel analysis\n• Partnered with engineers on React-based checkout experiments\n\nReferences\nRuby Chen, VP Product — available on request",
+      "expect": ["Agile", "Scrum", "SQL"],
+      "forbid": ["Go", "Spark", "Swift", "RAG", "Ruby"]
+    },
+    {
+      "id": "ml-engineer",
+      "text": "Eitan Rosen\nML Engineer\n\nSkills\n• Python\n• PyTorch\n• TensorFlow\n• Hugging Face\n• Docker\n• Kubernetes\n\nExperience\nDeepText — ML Engineer (2022–present)\nFine-tuned large language models for support automation and built a RAG pipeline over product docs with LangChain and embeddings in OpenSearch. Classic NLP work: entity extraction with spaCy.\nServed models on Google Cloud with Vertex AI and GKE.\n\nVision Labs — Research Engineer (2019–2022)\nMachine learning for defect detection with PyTorch; data tooling in pandas and NumPy.\n\nCurrently learning Rust in my spare time.",
+      "expect": ["Python", "PyTorch", "TensorFlow", "LLM", "Docker", "Kubernetes", "RAG", "Elasticsearch", "NLP", "GCP"],
+      "forbid": ["Rust"]
+    },
+    {
+      "id": "enterprise-java-dotnet",
+      "text": "Michael Friedman\nSoftware Architect\n\nCareer\nBankCore (2015–2025) — Lead Engineer\n- Java 11/17 services on Spring Boot, split into microservice modules\n- C#/.NET Core integration layer and ASP.NET MVC admin portal\n- Messaging with Apache Kafka; persistence on Oracle, PostgreSQL and MS SQL Server\n- Pipelines in Azure DevOps; repos in Bitbucket\n- Agile (SAFe), Scrum master for two squads\n\nTechnologies: Java, Kotlin, C#, SQL, Linux, Docker",
+      "expect": ["Java", "Spring Boot", "Microservices", "C#", "Kafka", "PostgreSQL", "SQL", "Azure", "CI/CD", "Git", "Agile", "Scrum", "Kotlin", "Linux", "Docker"],
+      "forbid": []
+    },
+    {
+      "id": "hebrew-english",
+      "text": "רון אברהם\nמפתח Full Stack\n\nניסיון תעסוקתי\nחברת טקנו בע\"מ, 2019–2024\n• פיתוח שירותי Backend ב-Node.js ו-TypeScript\n• עבודה עם React בצד הלקוח\n• מסדי נתונים: MongoDB ו-Redis\n• פריסה ל-AWS עם Docker\n\nכישורים: JavaScript, Git, Agile",
+      "expect": ["Node.js", "TypeScript", "React", "MongoDB", "Redis", "AWS", "Docker", "JavaScript", "Git", "Agile"],
+      "forbid": []
+    }
+  ]
+}

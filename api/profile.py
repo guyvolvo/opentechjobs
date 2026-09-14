@@ -36,7 +36,7 @@ WORKPLACE = ["remote", "hybrid", "onsite"]
 # A profile is a search, not a CV. Past this many skills it stops
 # narrowing anything and starts being a list of everything the person
 # has ever touched.
-MAX_SKILLS = 20
+MAX_SKILLS = 40
 
 
 def empty_profile() -> dict:
