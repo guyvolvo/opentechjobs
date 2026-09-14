@@ -501,9 +501,10 @@ colour.
 
 ### Statistics column collapse
 A toggle at the top of the Statistics column folds it away to the right
-on desktop. The grid column eases (0.35s) from its normal width to a 40px
-tab that keeps only a vertical "Statistics" button, and the column's
-content fades out. The choice is remembered per browser and applied
+on desktop. The grid column eases (0.35s) from its normal width to a 62px
+rail, and the column's content fades out. The rail holds a single 38px ‹
+button whose top edge and height match the filter row's controls, with a
+12px gap from the last of them. The choice is remembered per browser and applied
 before first paint, so a returning visit does not animate. Below 960px
 the column stacks under the board and has no toggle.
 

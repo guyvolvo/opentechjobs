@@ -691,7 +691,7 @@ button, input, select {
 
 /* Collapsing the Statistics column, per request. The toggle folds the
    column away to the right and the board takes the width, the grid column
-   easing between its normal width and a 40px tab. Desktop only: below
+   easing between its normal width and a 62px rail. Desktop only: below
    960px the column already stacks under the board. The ease runs with
    reduced motion on too, because it was asked for and it moves once, when
    clicked; a collapse saved from an earlier visit is applied by the head
@@ -724,18 +724,22 @@ button, input, select {
   .stats-toggle-icon { font-size: 16px; line-height: 1; transition: transform 0.35s ease; }
   .stats-toggle-label { display: none; }
 
-  html.stats-collapsed .workspace { grid-template-columns: 1fr 40px; }
-  html.stats-collapsed .stats-board { overflow: hidden; padding: 12px 0 0; }
+  html.stats-collapsed .workspace { grid-template-columns: 1fr 62px; }
+  /* 24px, not the open column's 12px: the column sticks at 58px, so this puts
+     the tab's top edge on the filter row's (82px), and the 62px rail
+     leaves 12px between the tab and Reset. Reported live: the tab sat
+     flush against the filter row, 12px higher and 55px taller than it. */
+  html.stats-collapsed .stats-board { overflow: hidden; padding: 24px 0 0; }
   html.stats-collapsed .stats-board > :not(.stats-toggle) { opacity: 0; visibility: hidden; }
+  /* The same 38px as the filter controls beside it, so the two read as one row. */
   html.stats-collapsed .stats-toggle {
     position: static;
-    flex-direction: column;
-    height: auto;
-    width: 30px;
+    display: flex; /* block-level, or margin: auto cannot centre it in the rail */
+    width: 38px;
+    height: 38px;
     margin: 0 auto;
-    padding: 10px 0;
+    padding: 0;
   }
-  html.stats-collapsed .stats-toggle-label { display: inline; writing-mode: vertical-rl; }
   html.stats-collapsed .stats-toggle-icon { transform: rotate(180deg); }
 }
 

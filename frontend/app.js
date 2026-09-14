@@ -4259,6 +4259,7 @@ function wireStatsToggle() {
     const collapsed = document.documentElement.classList.contains("stats-collapsed");
     btn.setAttribute("aria-expanded", String(!collapsed));
     btn.title = collapsed ? "Show statistics" : "Hide statistics";
+    btn.setAttribute("aria-label", btn.title);
   };
   paint();
   btn.addEventListener("click", () => {
