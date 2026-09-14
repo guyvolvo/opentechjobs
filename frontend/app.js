@@ -1226,7 +1226,7 @@ function paintViewSwitch() {
 // analyser's job, on /account, so this links there instead of growing a
 // second editor.
 //
-// The skills fold away under "Your skills". Forty of them wrapped to three
+// The skills fold away under "My skills". Forty of them wrapped to three
 // rows above the results, so they start folded and the choice is kept.
 const MATCH_SKILLS_OPEN_KEY = "iljobs_match_skills_open";
 
@@ -1246,7 +1246,7 @@ function renderMatchPanel() {
   const open = matchSkillsOpen();
   panel.innerHTML = `<div class="match-panel-head">`
     + `<button type="button" class="match-panel-toggle" aria-expanded="${open}" aria-controls="match-skills">`
-    + `Your skills <span class="match-panel-count">${state.skills.length}</span>${MS_CHEVRON_SVG}</button>`
+    + `My skills <span class="match-panel-count">${state.skills.length}</span>${MS_CHEVRON_SVG}</button>`
     + `<span class="match-panel-label"`
     + ` title="Listings that share at least one of your CV skills, ordered by how many, with newer roles counted higher: every two weeks since posting counts as one skill fewer.">`
     + `Ranked by relevance</span>`

@@ -1706,7 +1706,7 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 .view-switch .seg-btn { height: 30px; padding: 0 12px; }
 
 /* What Best matches is ordered by, each skill removable. The skills fold
-   down under "Your skills"; grid rows animate to the content's own
+   down under "My skills"; grid rows animate to the content's own
    height, which a max-height guess cannot. */
 .match-panel {
   margin-bottom: 12px;

@@ -396,7 +396,7 @@ All listings, Best matches and Saved are one segmented control above the
 result count, the same `.seg` control as the Explore page. Filters apply
 in every view. Best matches narrows what they leave to listings that share
 at least one CV skill, and the count says how many that is. In that view
-a panel names the CV skills, folded under a "Your skills" toggle with the
+a panel names the CV skills, folded under a "My skills" toggle with the
 count and a chevron (folded by default, the choice kept per browser), each
 skill removable once open. Every matching row says how many of them it
 shares, which ones, and which of its own listed skills the CV lacks. Plain counts, no
