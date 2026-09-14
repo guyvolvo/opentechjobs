@@ -52,7 +52,11 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
     const m = await page.evaluate(() => {
       const x = (id) => new DOMMatrixReadOnly(getComputedStyle(document.getElementById(id)).transform).m41;
       const word = document.querySelector(".hero-word").getBoundingClientRect();
+      const bandBox = document.querySelector(".hero-block").getBoundingClientRect();
       return { overflow: document.documentElement.scrollWidth > innerWidth, wordRight: word.right, vw: innerWidth,
+        bandLeft: bandBox.left, bandRight: bandBox.right, clientW: document.documentElement.clientWidth,
+        wordHref: document.querySelector(".hero-word a")?.getAttribute("href"),
+        tickerPx: parseFloat(getComputedStyle(document.getElementById("ticker-top")).fontSize),
         top0: x("ticker-top"), bottom0: x("ticker-logos"),
         topText: document.getElementById("ticker-top").textContent,
         tiles: document.querySelectorAll("#ticker-logos .hero-logo").length,
@@ -84,7 +88,11 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       const dpr = window.devicePixelRatio || 1;
       return { top: +(top / dpr).toFixed(1), bottom: +(bottom / dpr).toFixed(1), height: +(c.height / dpr).toFixed(1) };
     }, shot.toString("base64"));
-    check(`${tag}: same green margin above and below`, Math.abs(margins.top - margins.bottom) <= 3, JSON.stringify(margins));
+    // The top margin ends at whichever glyph is passing: an ascender (t, b)
+    // stands about 0.04em above a digit, so the tolerance scales with the
+    // type, about 6px on desktop and 3px on a phone.
+    const tolerance = Math.max(3, 0.045 * m.tickerPx);
+    check(`${tag}: same green margin above and below`, Math.abs(margins.top - margins.bottom) <= tolerance, JSON.stringify({ ...margins, tolerance }));
     await page.screenshot({ path: `hero-${label}-${theme}-top.png` });
     await page.waitForTimeout(1500);
     const later = await page.evaluate(() => {
@@ -92,6 +100,8 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       return { top1: x("ticker-top"), bottom1: x("ticker-logos") };
     });
     check(`${tag}: no sideways scroll`, !m.overflow);
+    check(`${tag}: the wordmark links to the board`, m.wordHref === "/", String(m.wordHref));
+    check(`${tag}: the green band runs edge to edge`, m.bandLeft === 0 && Math.abs(m.bandRight - m.clientW) < 1, JSON.stringify({ l: m.bandLeft, r: m.bandRight, w: m.clientW }));
     check(`${tag}: the wordmark fits the page`, m.wordRight <= m.vw, `${m.wordRight} > ${m.vw}`);
     check(`${tag}: the numbers ticker carries live numbers`, m.topText.includes("176,465 open jobs") && m.topText.includes("25,841 remote") && !/Israel|median|24 hours/.test(m.topText), m.topText.slice(0, 120));
     check(`${tag}: the logo row shows the logos and drops the broken one`, m.tiles >= 60 && m.tiles % 6 === 0 && m.broken === 0, JSON.stringify({ tiles: m.tiles, broken: m.broken }));

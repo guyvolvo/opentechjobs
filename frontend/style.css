@@ -3232,11 +3232,18 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   flex-direction: column;
   gap: clamp(8px, 1.2vw, 18px);
   padding: calc(var(--band-pad) - 0.16 * var(--ticker-size)) 0 var(--band-pad);
+  /* Edge to edge of the screen: the band steps out of the hero's gutter,
+     and with nothing to round against, its corners are square. */
+  margin-inline: calc(-1 * var(--gutter));
   background: var(--green-text);
   color: var(--white);
-  border-radius: 4px;
   overflow: hidden;
 }
+/* The wordmark is the way back to the board. Same colour at rest, green
+   on hover, as the utility row's links. */
+.hero-word a { color: inherit; text-decoration: none; }
+.hero-word a:hover { color: var(--green-text); }
+.hero-word a:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; border-radius: 4px; }
 .hero-ticker { overflow: hidden; }
 .hero-ticker-track {
   display: flex;

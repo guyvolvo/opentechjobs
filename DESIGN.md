@@ -564,8 +564,8 @@ the column stacks under the board and has no toggle.
 ### Hero page (/hero, draft)
 A landing page modelled on an editorial reference: a small utility row
 (name, a comma-separated nav, GitHub), the OpenTechJobs wordmark set as
-wide as the page (Display / Hero, sized from the hero's container width), and below it a full-width band in Green Text with 4px corners where the
-reference has a photograph. The band fits what it holds, with the same
+wide as the page (Display / Hero, sized from the hero's container width), which links back to the board, and below it a band in Green Text where the reference has a photograph,
+running edge to edge of the screen with square corners. The band fits what it holds, with the same
 green showing above and below. Its top line is a ticker of live board
 numbers from `stats.json` in Display / Hero Ticker, drifting right over 60
 seconds: global open jobs and how many are remote, separated by a drawn
