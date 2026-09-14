@@ -274,3 +274,12 @@ resource "aws_lambda_permission" "allow_eventbridge" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.scrape_fast_schedule.arn
 }
+
+# No automatic retries: a retry of a failed sweep would overlap the next
+# five-minute schedule, which is already the retry. See the same resource
+# in scrape_workday_lambda.tf for what the default of two cost there.
+resource "aws_lambda_function_event_invoke_config" "scrape_fast" {
+  function_name                = aws_lambda_function.scrape_fast.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 300
+}

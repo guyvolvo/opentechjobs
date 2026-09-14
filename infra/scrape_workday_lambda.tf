@@ -197,3 +197,15 @@ resource "aws_lambda_permission" "allow_eventbridge_workday" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.scrape_workday_schedule.arn
 }
+
+# No automatic retries. EventBridge invokes this asynchronously, and Lambda
+# retries a failed async invocation twice by default. When the first global
+# big-tech run ran out of memory on 2026-09-14, those retries ran the same
+# 14-minute, 1GB read twice more, and the second retry started after a
+# fixed run had already delivered the data. A failed run is simply due
+# again on the next hourly schedule.
+resource "aws_lambda_function_event_invoke_config" "scrape_workday" {
+  function_name                = aws_lambda_function.scrape_workday.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 3600
+}

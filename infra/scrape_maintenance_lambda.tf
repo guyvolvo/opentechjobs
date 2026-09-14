@@ -265,3 +265,11 @@ resource "aws_lambda_permission" "allow_eventbridge_maintenance" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.scrape_maintenance_schedule.arn
 }
+
+# No automatic retries: the next five-minute apply picks up the same
+# fragments, since a failed apply deletes none of them.
+resource "aws_lambda_function_event_invoke_config" "scrape_maintenance" {
+  function_name                = aws_lambda_function.scrape_maintenance.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 300
+}
