@@ -2383,17 +2383,21 @@ footer {
      tall, bunched into the left 160px of a 390px screen, right under the
      browser's address bar: reported live as too tight. The wordmark,
      ticker and status all hide at this width (below), so the row has the
-     whole width to itself. It spreads across it, the links go back to the
-     13px UI size, and every control is a 44px tap target, which is the
-     height Apple's guidance asks for and what makes the bar taller. */
+     whole width to itself. The links go back to the 13px UI size and
+     every control is 44px tall to tap, which is the height Apple's
+     guidance asks for and what makes the bar taller. They stay grouped on
+     the left: spread across the width, the gaps read as too much. Each
+     control's own 6px side padding widens its tap area, so the visible
+     space between words is the 10px gap plus 12px. */
   .topbar .container { min-height: 64px; padding-top: 6px; padding-bottom: 6px; }
-  .topnav { flex: 1 1 auto; justify-content: space-between; gap: 8px; font-size: 13px; }
+  .topnav { gap: 10px; font-size: 13px; }
   .topnav > *, .topnav .auth-area > button, .topnav .auth-area > a { min-height: 44px; }
   .topnav > a, .topnav > button, .topnav .auth-area > button, .topnav .auth-area > a {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
+    padding-left: 6px;
+    padding-right: 6px;
   }
   /* a.link draws its underline as a bottom border, which on a 44px tap
      box lands at the bottom of the bar, a long way under "API". An
