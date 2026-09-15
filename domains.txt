@@ -5400,3 +5400,8 @@ euromonitor.com
 envalior.com
 envisiones.com
 eqltech.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+entaingroup.com
+nen.co
+hanover.org
