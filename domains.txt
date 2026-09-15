@@ -5432,3 +5432,11 @@ passes.com
 quicknode.com
 sorcerer.net
 stand.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+curology.com
+democracy.io
+enigmaticsmile.com
+enterprise.com
+erna.ai
+escuela.fr
