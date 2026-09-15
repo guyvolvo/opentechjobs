@@ -5422,3 +5422,13 @@ enviromedica.com
 eos-imaging.com
 newglobesandbox.com
 equal.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+esalon.com
+estimateone.com
+nosisbio.com
+optimum.com
+passes.com
+quicknode.com
+sorcerer.net
+stand.ai
