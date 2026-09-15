@@ -5416,3 +5416,9 @@ loot.io
 # Common Crawl discovery batch (merge_discovered_batch.py)
 entouragevc.com
 ensodata.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+enviromedica.com
+eos-imaging.com
+newglobesandbox.com
+equal.com
