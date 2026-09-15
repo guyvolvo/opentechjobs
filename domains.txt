@@ -5405,3 +5405,10 @@ eqltech.ai
 entaingroup.com
 nen.co
 hanover.org
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+enexor.com
+epignosis.io
+escape-velocity.com
+efm.io
+loot.io
