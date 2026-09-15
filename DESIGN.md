@@ -574,7 +574,10 @@ dot. Under it, half that line's height, thirty company logos run left over
 stays paper in dark mode, because logos are drawn for a light page. The
 hand-picked big tech and startups in `api/hot_companies.py` come first,
 busiest first, and the busiest other companies with a logo fill any
-slots left. A logo that fails to load leaves the row. Below the hero, the features as full-width
+slots left. A logo that fails to load leaves the row. Either row can be
+grabbed and thrown, with a mouse or a finger: it takes the speed and
+direction of the throw, holds close to it, and eases back into its drift
+over 2.6 seconds. Vertical swipes still scroll the page. Below the hero, the features as full-width
 rows under a 2px rule, heading in Display / Feature beside a 16px
 paragraph, each rising into place once as it scrolls into view on an
 exponential ease-out; visible without script, and without that motion

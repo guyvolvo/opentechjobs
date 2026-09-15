@@ -91,7 +91,7 @@
         return `<span class="hero-ticker-item"><span class="hero-num">${num}</span> ${label}</span>`;
       }
       function logo(c) {
-        return `<span class="hero-logo"><img src="${esc(c.logo_url)}" alt="" loading="eager" decoding="async" /></span>`;
+        return `<span class="hero-logo"><img src="${esc(c.logo_url)}" alt="" loading="eager" decoding="async" draggable="false" /></span>`;
       }
       function fill(el, items, minItems) {
         // Repeated until one copy is wider than any screen, then doubled, so
@@ -151,6 +151,97 @@
           });
         }, { rootMargin: "0px 0px -12% 0px", threshold: 0.2 });
         document.querySelectorAll(".hero-feature, .hero-cta").forEach((el) => io.observe(el));
+      }
+
+      // Either row can be thrown. Drag it and let go: it takes the speed and
+      // direction of the last tenth of a second of the drag, holds close to
+      // it, then eases back into its own drift over SPIN_MS. The CSS
+      // animation is the fallback where this can't run; once it does, it
+      // moves the tracks itself.
+      if ("ResizeObserver" in window && window.PointerEvent) {
+        const SPIN_MS = 2600;
+        const MAX_THROW = 8000; // px per second
+        const SAMPLE_MS = 100;
+        const block = document.querySelector(".hero-block");
+        const rows = [
+          { el: document.querySelector(".hero-ticker.to-right"), track: document.getElementById("ticker-top"), seconds: 60, dir: 1 },
+          { el: document.querySelector(".hero-logos"), track: document.getElementById("ticker-logos"), seconds: 38, dir: -1 },
+        ].map((r) => ({ ...r, seconds: r.seconds * (reduce ? 3 : 1), half: 0, x: 0, drag: null, spin: null }));
+
+        // Each track holds its content twice, so any position can be folded
+        // back into one half's width without a visible jump.
+        const wrap = (r, x) => { if (!r.half) return 0; x %= r.half; return x > 0 ? x - r.half : x; };
+        const place = (r) => { r.track.style.transform = `translate3d(${r.x}px,0,0)`; };
+        const drift = (r) => (r.half / r.seconds) * r.dir;
+        const smooth = (t) => t * t * (3 - 2 * t);
+
+        // Content changes width when stats arrive and when a broken logo
+        // leaves, so the half width is re-read then, not on every frame.
+        const sizes = new ResizeObserver(() => rows.forEach((r) => {
+          r.half = r.track.scrollWidth / 2;
+          r.x = wrap(r, r.x);
+        }));
+        rows.forEach((r) => sizes.observe(r.track));
+
+        let last = 0, running = false;
+        function frame(now) {
+          const dt = last ? Math.min(now - last, 50) / 1000 : 0;
+          last = now;
+          for (const r of rows) {
+            if (r.drag) continue;
+            let v = drift(r);
+            if (r.spin) {
+              const t = (now - r.spin.start) / SPIN_MS;
+              if (t >= 1) r.spin = null;
+              else v += (r.spin.v - v) * (1 - smooth(t));
+            }
+            r.x = wrap(r, r.x + v * dt);
+            place(r);
+          }
+          if (running) requestAnimationFrame(frame);
+        }
+        // Only while the band is on screen.
+        new IntersectionObserver(([entry]) => {
+          if (entry.isIntersecting && !running) { running = true; last = 0; requestAnimationFrame(frame); }
+          else if (!entry.isIntersecting) running = false;
+        }).observe(block);
+
+        rows.forEach((r) => {
+          r.el.addEventListener("pointerdown", (e) => {
+            if (e.button !== 0) return;
+            r.el.setPointerCapture(e.pointerId);
+            r.drag = { id: e.pointerId, lastX: e.clientX, samples: [{ t: e.timeStamp, x: e.clientX }] };
+            r.spin = null;
+            r.el.classList.add("is-dragging");
+          });
+          r.el.addEventListener("pointermove", (e) => {
+            const d = r.drag;
+            if (!d || e.pointerId !== d.id) return;
+            r.x = wrap(r, r.x + (e.clientX - d.lastX));
+            d.lastX = e.clientX;
+            place(r);
+            d.samples.push({ t: e.timeStamp, x: e.clientX });
+            while (d.samples.length > 2 && e.timeStamp - d.samples[0].t > SAMPLE_MS) d.samples.shift();
+          });
+          // A cancel is the browser taking the touch for a vertical scroll:
+          // the row lets go the same way, just without much of a throw.
+          const release = (e) => {
+            const d = r.drag;
+            if (!d || e.pointerId !== d.id) return;
+            r.drag = null;
+            r.el.classList.remove("is-dragging");
+            const recent = d.samples.filter((p) => e.timeStamp - p.t <= SAMPLE_MS);
+            let v = 0;
+            if (recent.length > 1) {
+              const a = recent[0], b = recent[recent.length - 1];
+              if (b.t > a.t) v = ((b.x - a.x) / (b.t - a.t)) * 1000;
+            }
+            r.spin = { start: performance.now(), v: Math.max(-MAX_THROW, Math.min(MAX_THROW, v)) };
+          };
+          r.el.addEventListener("pointerup", release);
+          r.el.addEventListener("pointercancel", release);
+        });
+        block.classList.add("is-live");
       }
     })();
   </script>

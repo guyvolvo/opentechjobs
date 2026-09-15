@@ -3278,7 +3278,18 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   background: var(--paper-fixed);
   border-radius: 4px;
 }
-.hero-logo img { width: 62%; height: 62%; object-fit: contain; }
+.hero-logo img { width: 62%; height: 62%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+/* Once the page script moves the rows, the CSS drift stops and each row
+   can be grabbed and thrown (hero.html). pan-y leaves vertical swipes to
+   the page, so a phone still scrolls past the band. */
+.hero-block.is-live .hero-ticker-track { animation: none; }
+.hero-block.is-live .hero-ticker {
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.hero-block.is-live .hero-ticker.is-dragging { cursor: grabbing; }
 @keyframes hero-ticker-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 @keyframes hero-ticker-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .hero-ticker-item { display: inline-flex; align-items: center; }

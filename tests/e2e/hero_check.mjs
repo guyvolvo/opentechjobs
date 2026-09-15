@@ -2,7 +2,9 @@
 // carries real numbers, the logo row under it is half its height, drops a
 // logo that fails to load, and runs the other way, the green band shows
 // the same margin above and below, the wordmark fits, nothing scrolls
-// sideways, and the feature rows reveal on scroll. Screenshots.
+// sideways, the feature rows reveal on scroll, and a row thrown with the
+// mouse flies the way it was thrown, then eases back into its drift.
+// Screenshots.
 // Run from tests/e2e:  node hero_check.mjs
 import { chromium, devices } from "@playwright/test";
 import { spawn } from "node:child_process";
@@ -107,6 +109,36 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
     check(`${tag}: the logo row shows the logos and drops the broken one`, m.tiles >= 60 && m.tiles % 6 === 0 && m.broken === 0, JSON.stringify({ tiles: m.tiles, broken: m.broken }));
     check(`${tag}: logo row is half the numbers line`, Math.abs(m.logosH / m.numbersH - 0.5) < 0.02 && Math.abs(m.tileH - m.logosH) < 1, JSON.stringify({ numbersH: m.numbersH, logosH: m.logosH, tileH: m.tileH }));
     check(`${tag}: numbers move right, logos move left`, later.top1 > m.top0 && later.bottom1 < m.bottom0, JSON.stringify({ ...m, ...later }));
+    // Throw the logo row to the right, against its leftward drift.
+    if (label === "desktop") {
+      const row = await page.locator(".hero-logos").boundingBox();
+      const y = row.y + row.height / 2;
+      const speed = async () => {
+        const read = () => page.evaluate(() => {
+          const tr = document.getElementById("ticker-logos");
+          return { x: new DOMMatrixReadOnly(getComputedStyle(tr).transform).m41, half: tr.scrollWidth / 2, t: performance.now() };
+        });
+        const a = await read();
+        await page.waitForTimeout(150);
+        const b = await read();
+        let d = b.x - a.x;
+        if (d > a.half / 2) d -= a.half;
+        if (d < -a.half / 2) d += a.half;
+        return Math.round(d / ((b.t - a.t) / 1000));
+      };
+      const drift = await speed();
+      await page.mouse.move(300, y);
+      await page.mouse.down();
+      for (let i = 1; i <= 10; i++) { await page.mouse.move(300 + i * 50, y); await page.waitForTimeout(6); }
+      await page.mouse.up();
+      const thrown = await speed();
+      await page.waitForTimeout(3000);
+      const settled = await speed();
+      const speeds = JSON.stringify({ drift, thrown, settled });
+      check(`${tag}: the logo row drifts left before the throw`, drift < 0, speeds);
+      check(`${tag}: a throw to the right sends the logos right, fast`, thrown > Math.abs(drift) * 4, speeds);
+      check(`${tag}: after the spin the logos ease back into their drift`, settled < 0 && Math.abs(settled - drift) <= Math.abs(drift) * 0.3, speeds);
+    }
     check(`${tag}: the search link names the count`, m.cta === "176,465 open jobs", m.cta);
     if (theme === "dark") check(`${tag}: dark theme applied`, m.theme === "dark", String(m.theme));
 
