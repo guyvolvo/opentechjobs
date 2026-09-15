@@ -5412,3 +5412,7 @@ epignosis.io
 escape-velocity.com
 efm.io
 loot.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+entouragevc.com
+ensodata.com
