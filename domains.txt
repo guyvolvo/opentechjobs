@@ -5389,3 +5389,14 @@ hammerhead-ai.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 order.co
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+eumedical.com
+eramtalent.com
+emerging.ai
+epos.com
+australian-christian-college.com
+euromonitor.com
+envalior.com
+envisiones.com
+eqltech.ai
