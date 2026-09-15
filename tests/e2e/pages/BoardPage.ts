@@ -67,7 +67,7 @@ export class BoardPage {
     }).toPass();
   }
 
-  /** The "of N" in "1–50 of 118,974 open listings", or null when empty. */
+  /** The "of N" in "Showing 1–50 of 118,974 roles", or null when empty. */
   async total(): Promise<number | null> {
     if (await this.emptyState.isVisible()) return 0;
     const text = (await this.resultCount.textContent()) ?? "";

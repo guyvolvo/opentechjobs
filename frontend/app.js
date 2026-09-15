@@ -1919,6 +1919,15 @@ async function renderStarredOnly(starred, seq, inFlight) {
 // in the one place the reader is looking for an explanation.
 let matchedSkills = new Set();
 
+// What the count is counting, in the words of the view the reader is in:
+// every role on the board, the ones their filters leave, or the ones their
+// CV matches. activeFilterSummary is the list the sidebar's scope line
+// names, so the two never disagree about whether a filter is on.
+function resultNoun() {
+  if (currentView() === "matches") return "roles matching your CV";
+  return activeFilterSummary().length ? "matching roles" : "roles";
+}
+
 function renderJobs(data, starred) {
   matchedSkills = new Set(data.matched_skills || []);
   document.getElementById("pagination").style.display = "flex";
@@ -1934,7 +1943,7 @@ function renderJobs(data, starred) {
   const from = state.offset + 1;
   const to = Math.min(state.offset + data.jobs.length, data.total);
   document.getElementById("result-count").innerHTML =
-    `<b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> open listings`;
+    `Showing <b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> ${resultNoun()}`;
 }
 
 // "Company · Department · Location (Workplace)" -- one scannable line

@@ -405,6 +405,14 @@ def route_jobs(params: dict) -> dict:
         order_sql = f"({score_sql} - {age_steps}) DESC, {order_sql}"
         order_args = list(score_args)
 
+    # The last word goes to id. Many listings share a posted_at to the
+    # second (Workday and Amazon often post a date with no time), and
+    # SQLite is free to order tied rows differently from one query to the
+    # next, so with LIMIT/OFFSET a listing could land on two pages and
+    # another on none. A unique last key makes every page a clean slice of
+    # one fixed order. loader/bootstrap.py ends its first page the same way.
+    order_sql = f"{order_sql}, id DESC"
+
     limit = _int_param(params, "limit", default=100, lo=1, hi=500)
     offset = _int_param(params, "offset", default=0, lo=0, hi=10_000_000)
 

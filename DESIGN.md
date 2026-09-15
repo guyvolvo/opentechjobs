@@ -438,7 +438,10 @@ actually follow the curve.
 Show all, Best matches and Saved are one segmented control above the
 result count, the same `.seg` control as the Explore page. Filters apply
 in every view. Best matches narrows what they leave to listings that share
-at least one CV skill, and the count says how many that is. In that view
+at least one CV skill, and the count says how many that is. The count
+names the view it counts: "Showing 1–50 of 177,539 roles" with nothing
+applied, "matching roles" once any filter or search is on, and "roles
+matching your CV" in Best matches. Numbers bold, the rest grey. In that view
 a panel names the CV skills, folded under a "My skills" toggle with the
 count and a chevron (folded by default, the choice kept per browser), each
 skill removable once open. Every matching row says how many of them it

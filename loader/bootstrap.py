@@ -94,7 +94,9 @@ def build(db_path: Path) -> dict:
             -- datetime(), and NULLs last, matching route_jobs exactly:
             -- posted_at is TEXT and rows predating _normalize_date can
             -- carry other offsets, which a lexicographic sort gets wrong.
-            ORDER BY posted_at IS NULL, datetime(posted_at) DESC
+            -- id last, as route_jobs does, so tied posting times come out
+            -- in the same order here as on the API's own first page.
+            ORDER BY posted_at IS NULL, datetime(posted_at) DESC, id DESC
             LIMIT ? OFFSET 0
             """,
             (PAGE_SIZE,),
