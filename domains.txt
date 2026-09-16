@@ -5440,3 +5440,8 @@ enigmaticsmile.com
 enterprise.com
 erna.ai
 escuela.fr
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+wayve.fr
+villagegreen1.com
+hinge.com
