@@ -3500,32 +3500,56 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 /* The reason the board exists, so it is the largest of the four. */
 .hero-feature.feature-lead h2 { font-size: clamp(36px, 5.4vw, 5rem); }
-/* A MacBook, from the hinge up: aluminium bezel, a camera above the
-   screen, and no bottom edge, because the section ends before it does. */
+/* A laptop lid, from the hinge up, drawn to a real machine's proportions:
+   on a 14-inch MacBook Pro the bezel is 1.8% of the lid's width at the
+   sides, the screen's corners are round at 2.1% of its width, and the
+   notch is 12.4% of that width by 3.3% of the screen's height. Those are
+   measurements of an object, taken off Apple's own bezel art with a
+   script; none of that art is used here, and the drawing is ours: a flat
+   case, a drawn edge, no rendered aluminium. */
 .showcase-device {
-  width: min(980px, 100%);
+  --screen-w: min(980px, 100%);
+  --bezel: calc(var(--screen-w) * 0.018);
+  position: relative;
+  width: var(--screen-w);
   height: clamp(200px, 34vw, 480px);
   margin: clamp(36px, 5vw, 72px) auto 0;
-  padding: 12px 12px 0;
-  border-radius: 18px 18px 0 0;
+  padding: calc(var(--bezel) * 1.6) var(--bezel) 0;
+  border-radius: 14px 14px 0 0;
   background: var(--device-case);
   /* The case is near black, and so is the page in dark mode, so its edge
      is drawn rather than left to the difference between the two. */
   border: 1px solid var(--device-edge);
   border-bottom: 0;
 }
+/* The notch, and the camera sitting in it. */
 .showcase-device::before {
   content: "";
-  display: block;
-  width: 5px;
-  height: 5px;
-  margin: 1px auto 5px;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: calc(var(--screen-w) * 0.08);
+  height: calc(var(--bezel) * 1.1);
+  transform: translateX(-50%);
+  border-radius: 0 0 5px 5px;
+  background: var(--device-case);
+  z-index: 1;
+}
+.showcase-device::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(var(--bezel) * 0.5);
+  width: 4px;
+  height: 4px;
+  transform: translateX(-50%);
   border-radius: 50%;
   background: var(--device-lens);
+  z-index: 2;
 }
 .device-screen {
   height: 100%;
-  border-radius: 8px 8px 0 0;
+  border-radius: calc(var(--screen-w) * 0.021) calc(var(--screen-w) * 0.021) 0 0;
   background-image: var(--board-shot);
   background-size: cover;
   background-position: top center;
@@ -3535,26 +3559,39 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   /* An iPhone instead, so the shot is the board's own phone layout. */
   .hero-showcase { --board-shot: url("/img/board-phone-light.webp?v=2"); }
   :root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-phone-dark.webp?v=2"); }
+  /* A phone, to an iPhone 17 Pro's proportions: the bezel is 3.7% of the
+     lid's width, the screen's corners are round at 16.4% of its width, and
+     the island is 22.6% of that width. Measured the same way, drawn the
+     same way. */
   .showcase-device {
-    position: relative;
-    width: min(300px, 78%);
+    --screen-w: min(300px, 78%);
+    --bezel: calc(var(--screen-w) * 0.037);
+    width: var(--screen-w);
     height: clamp(300px, 86vw, 420px);
-    padding: 10px 10px 0;
-    border-radius: 42px 42px 0 0;
+    padding: var(--bezel) var(--bezel) 0;
+    border-radius: calc(var(--screen-w) * 0.2) calc(var(--screen-w) * 0.2) 0 0;
+  }
+  /* The status strip a phone keeps above the page, and the island in it.
+     Without it the board's own topbar runs under the island. */
+  .showcase-device {
+    --island-top: calc(var(--bezel) + var(--screen-w) * 0.022);
+    --island-h: calc(var(--screen-w) * 0.052);
+    /* Deeper than the island's bottom edge, so the board's own topbar
+       begins under it rather than beside it. */
+    --status: calc(var(--island-top) + var(--island-h) + var(--screen-w) * 0.03);
   }
   .showcase-device::before {
-    position: absolute;
-    left: 50%;
-    top: 20px;
-    width: 74px;
-    height: 22px;
-    margin: 0;
-    border-radius: 12px;
-    background: var(--device-case);
-    transform: translateX(-50%);
-    z-index: 1;
+    top: var(--island-top);
+    width: calc(var(--screen-w) * 0.2);
+    height: var(--island-h);
+    border-radius: 999px;
   }
-  .device-screen { border-radius: 32px 32px 0 0; }
+  .showcase-device::after { display: none; }
+  .device-screen {
+    background-position: top calc(var(--status)) center;
+    background-repeat: no-repeat;
+    border-radius: calc(var(--screen-w) * 0.164) calc(var(--screen-w) * 0.164) 0 0;
+  }
 }
 
 .hero-features {
