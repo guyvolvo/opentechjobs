@@ -2054,6 +2054,34 @@ table.jobs thead th[data-sort="age"] { text-align: center; }
   animation: status-spin 0.9s linear infinite;
 }
 
+/* Run query, while it runs. The ring rides in the button rather than
+   beside it, so the button keeps its width and nothing on the row shifts:
+   the label fades out under it. Driven by body.explore-busy, which run()
+   sets on entry and clears in its finally, so a timeout or a failure stops
+   the ring as surely as an answer does. Same turning ring as the board's
+   status glyph, same keyframe. */
+#explore-run {
+  position: relative;
+}
+.btn-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 19px;
+  height: 19px;
+  margin: -9.5px 0 0 -9.5px;
+  opacity: 0;
+  color: currentColor;
+  pointer-events: none;
+}
+.explore-busy #explore-run .btn-label { opacity: 0; }
+.explore-busy #explore-run .btn-spinner {
+  opacity: 1;
+  animation: status-spin 0.9s linear infinite;
+}
+/* A button mid-query should not invite a second click. */
+.explore-busy #explore-run { cursor: progress; }
+
 /* Footer */
 
 footer {
@@ -2688,7 +2716,8 @@ footer {
   /* Still turning, at under half the speed. A stopped spinner reads as a
      hung one, which is the exact worry this state exists to remove. */
   .status-icon.updating,
-  .loading-spinner { animation-duration: 2.4s; }
+  .loading-spinner,
+  .btn-spinner { animation-duration: 2.4s; }
 }
 
 /* Screen-reader-only announcement for the skeleton states above. The
