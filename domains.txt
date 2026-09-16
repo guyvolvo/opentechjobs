@@ -5449,3 +5449,12 @@ hinge.com
 # Common Crawl discovery batch (merge_discovered_batch.py)
 efm.com
 flyability.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+kubera-health.com
+life.com
+careers.com
+ark.io
+cosy.ai
+dc-enterprises.com
+escuela.com
