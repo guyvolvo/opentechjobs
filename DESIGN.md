@@ -12,6 +12,8 @@ colors:
   row-hover: "#e6e3df"
   row-selected: "#dce8d4"
   green-text: "#3f6f45"
+  logo-band: "#edf0ec"
+  logo-band-rule: "#d6ded6"
 typography:
   display-wordmark:
     fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
@@ -607,19 +609,24 @@ else can I build.
    live count: "177,871 open jobs, read directly from company hiring
    systems and career sites. Never reposted from another board." Two
    doors follow, an ink button to the board and a plain link to the API,
-   then one 14px line saying what the board does for the reader, ending
-   in "Salary estimates*". The asterisk is real: a 12px note under it
-   says an estimate comes from other companies' disclosed pay, can be
-   wrong, and is never what the company said. A figure that reads as a
-   posted salary is the kind of wrong that costs someone a negotiation.
+   and nothing else. A pair of bullets about CV matching and salary
+   estimates lived here and said what the feature rows below already
+   say.
 3. Proof of scale, on the page's own paper: a ticker of live numbers in
    Display / Hero Ticker drifting right over 60 seconds, its figures in
    Green Text, and under it a row of company logos running left over 38.
    Both run the full width and fade out at the window's edges rather than
-   being cut by them. The marks are greyscale at 55%, inverted in dark
-   mode so a black logo is still a logo, and they carry no tile: a row of
-   grey marks says who is hiring, where a wall of colour says who paid.
-   (Paper Fixed went with the tiles.)
+   being cut by them. The marks stand on a light band (Logo Band, under a
+   hairline of Logo Band Rule), the same in either theme, and carry one
+   filter: greyscale with a contrast lift, never a fade. Measured on the
+   live row they fall into two families, a third of them white on
+   transparent and the rest dark, and no single filter serves both: on a
+   dark page the dark marks read 1.00 against the ground, on paper the
+   white ones read 1.15. One light band is the only ground that suits
+   both, and it is why there is no theme-specific filter. The white
+   family still reads faintly even on the band and wants its own
+   treatment. Greyscale, not colour: a row of grey marks says who is
+   hiring, where a wall of colour says who paid.
    It was a green band for a while and read as a second headline. Both
    rows can be grabbed and thrown (see below).
 4. The product itself, in a card: the photograph and its veil held off

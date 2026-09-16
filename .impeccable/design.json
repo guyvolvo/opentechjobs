@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-16T10:27:24Z",
+  "generatedAt": "2026-09-16T11:00:14Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -173,6 +173,38 @@
           "#caffce"
         ],
         "note": "Signal Green wherever text is involved, 5.18:1 on paper. Dark mode same as Signal Green."
+      },
+      "logo-band": {
+        "role": "neutral",
+        "displayName": "Logo Band",
+        "canonical": "#edf0ec",
+        "oklch": "oklch(95.2% 0.006 137.8)",
+        "tonalRamp": [
+          "#0a0c09",
+          "#242623",
+          "#404340",
+          "#5f625f",
+          "#808380",
+          "#a3a6a2",
+          "#c7cac6",
+          "#ecefeb"
+        ]
+      },
+      "logo-band-rule": {
+        "role": "neutral",
+        "displayName": "Logo Band Rule",
+        "canonical": "#d6ded6",
+        "oklch": "oklch(89.2% 0.014 145.5)",
+        "tonalRamp": [
+          "#080d08",
+          "#212721",
+          "#3e443e",
+          "#5c635d",
+          "#7d857d",
+          "#a0a7a0",
+          "#c4ccc4",
+          "#e9f1e9"
+        ]
       },
       "aws-operational": {
         "role": "status",
