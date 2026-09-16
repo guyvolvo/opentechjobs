@@ -686,7 +686,18 @@ button, input, select {
    natural width, so one long unbreakable value (a table row, a bar-list
    name) forces the whole page wider instead of wrapping locally. */
 .workspace > #board,
-.workspace > .stats-board {
+.workspace > .stats-board,
+/* Every other page puts a plain .section in this same grid and none of
+   them were given the same treatment: the API reference, privacy, 404,
+   account and the board itself all match. It went unnoticed while their
+   content had nothing unbreakable in it. A full curl example is one
+   574px line, and the API reference's code blocks are already
+   overflow-x:auto so they can scroll on their own; without this the
+   grid item refuses to shrink and the document goes 634px wide on a
+   390px phone instead. Measured on all five before and after: doc
+   width, grid columns and every panel width are identical, so this
+   only ever releases a constraint nothing was relying on. */
+.workspace > .section {
   min-width: 0;
 }
 
@@ -2215,10 +2226,25 @@ footer {
    Lambda itself -- moved off this footer 2026-09-08, see index.html's
    own footer-meta link) reuses .api-endpoint/.api-params/.api-method
    above plus these three, its only page-specific rules. */
+/* Section headings on the API reference. The page used to be one flat
+   run of endpoints, so an h3 only ever had to sit at the very top and
+   needed no space above it. Now it divides the page into what the API
+   is, how to call it, and the routes themselves, so it has to read as a
+   break. Uppercase and tracking rather than a larger size: it stays a
+   label at the same 12px the sidecar already documents. */
 .api-help h3 {
   font-size: 12px;
-  margin: 0 0 16px;
+  margin: 40px 0 14px;
+  padding-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--grey-line);
 }
+.api-help h3:first-of-type { margin-top: 32px; }
+/* The heading already drew a rule, and .api-endpoint draws its own on
+   top. Without this the first endpoint under every heading sits under
+   two lines 8px apart. */
+.api-help h3 + .api-endpoint { border-top: none; padding-top: 0; }
 .api-help-intro { font-size: 12.5px; color: var(--grey); max-width: 720px; margin: 0 0 28px; }
 /* Deliberately fixed, not var(--black)/var(--white). A terminal/code
    block stays dark regardless of the page's own light/dark state. */
