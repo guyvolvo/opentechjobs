@@ -83,4 +83,26 @@ jobs:
           git add domains.txt pending-discovery-candidates.json
           git diff --cached --quiet && echo "nothing changed this run" && exit 0
           git commit -m "Merge one batch of discovered companies"
-          git push
+          # Rebase before pushing, and retry. This step ran a bare push and
+          # lost a whole batch to it on 2026-09-16: the merge had already
+          # resolved its 80 companies and committed them, then the push was
+          # rejected because a person had pushed to main in the four minutes
+          # the run took. The concurrency group above only stops this
+          # workflow racing itself, not racing a human or discover-companies.
+          #
+          # The queue file is the contended one, and it is rewritten wholesale
+          # rather than edited, so a rebase conflicts on it every time.
+          # -X theirs, not ours: during a rebase "ours" is the upstream being
+          # replayed onto and "theirs" is the commit being replayed, so theirs
+          # is this run's work. Verified rather than recalled, because the
+          # names read backwards. Keeping this run's version is what we want:
+          # it already popped those candidates and pushed their companies to
+          # known.json in S3, so restoring the remote's older queue would
+          # re-merge work that is done.
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            git pull --rebase -X theirs origin main || git rebase --abort
+            sleep $((attempt * 5))
+          done
+          echo "push still rejected after 3 attempts" >&2
+          exit 1

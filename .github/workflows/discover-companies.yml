@@ -55,4 +55,23 @@ jobs:
           git add pending-discovery-candidates.json
           git diff --cached --quiet && echo "nothing changed this run" && exit 0
           git commit -m "Refresh discovery queue with newly found companies"
-          git push
+          # Same race merge-discovered-companies.yml hit on 2026-09-16, and
+          # worse here: this run takes ten minutes of CDX requests across
+          # three crawl snapshots, so the window for someone else to push is
+          # wide, and losing it throws away the whole discovery pass.
+          #
+          # -X theirs keeps this run's queue on conflict. In a rebase "theirs"
+          # is the commit being replayed, which is ours in the everyday sense;
+          # the names read backwards and this was checked rather than assumed.
+          # A merge running alongside will have popped candidates off the
+          # front of the queue while this rebuilt it from scratch, so neither
+          # version is a superset. This one carries the newly discovered
+          # companies, which is what another full CDX pass would be needed to
+          # recover.
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            git pull --rebase -X theirs origin main || git rebase --abort
+            sleep $((attempt * 5))
+          done
+          echo "push still rejected after 3 attempts" >&2
+          exit 1
