@@ -7090,3 +7090,6 @@ ripplesedgemedia.com
 tidepool.com
 vitruinternationalexecutiverecruitment.com
 wisersolutions.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+zenosynekft.com
