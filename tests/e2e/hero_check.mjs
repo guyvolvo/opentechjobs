@@ -139,6 +139,31 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       check(`${tag}: a throw to the right sends the logos right, fast`, thrown > Math.abs(drift) * 4, speeds);
       check(`${tag}: after the spin the logos ease back into their drift`, settled < 0 && Math.abs(settled - drift) <= Math.abs(drift) * 0.3, speeds);
     }
+    // The product shot: the right screenshot for this screen, actually
+    // loaded, and a device the section cuts off rather than fitting whole.
+    const product = await page.evaluate(async () => {
+      const dev = document.querySelector(".showcase-device");
+      const screen = document.querySelector(".device-screen");
+      const url = getComputedStyle(screen).backgroundImage.match(/url\("?([^")]+)"?\)/)?.[1] || "";
+      let ok = false;
+      try {
+        const img = new Image();
+        img.src = url;
+        await img.decode();
+        ok = img.naturalWidth > 200;
+      } catch {}
+      const sect = document.querySelector(".hero-showcase").getBoundingClientRect();
+      const box = dev.getBoundingClientRect();
+      const cta = document.querySelector(".showcase-cta");
+      return { url, ok, cut: box.bottom >= sect.bottom - 1, wider: box.width <= sect.width,
+        cta: cta.textContent.trim(), href: cta.getAttribute("href"),
+        heading: document.querySelector(".hero-showcase h2").textContent.trim() };
+    });
+    check(`${tag}: the product shot loads the right screenshot`,
+      product.ok && product.url.includes(label === "phone" ? "board-phone" : "board-desktop") && product.url.includes(theme),
+      JSON.stringify(shot));
+    check(`${tag}: the device is cut off by the section`, product.cut && product.wider, JSON.stringify(shot));
+    check(`${tag}: the button invites you to the board`, product.cta === "Explore open jobs" && product.href === "/", JSON.stringify(shot));
     check(`${tag}: the search link names the count`, m.cta === "176,465 open jobs", m.cta);
     if (theme === "dark") check(`${tag}: dark theme applied`, m.theme === "dark", String(m.theme));
 

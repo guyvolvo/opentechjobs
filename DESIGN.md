@@ -580,7 +580,15 @@ busiest first, and the busiest other companies with a logo fill any
 slots left. A logo that fails to load leaves the row. Either row can be
 grabbed and thrown, with a mouse or a finger: it takes the speed and
 direction of the throw, holds close to it, and eases back into its drift
-over 2.6 seconds. Vertical swipes still scroll the page. Below the hero, the features as full-width
+over 2.6 seconds. Vertical swipes still scroll the page. Under the band, the product shot: "The Open Job Board" in Display /
+Feature over a line of copy and an ink "Explore open jobs" button, all
+centred on art (`--showcase-bg`, a gradient until a photograph replaces
+it). Below them the board itself fills a device the section cuts off at
+the bottom edge, a MacBook from the hinge up on a desktop and an iPhone
+on a phone, each showing that screen's own screenshot in the reader's
+theme. The shots are decoration: the words above carry the meaning.
+
+Below that, the features as full-width
 rows under a 2px rule, heading in Display / Feature beside a 16px
 paragraph, each rising into place once as it scrolls into view on an
 exponential ease-out; visible without script, and without that motion

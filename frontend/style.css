@@ -3304,6 +3304,100 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   background: currentColor;
 }
 
+/* The product shot: a line about the board over the board itself, on a
+   laptop the section cuts off at the bottom edge. --showcase-bg is the
+   art behind it; swap the gradient for url("/img/<file>") to use a photo.
+   --board-shot is the screenshot on the screen, a MacBook's on a desktop
+   and an iPhone's on a phone, each in the reader's own theme. */
+.hero-showcase {
+  --showcase-bg: linear-gradient(180deg, var(--white) 0%, var(--hover-tint) 46%, var(--green-text) 100%);
+  --board-shot: url("/img/board-desktop-light.webp");
+  position: relative;
+  overflow: hidden;
+  padding: clamp(56px, 8vw, 120px) var(--gutter) 0;
+  text-align: center;
+  background: var(--showcase-bg);
+  background-size: cover;
+  background-position: center;
+}
+:root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+}
+.hero-showcase h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(32px, 4.6vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: var(--black);
+}
+.hero-showcase p {
+  max-width: 46ch;
+  margin: 0.7em auto 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--black);
+}
+.showcase-cta { margin-top: clamp(20px, 2.6vw, 32px); }
+/* A MacBook, from the hinge up: aluminium bezel, a camera above the
+   screen, and no bottom edge, because the section ends before it does. */
+.showcase-device {
+  width: min(1040px, 100%);
+  height: clamp(200px, 34vw, 480px);
+  margin: clamp(36px, 5vw, 72px) auto 0;
+  padding: 12px 12px 0;
+  border-radius: 18px 18px 0 0;
+  background: #1d1d1f;
+  /* The case is near black, and so is the page in dark mode, so its edge
+     is drawn rather than left to the difference between the two. */
+  border: 1px solid #48484a;
+  border-bottom: 0;
+}
+.showcase-device::before {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 5px;
+  margin: 1px auto 5px;
+  border-radius: 50%;
+  background: #3a3a3c;
+}
+.device-screen {
+  height: 100%;
+  border-radius: 8px 8px 0 0;
+  background-image: var(--board-shot);
+  background-size: cover;
+  background-position: top center;
+  background-color: var(--white);
+}
+@media (max-width: 720px) {
+  /* An iPhone instead, so the shot is the board's own phone layout. */
+  .hero-showcase { --board-shot: url("/img/board-phone-light.webp"); }
+  :root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-phone-dark.webp"); }
+  .showcase-device {
+    position: relative;
+    width: min(300px, 78%);
+    height: clamp(300px, 86vw, 420px);
+    padding: 10px 10px 0;
+    border-radius: 42px 42px 0 0;
+  }
+  .showcase-device::before {
+    position: absolute;
+    left: 50%;
+    top: 20px;
+    width: 74px;
+    height: 22px;
+    margin: 0;
+    border-radius: 12px;
+    background: #1d1d1f;
+    transform: translateX(-50%);
+    z-index: 1;
+  }
+  .device-screen { border-radius: 32px 32px 0 0; }
+}
+
 .hero-features {
   padding: clamp(56px, 9vw, 140px) var(--gutter) clamp(24px, 4vw, 56px);
 }
