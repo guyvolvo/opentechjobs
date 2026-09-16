@@ -3496,15 +3496,15 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    and finish are the mockup's own. One element, one image, no parts. */
 .showcase-device {
   width: min(980px, 100%);
-  aspect-ratio: 1.6546;
+  height: clamp(210px, 30vw, 430px);
   margin: clamp(36px, 5vw, 72px) auto 0;
-  background: url("/img/device-macbook.webp") bottom center / contain no-repeat;
+  background: url("/img/device-macbook.webp") top center / 100% auto no-repeat;
 }
 @media (max-width: 720px) {
   /* The phone mockup instead, carrying the board's own phone layout. */
   .showcase-device {
     width: min(300px, 78%);
-    aspect-ratio: 0.4831;
+    height: clamp(300px, 80vw, 420px);
     background-image: url("/img/device-iphone.webp");
   }
 }

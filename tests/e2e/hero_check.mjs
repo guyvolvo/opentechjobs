@@ -182,8 +182,8 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
     check(`${tag}: the device image loads, and it is the right one`,
       product.ok && product.url.includes(label === "phone" ? "device-iphone" : "device-macbook"),
       JSON.stringify({ url: product.url.slice(-28), ok: product.ok }));
-    check(`${tag}: the frame keeps the mockup's proportions`,
-      Math.abs(product.boxRatio - product.ratio) < 0.02,
+    check(`${tag}: the device is cut off at the foot, not shrunk to fit`,
+      product.boxRatio > product.ratio + 0.05,
       JSON.stringify({ box: product.boxRatio.toFixed(3), image: product.ratio.toFixed(3) }));
     check(`${tag}: the device sits inside the card`, product.inside, String(product.inside));
     check(`${tag}: the claim leads, the brand does not`,
