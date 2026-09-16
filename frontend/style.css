@@ -3499,7 +3499,10 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   .showcase-device {
     width: min(300px, 78%);
     height: clamp(300px, 80vw, 420px);
-    background-image: url("/img/device-iphone.webp");
+    /* The query string is bumped whenever the composite is re-exported.
+       The deploy stamps only the .js and .css the HTML names, so without
+       it the CDN and the reader's browser keep serving the old picture. */
+    background-image: url("/img/device-iphone.webp?v=2");
   }
 }
 
