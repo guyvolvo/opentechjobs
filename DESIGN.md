@@ -113,11 +113,12 @@ typography:
 rounded:
   none: "0px"
   default: "4px"
-  device-laptop: "18px"
-  device-laptop-screen: "8px"
-  device-phone: "42px"
-  device-phone-screen: "32px"
-  device-island: "12px"
+  device-laptop: "14px"
+  device-laptop-notch: "5px"
+  device-laptop-screen: "calc(var(--screen-w) * 0.021)"
+  device-phone: "calc(var(--screen-w) * 0.2)"
+  device-phone-screen: "calc(var(--screen-w) * 0.164)"
+  device-island: "999px"
   card-preview: "24px"
 spacing:
   gutter: "clamp(20px, 4vw, 64px)"
@@ -635,6 +636,19 @@ else can I build.
    Preview), with the board on a device the card cuts off at its foot, a
    MacBook on a desktop and an iPhone on a phone, each in the reader's
    theme. No caption: the picture is the sentence.
+   Both devices are drawn, and their shapes are measurements of real
+   objects rather than anyone's artwork: a script read Apple's bezel art
+   and the figures are written here as fractions of the screen's width, so
+   a frame at any size keeps a real machine's proportions. On a 14-inch
+   MacBook Pro the bezel is 1.8% of the lid's width, the screen's corners
+   round at 2.1%, and the notch is 12.4% wide with the camera in it; on an
+   iPhone 17 Pro the bezel is 3.7%, the corners 16.4%, and the island is
+   22.6% and a pill, sitting in a status strip deep enough that the
+   board's own topbar begins below it (Device / rounded). The case keeps
+   Device Case, Device Edge and Device Lens, none of which follows the
+   theme, because hardware doesn't. None of Apple's artwork ships: their
+   licence covers mock-ups of software that runs only on Apple systems and
+   excludes website content.
 5. Four features as full-width rows, direct-source listings first and
    largest because it is the reason the board exists, each rising into
    place as it scrolls in. Two claims inside them are marked with
