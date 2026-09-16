@@ -5445,3 +5445,7 @@ escuela.fr
 wayve.fr
 villagegreen1.com
 hinge.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+efm.com
+flyability.com
