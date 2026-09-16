@@ -19,8 +19,8 @@ wrong for a loader that already has a file open on disk.
 from datetime import datetime, timedelta, timezone
 
 from countries import label_for
-from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
-                         has_fts_index, has_places)
+from job_filters import (FRESH_CLAUSE, bool_param, build_jobs_where,
+                         has_fts_index, has_places, israel_clause)
 from hot_companies import GOOGLE_FAVICON, HOT_COMPANIES, LOGO_PINS
 
 
@@ -625,10 +625,10 @@ def compute_stats(conn, params: dict | None = None) -> dict:
 
     # `location` is raw ATS text, not a normalized place. "Austin" and
     # "Austin, TX" are different rows here, not merged. A top-N of literal
-    # strings, not a geocoded facet. Same IL_KEYWORDS match as route_jobs'
-    # israel_only: keep in sync, don't invent a second heuristic.
-    il_clause = " OR ".join("LOWER(location) LIKE ?" for _ in IL_KEYWORDS)
-    il_args = [f"%{kw}%" for kw in IL_KEYWORDS]
+    # strings, not a geocoded facet. The Israel match comes from
+    # israel_clause rather than being spelled out again here, so this and
+    # route_jobs' israel_only stay one heuristic instead of two that drift.
+    il_clause, il_args = israel_clause(has_places(conn))
 
     top_locations = conn.execute(
         f"""

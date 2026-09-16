@@ -928,7 +928,16 @@ BACKFILL_MAX_PER_RUN = 60_000
 # A version change re-tags the whole table, walked by id with the cursor
 # kept in meta so each run picks up where the last stopped rather than
 # redoing the same first 60,000 forever.
-PLACES_VERSION = "3"
+#
+# 4: two tzafon.com rows sat tagged US alone while the resolver read
+# "San Francisco / Tel Aviv / Zurich" as US,IL,CH, so israel_only found
+# them and country=IL did not. Nothing was wrong with the resolver. A row
+# written while the scrape Lambda still carried an older countries.py
+# arrives with a stale country already on it, which the insert above
+# takes at face value rather than recomputing, and the fill-only-what-is-
+# missing pass never revisits a row that holds a wrong answer instead of
+# no answer. Only a version bump heals those.
+PLACES_VERSION = "4"
 
 
 def _meta_get(conn: sqlite3.Connection, key: str) -> str | None:
