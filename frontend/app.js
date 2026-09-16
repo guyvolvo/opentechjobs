@@ -4529,11 +4529,10 @@ async function maybeAskCountry() {
     box.setAttribute("aria-labelledby", "geo-prompt-title");
     box.innerHTML = `
       <h2 id="geo-prompt-title">Are you in ${escapeHtml(where)}?</h2>
-      <p>The board shows every country by default. Filtering to ${escapeHtml(where)} takes one click, and you can change it any time.</p>
+      <p>To improve user experience we detect the client's location via AWS CloudFront to tailor your interface accordingly. If you do not wish to share your location please press skip, which will show the global job board.</p>
       <div class="geo-evidence">
         country <b>${escapeHtml(country)}</b><br />
-        read from <b>${escapeHtml(source || "unknown")}</b><br />
-        your network's edge location, not your device
+        read from <b>${escapeHtml(source || "unknown")}</b>
       </div>
       <div class="geo-actions">
         <button class="btn" id="geo-accept" type="button">Show ${escapeHtml(where)} jobs</button>

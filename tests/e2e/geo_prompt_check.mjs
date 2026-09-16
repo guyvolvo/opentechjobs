@@ -62,7 +62,9 @@ if (shown) {
     const acc = document.getElementById("geo-accept"), skip = document.getElementById("geo-skip");
     const cs = getComputedStyle(skip);
     return { title: b.querySelector("h2").innerText, evidence: b.querySelector(".geo-evidence").innerText.replace(/\s+/g, " "),
+             body: b.querySelector("p").innerText.replace(/\s+/g, " "),
              accept: acc.innerText, skipBg: cs.backgroundColor, skipWeight: cs.fontWeight,
+             acceptBg: getComputedStyle(acc).backgroundColor, acceptWeight: getComputedStyle(acc).fontWeight,
              modal: b.getAttribute("aria-modal"), scrim: !!document.querySelector(".geo-scrim") };
   });
   console.log("  ", JSON.stringify(info));
@@ -73,7 +75,16 @@ if (shown) {
   check("the button names it too", /Israel/.test(info.accept) && !/\bIL\b/.test(info.accept), info.accept);
   check("shows what was read", /cf-ipcountry/.test(info.evidence), info.evidence);
   check("has a scrim and is a modal", info.scrim && info.modal === "true");
-  check("skip is visually quieter than accept", info.skipWeight !== "700" || info.skipBg === "rgba(0, 0, 0, 0)", `${info.skipWeight} ${info.skipBg}`);
+  // The fill, not the weight. Neither button is bold any more, so a
+  // weight comparison would pass on two identical buttons and call it a
+  // hierarchy. What separates them is that accept is filled and skip is
+  // not, so that is what gets asserted.
+  check("skip is visually quieter than accept",
+        info.skipBg === "rgba(0, 0, 0, 0)" && info.acceptBg !== "rgba(0, 0, 0, 0)",
+        `skip=${info.skipBg} accept=${info.acceptBg}`);
+  check("accept is not bold", info.acceptWeight !== "700", info.acceptWeight);
+  check("explains the detection and the skip option",
+        /CloudFront/.test(info.body) && /skip/i.test(info.body), info.body);
   await page.screenshot({ path: `${OUT}/geo-prompt.png` });
   await page.click("#geo-accept");
   await page.waitForTimeout(800);

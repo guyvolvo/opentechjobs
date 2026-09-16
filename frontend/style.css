@@ -1193,6 +1193,10 @@ button, input, select {
 }
 .geo-evidence b { color: var(--black); font-weight: 700; }
 .geo-actions { display: flex; align-items: center; gap: 12px; }
+/* Neither button shouts. .btn is 700 everywhere else, which on a dialog
+   this small made the accept button the loudest thing on the screen,
+   ahead of the question it answers. The fill still carries the emphasis. */
+.geo-prompt .btn { font-weight: 400; }
 /* Skip is the quiet one. .btn-quiet is scoped to .alert-create, so it
    does not reach here, and without this both buttons render as the
    primary and Skip reads as the thing to press. Widening that selector
