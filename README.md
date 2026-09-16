@@ -1,68 +1,79 @@
-# Opentechjobs.org
+# OpenTechJobs
 
-Open-source Israeli tech job board. Scrapes job postings directly from ATS APIs, tracks them over time, and serves them through a small public API.
-
-Live at [opentechjobs.org](https://opentechjobs.org) (the old `openmarket.guyvoloshin.com` redirects there). MIT-licensed; see [privacy policy](https://opentechjobs.org/privacy.html) for what the alerts feature collects.
+Open-source Israeli tech job board. Scrapes job listings directly from ATS APIs, tracks them over time, and serves them through a lightweight public API.
 
 ## Architecture
 
-Two EventBridge Lambdas on 5-minute schedules. One polls, one writes. They are split because polling and writing scale differently: a sweep is cheap, but persisting one used to mean a 48MB pull-modify-push per partition it touched.
+To stay within a near-zero AWS budget, the system runs on an S3-hosted SQLite database (`jobs-read.db`) instead of an always-on RDS instance.
+
+The pipeline uses two EventBridge Lambdas running on 5-minute schedules. Polling and writing are decoupled because polling is cheap, whereas persisting updates directly used to require a 48MB pull-modify-push per partition.
 
 ```
-scrape_handler.py, every 5 min
-  probe.py polls all ~3,450 companies, sending If-None-Match
-  ~88% answer 304 with no body (greenhouse, lever, ashby, smartrecruiters)
-  writes one small delta fragment to deltas/{ts}-{run}.json holding only
-  the companies whose listings changed. Never opens a database.
-
-scrape_maintenance_handler.py, every 5 min
-  replays pending fragments into jobs-read.db, incrementally, and pushes it
-  deletes the fragments only after that push succeeds, so a crash costs a
-  repeat rather than a listing
-  then evaluates saved-filter alerts and rebuilds bootstrap.json
-
-scrape_workday_handler.py, every 30 min
-  Workday can't be guessed like the rest, its tenants are pinned in companies.yml
-
-api/handler.py, behind Cloudflare -> CloudFront -> API Gateway
-  reads jobs-read.db from /tmp, refreshed on a cheap HEAD check
-
-discovery, daily on GitHub Actions
-  Common Crawl URL index -> verify -> domains.txt -> resolve real company names
+[EventBridge]
+  │
+  ├── (5 min) ──► scrape_handler.py ─────────────► S3: deltas/*.json
+  │                                                   │
+  ├── (5 min) ──► scrape_maintenance_handler.py ◄─────┘
+  │                    │
+  │                    ├──► S3: jobs-read.db
+  │                    ├──► S3: bootstrap.json
+  │                    └──► Evaluate Email Alerts
+  │
+  └── (30 min) ─► scrape_workday_handler.py ────► S3: deltas/*.json
 ```
 
-jobs-read.db is ~370MB, down from 1.2GB. Descriptions moved to S3 as one object per listing and are read back on demand, `raw_json` is gone, and search runs on a contentless FTS5 index. Small enough to pull, patch and push every 5 minutes, which is roughly how long a new job takes to reach the site.
+### Components
 
-Auth is separate and optional, everything above needs no login at all. The alerts feature (save a filter, get a digest email on new matches) sits behind Cognito: Google OAuth, GitHub (via a custom Lambda auth flow, GitHub has no OIDC discovery document so it can't be a plain Cognito identity provider), and anonymous email one-time-codes. See `infra/cognito.tf`, `infra/github_auth_lambda.tf`, `github_auth_handler.py`, and `alerts.py`.
+**`scrape_handler.py` (Every 5 min):** Runs `probe.py` to poll ~3,450 companies using `If-None-Match` HTTP headers. ~88% of requests return a `304 Not Modified` with no payload (Greenhouse, Lever, Ashby, SmartRecruiters). Writes small delta files (`deltas/{ts}-{run}.json`) for companies with changed listings. Never touches the database directly.
 
-Since budget was the primary limitation for this project I went with an SQLite DB in S3 instead of RDS, which costs basically nothing.
+**`scrape_maintenance_handler.py` (Every 5 min):** Replays pending delta fragments into `jobs-read.db` incrementally, uploads the updated database to S3, and deletes fragments only after a successful push. Evaluates saved-filter alerts and rebuilds `bootstrap.json`.
 
-## Repo layout
+**`scrape_workday_handler.py` (Every 30 min):** Polls Workday tenants explicitly pinned in `companies.yml`.
 
-| File | Purpose |
+**`api/handler.py` (Behind Cloudflare → CloudFront → API Gateway):** Reads `jobs-read.db` from `/tmp`, refreshed via lightweight HEAD checks.
+
+**Discovery Workflow (Daily via GitHub Actions):** Queries the Common Crawl URL index → Verifies endpoints → Outputs `domains.txt` → Resolves company names.
+
+### Storage Optimizations
+
+Database size is ~370MB (down from 1.2GB):
+
+- Job descriptions are stored as individual S3 objects and fetched on-demand.
+- Raw JSON payloads were removed entirely.
+- Search runs on a contentless SQLite FTS5 index.
+
+A new job reaches the live site within ~5 minutes.
+
+## Authentication
+
+All job board search and API endpoints require no authentication.
+
+The optional Alerts feature (saving filters and receiving email digests) uses AWS Cognito:
+
+- **Google OAuth**
+- **GitHub OAuth:** Custom Lambda authorization flow (required because GitHub lacks an OIDC discovery endpoint).
+- **Email One-Time Password (OTP):** Custom Lambda authentication flow for passwordless sign-in.
+
+## Repository Structure
+
+| Path / File | Purpose |
 |---|---|
-| `probe.py` | ATS discovery + scraping, against known ATS APIs. Owns conditional requests. `--selftest`, `--verbose`, `--raw URL` for debugging. |
-| `companies.yml` | scrape-verified Comeet/Workday pins |
-| `domains.txt` | The known resolved company domains |
-| `db/schema.sql` | Snapshot schema, including the contentless FTS5 table. |
-| `loader/load_to_sqlite.py` | resolved.json -> jobs-read.db, optional S3 push. |
-| `loader/deltas.py` | The delta fragment store: write, list, read, delete. |
-| `loader/descriptions.py` | Description blobs in S3, hash-gated so unchanged text costs no PUT. |
-| `loader/bootstrap.py` | Builds bootstrap.json, the frontend's prerendered first page. |
-| `api/` | The serving Lambda. See `api/README.md` |
-| `alerts.py` | Saved-filter email alerts, run once per apply. |
-| `scrape_maintenance_handler.py` | The 5-min applier: fragments -> jobs-read.db. |
-| `scrape_workday_handler.py` | Workday's own 30-min re-poll, separate from `scrape_handler.py`. |
-| `dispatch_workflow_handler.py` | Triggers the GitHub workflows GitHub's own cron won't fire reliably. |
-| `resolve_company_names.py` | Board tokens -> real company names. |
-| `github_auth_handler.py` | GitHub/email-OTP sign-in, Cognito's custom-auth Lambda. |
-| `frontend/` | Static site: `index.html` + `style.css` + `app.js`, backend is `/api/*` |
-| `scripts/dev_server.py` | spins up a local dev server |
-| `infra/` | Terraform backend. `infra/bootstrap/` one-time state-bucket setup |
-| `.github/workflows/` | discovery, `deploy-infra.yml`, `deploy-api.yml`, `deploy-frontend.yml`. |
-
-## Future agenda
-
-- A historical trend view e.g. via periodic snapshots queried from the frontend.
-- Company logos from our own store instead of a third-party favicon service.
-- Drop `jobs-partition-workday.db`, which nothing has read since the delta migration.
+| `probe.py` | ATS discovery and scraping engine using conditional requests. Includes `--selftest`, `--verbose`, and `--raw` CLI flags for debugging. |
+| `companies.yml` | Explicit Comeet and Workday configuration pins. |
+| `domains.txt` | List of resolved company domains. |
+| `db/schema.sql` | Database schema, including the contentless FTS5 virtual table. |
+| `loader/load_to_sqlite.py` | Converts `resolved.json` into `jobs-read.db` with an optional S3 upload. |
+| `loader/deltas.py` | Delta fragment store utilities (write, list, read, delete). |
+| `loader/descriptions.py` | Manages description blobs in S3. Hash-gated to prevent duplicate PUT operations. |
+| `loader/bootstrap.py` | Generates `bootstrap.json` for frontend prerendering. |
+| `api/` | API Lambda implementation. See `api/README.md`. |
+| `alerts.py` | Evaluates saved filters and sends notification emails. |
+| `scrape_maintenance_handler.py` | 5-minute pipeline applier: merges delta fragments into `jobs-read.db`. |
+| `scrape_workday_handler.py` | 30-minute Workday scraper handler. |
+| `dispatch_workflow_handler.py` | Triggers GitHub workflows that bypass GitHub Cron schedules. |
+| `resolve_company_names.py` | Maps internal board tokens to real company names. |
+| `github_auth_handler.py` | Custom Cognito authentication Lambda for GitHub OAuth and Email OTP. |
+| `frontend/` | Static frontend (`index.html`, `style.css`, `app.js`). Calls `/api/*`. |
+| `scripts/dev_server.py` | Local development server. |
+| `infra/` | Terraform configuration. `infra/bootstrap/` provisions the initial state bucket. |
+| `.github/workflows/` | CI/CD pipelines (discovery, `deploy-infra.yml`, `deploy-api.yml`, `deploy-frontend.yml`). |
