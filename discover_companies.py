@@ -93,16 +93,34 @@ CC_INDEXES = [
 ]
 
 # CDX's own wildcard syntax (a URL prefix, not arbitrary regex) --
-# mirrors EMBED_ATS_PATTERNS' own hosts. Only the ATSes with a plain
-# guessable-token URL shape; personio/recruitee's token sits in the
-# subdomain, which CDX's own domain-level index handles differently
-# (matchType=domain), not built here yet.
+# mirrors EMBED_ATS_PATTERNS' own hosts.
+#
+# Two shapes here. Most of these put the company's token in the path, so
+# a prefix match finds them. Recruitee, Breezy and JazzHR put it in the
+# subdomain instead, which a prefix cannot reach: CDX needs
+# matchType=domain for those, which this file said was "not built here
+# yet" until it was measured and turned out to work first time.
+# CC_DOMAIN_MATCH below names them.
 CC_URL_PATTERNS = {
     "greenhouse": "boards.greenhouse.io/*",
     "lever": "jobs.lever.co/*",
     "ashby": "jobs.ashbyhq.com/*",
     "workable": "apply.workable.com/*",
     "smartrecruiters": "jobs.smartrecruiters.com/*",
+    # Subdomain-shaped, queried with matchType=domain. Measured
+    # 2026-09-16 against CC-MAIN-2026-34, each capped at 3,000 records so
+    # these are floors: recruitee 230 companies, jazzhr 213, breezy 192.
+    # Sampling 40 of each found 34, 30 and 29 live boards carrying 925,
+    # 451 and 507 open jobs. Almost none of it is Israeli (2, 0 and 0 in
+    # those samples), so this grows the global board rather than the
+    # Israeli one, which is the trade this was added knowing.
+    #
+    # Teamtailor is deliberately absent: the same query returns 3,000
+    # records and zero subdomain matches, so its URLs are shaped some
+    # other way and guessing costs a request per run for nothing.
+    "recruitee": "recruitee.com",
+    "breezy": "breezy.hr",
+    "jazzhr": "applytojob.com",
     # The exception to the "guessable token" rule above, and the reason
     # it is worth making one. Comeet is what most Israeli startups
     # actually run, and no amount of token guessing reaches it: the API
@@ -115,7 +133,23 @@ CC_URL_PATTERNS = {
     "comeet": "comeet.com/jobs/*",
 }
 
+# Queried with matchType=domain rather than a URL prefix, because the
+# company's token is the subdomain. CDX returns every URL under the host
+# for these, so extract_tokens does the narrowing.
+CC_DOMAIN_MATCH = frozenset({"recruitee", "breezy", "jazzhr"})
+
 _TOKEN_PATTERNS = dict(EMBED_ATS_PATTERNS)
+# EMBED_ATS_PATTERNS carries recruitee already (it is a real embed shape
+# on a company's own careers page). Breezy and JazzHR are only ever seen
+# here, in the crawl index, so they are spelled out rather than added to
+# that list and implying probe.py scrapes for them.
+#
+# Anchored on the scheme so a path segment that merely mentions the host
+# cannot masquerade as a subdomain, and the obvious non-company hosts are
+# dropped: every tenant answers on www/api/static too.
+_TOKEN_PATTERNS.setdefault("breezy", re.compile(r"https?://([a-zA-Z0-9-]+)\.breezy\.hr"))
+_TOKEN_PATTERNS.setdefault("jazzhr", re.compile(r"https?://([a-zA-Z0-9-]+)\.applytojob\.com"))
+_NON_TENANT_SUBDOMAINS = frozenset({"www", "api", "static", "assets", "cdn", "app", "jobs", "help", "support"})
 
 # Both halves of a Comeet board URL: /jobs/{slug}/{uid}.
 COMEET_JOB_RE = re.compile(r"comeet\.com/jobs/([A-Za-z0-9_.-]+)/([A-Za-z0-9.]+)")
@@ -152,14 +186,23 @@ def fetch_cc_urls(url_pattern: str, max_pages: int) -> list[str]:
     """
     sess = requests.Session()
     sess.headers.update({"User-Agent": UA})
+    # A bare host with no wildcard is one of the subdomain ATSes, and CDX
+    # will not find those by prefix: "recruitee.com" as a URL prefix
+    # matches nothing, because every real URL starts with the tenant.
+    # matchType=domain asks for everything under the host instead, and
+    # extract_tokens narrows it back down to tenants.
+    domain_match = "*" not in url_pattern
     urls = []
     for index in CC_INDEXES:
         snapshot = index.rsplit("/", 1)[-1]
         for page in range(max_pages):
             resp = None
+            params = {"url": url_pattern, "output": "json", "page": page}
+            if domain_match:
+                params["matchType"] = "domain"
             for attempt in (1, 2):
                 try:
-                    resp = sess.get(index, params={"url": url_pattern, "output": "json", "page": page}, timeout=60)
+                    resp = sess.get(index, params=params, timeout=60)
                     break
                 except requests.RequestException as e:
                     if attempt == 2:
@@ -194,8 +237,15 @@ def extract_tokens(ats: str, urls: list[str]) -> set[str]:
     tokens = set()
     for url in urls:
         m = pattern.search(url)
-        if m:
-            tokens.add(m.group(1).lower())
+        if not m:
+            continue
+        token = m.group(1).lower()
+        # A domain match returns every URL under the host, so the tenant
+        # has to be sifted out of it. Every one of these answers on www
+        # and api as well, and those are not companies.
+        if ats in CC_DOMAIN_MATCH and token in _NON_TENANT_SUBDOMAINS:
+            continue
+        tokens.add(token)
     return tokens
 
 

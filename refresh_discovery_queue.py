@@ -74,6 +74,19 @@ ATS_LIMITS = {
     # ATS costs. Worth it: measured 2026-09-16, 219 companies carrying 963
     # Israeli roles, 943 of them on no other board here.
     "comeet": (1, 400),
+    # Subdomain-shaped, reached through matchType=domain (see
+    # CC_URL_PATTERNS). One page each: a domain match returns everything
+    # under the host, so the first page already carries far more URLs
+    # than there are tenants behind them, and the pools measured small
+    # anyway at roughly 230, 213 and 192 companies.
+    #
+    # verify_limit sized to the whole measured pool rather than a slice,
+    # on the same reasoning as workable above. These grow the global
+    # board and barely touch Israel: sampling 40 of each found 2, 0 and 0
+    # Israeli roles.
+    "recruitee": (1, 400),
+    "jazzhr": (1, 400),
+    "breezy": (1, 400),
 }
 
 

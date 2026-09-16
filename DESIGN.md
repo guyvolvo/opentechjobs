@@ -109,6 +109,24 @@ typography:
     fontWeight: 700
     lineHeight: 1.3
     letterSpacing: "normal"
+  section-title-compact:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "24px"
+    fontWeight: 500
+    lineHeight: 1.1
+    letterSpacing: "normal"
+  data-mono:
+    fontFamily: "\"Courier New\", monospace"
+    fontSize: "11.5px"
+    fontWeight: 400
+    lineHeight: 1.4
+    letterSpacing: "normal"
+  data-mono-tick:
+    fontFamily: "\"Courier New\", monospace"
+    fontSize: "10.5px"
+    fontWeight: 400
+    lineHeight: 1.2
+    letterSpacing: "normal"
 rounded:
   none: "0px"
   default: "4px"
