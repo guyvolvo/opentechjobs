@@ -75,18 +75,26 @@ ATS_LIMITS = {
     # Israeli roles, 943 of them on no other board here.
     "comeet": (1, 400),
     # Subdomain-shaped, reached through matchType=domain (see
-    # CC_URL_PATTERNS). One page each: a domain match returns everything
-    # under the host, so the first page already carries far more URLs
-    # than there are tenants behind them, and the pools measured small
-    # anyway at roughly 230, 213 and 192 companies.
+    # CC_URL_PATTERNS).
     #
-    # verify_limit sized to the whole measured pool rather than a slice,
-    # on the same reasoning as workable above. These grow the global
-    # board and barely touch Israel: sampling 40 of each found 2, 0 and 0
-    # Israeli roles.
-    "recruitee": (1, 400),
-    "jazzhr": (1, 400),
-    "breezy": (1, 400),
+    # These pools are one to two orders of magnitude larger than the first
+    # estimate. That estimate came from a hand-run curl capped at 3,000
+    # records, so it was a floor and read as a total: roughly 230, 213 and
+    # 192 companies. Measured through this code path instead, with no cap:
+    # recruitee 833 untracked, breezy 2,326, jazzhr 1,181.
+    #
+    # Those are floors too. Repeat runs returned 1,577 and 905, because a
+    # CDX 502 used to truncate a snapshot without retrying (fixed in
+    # fetch_cc_urls), and any run that lost a snapshot undercounts. Sized
+    # to the largest observed with headroom rather than to an average: the
+    # cap is here to bound wall clock, and undershooting it drops
+    # candidates in silence, which is what it did to workable.
+    #
+    # These grow the global board and barely touch Israel: sampling 40 of
+    # each found 2, 0 and 0 Israeli roles.
+    "recruitee": (1, 1200),
+    "jazzhr": (1, 2000),
+    "breezy": (1, 3500),
 }
 
 

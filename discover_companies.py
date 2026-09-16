@@ -62,6 +62,7 @@ import argparse
 import json
 import re
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from urllib.parse import urlparse
@@ -115,9 +116,21 @@ CC_URL_PATTERNS = {
     # those samples), so this grows the global board rather than the
     # Israeli one, which is the trade this was added knowing.
     #
-    # Teamtailor is deliberately absent: the same query returns 3,000
-    # records and zero subdomain matches, so its URLs are shaped some
-    # other way and guessing costs a request per run for nothing.
+    # Teamtailor is absent, but not for the reason first written here.
+    # The claim was that its URLs are "shaped some other way" because a
+    # domain match returns no {company}.teamtailor.com hosts. That part is
+    # true and the conclusion drawn from it was wrong: Common Crawl
+    # indexed teamtailor's marketing site, and the tenant name is sitting
+    # in the powered-by referral links those career sites send back, as
+    # utm_content=<tenant>.teamtailor.com. It is recoverable.
+    #
+    # The real reason to stay out is weaker and worth stating honestly.
+    # In a 300-record sample only 14 tenants were teamtailor-hosted; the
+    # other 284 ran on their own career domains (career.addsecure.com and
+    # the like), which no token guess can reach. That sample was
+    # alphabetically truncated, every tenant starting a or b, so the ratio
+    # is not trustworthy either. Sizing the hosted pool with one uncapped
+    # pull is the measurement this needs before it earns a place above.
     "recruitee": "recruitee.com",
     "breezy": "breezy.hr",
     "jazzhr": "applytojob.com",
@@ -137,6 +150,13 @@ CC_URL_PATTERNS = {
 # company's token is the subdomain. CDX returns every URL under the host
 # for these, so extract_tokens does the narrowing.
 CC_DOMAIN_MATCH = frozenset({"recruitee", "breezy", "jazzhr"})
+
+# Worth another go: CDX sheds load with these rather than saying anything
+# about the query. Everything else non-200 is an answer, and the one that
+# matters is the 400 returned for a page past the end, which is how
+# fetch_cc_urls learns a snapshot is finished. Retrying that would turn
+# every completed snapshot into three wasted requests and a warning.
+CDX_RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
 _TOKEN_PATTERNS = dict(EMBED_ATS_PATTERNS)
 # EMBED_ATS_PATTERNS carries recruitee already (it is a real embed shape
@@ -179,10 +199,19 @@ def fetch_cc_urls(url_pattern: str, max_pages: int) -> list[str]:
     done". So a generous max_pages costs one wasted request per snapshot,
     not thirty.
 
-    Retried once per page, because CDX answers 502 and 504 under load
-    often enough to matter. Without it a transient failure on page 0
-    silently drops a whole snapshot's candidates and the run still
-    reports success, which is the shape of missing data nobody notices.
+    Retried per page, because CDX answers 502 and 504 under load often
+    enough to matter. Without it a transient failure on page 0 silently
+    drops a whole snapshot's candidates and the run still reports
+    success, which is the shape of missing data nobody notices.
+
+    The first version of that retry only caught requests exceptions, so
+    it never fired: a 502 is a perfectly good response object, and the
+    status check below read it as "this snapshot is finished". Measured
+    live, breezy came back with 2,326 tenants on one run and 1,577 on the
+    next, a whole snapshot apart, both exiting 0. Retrying the status is
+    the part that was missing, and telling the two kinds of non-200 apart
+    is what makes it safe: a 400 means the page is past the end, which is
+    how this loop learns to stop.
     """
     sess = requests.Session()
     sess.headers.update({"User-Agent": UA})
@@ -200,13 +229,29 @@ def fetch_cc_urls(url_pattern: str, max_pages: int) -> list[str]:
             params = {"url": url_pattern, "output": "json", "page": page}
             if domain_match:
                 params["matchType"] = "domain"
-            for attempt in (1, 2):
+            for attempt in (1, 2, 3):
                 try:
                     resp = sess.get(index, params=params, timeout=60)
-                    break
                 except requests.RequestException as e:
-                    if attempt == 2:
-                        print(f"    {snapshot} page {page}: request failed: {e!r}", file=sys.stderr)
+                    resp = None
+                    if attempt == 3:
+                        print(f"    {snapshot} page {page}: request failed after 3 tries: {e!r}",
+                              file=sys.stderr)
+                        break
+                    time.sleep(2 * attempt)
+                    continue
+                if resp.status_code not in CDX_RETRYABLE_STATUS:
+                    break
+                if attempt == 3:
+                    # Said out loud rather than swallowed. The run carries
+                    # on with the other snapshots, and without this line
+                    # the only evidence would be a candidate count that
+                    # looks plausible and is short by a third.
+                    print(f"    {snapshot} page {page}: CDX {resp.status_code} after 3 tries, "
+                          f"this snapshot is truncated", file=sys.stderr)
+                    resp = None
+                    break
+                time.sleep(2 * attempt)
             if resp is None or resp.status_code != 200 or not resp.text.strip():
                 break
             for line in resp.text.strip().split("\n"):
