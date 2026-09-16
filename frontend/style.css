@@ -308,12 +308,12 @@ button, input, select {
   align-items: center;
   text-decoration: none;
 }
-/* The provided lockup (logo-horizontal.png) is a solid-fill rounded-rect
-   card, not a transparent mark -- same "fixed brand color regardless of
-   the page's own theme toggle" precedent as the favicon (DESIGN.md).
-   Height picked to sit comfortably inside the topbar's ~36px content
-   row (min-height:56px minus its 10px top/bottom padding) without
-   forcing it taller; width follows the source image's own aspect ratio. */
+/* The mark (logo-square.png) is a solid-fill rounded square, not a
+   transparent glyph -- same "fixed brand color regardless of the page's
+   own theme toggle" precedent as the favicon (DESIGN.md). Height picked
+   to sit comfortably inside the topbar's ~36px content row
+   (min-height:56px minus its 10px top/bottom padding) without forcing it
+   taller; the source is square, so the width follows. */
 .wordmark-logo { height: 34px; width: auto; }
 
 .topnav {
