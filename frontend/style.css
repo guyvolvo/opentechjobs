@@ -3333,28 +3333,23 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    --board-shot is the screenshot on the screen, a MacBook's on a desktop
    and an iPhone's on a phone, each in the reader's own theme. */
 .hero-showcase {
-  --showcase-bg: url("/img/hills-light.svg");
+  --showcase-bg: transparent;
   --board-shot: url("/img/board-desktop-light.webp");
   position: relative;
   overflow: hidden;
   padding: clamp(56px, 8vw, 120px) var(--edge) 0;
   text-align: center;
+  /* The page's own ground, until there is a photograph worth putting
+     here: point --showcase-bg at a file and it takes over, sized to
+     cover and anchored at the foot. */
   background: var(--showcase-bg);
   background-size: cover;
-  /* Bottom, so the ridges meet the foot of the section whatever its
-     height, and the sky takes whatever is left above the heading. */
   background-position: bottom center;
   background-repeat: no-repeat;
 }
-:root[data-theme="dark"] .hero-showcase {
-  --showcase-bg: url("/img/hills-dark.svg");
-  --board-shot: url("/img/board-desktop-dark.webp");
-}
+:root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hero-showcase {
-    --showcase-bg: url("/img/hills-dark.svg");
-    --board-shot: url("/img/board-desktop-dark.webp");
-  }
+  :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
 }
 .hero-showcase h2 {
   font-family: var(--font-display);

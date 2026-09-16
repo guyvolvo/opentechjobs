@@ -590,11 +590,11 @@ grabbed and thrown, with a mouse or a finger: it takes the speed and
 direction of the throw, holds close to it, and eases back into its drift
 over 2.6 seconds. Vertical swipes still scroll the page. Under the band, the product shot: "The Open Job Board" in Display /
 Feature over a line of copy and an ink "Explore open jobs" button, all
-centred on art: `--showcase-bg`, a drawn landscape in the board's own
-greens under a pale sky (`img/hills-light.svg`, `img/hills-dark.svg`,
-about 13KB each). Ridges meet the foot of the section, the sky carries
-the heading at 6.4:1 in light and 13.7:1 in dark, and a photograph can
-replace it by pointing that one variable at a file. Below them the board itself fills a device the section cuts off at
+centred on the page's own ground. A drawn landscape was tried here and
+read as clip art beside type this plain, so the section carries nothing
+behind it: `--showcase-bg` is transparent, and a photograph takes over
+by pointing that one variable at a file, sized to cover and anchored at
+the foot. Below them the board itself fills a device the section cuts off at
 the bottom edge, a MacBook from the hinge up on a desktop and an iPhone
 on a phone, each showing that screen's own screenshot in the reader's
 theme. The shots are decoration: the words above carry the meaning.
