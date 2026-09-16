@@ -3,9 +3,6 @@ name: OpenTechJobs
 description: Swiss-grid job board for the Israeli tech market, ground-truthed data, zero decoration, forest-green ink on neutral paper.
 colors:
   paper: "#f2f0ef"
-  device-case: "#1d1d1f"
-  device-edge: "#48484a"
-  device-lens: "#3a3a3c"
   ink: "#40513b"
   signal-green: "#609966"
   muted-grey: "#40513b"
@@ -113,12 +110,6 @@ typography:
 rounded:
   none: "0px"
   default: "4px"
-  device-laptop: "14px"
-  device-laptop-notch: "5px"
-  device-laptop-screen: "calc(var(--screen-w) * 0.021)"
-  device-phone: "calc(var(--screen-w) * 0.2)"
-  device-phone-screen: "calc(var(--screen-w) * 0.164)"
-  device-island: "999px"
   card-preview: "24px"
 spacing:
   gutter: "clamp(20px, 4vw, 64px)"
@@ -638,19 +629,17 @@ else can I build.
    always the light one, in either theme: this is a picture of the
    product, not a mirror of the reader's settings, and the photograph
    behind it is a sunlit field. No caption: the picture is the sentence.
-   Both devices are drawn, and their shapes are measurements of real
-   objects rather than anyone's artwork: a script read Apple's bezel art
-   and the figures are written here as fractions of the screen's width, so
-   a frame at any size keeps a real machine's proportions. On a 14-inch
-   MacBook Pro the bezel is 1.8% of the lid's width, the screen's corners
-   round at 2.1%, and the notch is 12.4% wide with the camera in it; on an
-   iPhone 17 Pro the bezel is 3.7%, the corners 16.4%, and the island is
-   22.6% and a pill, sitting in a status strip deep enough that the
-   board's own topbar begins below it (Device / rounded). The case keeps
-   Device Case, Device Edge and Device Lens, none of which follows the
-   theme, because hardware doesn't. None of Apple's artwork ships: their
-   licence covers mock-ups of software that runs only on Apple systems and
-   excludes website content.
+   Each device is one image: a mockup of the owner's own making, with the
+   board composited into its screen and exported as a single WebP, about
+   60KB each (`img/device-macbook.webp`, `img/device-iphone.webp`). Two
+   drawn versions came before it, one in flat CSS and one rendered with
+   gradients and reflections, and neither stopped looking drawn; a
+   photograph of a device is a photograph. The frame is one element with
+   one background image and an aspect ratio matching the file, so nothing
+   in the page knows about bezels, notches or islands any more. To change
+   the device, re-composite and swap the file. None of Apple's own artwork
+   ships: their licence grants mock-ups of software running only on Apple
+   systems and excludes website content.
 5. Four features as full-width rows, direct-source listings first and
    largest because it is the reason the board exists, each rising into
    place as it scrolls in. Two claims inside them are marked with

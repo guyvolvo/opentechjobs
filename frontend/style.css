@@ -46,16 +46,9 @@
 
 :root {
   --white: #f2f0ef;
-  /* The laptop and phone on /hero are drawn hardware, not a surface of
-     ours: Apple's own case black, the edge that separates it from a dark
-     page, and the camera. None of the three follows the theme, because
-     the hardware doesn't. */
   /* Ink that stays ink in dark mode, for the one section that keeps a
      light ground in both themes (see .hero-showcase). */
   --ink-fixed: #40513b;
-  --device-case: #1d1d1f;
-  --device-edge: #48484a;
-  --device-lens: #3a3a3c;
   --black: #40513b;
   --green: #609966;
   --green-bright: #80ad85;
@@ -3419,13 +3412,13 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   background: currentColor;
 }
 
-/* The product shot: the board itself on a device the card cuts off at its
-   foot. --showcase-bg is the art behind it, a photograph under a veil;
-   point it at another file to change the picture. --board-shot is the
-   screenshot on the screen, a MacBook's on a desktop and an iPhone's on a
-   phone, and always the light board whatever the reader's theme: this is
-   a picture of the product, not a mirror of their settings, and it sits
-   on a sunlit field. */
+/* The product shot: a photographed device with the board inside it,
+   standing on a sunlit field. --showcase-bg is the art behind it, a
+   photograph under a veil; point it at another file to change the picture.
+   The device itself is one image per screen size (see .showcase-device),
+   and the board in it is always the light one, whatever the reader's
+   theme: this is a picture of the product, not a mirror of their
+   settings. */
 .hero-showcase {
   /* The photograph under a paper veil, the same one in both themes: the
      hills are a bright, sunlit thing and turning them to night to match a
@@ -3439,7 +3432,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
     rgba(242, 240, 239, 0.34) 62%,
     rgba(242, 240, 239, 0.16) 100%);
   --showcase-bg: var(--showcase-veil), url("/img/hills.webp");
-  --board-shot: url("/img/board-desktop-light.webp?v=2");
   position: relative;
   overflow: hidden;
   /* A card, not a full-bleed band: the photograph is held away from the
@@ -3498,96 +3490,22 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 /* The reason the board exists, so it is the largest of the four. */
 .hero-feature.feature-lead h2 { font-size: clamp(36px, 5.4vw, 5rem); }
-/* A laptop lid, from the hinge up, drawn to a real machine's proportions:
-   on a 14-inch MacBook Pro the bezel is 1.8% of the lid's width at the
-   sides, the screen's corners are round at 2.1% of its width, and the
-   notch is 12.4% of that width by 3.3% of the screen's height. Those are
-   measurements of an object, taken off Apple's own bezel art with a
-   script; none of that art is used here, and the drawing is ours: a flat
-   case, a drawn edge, no rendered aluminium. */
+/* The device is a photograph now: a mockup with the board composited into
+   its screen, exported as one image (tools/, scratch). Drawn frames came
+   first and never stopped looking drawn, and the proportions, bezel weight
+   and finish are the mockup's own. One element, one image, no parts. */
 .showcase-device {
-  --screen-w: min(980px, 100%);
-  --bezel: calc(var(--screen-w) * 0.018);
-  position: relative;
-  width: var(--screen-w);
-  height: clamp(200px, 34vw, 480px);
+  width: min(980px, 100%);
+  aspect-ratio: 1.6546;
   margin: clamp(36px, 5vw, 72px) auto 0;
-  padding: calc(var(--bezel) * 1.6) var(--bezel) 0;
-  border-radius: 14px 14px 0 0;
-  background: var(--device-case);
-  /* The case is near black, and so is the page in dark mode, so its edge
-     is drawn rather than left to the difference between the two. */
-  border: 1px solid var(--device-edge);
-  border-bottom: 0;
-}
-/* The notch, and the camera sitting in it. */
-.showcase-device::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: calc(var(--screen-w) * 0.08);
-  height: calc(var(--bezel) * 1.1);
-  transform: translateX(-50%);
-  border-radius: 0 0 5px 5px;
-  background: var(--device-case);
-  z-index: 1;
-}
-.showcase-device::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: calc(var(--bezel) * 0.5);
-  width: 4px;
-  height: 4px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: var(--device-lens);
-  z-index: 2;
-}
-.device-screen {
-  height: 100%;
-  border-radius: calc(var(--screen-w) * 0.021) calc(var(--screen-w) * 0.021) 0 0;
-  background-image: var(--board-shot);
-  background-size: cover;
-  background-position: top center;
-  background-color: var(--white);
+  background: url("/img/device-macbook.webp") bottom center / contain no-repeat;
 }
 @media (max-width: 720px) {
-  /* An iPhone instead, so the shot is the board's own phone layout. */
-  .hero-showcase { --board-shot: url("/img/board-phone-light.webp?v=2"); }
-  /* A phone, to an iPhone 17 Pro's proportions: the bezel is 3.7% of the
-     lid's width, the screen's corners are round at 16.4% of its width, and
-     the island is 22.6% of that width. Measured the same way, drawn the
-     same way. */
+  /* The phone mockup instead, carrying the board's own phone layout. */
   .showcase-device {
-    --screen-w: min(300px, 78%);
-    --bezel: calc(var(--screen-w) * 0.037);
-    width: var(--screen-w);
-    height: clamp(300px, 86vw, 420px);
-    padding: var(--bezel) var(--bezel) 0;
-    border-radius: calc(var(--screen-w) * 0.2) calc(var(--screen-w) * 0.2) 0 0;
-  }
-  /* The status strip a phone keeps above the page, and the island in it.
-     Without it the board's own topbar runs under the island. */
-  .showcase-device {
-    --island-top: calc(var(--bezel) + var(--screen-w) * 0.022);
-    --island-h: calc(var(--screen-w) * 0.052);
-    /* Deeper than the island's bottom edge, so the board's own topbar
-       begins under it rather than beside it. */
-    --status: calc(var(--island-top) + var(--island-h) + var(--screen-w) * 0.03);
-  }
-  .showcase-device::before {
-    top: var(--island-top);
-    width: calc(var(--screen-w) * 0.2);
-    height: var(--island-h);
-    border-radius: 999px;
-  }
-  .showcase-device::after { display: none; }
-  .device-screen {
-    background-position: top calc(var(--status)) center;
-    background-repeat: no-repeat;
-    border-radius: calc(var(--screen-w) * 0.164) calc(var(--screen-w) * 0.164) 0 0;
+    width: min(300px, 78%);
+    aspect-ratio: 0.4831;
+    background-image: url("/img/device-iphone.webp");
   }
 }
 

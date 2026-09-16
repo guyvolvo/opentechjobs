@@ -144,42 +144,48 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       check(`${tag}: a throw to the right sends the logos right, fast`, thrown > Math.abs(drift) * 4, speeds);
       check(`${tag}: after the spin the logos ease back into their drift`, settled < 0 && Math.abs(settled - drift) <= Math.abs(drift) * 0.3, speeds);
     }
-    // The product shot: the right screenshot for this screen, actually
-    // loaded, and a device the section cuts off rather than fitting whole.
+    // The product shot: one image of a device with the board inside it,
+    // the laptop on a desktop and the phone on a phone, sitting in the card.
     const product = await page.evaluate(async () => {
       const dev = document.querySelector(".showcase-device");
-      const screen = document.querySelector(".device-screen");
-      const url = getComputedStyle(screen).backgroundImage.match(/url\("?([^")]+)"?\)/)?.[1] || "";
-      let ok = false;
+      const cs = getComputedStyle(dev);
+      const url = cs.backgroundImage.match(/url\("?([^")]+)"?\)/)?.[1] || "";
+      let ok = false, ratio = 0;
       try {
         const img = new Image();
         img.src = url;
         await img.decode();
-        ok = img.naturalWidth > 200;
+        ok = img.naturalWidth > 300;
+        ratio = img.naturalWidth / img.naturalHeight;
       } catch {}
       const sect = document.querySelector(".hero-showcase").getBoundingClientRect();
       const box = dev.getBoundingClientRect();
       const primary = document.querySelector(".hero-primary");
       const secondary = document.querySelector(".hero-secondary");
       const lede = document.querySelector(".hero-lede");
-      return { url, ok, cut: box.bottom >= sect.bottom - 1, wider: box.width <= sect.width,
-        cta: primary.textContent.replace(/\s+/g, " ").trim(), href: primary.getAttribute("href"),
+      return {
+        url, ok, ratio,
+        boxRatio: box.width / box.height,
+        inside: box.left >= sect.left - 1 && box.right <= sect.right + 1,
+        cut: box.bottom >= sect.bottom - 2,
+        cta: primary.textContent.replace(/\s+/g, " ").trim(),
+        href: primary.getAttribute("href"),
         apiHref: secondary.getAttribute("href"),
         claim: document.querySelector(".hero-claim").textContent.trim(),
         lede: lede.textContent.replace(/\s+/g, " ").trim(),
         ledePx: parseFloat(getComputedStyle(lede).fontSize),
         ledeWidth: lede.getBoundingClientRect().width,
         ledeLines: lede.getClientRects().length,
-        wordPx: parseFloat(getComputedStyle(document.querySelector(".hero-word")).fontSize) };
+        wordPx: parseFloat(getComputedStyle(document.querySelector(".hero-word")).fontSize),
+      };
     });
-    // Always the light board, in either theme: the product shot is a
-    // photograph of the product, not a mirror of the reader's settings.
-    check(`${tag}: the product shot loads the light board for this screen`,
-      product.ok && product.url.includes(label === "phone" ? "board-phone" : "board-desktop")
-      && product.url.includes("light") && !product.url.includes("dark"),
-      JSON.stringify({ url: product.url, ok: product.ok }));
-    check(`${tag}: the device is cut off by the section`, product.cut && product.wider,
-      JSON.stringify({ cut: product.cut, wider: product.wider }));
+    check(`${tag}: the device image loads, and it is the right one`,
+      product.ok && product.url.includes(label === "phone" ? "device-iphone" : "device-macbook"),
+      JSON.stringify({ url: product.url.slice(-28), ok: product.ok }));
+    check(`${tag}: the frame keeps the mockup's proportions`,
+      Math.abs(product.boxRatio - product.ratio) < 0.02,
+      JSON.stringify({ box: product.boxRatio.toFixed(3), image: product.ratio.toFixed(3) }));
+    check(`${tag}: the device sits inside the card`, product.inside, String(product.inside));
     check(`${tag}: the claim leads, the brand does not`,
       product.claim === "Straight from the source." && product.wordPx <= 82,
       JSON.stringify({ claim: product.claim, wordPx: product.wordPx }));
