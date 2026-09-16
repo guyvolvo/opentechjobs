@@ -68,33 +68,37 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
         tileH: document.querySelector("#ticker-logos .hero-logo")?.getBoundingClientRect().height,
         cta: document.getElementById("cta-count").textContent, theme: document.documentElement.getAttribute("data-theme") };
     });
-    // The margin above the capitals and below the logo tiles, measured in
-    // pixels from a screenshot of the band: the first and last rows that
-    // contain anything other than the band's green.
-    const band = await page.locator(".hero-block").boundingBox();
-    const shot = await page.screenshot({ clip: band });
-    const margins = await page.evaluate(async (b64) => {
-      const img = new Image();
-      img.src = "data:image/png;base64," + b64;
-      await img.decode();
-      const c = document.createElement("canvas");
-      c.width = img.width; c.height = img.height;
-      const g = c.getContext("2d");
-      g.drawImage(img, 0, 0);
-      const d = g.getImageData(0, 0, c.width, c.height).data;
-      const x0 = Math.round(c.width * 0.04), x1 = Math.round(c.width * 0.96);
-      const [r0, g0, b0] = [d[(10 * c.width + Math.round(c.width / 2)) * 4], d[(10 * c.width + Math.round(c.width / 2)) * 4 + 1], d[(10 * c.width + Math.round(c.width / 2)) * 4 + 2]];
-      const rowHasInk = (y) => { for (let x = x0; x < x1; x++) { const i = (y * c.width + x) * 4; if (Math.abs(d[i] - r0) + Math.abs(d[i + 1] - g0) + Math.abs(d[i + 2] - b0) > 90) return true; } return false; };
-      let top = 0; while (top < c.height && !rowHasInk(top)) top++;
-      let bottom = 0; while (bottom < c.height && !rowHasInk(c.height - 1 - bottom)) bottom++;
-      const dpr = window.devicePixelRatio || 1;
-      return { top: +(top / dpr).toFixed(1), bottom: +(bottom / dpr).toFixed(1), height: +(c.height / dpr).toFixed(1) };
-    }, shot.toString("base64"));
-    // The top margin ends at whichever glyph is passing: an ascender (t, b)
-    // stands about 0.04em above a digit, so the tolerance scales with the
-    // type, about 6px on desktop and 3px on a phone.
-    const tolerance = Math.max(3, 0.045 * m.tickerPx);
-    check(`${tag}: same green margin above and below`, Math.abs(margins.top - margins.bottom) <= tolerance, JSON.stringify({ ...margins, tolerance }));
+    // The rows sit on the page's own paper now, fade out at both window
+    // edges, and the marks are grey rather than a colour wall.
+    const band = await page.evaluate(() => {
+      const row = document.querySelector(".hero-logos");
+      const img = document.querySelector("#ticker-logos .hero-logo img");
+      const block = document.querySelector(".hero-block");
+      const cs = getComputedStyle(row);
+      return {
+        mask: (cs.maskImage || cs.webkitMaskImage || "").includes("gradient"),
+        grey: getComputedStyle(img).filter.includes("grayscale"),
+        blockBg: getComputedStyle(block).backgroundColor,
+        numColour: getComputedStyle(document.querySelector("#ticker-top .hero-num")).color,
+      };
+    });
+    check(`${tag}: the rows fade at the window edges`, band.mask, JSON.stringify(band));
+    check(`${tag}: the logos are grey, not a colour wall`, band.grey, JSON.stringify(band));
+    check(`${tag}: the rows sit on the page, no band of their own`,
+      band.blockBg === "rgba(0, 0, 0, 0)", band.blockBg);
+    // A salary estimate that reads as a posted figure is the wrong kind of
+    // wrong, so the asterisk and its note are checked, not assumed.
+    const salary = await page.evaluate(() => {
+      const proof = document.querySelector(".hero-proof")?.textContent.replace(/\s+/g, " ").trim() || "";
+      const note = document.querySelector(".hero-note")?.textContent.replace(/\s+/g, " ").trim() || "";
+      return { proof, note };
+    });
+    check(`${tag}: the promise names the CV matching`,
+      /Have your CV analyzed for keywords/.test(salary.proof), salary.proof.slice(0, 90));
+    check(`${tag}: the salary claim carries its asterisk and note`,
+      /Salary estimates\*/.test(salary.proof) && /^\* An estimate is worked out/.test(salary.note)
+      && /can be wrong/.test(salary.note),
+      JSON.stringify(salary).slice(0, 200));
     await page.screenshot({ path: `hero-${label}-${theme}-top.png` });
     await page.waitForTimeout(1500);
     const later = await page.evaluate(() => {
@@ -169,20 +173,24 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
         lede: lede.textContent.replace(/\s+/g, " ").trim(),
         ledePx: parseFloat(getComputedStyle(lede).fontSize),
         ledeWidth: lede.getBoundingClientRect().width,
+        ledeLines: lede.getClientRects().length,
         wordPx: parseFloat(getComputedStyle(document.querySelector(".hero-word")).fontSize) };
     });
     check(`${tag}: the product shot loads the right screenshot`,
       product.ok && product.url.includes(label === "phone" ? "board-phone" : "board-desktop") && product.url.includes(theme),
-      JSON.stringify(shot));
+      JSON.stringify({ url: product.url, ok: product.ok }));
     check(`${tag}: the device is cut off by the section`, product.cut && product.wider,
       JSON.stringify({ cut: product.cut, wider: product.wider }));
     check(`${tag}: the claim leads, the brand does not`,
       product.claim === "Straight from the source." && product.wordPx <= 82,
       JSON.stringify({ claim: product.claim, wordPx: product.wordPx }));
     check(`${tag}: the lede carries the live count and reads at size`,
-      /^176,465 open jobs, read directly from company hiring systems/.test(product.lede)
-      && product.ledePx >= 16 && product.ledeWidth <= 640,
-      JSON.stringify({ lede: product.lede.slice(0, 70), px: product.ledePx, w: Math.round(product.ledeWidth) }));
+      product.lede === "176,465 open jobs, read directly from company hiring systems and career sites."
+      && product.ledePx >= 16 && product.ledeWidth <= 780,
+      JSON.stringify({ lede: product.lede, px: product.ledePx, w: Math.round(product.ledeWidth) }));
+    if (label === "desktop") {
+      check(`${tag}: the lede is one line`, product.ledeLines === 1, `${product.ledeLines} lines`);
+    }
     check(`${tag}: both doors are open, the board and the API`,
       /^Search open jobs/.test(product.cta) && product.href === "/" && product.apiHref === "/api/help",
       JSON.stringify({ cta: product.cta, href: product.href, api: product.apiHref }));
@@ -193,14 +201,27 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
         has: !!el,
         link: el?.querySelector(".hero-api-link")?.getAttribute("href"),
         text: (el?.textContent || "").replace(/\s+/g, " ").trim(),
-        note: (document.querySelector(".band-note")?.textContent || "").replace(/\s+/g, " ").trim(),
+        showcase: (() => {
+          const el = document.querySelector(".hero-showcase");
+          const r = el.getBoundingClientRect();
+          const cs = getComputedStyle(el);
+          return { left: Math.round(r.left), right: Math.round(r.right),
+            radius: parseFloat(cs.borderTopLeftRadius), vw: document.documentElement.clientWidth,
+            captions: document.querySelectorAll(".band-note, .showcase-note").length };
+        })(),
       };
     });
     check(`${tag}: the API has its own block and states its limits`,
       api.has && api.link === "/api/help" && /No key, no sign-up/.test(api.text) && /20 requests a second/.test(api.text),
       api.text.slice(0, 140));
-    check(`${tag}: the logo row says what the logos are`,
-      /companies hiring right now/i.test(api.note) && /Greenhouse/.test(api.note), api.note.slice(0, 120));
+    // The preview is a card now: held off both edges and rounded, with no
+    // caption above it.
+    check(`${tag}: the preview is inset from the window and rounded`,
+      api.showcase.left >= 16 && api.showcase.vw - api.showcase.right >= 16
+      && Math.abs(api.showcase.left - (api.showcase.vw - api.showcase.right)) <= 1
+      && api.showcase.radius >= 16,
+      JSON.stringify(api.showcase));
+    check(`${tag}: the captions are gone`, api.showcase.captions === 0, String(api.showcase.captions));
     if (theme === "dark") check(`${tag}: dark theme applied`, m.theme === "dark", String(m.theme));
 
     const feature = page.locator(".hero-feature").last();

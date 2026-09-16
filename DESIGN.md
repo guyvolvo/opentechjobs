@@ -3,7 +3,6 @@ name: OpenTechJobs
 description: Swiss-grid job board for the Israeli tech market, ground-truthed data, zero decoration, forest-green ink on neutral paper.
 colors:
   paper: "#f2f0ef"
-  paper-fixed: "#f2f0ef"
   device-case: "#1d1d1f"
   device-edge: "#48484a"
   device-lens: "#3a3a3c"
@@ -91,6 +90,7 @@ rounded:
   device-phone: "42px"
   device-phone-screen: "32px"
   device-island: "12px"
+  card-preview: "24px"
 spacing:
   gutter: "clamp(20px, 4vw, 64px)"
   rule: "2px"
@@ -586,19 +586,26 @@ else can I build.
    live count: "177,871 open jobs, read directly from company hiring
    systems and career sites. Never reposted from another board." Two
    doors follow, an ink button to the board and a plain link to the API,
-   then a 13px proof row in grey.
-3. A Green Text band, edge to edge with square corners, as proof of
-   scale rather than a second headline: a ticker of live numbers in
-   Display / Hero Ticker drifting right over 60 seconds, and under it a
-   row of company logos on Paper Fixed tiles running left over 38. Both
-   can be grabbed and thrown (see below). A grey caption says what the
-   logos are, because a row of company marks otherwise reads as
-   customers or as sources; these are companies hiring, and the systems
-   their listings come from are named in words.
-4. The product itself: the board on a device the section cuts off at the
-   foot, a MacBook on a desktop and an iPhone on a phone, each in the
-   reader's theme, over the photograph and its veil, with one line above
-   naming what the screenshot shows.
+   then one 14px line saying what the board does for the reader, ending
+   in "Salary estimates*". The asterisk is real: a 12px note under it
+   says an estimate comes from other companies' disclosed pay, can be
+   wrong, and is never what the company said. A figure that reads as a
+   posted salary is the kind of wrong that costs someone a negotiation.
+3. Proof of scale, on the page's own paper: a ticker of live numbers in
+   Display / Hero Ticker drifting right over 60 seconds, its figures in
+   Green Text, and under it a row of company logos running left over 38.
+   Both run the full width and fade out at the window's edges rather than
+   being cut by them. The marks are greyscale at 55%, inverted in dark
+   mode so a black logo is still a logo, and they carry no tile: a row of
+   grey marks says who is hiring, where a wall of colour says who paid.
+   (Paper Fixed went with the tiles.)
+   It was a green band for a while and read as a second headline. Both
+   rows can be grabbed and thrown (see below).
+4. The product itself, in a card: the photograph and its veil held off
+   both window edges by the page gutter and rounded to 24px (Card /
+   Preview), with the board on a device the card cuts off at its foot, a
+   MacBook on a desktop and an iPhone on a phone, each in the reader's
+   theme. No caption: the picture is the sentence.
 5. Four features as full-width rows, direct-source listings first and
    largest because it is the reason the board exists, each rising into
    place as it scrolls in. Two claims inside them are marked with

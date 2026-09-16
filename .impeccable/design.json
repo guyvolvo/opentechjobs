@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-16T07:33:43Z",
+  "generatedAt": "2026-09-16T07:41:46Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -20,22 +20,6 @@
           "#f0eeed"
         ],
         "note": "Dark mode #17181c."
-      },
-      "paper-fixed": {
-        "role": "neutral",
-        "displayName": "Paper Fixed",
-        "canonical": "#f2f0ef",
-        "oklch": "oklch(95.6% 0.003 48.7)",
-        "tonalRamp": [
-          "#0c0b0a",
-          "#262524",
-          "#434241",
-          "#626160",
-          "#848281",
-          "#a6a4a4",
-          "#cac9c8",
-          "#f0eeed"
-        ]
       },
       "device-case": {
         "role": "neutral",

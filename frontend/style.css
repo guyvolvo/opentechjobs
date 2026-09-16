@@ -46,10 +46,6 @@
 
 :root {
   --white: #f2f0ef;
-  /* Paper that stays paper in dark mode, for the one place a surface has
-     to stay light whatever the theme: behind other companies' logos,
-     which are drawn for a light page and vanish on a dark one. */
-  --paper-fixed: #f2f0ef;
   /* The laptop and phone on /hero are drawn hardware, not a surface of
      ours: Apple's own case black, the edge that separates it from a dark
      page, and the camera. None of the three follows the theme, because
@@ -3258,7 +3254,9 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   max-width: 18ch;
 }
 .hero-lede {
-  max-width: 620px;
+  /* One line on a desktop: the sentence is 78 characters, which needs the
+     wider measure. It still wraps on anything narrower. */
+  max-width: min(100%, 760px);
   margin: 0.8em 0 0;
   font-size: clamp(16px, 1.2vw, 19px);
   line-height: 1.45;
@@ -3275,21 +3273,29 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .cta-arrow { flex: none; }
 .hero-secondary { font-size: 15px; color: var(--black); text-underline-offset: 3px; }
 .hero-secondary:hover { color: var(--green-text); }
-/* What the board promises, four words each. Not the feature list: that is
-   its own section further down. */
+/* What the board does for a reader, in one sentence, and the qualification
+   the salary claim needs. The asterisk is a real one: an estimate that
+   reads as a posted salary is the kind of wrong that costs someone a
+   negotiation. */
 .hero-proof {
+  max-width: min(100%, 680px);
   margin: clamp(18px, 2.2vw, 28px) 0 0;
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--black);
+}
+.hero-note {
+  max-width: min(100%, 680px);
+  margin: 0.5em 0 0;
+  font-size: 12px;
+  line-height: 1.5;
   color: var(--grey);
 }
-/* The block the reference fills with a photograph. Here it is a band of the
-   board's green, sized to what it holds: a line of live numbers over a row
-   of company logos half its height. Paper text on --green-text is 5.2:1 in
-   light and 6.2:1 in dark.
-   The same green shows above the numbers and below the logos. The line box
-   carries empty space above the capitals and ascenders, about 0.16em in this face, so
-   the top padding gives that much back and the visible margins match. */
+.note-ref { color: var(--green-text); font-weight: 600; }
+/* A line of live numbers over a row of company logos, on the page's own
+   paper. It was a green band for a while and behaved like a second
+   headline; as proof of scale it belongs quietly on the ground the rest of
+   the page stands on. */
 /* The band lives in its own section now. The block inside still steps out
    of a gutter to reach the screen edge, so the section has to have that
    gutter for it to step out of, or it steps off the page instead. */
@@ -3303,11 +3309,10 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   flex-direction: column;
   gap: clamp(8px, 1.2vw, 18px);
   padding: calc(var(--band-pad) - 0.16 * var(--ticker-size)) 0 var(--band-pad);
-  /* Edge to edge of the screen: the band steps out of the hero's gutter,
-     and with nothing to round against, its corners are square. */
+  /* Edge to edge of the screen: the rows step out of the hero's gutter and
+     run off both sides, where the fade below takes them. */
   margin-inline: calc(-1 * var(--edge));
-  background: var(--green-text);
-  color: var(--white);
+  color: var(--black);
   overflow: hidden;
 }
 /* The wordmark is the way back to the board. Same colour at rest, green
@@ -3315,7 +3320,14 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-word a { color: inherit; text-decoration: none; }
 .hero-word a:hover { color: var(--green-text); }
 .hero-word a:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; border-radius: 4px; }
-.hero-ticker { overflow: hidden; }
+/* Both rows fade out at the window's edges rather than being cut off by
+   it, so they read as something passing through rather than a strip that
+   stops. */
+.hero-ticker {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
 .hero-ticker-track {
   display: flex;
   width: max-content;
@@ -3333,10 +3345,8 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-ticker.to-right .hero-ticker-track { animation: hero-ticker-right 60s linear infinite; }
 .hero-ticker.to-left .hero-ticker-track { animation: hero-ticker-left 38s linear infinite; }
 /* The logos keep their own size rather than tracking the numbers: at this
-   type size half a line is too small to recognise a mark. Each sits on a
-   paper tile that stays paper in dark mode, so a black mark like Apple's
-   stays visible in either theme. The height is set on the row, not the
-   tiles, so the band doesn't jump when the logos arrive. */
+   type size half a line is too small to recognise a mark. The height is set
+   on the row, not the marks, so the rows don't jump when the logos arrive. */
 .hero-logos { height: clamp(30px, 3.4vw, 46px); }
 .hero-logos .hero-ticker-track { height: 100%; }
 .hero-logo {
@@ -3345,11 +3355,24 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   place-items: center;
   height: 100%;
   aspect-ratio: 1;
-  margin-right: calc(var(--ticker-size) * 0.16);
-  background: var(--paper-fixed);
-  border-radius: 4px;
+  margin-right: clamp(26px, 3vw, 54px);
 }
-.hero-logo img { width: 62%; height: 62%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+/* Grey, the way a row of marks on a page is grey: they say who is hiring,
+   not who paid. Inverted in dark mode, because a greyscale black logo on a
+   dark page is no logo at all. */
+.hero-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.55;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+:root[data-theme="dark"] .hero-logo img { filter: grayscale(1) invert(1); opacity: 0.6; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hero-logo img { filter: grayscale(1) invert(1); opacity: 0.6; }
+}
 /* Once the page script moves the rows, the CSS drift stops and each row
    can be grabbed and thrown (hero.html). pan-y leaves vertical swipes to
    the page, so a phone still scrolls past the band. */
@@ -3364,7 +3387,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 @keyframes hero-ticker-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 @keyframes hero-ticker-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .hero-ticker-item { display: inline-flex; align-items: center; }
-.hero-num { font-variant-numeric: tabular-nums; margin-right: 0.22em; }
+.hero-num { font-variant-numeric: tabular-nums; margin-right: 0.22em; color: var(--green-text); }
 /* A drawn dot between items, sized to the type. */
 .hero-ticker-item::after {
   content: "";
@@ -3396,7 +3419,12 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   --board-shot: url("/img/board-desktop-light.webp");
   position: relative;
   overflow: hidden;
-  padding: clamp(56px, 8vw, 120px) var(--edge) 0;
+  /* A card, not a full-bleed band: the photograph is held away from the
+     window on both sides and rounded, so it reads as a picture of the
+     product rather than the page's own ground. */
+  margin: clamp(24px, 3vw, 48px) var(--edge) 0;
+  padding: clamp(44px, 6vw, 96px) clamp(20px, 3vw, 48px) 0;
+  border-radius: 24px;
   text-align: center;
   background-image: var(--showcase-bg);
   background-size: auto, cover;
@@ -3407,16 +3435,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
 }
-/* The band's caption and the API block, both on the page's own ground. */
-.band-note {
-  max-width: 76ch;
-  margin: clamp(12px, 1.6vw, 18px) auto 0;
-  padding: 0 var(--edge);
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--grey);
-  text-align: center;
-}
+/* The API block, on the page's own ground. */
 .hero-api {
   margin: 0 var(--edge) clamp(40px, 6vw, 88px);
   padding: clamp(28px, 4vw, 52px);
@@ -3460,17 +3479,10 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 /* The reason the board exists, so it is the largest of the four. */
 .hero-feature.feature-lead h2 { font-size: clamp(36px, 5.4vw, 5rem); }
-.showcase-note {
-  max-width: 52ch;
-  margin: 0 auto;
-  font-size: clamp(15px, 1.1vw, 17px);
-  line-height: 1.45;
-  color: var(--ink-fixed);
-}
 /* A MacBook, from the hinge up: aluminium bezel, a camera above the
    screen, and no bottom edge, because the section ends before it does. */
 .showcase-device {
-  width: min(1040px, 100%);
+  width: min(980px, 100%);
   height: clamp(200px, 34vw, 480px);
   margin: clamp(36px, 5vw, 72px) auto 0;
   padding: 12px 12px 0;

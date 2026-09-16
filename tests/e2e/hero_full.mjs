@@ -7,11 +7,28 @@ const ROOT = "C:/Users/admin/Desktop/Test scripts";
 const server = spawn(`${ROOT}/.venv/Scripts/python.exe`, ["-m", "http.server", "8836", "--bind", "127.0.0.1"],
   { cwd: `${ROOT}/frontend`, stdio: "ignore" });
 await sleep(1500);
+const STATS = {
+  totals: { open_jobs: 177871, companies_hiring: 4197 },
+  workplace: [{ workplace: "remote", n: 26043 }],
+  top_companies_logos: ["#ff9900", "#4285f4", "#111111", "#e4002b", "#00a4ef", "#232f3e", "#7ab55c"].map((fill, i) => ({
+    domain: `c${i}.com`, name: `Company ${i}`, n: 900 - i,
+    logo_url: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><circle cx='5' cy='5' r='5' fill='${fill}'/></svg>`),
+  })),
+};
+
 const browser = await chromium.launch();
 for (const [label, opts] of [["desktop", { viewport: { width: 1440, height: 900 } }], ["phone", devices["Pixel 7"]]]) {
   for (const theme of ["light", "dark"]) {
     const context = await browser.newContext({ ...opts });
-    await context.addInitScript((t) => { try { localStorage.setItem("iljobs_theme", t); } catch {} }, theme);
+    // Local frontend/ has no stats.json (the applier publishes it), so the
+    // band would render label-only. Stub the same shape the page reads.
+    await context.addInitScript(({ t, stats }) => {
+      try { localStorage.setItem("iljobs_theme", t); } catch {}
+      const real = window.fetch.bind(window);
+      window.fetch = (i, init) => String(i && i.url ? i.url : i).includes("stats.json")
+        ? Promise.resolve(new Response(JSON.stringify(stats), { status: 200, headers: { "Content-Type": "application/json" } }))
+        : real(i, init);
+    }, { t: theme, stats: STATS });
     const page = await context.newPage();
     await page.goto("http://127.0.0.1:8836/hero.html", { waitUntil: "networkidle" });
     await page.waitForTimeout(900);
