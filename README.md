@@ -1,6 +1,8 @@
-# OpenTechJobs
+# <img src="brand/mark-dark.png" alt="" height="32" valign="middle"> OpenTechJobs
 
 Open-source Israeli tech job board. Scrapes job listings directly from ATS APIs, tracks them over time, and serves them through a lightweight public API.
+
+![The job board, showing live listings from Apple and Microsoft](frontend/img/readme-hero.webp)
 
 ## Architecture
 
