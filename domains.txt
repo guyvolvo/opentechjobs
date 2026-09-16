@@ -5561,3 +5561,11 @@ flare.io
 # Common Crawl discovery batch (merge_discovered_batch.py)
 citygardenmontessori.com
 pushoperations.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+outerbox.com
+halon.com
+chaoslabs.com
+riplo.ai
+i4DM.com
+fusion92.com
