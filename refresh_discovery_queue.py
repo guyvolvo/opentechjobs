@@ -54,7 +54,14 @@ QUEUE_PATH = ROOT / "pending-discovery-candidates.json"
 ATS_LIMITS = {
     "greenhouse": (30, 1800),
     "ashby": (30, 2800),
-    "workable": (20, 1800),
+    # 4500, not 1800: reading three crawl snapshots instead of one took
+    # workable's new-candidate count from a few hundred to 4,146 in the
+    # first real run (2026-09-16), and a verify_limit of 1800 silently
+    # dropped 2,346 of them. The cap is there to bound a run's wall
+    # clock, not to sample the pool, so it has to move when the pool
+    # does. Workable is the widest of these by some way: it produced
+    # 4,604 unique slugs against greenhouse's 2,483.
+    "workable": (20, 4500),
     "smartrecruiters": (20, 600),
     # Comeet's pool is small and it does not page: every prefix of
     # comeet.com/jobs/* answers with the same ~630 records, which come to
