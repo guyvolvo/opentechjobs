@@ -3402,20 +3402,27 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   margin-right: clamp(26px, 3vw, 54px);
 }
 /* Grey, the way a row of marks on a page is grey: they say who is hiring,
-   not who paid. Inverted in dark mode, because a greyscale black logo on a
-   dark page is no logo at all. */
+   not who paid. Desaturated, never faded: measured on the live row, the
+   old grayscale-plus-0.55-opacity pair left half the marks under 3:1 on
+   paper, and a company mark nobody can make out is not restraint. */
 .hero-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: grayscale(1);
-  opacity: 0.55;
+  filter: grayscale(1) contrast(1.35);
   pointer-events: none;
   -webkit-user-drag: none;
 }
-:root[data-theme="dark"] .hero-logo img { filter: grayscale(1) invert(1); opacity: 0.6; }
+/* Dark mode brightens rather than inverts. Inverting turned every mark's
+   dark pixels into near-black on a near-black page: measured 1.00 to 1.12
+   against the ground, which is invisible, not subtle. */
+:root[data-theme="dark"] .hero-logo img {
+  filter: grayscale(1) brightness(2.4) contrast(1.1);
+}
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hero-logo img { filter: grayscale(1) invert(1); opacity: 0.6; }
+  :root:not([data-theme="light"]) .hero-logo img {
+    filter: grayscale(1) brightness(2.4) contrast(1.1);
+  }
 }
 /* Once the page script moves the rows, the CSS drift stops and each row
    can be grabbed and thrown (hero.html). pan-y leaves vertical swipes to
