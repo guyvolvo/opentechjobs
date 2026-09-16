@@ -573,47 +573,52 @@ before first paint, so a returning visit does not animate. Below 960px
 the column stacks under the board and has no toggle.
 
 ### Hero page (/hero, draft)
-A landing page modelled on an editorial reference: a small utility row
-(name, a comma-separated nav, GitHub), the OpenTechJobs wordmark set as
-wide as the page (Display / Hero, sized from the hero's container width), which links back to the board, and below it a band in Green Text where the reference has a photograph,
-running edge to edge of the screen with square corners. The band fits what it holds, with the same
-green showing above and below. Its top line is a ticker of live board
-numbers from `stats.json` in Display / Hero Ticker, drifting right over 60
-seconds: global open jobs and how many are remote, separated by a drawn
-dot. Under it, half that line's height, thirty company logos run left over
-38 seconds, each on a tile of Paper Fixed with 4px corners: paper that
-stays paper in dark mode, because logos are drawn for a light page. The
-hand-picked big tech and startups in `api/hot_companies.py` come first,
-busiest first, and the busiest other companies with a logo fill any
-slots left. A logo that fails to load leaves the row. Either row can be
-grabbed and thrown, with a mouse or a finger: it takes the speed and
-direction of the throw, holds close to it, and eases back into its drift
-over 2.6 seconds. Vertical swipes still scroll the page. Under the band, the product shot: "The Open Job Board" in Display /
-Feature over a line of copy and an ink "Explore open jobs" button, all
-centred on a photograph of open hills (`img/hills.webp`, 220KB, anchored
-at the foot and sized to cover). Its sky is bright enough to leave the
-heading at 2.7:1, so `--showcase-veil` lays the page's own ground over
-it, heaviest where the type sits and clearing to 30% at the foot where
-the hills meet the laptop: 6.8:1 for the heading in light, 14:1 in dark,
-and 5.6:1 at its weakest point over the grass. Paper veil in light, ink
-in dark. A drawn landscape was tried first and read as clip art beside
-type this plain. Below them the board itself fills a device the section cuts off at
-the bottom edge, a MacBook from the hinge up on a desktop and an iPhone
-on a phone, each showing that screen's own screenshot in the reader's
-theme. The shots are decoration: the words above carry the meaning.
-The devices are drawn hardware, not surfaces of ours, so they keep
-Apple's own case black (Device Case), a drawn edge that separates them
-from a dark page (Device Edge), a camera (Device Lens) and the corner
-radii of the real things (Device / rounded). None of the five follows
-the theme, because the hardware doesn't.
+A landing page in five beats, in the order a visitor asks the questions:
+what is this, can I trust it, what do I do, why is it better, and what
+else can I build.
 
-Below that, the features as full-width
-rows under a 2px rule, heading in Display / Feature beside a 16px
-paragraph, each rising into place once as it scrolls into view on an
-exponential ease-out; visible without script, and without that motion
-when reduced motion is on, where the tickers slow to a third. It ends on
-a large green "Search N open jobs" link, set at the Hero Ticker size. Overused Grotesk throughout,
-colours from the board's own tokens, so it follows the theme.
+1. A utility row (name, comma-separated nav, GitHub), then the wordmark
+   in Display / Hero. It ran the full width for a while and read as a
+   poster: the name arrived before the promise, so it is now a brand
+   line above the claim rather than the page's headline.
+2. The claim, "Straight from the source.", in Display / Feature, with a
+   lede at 16-19px on a 620px measure and 1.45 line height carrying the
+   live count: "177,871 open jobs, read directly from company hiring
+   systems and career sites. Never reposted from another board." Two
+   doors follow, an ink button to the board and a plain link to the API,
+   then a 13px proof row in grey.
+3. A Green Text band, edge to edge with square corners, as proof of
+   scale rather than a second headline: a ticker of live numbers in
+   Display / Hero Ticker drifting right over 60 seconds, and under it a
+   row of company logos on Paper Fixed tiles running left over 38. Both
+   can be grabbed and thrown (see below). A grey caption says what the
+   logos are, because a row of company marks otherwise reads as
+   customers or as sources; these are companies hiring, and the systems
+   their listings come from are named in words.
+4. The product itself: the board on a device the section cuts off at the
+   foot, a MacBook on a desktop and an iPhone on a phone, each in the
+   reader's theme, over the photograph and its veil, with one line above
+   naming what the screenshot shows.
+5. Four features as full-width rows, direct-source listings first and
+   largest because it is the reason the board exists, each rising into
+   place as it scrolls in. Two claims inside them are marked with
+   `.feature-badge`, a Row Selected chip in the run of the sentence: where
+   a CV goes, and that a salary figure is an estimate. Then the API in a
+   ruled block of its own, since the people who want it are not the
+   people reading the four above, and a closing link to the board.
+
+Either ticker row can be grabbed and thrown, with a mouse or a finger:
+it takes the speed and direction of the throw, holds close to it, and
+eases back into its drift over 2.6 seconds. Vertical swipes still scroll
+the page.
+
+Claims on this page are load-bearing and were each checked against the
+code before being written: every fetcher reads an ATS or a company
+career site, nothing is reposted; `cv_skills.js` makes no network call,
+so the file never leaves the browser and only the skill list is saved,
+and only when signed in; the API needs no key and is throttled at 20
+requests a second, which the page says rather than implying no limit;
+and nothing in the ranking can be bought.
 
 ### Not found
 Any address the site does not have gets `404.html` with a real 404

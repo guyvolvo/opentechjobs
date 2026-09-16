@@ -38,19 +38,32 @@
 
   <main>
     <section class="hero">
-      <h1 class="hero-word"><a href="/">OpenTechJobs</a></h1>
-      <div class="hero-block" role="region" aria-label="Board statistics">
+      <a class="hero-word" href="/">OpenTechJobs</a>
+      <h1 class="hero-claim">Straight from the source.</h1>
+      <p class="hero-lede"><span id="lede-count">Every listing</span> read directly from company
+         hiring systems and career sites. Never reposted from another board.</p>
+      <div class="hero-actions">
+        <a class="btn hero-primary" href="/">Search open jobs <svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="hero-secondary" href="/api/help">Explore the API</a>
+      </div>
+      <p class="hero-proof">Direct-source listings &#183; CV read in your browser &#183; Salary estimates &#183; No paid placement</p>
+    </section>
+
+    <section class="hero-band" aria-label="How much is on the board">
+      <div class="hero-block">
         <div class="hero-ticker to-right" aria-hidden="true"><div class="hero-ticker-track" id="ticker-top"></div></div>
         <div class="hero-ticker hero-logos to-left" aria-hidden="true"><div class="hero-ticker-track" id="ticker-logos"></div></div>
         <p class="sr-only" id="hero-stats-text">Loading board statistics.</p>
       </div>
+      <!-- Says what the logos are. A row of company marks can read as
+           customers or as sources; these are neither. -->
+      <p class="band-note">The logos are companies hiring right now. Their listings are read from
+         Greenhouse, Lever, Ashby, Workday, SmartRecruiters and other hiring systems, and from
+         company career sites.</p>
     </section>
 
     <section class="hero-showcase">
-      <h2>The Open Job Board</h2>
-      <p>Every listing read from the company's own hiring system, ranked against
-         your CV, with salary estimates where pay is not posted.</p>
-      <a class="btn showcase-cta" href="/">Explore open jobs</a>
+      <p class="showcase-note">Best matches ranks the whole board by the skills in your CV.</p>
       <!-- The board itself, on a screen the section cuts off at the bottom.
            A picture of the product, so it is a background image rather than
            content: the page says all of this in words above. -->
@@ -60,30 +73,43 @@
     </section>
 
     <section class="hero-features" aria-label="What the board does">
-      <article class="hero-feature">
-        <h2>Straight from the source.</h2>
-        <p>Every listing is read from the company's own hiring system, Greenhouse, Lever, Ashby, Workday and more, and from the careers sites of Microsoft, Google, Apple and Amazon. Nothing is reposted from another board.</p>
+      <article class="hero-feature feature-lead">
+        <h2>Direct-source listings</h2>
+        <p>Every listing is read from the company's own hiring system, Greenhouse, Lever, Ashby,
+           Workday, SmartRecruiters and a dozen more, or from its career site, as with Microsoft,
+           Google, Apple and Amazon. Nothing is reposted from another board, and nothing can be
+           paid into the ranking.</p>
       </article>
       <article class="hero-feature">
-        <h2>CV Keyword matching</h2>
-        <p>Analyze a CV on your account page and Best matches orders the board by the skills you have. The file is read in your browser and never uploaded.</p>
+        <h2>CV keyword matching</h2>
+        <p>Analyze a CV on your account page and Best matches orders the board by the skills you
+           have. <b class="feature-badge">The file never leaves your browser.</b> It is read where
+           you dropped it; only the list of skills is saved, and only if you sign in.</p>
       </article>
       <article class="hero-feature">
         <h2>Salary estimation</h2>
-        <p>A listing without a salary gets an estimate from disclosed pay for the same kind of role, level and place, and it says it is an estimate.</p>
+        <p>A listing with no pay posted gets a figure from disclosed salaries for the same kind of
+           role, level and place. Every one of those is marked
+           <b class="feature-badge">Est.</b> on the row, so an estimate is never mistaken for what
+           the company said.</p>
       </article>
       <article class="hero-feature">
         <h2>Smart alerts</h2>
         <p>Save any search and get an email when new listings match it.</p>
       </article>
-      <article class="hero-feature">
-        <h2>An open API.</h2>
-        <p>The job data is public and free. No key and no sign-up: poll it and build on it.</p>
-      </article>
+    </section>
+
+    <!-- Its own block, not a fifth feature: the people who want this are
+         not the people reading the four above. -->
+    <section class="hero-api">
+      <h2>Build on the same data.</h2>
+      <p>The whole index is a public JSON API: every listing, its skills, its salary, and the day
+         it opened and closed. No key, no sign-up. Fair-use limits apply, 20 requests a second.</p>
+      <a class="hero-api-link" href="/api/help">Read the API reference <svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
     </section>
 
     <section class="hero-cta">
-      <a class="hero-cta-link" href="/">Search <span id="cta-count">the open jobs</span></a>
+      <a class="hero-cta-link" href="/">Browse <span id="cta-count">the open jobs</span></a>
     </section>
   </main>
 
@@ -119,8 +145,11 @@
         const remote = ((stats.workplace || []).find((w) => w.workplace === "remote") || {}).n;
         fill(document.getElementById("ticker-top"), [
           item(fmt(t.open_jobs), "open jobs"),
+          item(fmt(t.companies_hiring), "companies hiring"),
           item(fmt(remote), "remote"),
         ], 12);
+        const lede = document.getElementById("lede-count");
+        if (t.open_jobs) lede.textContent = `${fmt(t.open_jobs)} open jobs,`;
 
         // top_companies_logos is thirty companies, the hand-picked big tech
         // and startups first (api/hot_companies.py). Until a precompute has
@@ -144,7 +173,7 @@
       }
 
       function labelsOnly() {
-        fill(document.getElementById("ticker-top"), ["open jobs", "remote"].map((l) => item("", l)), 12);
+        fill(document.getElementById("ticker-top"), ["open jobs", "companies hiring", "remote"].map((l) => item("", l)), 12);
       }
 
       labelsOnly();

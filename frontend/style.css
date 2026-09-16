@@ -3230,18 +3230,58 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   padding: 0 var(--edge);
   container-type: inline-size;
 }
-/* Sized to the hero's own width so the word runs edge to edge the way the
-   reference does: "OpenTechJobs" at this tracking is 6.1em wide. Tracked to
-   the craft floor's -0.04em. */
+/* The brand, said once. It ran the full width of the page for a while and
+   behaved like a poster: the visitor met the name before the promise. */
 .hero-word {
+  display: inline-block;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 13.4vw;
-  font-size: calc(100cqi / 6.1);
-  line-height: 0.84;
+  font-size: clamp(34px, 6.4vw, 82px);
+  line-height: 0.9;
   letter-spacing: -0.04em;
-  margin: 0.14em 0 0.1em -0.05em;
+  margin: 0.5em 0 0.3em -0.04em;
   white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+}
+.hero-word:hover { color: var(--green-text); }
+.hero-word:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; border-radius: 4px; }
+
+/* The claim carries the page: the one line a visitor has to read. */
+.hero-claim {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(30px, 4.4vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  margin: 0;
+  max-width: 18ch;
+}
+.hero-lede {
+  max-width: 620px;
+  margin: 0.8em 0 0;
+  font-size: clamp(16px, 1.2vw, 19px);
+  line-height: 1.45;
+  color: var(--black);
+}
+.hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  margin-top: clamp(20px, 2.4vw, 30px);
+}
+.hero-primary.btn { display: inline-flex; align-items: center; gap: 8px; }
+.cta-arrow { flex: none; }
+.hero-secondary { font-size: 15px; color: var(--black); text-underline-offset: 3px; }
+.hero-secondary:hover { color: var(--green-text); }
+/* What the board promises, four words each. Not the feature list: that is
+   its own section further down. */
+.hero-proof {
+  margin: clamp(18px, 2.2vw, 28px) 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--grey);
 }
 /* The block the reference fills with a photograph. Here it is a band of the
    board's green, sized to what it holds: a line of live numbers over a row
@@ -3250,8 +3290,13 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    The same green shows above the numbers and below the logos. The line box
    carries empty space above the capitals and ascenders, about 0.16em in this face, so
    the top padding gives that much back and the visible margins match. */
+/* The band lives in its own section now. The block inside still steps out
+   of a gutter to reach the screen edge, so the section has to have that
+   gutter for it to step out of, or it steps off the page instead. */
+.hero-band { padding: 0 var(--edge); }
+
 .hero-block {
-  --ticker-size: clamp(52px, 9vw, 10rem);
+  --ticker-size: clamp(26px, 3.4vw, 3.4rem);
   --band-pad: clamp(16px, 2.6vw, 36px);
   position: relative;
   display: flex;
@@ -3287,12 +3332,12 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    twice, so moving exactly half its width loops without a seam. */
 .hero-ticker.to-right .hero-ticker-track { animation: hero-ticker-right 60s linear infinite; }
 .hero-ticker.to-left .hero-ticker-track { animation: hero-ticker-left 38s linear infinite; }
-/* Half the height of the line of numbers above it: 0.52 of the type size
-   against that line's 1.04. Each logo sits on a paper tile that stays paper
-   in dark mode, so a black mark like Apple's stays visible in either
-   theme. The height is set on the row, not the tiles, so the band doesn't
-   jump when the logos arrive. */
-.hero-logos { height: calc(var(--ticker-size) * 0.52); }
+/* The logos keep their own size rather than tracking the numbers: at this
+   type size half a line is too small to recognise a mark. Each sits on a
+   paper tile that stays paper in dark mode, so a black mark like Apple's
+   stays visible in either theme. The height is set on the row, not the
+   tiles, so the band doesn't jump when the logos arrive. */
+.hero-logos { height: clamp(30px, 3.4vw, 46px); }
 .hero-logos .hero-ticker-track { height: 100%; }
 .hero-logo {
   flex: none;
@@ -3362,36 +3407,66 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
 }
-/* The ground here is the photograph in either theme, so the button stays
-   ink-on-paper rather than following the page into dark. The heading and
-   copy set --ink-fixed in their own blocks below. */
-.showcase-cta.btn {
-  background: var(--ink-fixed);
-  border-color: var(--ink-fixed);
-  color: var(--paper-fixed);
+/* The band's caption and the API block, both on the page's own ground. */
+.band-note {
+  max-width: 76ch;
+  margin: clamp(12px, 1.6vw, 18px) auto 0;
+  padding: 0 var(--edge);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--grey);
+  text-align: center;
 }
-.showcase-cta.btn:hover {
-  background: var(--green);
-  border-color: var(--green);
-  color: var(--paper-fixed);
+.hero-api {
+  margin: 0 var(--edge) clamp(40px, 6vw, 88px);
+  padding: clamp(28px, 4vw, 52px);
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
 }
-.hero-showcase h2 {
+.hero-api h2 {
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(32px, 4.6vw, 4.5rem);
+  font-weight: 400;
+  font-size: clamp(28px, 3.4vw, 3rem);
   line-height: 1;
   letter-spacing: -0.03em;
   margin: 0;
-  color: var(--ink-fixed);
 }
-.hero-showcase p {
-  max-width: 46ch;
-  margin: 0.7em auto 0;
+.hero-api p {
+  max-width: 62ch;
+  margin: 0.7em 0 0;
   font-size: 16px;
   line-height: 1.5;
+  color: var(--grey);
+}
+.hero-api-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1.1em;
+  font-weight: 600;
+  color: var(--green-text);
+}
+/* The two claims worth reading twice: where a CV goes, and what a salary
+   figure means. Marked in the run of the sentence rather than pulled out
+   of it, so the qualification stays attached to what it qualifies. */
+.feature-badge {
+  background: var(--row-selected);
+  color: var(--black);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+/* The reason the board exists, so it is the largest of the four. */
+.hero-feature.feature-lead h2 { font-size: clamp(36px, 5.4vw, 5rem); }
+.showcase-note {
+  max-width: 52ch;
+  margin: 0 auto;
+  font-size: clamp(15px, 1.1vw, 17px);
+  line-height: 1.45;
   color: var(--ink-fixed);
 }
-.showcase-cta { margin-top: clamp(20px, 2.6vw, 32px); }
 /* A MacBook, from the hinge up: aluminium bezel, a camera above the
    screen, and no bottom edge, because the section ends before it does. */
 .showcase-device {

@@ -57,7 +57,7 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       const bandBox = document.querySelector(".hero-block").getBoundingClientRect();
       return { overflow: document.documentElement.scrollWidth > innerWidth, wordRight: word.right, vw: innerWidth,
         bandLeft: bandBox.left, bandRight: bandBox.right, clientW: document.documentElement.clientWidth,
-        wordHref: document.querySelector(".hero-word a")?.getAttribute("href"),
+        wordHref: document.querySelector(".hero-word")?.getAttribute("href"),
         tickerPx: parseFloat(getComputedStyle(document.getElementById("ticker-top")).fontSize),
         top0: x("ticker-top"), bottom0: x("ticker-logos"),
         topText: document.getElementById("ticker-top").textContent,
@@ -107,7 +107,12 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
     check(`${tag}: the wordmark fits the page`, m.wordRight <= m.vw, `${m.wordRight} > ${m.vw}`);
     check(`${tag}: the numbers ticker carries live numbers`, m.topText.includes("176,465 open jobs") && m.topText.includes("25,841 remote") && !/Israel|median|24 hours/.test(m.topText), m.topText.slice(0, 120));
     check(`${tag}: the logo row shows the logos and drops the broken one`, m.tiles >= 60 && m.tiles % 6 === 0 && m.broken === 0, JSON.stringify({ tiles: m.tiles, broken: m.broken }));
-    check(`${tag}: logo row is half the numbers line`, Math.abs(m.logosH / m.numbersH - 0.5) < 0.02 && Math.abs(m.tileH - m.logosH) < 1, JSON.stringify({ numbersH: m.numbersH, logosH: m.logosH, tileH: m.tileH }));
+    // The logos no longer track the ticker's type size: at proof-strip
+    // scale half a line is too small to recognise a mark. They keep their
+    // own size, square, and stay in the band rather than dwarfing it.
+    check(`${tag}: the logos are recognisable without dwarfing the numbers`,
+      m.logosH >= 28 && m.logosH <= 50 && Math.abs(m.tileH - m.logosH) < 1 && m.logosH <= m.numbersH * 1.4,
+      JSON.stringify({ numbersH: m.numbersH, logosH: m.logosH, tileH: m.tileH }));
     check(`${tag}: numbers move right, logos move left`, later.top1 > m.top0 && later.bottom1 < m.bottom0, JSON.stringify({ ...m, ...later }));
     // Throw the logo row to the right, against its leftward drift.
     if (label === "desktop") {
@@ -154,17 +159,48 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       } catch {}
       const sect = document.querySelector(".hero-showcase").getBoundingClientRect();
       const box = dev.getBoundingClientRect();
-      const cta = document.querySelector(".showcase-cta");
+      const primary = document.querySelector(".hero-primary");
+      const secondary = document.querySelector(".hero-secondary");
+      const lede = document.querySelector(".hero-lede");
       return { url, ok, cut: box.bottom >= sect.bottom - 1, wider: box.width <= sect.width,
-        cta: cta.textContent.trim(), href: cta.getAttribute("href"),
-        heading: document.querySelector(".hero-showcase h2").textContent.trim() };
+        cta: primary.textContent.replace(/\s+/g, " ").trim(), href: primary.getAttribute("href"),
+        apiHref: secondary.getAttribute("href"),
+        claim: document.querySelector(".hero-claim").textContent.trim(),
+        lede: lede.textContent.replace(/\s+/g, " ").trim(),
+        ledePx: parseFloat(getComputedStyle(lede).fontSize),
+        ledeWidth: lede.getBoundingClientRect().width,
+        wordPx: parseFloat(getComputedStyle(document.querySelector(".hero-word")).fontSize) };
     });
     check(`${tag}: the product shot loads the right screenshot`,
       product.ok && product.url.includes(label === "phone" ? "board-phone" : "board-desktop") && product.url.includes(theme),
       JSON.stringify(shot));
-    check(`${tag}: the device is cut off by the section`, product.cut && product.wider, JSON.stringify(shot));
-    check(`${tag}: the button invites you to the board`, product.cta === "Explore open jobs" && product.href === "/", JSON.stringify(shot));
+    check(`${tag}: the device is cut off by the section`, product.cut && product.wider,
+      JSON.stringify({ cut: product.cut, wider: product.wider }));
+    check(`${tag}: the claim leads, the brand does not`,
+      product.claim === "Straight from the source." && product.wordPx <= 82,
+      JSON.stringify({ claim: product.claim, wordPx: product.wordPx }));
+    check(`${tag}: the lede carries the live count and reads at size`,
+      /^176,465 open jobs, read directly from company hiring systems/.test(product.lede)
+      && product.ledePx >= 16 && product.ledeWidth <= 640,
+      JSON.stringify({ lede: product.lede.slice(0, 70), px: product.ledePx, w: Math.round(product.ledeWidth) }));
+    check(`${tag}: both doors are open, the board and the API`,
+      /^Search open jobs/.test(product.cta) && product.href === "/" && product.apiHref === "/api/help",
+      JSON.stringify({ cta: product.cta, href: product.href, api: product.apiHref }));
     check(`${tag}: the search link names the count`, m.cta === "176,465 open jobs", m.cta);
+    const api = await page.evaluate(() => {
+      const el = document.querySelector(".hero-api");
+      return {
+        has: !!el,
+        link: el?.querySelector(".hero-api-link")?.getAttribute("href"),
+        text: (el?.textContent || "").replace(/\s+/g, " ").trim(),
+        note: (document.querySelector(".band-note")?.textContent || "").replace(/\s+/g, " ").trim(),
+      };
+    });
+    check(`${tag}: the API has its own block and states its limits`,
+      api.has && api.link === "/api/help" && /No key, no sign-up/.test(api.text) && /20 requests a second/.test(api.text),
+      api.text.slice(0, 140));
+    check(`${tag}: the logo row says what the logos are`,
+      /companies hiring right now/i.test(api.note) && /Greenhouse/.test(api.note), api.note.slice(0, 120));
     if (theme === "dark") check(`${tag}: dark theme applied`, m.theme === "dark", String(m.theme));
 
     const feature = page.locator(".hero-feature").last();
