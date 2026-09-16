@@ -5569,3 +5569,10 @@ chaoslabs.com
 riplo.ai
 i4DM.com
 fusion92.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+firstalliancecreditunion.com
+elsight.com
+acclaim.ai
+appnext.com
+lumus.com
