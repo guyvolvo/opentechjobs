@@ -3362,11 +3362,9 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
 }
-/* The ground here is the photograph in either theme, so the words on it
-   stay ink and the button stays ink-on-paper rather than following the
-   page into dark. */
-.hero-showcase h2,
-.hero-showcase p { color: var(--ink-fixed); }
+/* The ground here is the photograph in either theme, so the button stays
+   ink-on-paper rather than following the page into dark. The heading and
+   copy set --ink-fixed in their own blocks below. */
 .showcase-cta.btn {
   background: var(--ink-fixed);
   border-color: var(--ink-fixed);
@@ -3384,14 +3382,14 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   line-height: 1;
   letter-spacing: -0.03em;
   margin: 0;
-  color: var(--black);
+  color: var(--ink-fixed);
 }
 .hero-showcase p {
   max-width: 46ch;
   margin: 0.7em auto 0;
   font-size: 16px;
   line-height: 1.5;
-  color: var(--black);
+  color: var(--ink-fixed);
 }
 .showcase-cta { margin-top: clamp(20px, 2.6vw, 32px); }
 /* A MacBook, from the hinge up: aluminium bezel, a camera above the
