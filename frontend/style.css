@@ -54,6 +54,12 @@
      light ground in both themes (see .hero-showcase). */
   --ink-fixed: #40513b;
   --device-case: #1d1d1f;
+  /* Anodised aluminium, and the black glass of a display that is off.
+     Fixed, like the case: hardware does not follow a page's theme. */
+  --device-aluminium-light: #e8e9e7;
+  --device-aluminium-mid: #b9bbb9;
+  --device-aluminium-dark: #777b7b;
+  --device-glass: #080a0b;
   --device-edge: #48484a;
   --device-lens: #3a3a3c;
   --black: #40513b;
@@ -3440,6 +3446,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
     rgba(242, 240, 239, 0.16) 100%);
   --showcase-bg: var(--showcase-veil), url("/img/hills.webp");
   --board-shot: url("/img/board-desktop-light.webp?v=2");
+  --phone-shot: url("/img/board-phone-light.webp?v=2");
   position: relative;
   overflow: hidden;
   /* A card, not a full-bleed band: the photograph is held away from the
@@ -3498,97 +3505,311 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 /* The reason the board exists, so it is the largest of the four. */
 .hero-feature.feature-lead h2 { font-size: clamp(36px, 5.4vw, 5rem); }
-/* A laptop lid, from the hinge up, drawn to a real machine's proportions:
-   on a 14-inch MacBook Pro the bezel is 1.8% of the lid's width at the
-   sides, the screen's corners are round at 2.1% of its width, and the
-   notch is 12.4% of that width by 3.3% of the screen's height. Those are
-   measurements of an object, taken off Apple's own bezel art with a
-   script; none of that art is used here, and the drawing is ours: a flat
-   case, a drawn edge, no rendered aluminium. */
-.showcase-device {
-  --screen-w: min(980px, 100%);
-  --bezel: calc(var(--screen-w) * 0.018);
+/* The devices. Rendered hardware rather than one of our own surfaces:
+   anodised aluminium, black display glass, one restrained reflection and a
+   contact shadow on the ground. This is the single place the No-Shadow
+   Rule does not hold, and it is deliberate (see DESIGN.md): an object
+   without a shadow does not sit anywhere. Everything else on the page
+   still earns its separation with a rule or a change of ground. */
+.device-stage {
   position: relative;
-  width: var(--screen-w);
-  height: clamp(200px, 34vw, 480px);
-  margin: clamp(36px, 5vw, 72px) auto 0;
-  padding: calc(var(--bezel) * 1.6) var(--bezel) 0;
-  border-radius: 14px 14px 0 0;
-  background: var(--device-case);
-  /* The case is near black, and so is the page in dark mode, so its edge
-     is drawn rather than left to the difference between the two. */
-  border: 1px solid var(--device-edge);
-  border-bottom: 0;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(1.5rem, 6vw, 7rem);
+  margin-top: clamp(24px, 4vw, 56px);
+  padding-bottom: clamp(16px, 3vw, 40px);
 }
-/* The notch, and the camera sitting in it. */
-.showcase-device::before {
+/* The ground both devices stand on. */
+.device-stage::after {
   content: "";
   position: absolute;
-  left: 50%;
-  top: 0;
-  width: calc(var(--screen-w) * 0.08);
-  height: calc(var(--bezel) * 1.1);
-  transform: translateX(-50%);
-  border-radius: 0 0 5px 5px;
-  background: var(--device-case);
-  z-index: 1;
-}
-.showcase-device::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: calc(var(--bezel) * 0.5);
-  width: 4px;
-  height: 4px;
-  transform: translateX(-50%);
+  z-index: -1;
+  left: 12%;
+  right: 12%;
+  bottom: 2%;
+  height: 4rem;
   border-radius: 50%;
-  background: var(--device-lens);
-  z-index: 2;
+  background: rgba(0, 0, 0, 0.22);
+  filter: blur(32px);
+  transform: scaleY(0.3);
 }
-.device-screen {
+
+.macbook {
+  position: relative;
+  width: min(760px, 62%);
+  aspect-ratio: 1.55;
+  perspective: 1800px;
+  transform: rotateX(3deg) rotateY(-5deg);
+  filter: drop-shadow(0 24px 22px rgba(0, 0, 0, 0.22)) drop-shadow(0 7px 8px rgba(0, 0, 0, 0.14));
+}
+.macbook-screen {
+  position: absolute;
+  z-index: 3;
+  inset: 0 3.5% 15%;
+  transform-style: preserve-3d;
+  transform-origin: bottom center;
+}
+/* The shell: a sheen across the lid over the metal's own run of light to
+   dark across its width. */
+.macbook-lid {
+  position: absolute;
+  inset: 0;
+  padding: 10px;
+  border-radius: 14px 14px 6px 6px;
+  background:
+    linear-gradient(116deg, rgba(255, 255, 255, 0.5) 0%, transparent 15%,
+      transparent 72%, rgba(0, 0, 0, 0.14) 100%),
+    linear-gradient(90deg, var(--device-aluminium-dark), var(--device-aluminium-light) 9%,
+      #cfd1ce 50%, var(--device-aluminium-mid));
+  border: 1px solid rgba(40, 43, 43, 0.48);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    inset 1px 0 2px rgba(255, 255, 255, 0.26),
+    inset -1px 0 2px rgba(0, 0, 0, 0.18);
+}
+/* Anodised grain, barely there. */
+.macbook-lid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.18;
+  background: repeating-linear-gradient(92deg, rgba(255, 255, 255, 0.06) 0 1px,
+    rgba(0, 0, 0, 0.035) 1px 2px);
+  mix-blend-mode: overlay;
+}
+.macbook-glass {
+  position: relative;
+  width: 100%;
   height: 100%;
-  border-radius: calc(var(--screen-w) * 0.021) calc(var(--screen-w) * 0.021) 0 0;
-  background-image: var(--board-shot);
-  background-size: cover;
-  background-position: top center;
-  background-color: var(--white);
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--device-glass);
+  border: 1px solid rgba(0, 0, 0, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 24px rgba(0, 0, 0, 0.7);
+}
+.screen-content {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--board-shot) top left / cover no-repeat;
+}
+/* One soft sweep. More than this and the glass reads as plastic. */
+.macbook-glass::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  inset: -30% -15%;
+  pointer-events: none;
+  background: linear-gradient(118deg, transparent 0 33%, rgba(255, 255, 255, 0.085) 43%,
+    rgba(255, 255, 255, 0.02) 49%, transparent 59%);
+  transform: rotate(-3deg);
+  mix-blend-mode: screen;
+}
+.macbook-glass::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.7);
+}
+/* The base, laid back in perspective, so the lid stands on something. */
+.macbook-base {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 21%;
+  transform: perspective(700px) rotateX(54deg);
+  transform-origin: top center;
+  border-radius: 6px 6px 18px 18px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.25), transparent 6% 94%, rgba(0, 0, 0, 0.22)),
+    linear-gradient(180deg, #dfe1de, #b9bcba 55%, #8b8f8e);
+  border: 1px solid rgba(40, 43, 43, 0.48);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    inset 0 -7px 10px rgba(0, 0, 0, 0.18),
+    0 6px 5px rgba(0, 0, 0, 0.18);
+}
+.keyboard-deck {
+  position: absolute;
+  inset: 10% 9% 18%;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #a7aaa8, #c7cac7 8%, #adb0ae 100%);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.22);
+}
+.keyboard {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 10%;
+  height: 43%;
+  border-radius: 4px;
+  opacity: 0.86;
+  background:
+    repeating-linear-gradient(90deg, #2d302f 0 5.2%, transparent 5.2% 5.9%),
+    repeating-linear-gradient(180deg, #2d302f 0 18%, transparent 18% 22%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12), 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.trackpad {
+  position: absolute;
+  left: 35%;
+  right: 35%;
+  bottom: 8%;
+  height: 34%;
+  border-radius: 5px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(0, 0, 0, 0.06));
+  border: 1px solid rgba(80, 83, 81, 0.36);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.32), 0 1px 2px rgba(0, 0, 0, 0.13);
+}
+.front-lip {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  bottom: -4px;
+  height: 7px;
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(#a0a4a2, #717675);
+  box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2);
+}
+
+.iphone {
+  position: relative;
+  z-index: 8;
+  width: min(208px, 17%);
+  aspect-ratio: 0.465;
+  transform: rotateY(-8deg) rotateZ(3deg);
+  filter: drop-shadow(0 22px 20px rgba(0, 0, 0, 0.26)) drop-shadow(0 6px 7px rgba(0, 0, 0, 0.18));
+}
+/* The band round the edge, brightest where it catches the light. */
+.iphone-frame {
+  position: absolute;
+  inset: 0;
+  padding: 7px;
+  overflow: hidden;
+  border-radius: 44px;
+  background: linear-gradient(105deg, #777b79 0%, #dfe1de 7%, #aaaeab 17%, #747876 50%,
+    #d8dad7 83%, #858986 100%);
+  border: 1px solid rgba(32, 35, 34, 0.68);
+  box-shadow:
+    inset 1px 0 1px rgba(255, 255, 255, 0.6),
+    inset -1px 0 2px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.46),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+.iphone-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.16;
+  background: repeating-linear-gradient(88deg, rgba(255, 255, 255, 0.06) 0 1px,
+    rgba(0, 0, 0, 0.04) 1px 2px);
+  mix-blend-mode: overlay;
+}
+.iphone-glass {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 38px;
+  background: #050606;
+  border: 1px solid rgba(0, 0, 0, 0.9);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 25px rgba(0, 0, 0, 0.85);
+}
+/* The board starts below the island, which would otherwise sit on its own
+   topbar. */
+.iphone-screen-content {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--phone-shot) top 7% left / 100% auto no-repeat;
+  background-color: #f2f0ef;
+}
+.dynamic-island {
+  position: absolute;
+  z-index: 6;
+  top: 14px;
+  left: 50%;
+  width: 34%;
+  height: 4.2%;
+  min-height: 16px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(circle at 76% 50%, rgba(32, 39, 45, 0.9) 0 6%, transparent 7%), #020303;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+.iphone-reflection {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(112deg, rgba(255, 255, 255, 0.11) 0%, transparent 17% 69%,
+    rgba(255, 255, 255, 0.03) 82%, transparent 94%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 1px 0 0 rgba(255, 255, 255, 0.1),
+    inset -1px 0 0 rgba(0, 0, 0, 0.72);
+}
+.iphone-side-button {
+  position: absolute;
+  z-index: 3;
+  right: -3px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, #777b79, #e3e5e2, #777b79);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.iphone-action-button { top: 20%; height: 8%; }
+.iphone-volume-up { top: 29%; height: 7%; }
+.iphone-volume-down { top: 38%; height: 7%; }
+
+/* A tilted device is a picture of a device; square-on it is a diagram.
+   Both read, so the tilt goes when motion is unwelcome. */
+@media (prefers-reduced-motion: reduce) {
+  .macbook,
+  .iphone { transform: none; }
 }
 @media (max-width: 720px) {
   /* An iPhone instead, so the shot is the board's own phone layout. */
-  .hero-showcase { --board-shot: url("/img/board-phone-light.webp?v=2"); }
-  /* A phone, to an iPhone 17 Pro's proportions: the bezel is 3.7% of the
-     lid's width, the screen's corners are round at 16.4% of its width, and
-     the island is 22.6% of that width. Measured the same way, drawn the
-     same way. */
-  .showcase-device {
-    --screen-w: min(300px, 78%);
-    --bezel: calc(var(--screen-w) * 0.037);
-    width: var(--screen-w);
-    height: clamp(300px, 86vw, 420px);
-    padding: var(--bezel) var(--bezel) 0;
-    border-radius: calc(var(--screen-w) * 0.2) calc(var(--screen-w) * 0.2) 0 0;
+  /* Narrow: the laptop takes the width and the phone stands in front of
+     it, which is how the two would sit on a desk anyway. */
+  .device-stage {
+    display: block;
+    padding-bottom: clamp(24px, 8vw, 56px);
   }
-  /* The status strip a phone keeps above the page, and the island in it.
-     Without it the board's own topbar runs under the island. */
-  .showcase-device {
-    --island-top: calc(var(--bezel) + var(--screen-w) * 0.022);
-    --island-h: calc(var(--screen-w) * 0.052);
-    /* Deeper than the island's bottom edge, so the board's own topbar
-       begins under it rather than beside it. */
-    --status: calc(var(--island-top) + var(--island-h) + var(--screen-w) * 0.03);
+  .macbook {
+    width: 100%;
+    transform: rotateX(2deg) rotateY(-2deg);
   }
-  .showcase-device::before {
-    top: var(--island-top);
-    width: calc(var(--screen-w) * 0.2);
-    height: var(--island-h);
-    border-radius: 999px;
+  .iphone {
+    position: absolute;
+    right: 4%;
+    bottom: 0;
+    width: clamp(74px, 21vw, 112px);
+    max-width: none;
+    height: auto;
+    transform: rotateY(-5deg) rotateZ(4deg);
   }
-  .showcase-device::after { display: none; }
-  .device-screen {
-    background-position: top calc(var(--status)) center;
-    background-repeat: no-repeat;
-    border-radius: calc(var(--screen-w) * 0.164) calc(var(--screen-w) * 0.164) 0 0;
-  }
+  /* The island and the side buttons are drawn in pixels; at this size they
+     would be half the phone. */
+  .dynamic-island { top: 6px; min-height: 8px; }
+  .iphone-frame { padding: 4px; border-radius: 22px; }
+  .iphone-glass { border-radius: 18px; }
+  .iphone-side-button { right: -2px; width: 2px; }
 }
 
 .hero-features {
