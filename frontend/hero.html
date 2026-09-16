@@ -20,11 +20,14 @@
   <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png?v=2" />
   <link rel="stylesheet" href="/style.css" />
-  <script>
-    if (localStorage.getItem("iljobs_theme") === "dark") {
-      document.documentElement.setAttribute("data-theme", "dark");
-    }
-  </script>
+  <!-- No theme bootstrap here, unlike every other page in this site.
+       This one is a landing page rather than a place anyone works. Its
+       showcase already paints ink on a photograph with both fixed
+       whatever the theme is, and its own bar carries no toggle, so
+       somebody who switched to dark on the board arrived here dark with
+       nothing on the page to switch it back. It reads on the light
+       tokens now, whatever iljobs_theme holds. The board keeps honouring
+       it: that page has the toggle, and it is where the reading happens. -->
 </head>
 <body class="hero-page">
 

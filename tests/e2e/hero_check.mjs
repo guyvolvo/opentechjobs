@@ -218,7 +218,11 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       && api.showcase.radius >= 16,
       JSON.stringify(api.showcase));
     check(`${tag}: the captions are gone`, api.showcase.captions === 0, String(api.showcase.captions));
-    if (theme === "dark") check(`${tag}: dark theme applied`, m.theme === "dark", String(m.theme));
+    // The landing page does not follow the app's theme, and this is the
+    // check that it does not: the loop above still writes
+    // iljobs_theme=dark before the page loads, so a data-theme appearing
+    // here would mean the bootstrap came back.
+    if (theme === "dark") check(`${tag}: the stored dark theme is ignored here`, m.theme === null, String(m.theme));
 
     const feature = page.locator(".hero-feature").last();
     const before = await feature.evaluate((el) => getComputedStyle(el.querySelector("h2")).opacity);
