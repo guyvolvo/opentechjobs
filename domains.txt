@@ -5557,3 +5557,7 @@ plumbingsolutionsllc.com
 empowerment.ai
 ppcr.com
 flare.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+citygardenmontessori.com
+pushoperations.com
