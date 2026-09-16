@@ -3928,14 +3928,20 @@ function renderAuthState() {
   // An icon, not the address. The topbar is the one place on the site a
   // reader's own email was on screen permanently, including over a
   // shoulder and in any screenshot they take of the board. The address
-  // is still there for anyone who wants it, as the button's title and
-  // its accessible name, which is also where a screen reader reads it.
+  // is still there for anyone who wants it, as the link's title and its
+  // accessible name, which is also where a screen reader reads it.
+  //
+  // A link to /account rather than a button that opened the alerts panel
+  // here. That panel was a second, smaller copy of what /account already
+  // shows: account.html carries the same alert ids on purpose, so
+  // renderAlertsList and wireAlertCreateForm drive both, and it has its
+  // own sign-out. Clicking your own account now goes to your account.
   area.innerHTML = `
     <button class="auth-trigger" id="topbar-alert-btn" type="button">+ Alert</button>
-    <button class="auth-trigger auth-account" id="auth-trigger" type="button"
-            title="${escapeHtml(email)}" aria-label="Account, signed in as ${escapeHtml(email)}">
+    <a class="auth-trigger auth-account" href="/account"
+       title="${escapeHtml(email)}" aria-label="Account, signed in as ${escapeHtml(email)}">
       <svg class="account-icon" aria-hidden="true"><use href="#account"></use></svg>
-    </button>
+    </a>
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
       <div class="alerts-header alerts-header-row">
         <span>My Alerts</span>
@@ -3962,7 +3968,6 @@ function renderAuthState() {
 
       <button class="auth-signout" id="auth-signout" type="button">Sign Out</button>
     </div>`;
-  wireAuthTrigger();
   wireTopbarAlertButton();
   document.getElementById("auth-signout").addEventListener("click", signOut);
   wireAlertCreateForm();
@@ -3978,17 +3983,19 @@ function wireAuthTrigger() {
   });
 }
 
-// A second trigger next to the email one, signed-in only -- opens the
-// same panel (My Alerts + New Alert form), just a more discoverable
-// entry point than clicking your own email. Doesn't create anything
-// itself. Rewired on every renderAuthState() re-render like the rest of
-// this panel's internals, since sign-in/out replaces the whole subtree.
+// The only way into the alerts panel now that the account icon is a link
+// to /account. It carries its own active state rather than borrowing the
+// account control's, which is no longer a button and no longer toggles
+// anything. Toggles rather than only opening, so the button that showed
+// the panel can also put it away. Rewired on every renderAuthState()
+// re-render like the rest of this panel's internals, since sign-in/out
+// replaces the whole subtree.
 function wireTopbarAlertButton() {
-  document.getElementById("topbar-alert-btn").addEventListener("click", () => {
-    const trigger = document.getElementById("auth-trigger");
+  const btn = document.getElementById("topbar-alert-btn");
+  btn.addEventListener("click", () => {
     const panel = document.getElementById("auth-panel");
-    panel.hidden = false;
-    trigger.classList.add("active");
+    panel.hidden = !panel.hidden;
+    btn.classList.toggle("active", !panel.hidden);
   });
 }
 
@@ -4046,12 +4053,18 @@ function wireAuth() {
   // input if the drag overshoots, so a click-based outside-check treats
   // a normal text selection as a dismiss. mousedown fires on press,
   // before any drag happens, so it isn't fooled by where the drag ends.
+  // Both controls are looked up optionally: auth-trigger only exists
+  // signed out now (signed in, the account control is a plain link), and
+  // topbar-alert-btn only exists signed in, so on any given render one of
+  // the two is absent. Reaching for .classList on the missing one would
+  // throw here, on a document-level listener, every time the panel was
+  // dismissed.
   document.addEventListener("mousedown", (e) => {
     const panel = document.getElementById("auth-panel");
-    const trigger = document.getElementById("auth-trigger");
     if (panel && !panel.hidden && !e.target.closest("#auth-area")) {
       panel.hidden = true;
-      trigger.classList.remove("active");
+      document.getElementById("auth-trigger")?.classList.remove("active");
+      document.getElementById("topbar-alert-btn")?.classList.remove("active");
     }
   });
 }

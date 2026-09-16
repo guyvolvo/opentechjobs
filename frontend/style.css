@@ -344,6 +344,10 @@ button, input, select {
    trigger and the (always position:absolute, out of flow) panel are
    unaffected either way. */
 .auth-area { position: relative; display: flex; align-items: center; gap: 12px; }
+/* Worn by a button when signed out and by the account link when signed
+   in, so it has to strip a link's underline as well as a button's chrome.
+   The transparent bottom border below is what hover and .active colour
+   in, and text-decoration would sit under it as a second line. */
 .auth-trigger {
   background: none;
   border: none;
@@ -353,6 +357,7 @@ button, input, select {
   color: inherit;
   padding: 0;
   cursor: pointer;
+  text-decoration: none;
   border-bottom: 1px solid transparent;
 }
 .auth-trigger:hover, .auth-trigger.active { color: var(--green-text); border-color: var(--green-text); }
