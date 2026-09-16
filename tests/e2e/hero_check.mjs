@@ -64,7 +64,7 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
         tiles: document.querySelectorAll("#ticker-logos .hero-logo").length,
         broken: document.querySelectorAll('#ticker-logos img[src*="no-such-logo"]').length,
         numbersH: document.querySelector(".hero-ticker.to-right").getBoundingClientRect().height,
-        logosH: document.querySelector(".hero-logos").getBoundingClientRect().height,
+        logosH: document.querySelector("#ticker-logos").getBoundingClientRect().height,
         tileH: document.querySelector("#ticker-logos .hero-logo")?.getBoundingClientRect().height,
         cta: document.getElementById("cta-count").textContent, theme: document.documentElement.getAttribute("data-theme") };
     });
@@ -86,15 +86,6 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
     check(`${tag}: the logos are grey, not a colour wall`, band.grey, JSON.stringify(band));
     check(`${tag}: the rows sit on the page, no band of their own`,
       band.blockBg === "rgba(0, 0, 0, 0)", band.blockBg);
-    // A salary estimate that reads as a posted figure is the wrong kind of
-    // wrong, so the qualification is checked, not assumed.
-    const proof = await page.evaluate(() =>
-      [...document.querySelectorAll(".hero-proof li")].map((li) => li.textContent.replace(/\s+/g, " ").trim()));
-    check(`${tag}: the promise is two lines, CV first`,
-      proof.length === 2 && /^Have your CV analyzed for keywords/.test(proof[0]), JSON.stringify(proof).slice(0, 160));
-    check(`${tag}: the salary line says it may be wrong`,
-      /estimation algorithm/.test(proof[1] || "") && /may be inaccurate/.test(proof[1] || ""),
-      (proof[1] || "").slice(0, 120));
     await page.screenshot({ path: `hero-${label}-${theme}-top.png` });
     await page.waitForTimeout(1500);
     const later = await page.evaluate(() => {

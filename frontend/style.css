@@ -97,6 +97,10 @@
   /* The gutter, or the screen's own cutout inset where that is wider.
      Used by anything whose content runs to the page edge. */
   --edge: max(var(--gutter), env(safe-area-inset-left), env(safe-area-inset-right));
+  /* The ground the logo row stands on, light whatever the theme: company
+     marks are drawn for a light page and a third of them are white. */
+  --logo-band: #edf0ec;
+  --logo-band-rule: #d6ded6;
   --rule: 2px;
 
   /* Forces native chrome (input caret, scrollbars) to follow OUR toggle
@@ -3300,38 +3304,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .cta-arrow { flex: none; }
 .hero-secondary { font-size: 15px; color: var(--black); text-underline-offset: 3px; }
 .hero-secondary:hover { color: var(--green-text); }
-/* What the board does for a reader: two lines, the second carrying the
-   qualification the salary claim needs. An estimate that reads as a posted
-   salary is the kind of wrong that costs someone a negotiation, so it is
-   said on the page rather than in a footnote nobody opens. */
-.hero-proof {
-  display: inline-block;
-  max-width: min(100%, 680px);
-  margin: clamp(18px, 2.2vw, 28px) auto 0;
-  padding: 0;
-  list-style: none;
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--black);
-  text-align: left;
-}
-.hero-proof li {
-  position: relative;
-  padding-left: 18px;
-}
-.hero-proof li + li { margin-top: 6px; }
-/* A drawn dot, sized to the text, rather than a list marker that changes
-   shape between browsers. */
-.hero-proof li::before {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: 0.62em;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--green-text);
-}
 /* A line of live numbers over a row of company logos, on the page's own
    paper. It was a green band for a while and behaved like a second
    headline; as proof of scale it belongs quietly on the ground the rest of
@@ -3390,9 +3362,14 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-ticker.to-left .hero-ticker-track { animation: hero-ticker-left 38s linear infinite; }
 /* The logos keep their own size rather than tracking the numbers: at this
    type size half a line is too small to recognise a mark. The height is set
-   on the row, not the marks, so the rows don't jump when the logos arrive. */
-.hero-logos { height: clamp(30px, 3.4vw, 46px); }
-.hero-logos .hero-ticker-track { height: 100%; }
+   on the track, not the row, so the band can pad around it without the
+   rows jumping when the logos arrive. */
+.hero-logos {
+  padding-block: clamp(7px, 0.9vw, 12px);
+  background: var(--logo-band);
+  border-block: 1px solid var(--logo-band-rule);
+}
+.hero-logos .hero-ticker-track { height: clamp(30px, 3.4vw, 46px); }
 .hero-logo {
   flex: none;
   display: grid;
@@ -3409,21 +3386,13 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: grayscale(1) contrast(1.35);
+  filter: grayscale(1) contrast(1.3);
   pointer-events: none;
   -webkit-user-drag: none;
 }
-/* Dark mode brightens rather than inverts. Inverting turned every mark's
-   dark pixels into near-black on a near-black page: measured 1.00 to 1.12
-   against the ground, which is invisible, not subtle. */
-:root[data-theme="dark"] .hero-logo img {
-  filter: grayscale(1) brightness(2.4) contrast(1.1);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hero-logo img {
-    filter: grayscale(1) brightness(2.4) contrast(1.1);
-  }
-}
+/* No theme-specific filter: the band is light in both, so a mark that
+   reads in one reads in the other. Inverting or brightening was only ever
+   compensating for a dark ground. */
 /* Once the page script moves the rows, the CSS drift stops and each row
    can be grabbed and thrown (hero.html). pan-y leaves vertical swipes to
    the page, so a phone still scrolls past the band. */
