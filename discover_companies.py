@@ -73,7 +73,24 @@ sys.path.insert(0, str(Path(__file__).parent / "api"))
 from probe import EMBED_ATS_PATTERNS, FETCHERS, KNOWN_FALSE_POSITIVES, UA
 from job_filters import IL_KEYWORDS
 
-CC_INDEX = "https://index.commoncrawl.org/CC-MAIN-2026-34-index"
+# Common Crawl publishes a snapshot roughly monthly, and a board only
+# appears in the ones whose crawl happened to reach it. Reading a single
+# index therefore sees a fraction of what is on offer, and which fraction
+# is luck rather than recency.
+#
+# Measured 2026-09-16 against boards.greenhouse.io/*: the newest snapshot
+# held 310 distinct tokens, the two before it held 2,512 between them,
+# and the union carried 1,601 tokens this project had never resolved. The
+# newest crawl was not a superset of the older ones or even close to one.
+#
+# Three, not more: each one costs a full pass of CDX requests per ATS,
+# CDX is slow and answers 502 under load, and the gain flattens as the
+# snapshots overlap.
+CC_INDEXES = [
+    "https://index.commoncrawl.org/CC-MAIN-2026-34-index",
+    "https://index.commoncrawl.org/CC-MAIN-2026-30-index",
+    "https://index.commoncrawl.org/CC-MAIN-2026-25-index",
+]
 
 # CDX's own wildcard syntax (a URL prefix, not arbitrary regex) --
 # mirrors EMBED_ATS_PATTERNS' own hosts. Only the ATSes with a plain
@@ -117,29 +134,46 @@ SITE_ORIGIN = "https://opentechjobs.org"
 
 
 def fetch_cc_urls(url_pattern: str, max_pages: int) -> list[str]:
-    """Pages through Common Crawl's CDX API for one URL pattern. Each
-    page is a real HTTP request against Common Crawl's own index
-    servers -- max_pages bounds this, not a hard API limit.
+    """Pages through Common Crawl's CDX API for one URL pattern, once per
+    snapshot in CC_INDEXES. Each page is a real HTTP request against
+    Common Crawl's own index servers, and max_pages bounds this per
+    snapshot rather than being a hard API limit.
+
+    A prefix runs out of pages long before max_pages does: CDX reported
+    one or two for every ATS host here, and asking for a page past the
+    end answers 400, which the break below reads as "this snapshot is
+    done". So a generous max_pages costs one wasted request per snapshot,
+    not thirty.
+
+    Retried once per page, because CDX answers 502 and 504 under load
+    often enough to matter. Without it a transient failure on page 0
+    silently drops a whole snapshot's candidates and the run still
+    reports success, which is the shape of missing data nobody notices.
     """
     sess = requests.Session()
     sess.headers.update({"User-Agent": UA})
     urls = []
-    for page in range(max_pages):
-        try:
-            resp = sess.get(CC_INDEX, params={"url": url_pattern, "output": "json", "page": page}, timeout=30)
-        except requests.RequestException as e:
-            print(f"    page {page}: request failed: {e!r}", file=sys.stderr)
-            break
-        if resp.status_code != 200 or not resp.text.strip():
-            break
-        for line in resp.text.strip().split("\n"):
-            try:
-                d = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            u = d.get("url")
-            if u:
-                urls.append(u)
+    for index in CC_INDEXES:
+        snapshot = index.rsplit("/", 1)[-1]
+        for page in range(max_pages):
+            resp = None
+            for attempt in (1, 2):
+                try:
+                    resp = sess.get(index, params={"url": url_pattern, "output": "json", "page": page}, timeout=60)
+                    break
+                except requests.RequestException as e:
+                    if attempt == 2:
+                        print(f"    {snapshot} page {page}: request failed: {e!r}", file=sys.stderr)
+            if resp is None or resp.status_code != 200 or not resp.text.strip():
+                break
+            for line in resp.text.strip().split("\n"):
+                try:
+                    d = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                u = d.get("url")
+                if u:
+                    urls.append(u)
     return urls
 
 
