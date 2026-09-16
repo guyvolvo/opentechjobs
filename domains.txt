@@ -5583,3 +5583,11 @@ final.co.il
 browzwear.com
 odigos.io
 milpower.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+craft.io
+primusgroup.com
+fieldintech.com
+jether-energy.com
+silk.com
+g.ai
