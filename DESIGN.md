@@ -640,13 +640,15 @@ else can I build.
    the device, re-composite and swap the file. None of Apple's own artwork
    ships: their licence grants mock-ups of software running only on Apple
    systems and excludes website content.
-5. Four features as full-width rows, direct-source listings first and
-   largest because it is the reason the board exists, each rising into
-   place as it scrolls in. Two claims inside them are marked with
-   `.feature-badge`, a Row Selected chip in the run of the sentence: where
-   a CV goes, and that a salary figure is an estimate. Then the API in a
-   ruled block of its own, since the people who want it are not the
-   people reading the four above, and a closing link to the board.
+5. Four features as full-width rows, each rising into place as it
+   scrolls in: Sources first and largest, because where the listings come
+   from is the reason the board exists, then CV keyword matching, salary
+   estimation and smart alerts. The copy is the owner's own words. Then
+   the API in a ruled block of its own, since the people who want it are
+   not the people reading the four above, and a closing link to the
+   board. (Two claims used to carry a Row Selected chip mid-sentence,
+   `.feature-badge`; the copy that needed them is gone and so is the
+   rule.)
 
 Either ticker row can be grabbed and thrown, with a mouse or a finger:
 it takes the speed and direction of the throw, holds close to it, and

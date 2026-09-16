@@ -3476,18 +3476,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   font-weight: 600;
   color: var(--green-text);
 }
-/* The two claims worth reading twice: where a CV goes, and what a salary
-   figure means. Marked in the run of the sentence rather than pulled out
-   of it, so the qualification stays attached to what it qualifies. */
-.feature-badge {
-  background: var(--row-selected);
-  color: var(--black);
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 4px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
 /* The reason the board exists, so it is the largest of the four. */
 .hero-feature.feature-lead h2 { font-size: clamp(36px, 5.4vw, 5rem); }
 /* The device is a photograph now: a mockup with the board composited into
