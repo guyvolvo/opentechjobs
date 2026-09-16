@@ -1147,6 +1147,64 @@ button, input, select {
 }
 #job-scrim.open { opacity: 1; pointer-events: auto; }
 
+/* The country prompt, shown once before the board's first load. Same
+   scrim and the same flat surface as the job sheet, so the one overlay
+   language this app has covers both rather than growing a second.
+   z-index above the sheet's 20 because it is answered before anything
+   else can open. */
+.geo-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: var(--scrim);
+}
+.geo-prompt {
+  position: fixed;
+  z-index: 30;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 2 * var(--edge)));
+  background: var(--white);
+  color: var(--black);
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  padding: 20px;
+}
+.geo-prompt h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.1;
+  margin: 0 0 8px;
+}
+.geo-prompt p { margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
+/* What was actually read, said plainly. The country header is the only
+   thing this asks Cloudflare for, and naming it is the difference
+   between a helpful guess and a site that seems to know too much. */
+.geo-evidence {
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+  font-family: "Courier New", monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--grey);
+}
+.geo-evidence b { color: var(--black); font-weight: 700; }
+.geo-actions { display: flex; align-items: center; gap: 12px; }
+/* Skip is the quiet one. .btn-quiet is scoped to .alert-create, so it
+   does not reach here, and without this both buttons render as the
+   primary and Skip reads as the thing to press. Widening that selector
+   instead would tie the alert form's styling to this prompt. */
+.geo-prompt .btn-quiet {
+  background: none;
+  border-color: transparent;
+  color: var(--grey);
+  font-weight: 400;
+}
+.geo-prompt .btn-quiet:hover { color: var(--black); background: var(--hover-bg); }
+
 .job-detail-header {
   display: flex;
   align-items: flex-start;

@@ -4451,6 +4451,123 @@ const STATS_POLL_MS = 120_000;
 // applies a saved collapse before first paint.
 const STATS_COLLAPSED_KEY = "iljobs_stats_collapsed";
 
+// Asked once, ever. Its own key rather than anything derived from the
+// filters: someone who accepts the suggestion and later clears their
+// location is not asking to be asked again, and a flag that read the
+// filter state would do exactly that every time the board emptied.
+const GEO_ASKED_KEY = "iljobs_geo_asked";
+
+// Offers the visitor's own country as a filter before the first load,
+// and never mentions it again. Resolves when there is nothing to ask or
+// the visitor has answered, so the caller can await it and let the board
+// render behind the answer rather than under it.
+//
+// Silent in three cases, all of which mean the question is not worth
+// asking: it has been asked before, the visitor already has a country
+// filter (from a link or a previous visit, so they have said where they
+// want to look), or /api/geo declines to guess. That last one answers
+// null rather than guessing when Cloudflare sends XX or T1, and the
+// right response to "we do not know" is to say nothing at all.
+async function maybeAskCountry() {
+  try {
+    if (localStorage.getItem(GEO_ASKED_KEY)) return;
+  } catch {
+    return; // private browsing: no way to remember the answer, so never ask
+  }
+  if (state.country.length) return;
+
+  let country = null;
+  let source = null;
+  try {
+    const geo = await fetch("/api/geo").then((r) => (r.ok ? r.json() : null));
+    country = geo && geo.country;
+    source = geo && geo.source;
+  } catch {
+    return; // offline or the endpoint is down; the board is what matters
+  }
+  if (!country) return;
+
+  // The country's name, fetched here rather than inherited. Labels live
+  // in COUNTRY_LABELS_SEEN, which normalizeLocationFacets fills from
+  // /facets.json, and nothing guarantees that has happened yet: the call
+  // that does it sits inside refreshStats' try block behind three
+  // render functions, so one bad stats payload skips it silently and
+  // this prompt would render a bare ISO code. Awaiting that call instead
+  // would put a fetch on every visitor's boot to serve a prompt only
+  // first-timers ever see. So it is asked for here, once, by the only
+  // code that needs it.
+  let where = countryLabel(country);
+  if (where === country) {
+    try {
+      const r = await fetch("/facets.json", { cache: "no-store" });
+      if (r.ok) {
+        const byConfidence = await r.json();
+        const facets = byConfidence && (byConfidence[state.confidence || "verified"] || byConfidence.verified);
+        if (facets && Array.isArray(facets.locations)) normalizeLocationFacets(facets.locations);
+        where = countryLabel(country);
+      }
+    } catch {
+      // Falls through to the check below, which says nothing at all.
+    }
+  }
+  // Still no name for it. Saying "Are you in IL?" is worse than staying
+  // quiet, the same reasoning route_geo uses when it answers null rather
+  // than guessing at XX or T1.
+  if (where === country) return;
+
+  const remember = () => {
+    try { localStorage.setItem(GEO_ASKED_KEY, "1"); } catch {}
+  };
+
+  await new Promise((resolve) => {
+    const scrim = document.createElement("div");
+    scrim.className = "geo-scrim";
+    const box = document.createElement("div");
+    box.className = "geo-prompt";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-labelledby", "geo-prompt-title");
+    box.innerHTML = `
+      <h2 id="geo-prompt-title">Are you in ${escapeHtml(where)}?</h2>
+      <p>The board shows every country by default. Filtering to ${escapeHtml(where)} takes one click, and you can change it any time.</p>
+      <div class="geo-evidence">
+        country <b>${escapeHtml(country)}</b><br />
+        read from <b>${escapeHtml(source || "unknown")}</b><br />
+        your network's edge location, not your device
+      </div>
+      <div class="geo-actions">
+        <button class="btn" id="geo-accept" type="button">Show ${escapeHtml(where)} jobs</button>
+        <button class="btn btn-quiet" id="geo-skip" type="button">Skip</button>
+      </div>`;
+
+    const close = () => {
+      remember();
+      scrim.remove();
+      box.remove();
+      document.removeEventListener("keydown", onKey);
+      resolve();
+    };
+    // Escape and the scrim both mean skip. A prompt with no way out
+    // other than answering it is a dialog nobody thanks you for.
+    const onKey = (e) => { if (e.key === "Escape") close(); };
+
+    box.querySelector("#geo-accept").addEventListener("click", () => {
+      state.country = [country];
+      // The control has to agree with the state, or the filter is on
+      // with nothing on screen saying so.
+      applyStateToFilterUI();
+      saveFiltersToStorage();
+      close();
+    });
+    box.querySelector("#geo-skip").addEventListener("click", close);
+    scrim.addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+
+    document.body.append(scrim, box);
+    box.querySelector("#geo-accept").focus();
+  });
+}
+
 function wireStatsToggle() {
   const btn = document.getElementById("stats-toggle");
   if (!btn) return;
@@ -4517,6 +4634,12 @@ async function boot() {
   watchSkillLines();
   loadTicker();
   await refreshStats();
+  // Before the first loadJobs, deliberately: accepting the suggestion
+  // changes the query, and asking afterwards would mean fetching the
+  // whole board twice and rearranging it under the reader. Awaited, so
+  // the answer is part of state by the time the first request goes out.
+  // It returns immediately for everyone who has already been asked.
+  await maybeAskCountry();
   loadJobs();
 
   // ?view=matches opens Best matches directly, for the 404 page and any
