@@ -2,7 +2,7 @@
 
 Open-source tech job board. Scrapes job listings directly from ATS APIs, tracks them over time, and serves them through a lightweight public API.
 
-![The job board on a laptop and a phone](frontend/img/readme-hero-devices.webp)
+![The job board on a laptop and a phone](frontend/img/readme-cover.webp)
 
 ## Architecture
 
