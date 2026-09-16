@@ -217,7 +217,8 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       };
     });
     check(`${tag}: the API has its own block and states its limits`,
-      api.has && api.link === "/api/help" && /No key, no sign-up/.test(api.text) && /20 requests a second/.test(api.text),
+      api.has && api.link === "/api/help" && /free public JSON API/.test(api.text)
+      && /20 requests per second/.test(api.text),
       api.text.slice(0, 140));
     // The preview is a card now: held off both edges and rounded, with no
     // caption above it.
