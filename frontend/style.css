@@ -3347,8 +3347,9 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.2vw, 18px);
-  padding: calc(var(--band-pad) - 0.16 * var(--ticker-size)) 0 var(--band-pad);
+  --band-top: calc(var(--band-pad) - 0.16 * var(--ticker-size));
+  gap: var(--band-top);
+  padding: var(--band-top) 0 var(--band-pad);
   /* Edge to edge of the screen: the rows step out of the hero's gutter and
      run off both sides, where the fade below takes them. */
   margin-inline: calc(-1 * var(--edge));
