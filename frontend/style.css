@@ -3333,23 +3333,43 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    --board-shot is the screenshot on the screen, a MacBook's on a desktop
    and an iPhone's on a phone, each in the reader's own theme. */
 .hero-showcase {
-  --showcase-bg: transparent;
+  /* The photograph, under a veil of the page's own ground. The sky is a
+     bright blue that leaves the heading at 2.7:1 unaided, so the veil is
+     heaviest where the type sits and clears toward the foot, where the
+     hills meet the laptop and nothing is written. */
+  --showcase-veil: linear-gradient(180deg,
+    rgba(242, 240, 239, 0.92) 0%,
+    rgba(242, 240, 239, 0.86) 34%,
+    rgba(242, 240, 239, 0.58) 62%,
+    rgba(242, 240, 239, 0.3) 100%);
+  --showcase-bg: var(--showcase-veil), url("/img/hills.webp");
   --board-shot: url("/img/board-desktop-light.webp");
   position: relative;
   overflow: hidden;
   padding: clamp(56px, 8vw, 120px) var(--edge) 0;
   text-align: center;
-  /* The page's own ground, until there is a photograph worth putting
-     here: point --showcase-bg at a file and it takes over, sized to
-     cover and anchored at the foot. */
-  background: var(--showcase-bg);
-  background-size: cover;
-  background-position: bottom center;
+  background-image: var(--showcase-bg);
+  background-size: auto, cover;
+  background-position: center, bottom center;
   background-repeat: no-repeat;
 }
-:root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+:root[data-theme="dark"] .hero-showcase {
+  --showcase-veil: linear-gradient(180deg,
+    rgba(23, 24, 28, 0.93) 0%,
+    rgba(23, 24, 28, 0.88) 34%,
+    rgba(23, 24, 28, 0.66) 62%,
+    rgba(23, 24, 28, 0.42) 100%);
+  --board-shot: url("/img/board-desktop-dark.webp");
+}
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+  :root:not([data-theme="light"]) .hero-showcase {
+    --showcase-veil: linear-gradient(180deg,
+      rgba(23, 24, 28, 0.93) 0%,
+      rgba(23, 24, 28, 0.88) 34%,
+      rgba(23, 24, 28, 0.66) 62%,
+      rgba(23, 24, 28, 0.42) 100%);
+    --board-shot: url("/img/board-desktop-dark.webp");
+  }
 }
 .hero-showcase h2 {
   font-family: var(--font-display);

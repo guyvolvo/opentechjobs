@@ -590,11 +590,14 @@ grabbed and thrown, with a mouse or a finger: it takes the speed and
 direction of the throw, holds close to it, and eases back into its drift
 over 2.6 seconds. Vertical swipes still scroll the page. Under the band, the product shot: "The Open Job Board" in Display /
 Feature over a line of copy and an ink "Explore open jobs" button, all
-centred on the page's own ground. A drawn landscape was tried here and
-read as clip art beside type this plain, so the section carries nothing
-behind it: `--showcase-bg` is transparent, and a photograph takes over
-by pointing that one variable at a file, sized to cover and anchored at
-the foot. Below them the board itself fills a device the section cuts off at
+centred on a photograph of open hills (`img/hills.webp`, 220KB, anchored
+at the foot and sized to cover). Its sky is bright enough to leave the
+heading at 2.7:1, so `--showcase-veil` lays the page's own ground over
+it, heaviest where the type sits and clearing to 30% at the foot where
+the hills meet the laptop: 6.8:1 for the heading in light, 14:1 in dark,
+and 5.6:1 at its weakest point over the grass. Paper veil in light, ink
+in dark. A drawn landscape was tried first and read as clip art beside
+type this plain. Below them the board itself fills a device the section cuts off at
 the bottom edge, a MacBook from the hinge up on a desktop and an iPhone
 on a phone, each showing that screen's own screenshot in the reader's
 theme. The shots are decoration: the words above carry the meaning.
