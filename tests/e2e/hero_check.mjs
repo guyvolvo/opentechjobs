@@ -87,18 +87,14 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
     check(`${tag}: the rows sit on the page, no band of their own`,
       band.blockBg === "rgba(0, 0, 0, 0)", band.blockBg);
     // A salary estimate that reads as a posted figure is the wrong kind of
-    // wrong, so the asterisk and its note are checked, not assumed.
-    const salary = await page.evaluate(() => {
-      const proof = document.querySelector(".hero-proof")?.textContent.replace(/\s+/g, " ").trim() || "";
-      const note = document.querySelector(".hero-note")?.textContent.replace(/\s+/g, " ").trim() || "";
-      return { proof, note };
-    });
-    check(`${tag}: the promise names the CV matching`,
-      /Have your CV analyzed for keywords/.test(salary.proof), salary.proof.slice(0, 90));
-    check(`${tag}: the salary claim carries its asterisk and note`,
-      /Salary estimates\*/.test(salary.proof) && /^\* An estimate is worked out/.test(salary.note)
-      && /can be wrong/.test(salary.note),
-      JSON.stringify(salary).slice(0, 200));
+    // wrong, so the qualification is checked, not assumed.
+    const proof = await page.evaluate(() =>
+      [...document.querySelectorAll(".hero-proof li")].map((li) => li.textContent.replace(/\s+/g, " ").trim()));
+    check(`${tag}: the promise is two lines, CV first`,
+      proof.length === 2 && /^Have your CV analyzed for keywords/.test(proof[0]), JSON.stringify(proof).slice(0, 160));
+    check(`${tag}: the salary line says it may be wrong`,
+      /estimation algorithm/.test(proof[1] || "") && /may be inaccurate/.test(proof[1] || ""),
+      (proof[1] || "").slice(0, 120));
     await page.screenshot({ path: `hero-${label}-${theme}-top.png` });
     await page.waitForTimeout(1500);
     const later = await page.evaluate(() => {

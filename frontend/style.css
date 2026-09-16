@@ -3278,25 +3278,38 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .cta-arrow { flex: none; }
 .hero-secondary { font-size: 15px; color: var(--black); text-underline-offset: 3px; }
 .hero-secondary:hover { color: var(--green-text); }
-/* What the board does for a reader, in one sentence, and the qualification
-   the salary claim needs. The asterisk is a real one: an estimate that
-   reads as a posted salary is the kind of wrong that costs someone a
-   negotiation. */
+/* What the board does for a reader: two lines, the second carrying the
+   qualification the salary claim needs. An estimate that reads as a posted
+   salary is the kind of wrong that costs someone a negotiation, so it is
+   said on the page rather than in a footnote nobody opens. */
 .hero-proof {
+  display: inline-block;
   max-width: min(100%, 680px);
   margin: clamp(18px, 2.2vw, 28px) auto 0;
+  padding: 0;
+  list-style: none;
   font-size: 14px;
   line-height: 1.55;
   color: var(--black);
+  text-align: left;
 }
-.hero-note {
-  max-width: min(100%, 680px);
-  margin: 0.5em auto 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--grey);
+.hero-proof li {
+  position: relative;
+  padding-left: 18px;
 }
-.note-ref { color: var(--green-text); font-weight: 600; }
+.hero-proof li + li { margin-top: 6px; }
+/* A drawn dot, sized to the text, rather than a list marker that changes
+   shape between browsers. */
+.hero-proof li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green-text);
+}
 /* A line of live numbers over a row of company logos, on the page's own
    paper. It was a green band for a while and behaved like a second
    headline; as proof of scale it belongs quietly on the ground the rest of
@@ -3421,7 +3434,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
     rgba(242, 240, 239, 0.34) 62%,
     rgba(242, 240, 239, 0.16) 100%);
   --showcase-bg: var(--showcase-veil), url("/img/hills.webp");
-  --board-shot: url("/img/board-desktop-light.webp");
+  --board-shot: url("/img/board-desktop-light.webp?v=2");
   position: relative;
   overflow: hidden;
   /* A card, not a full-bleed band: the photograph is held away from the
@@ -3436,9 +3449,9 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   background-position: center, bottom center;
   background-repeat: no-repeat;
 }
-:root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+:root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp?v=2"); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+  :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp?v=2"); }
 }
 /* The API block, on the page's own ground. */
 .hero-api {
@@ -3517,8 +3530,8 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 @media (max-width: 720px) {
   /* An iPhone instead, so the shot is the board's own phone layout. */
-  .hero-showcase { --board-shot: url("/img/board-phone-light.webp"); }
-  :root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-phone-dark.webp"); }
+  .hero-showcase { --board-shot: url("/img/board-phone-light.webp?v=2"); }
+  :root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-phone-dark.webp?v=2"); }
   .showcase-device {
     position: relative;
     width: min(300px, 78%);
