@@ -129,9 +129,20 @@ def lambda_handler(event, context):
         if path == "/help":
             # The one non-JSON route this Lambda serves -- see
             # help_page.py's own docstring for why it lives here instead
-            # of as a static frontend page. 3600s: this content only
-            # changes on a deploy, not with the data underneath it.
-            return _html_response(200, HELP_HTML, cache_seconds=3600)
+            # of as a static frontend page.
+            #
+            # 300s, down from 3600. The old value came with the reasoning
+            # that this content "only changes on a deploy, not with the
+            # data underneath it", which was fair while the page changed
+            # once in months. It changed three times in one session on
+            # 2026-09-16, and every time the edge went on serving the
+            # previous copy while the origin was already correct:
+            # measured at Age 1140 on a page two versions behind, with
+            # max_ttl on the /api/* behavior at 3600 to match. An hour of
+            # showing people the wrong documentation is a bad trade for
+            # the few Lambda invocations it saves on a page almost nobody
+            # loads twice.
+            return _html_response(200, HELP_HTML, cache_seconds=300)
         if path == "/jobs":
             return _response(200, json.dumps(route_jobs(params), default=str), cache_seconds=60)
         if path.startswith("/jobs/") and len(path) > len("/jobs/"):
