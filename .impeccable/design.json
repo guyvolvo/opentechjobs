@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-16T11:00:14Z",
+  "generatedAt": "2026-09-16T15:35:43Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -313,6 +313,18 @@
       "label": {
         "displayName": "Label",
         "purpose": "Column headers, panel titles, the result count. Sentence case, normal tracking; nothing is uppercased by CSS."
+      },
+      "section-title-compact": {
+        "displayName": "Display / Section Title, Compact",
+        "purpose": "The Statistics column's own heading. The ramp ran 34px then 30px then 16px, and 30px shouted beside the 13px controls next to it, so the column had been setting 24px by hand with a comment explaining why. Documented rather than moved: there was no step between 16 and 30 to move it to."
+      },
+      "data-mono": {
+        "displayName": "Data / Mono",
+        "purpose": "Tabular figures and code: the explore table's numeric column, bar-chart values, API examples. Monospace so digits line up column to column; the type system had no mono at all until this, which is why eleven rules reached for Courier New directly."
+      },
+      "data-mono-tick": {
+        "displayName": "Data / Mono Tick",
+        "purpose": "Chart axis ticks and the skills-explorer count, at 10.5px. Small by design: these label a chart rather than being read as prose, and they sit under bars that carry the meaning."
       }
     },
     "shadows": [],
