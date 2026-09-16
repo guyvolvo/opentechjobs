@@ -4,10 +4,6 @@ description: Swiss-grid job board for the Israeli tech market, ground-truthed da
 colors:
   paper: "#f2f0ef"
   device-case: "#1d1d1f"
-  device-aluminium-light: "#e8e9e7"
-  device-aluminium-mid: "#b9bbb9"
-  device-aluminium-dark: "#777b7b"
-  device-glass: "#080a0b"
   device-edge: "#48484a"
   device-lens: "#3a3a3c"
   ink: "#40513b"
@@ -642,23 +638,19 @@ else can I build.
    always the light one, in either theme: this is a picture of the
    product, not a mirror of the reader's settings, and the photograph
    behind it is a sunlit field. No caption: the picture is the sentence.
-   Both devices are drawn in CSS, and both are rendered rather than
-   diagrammed: anodised aluminium across the lid and the side band
-   (Device Aluminium Light / Mid / Dark), black display glass (Device
-   Glass), a keyboard deck, a trackpad, a dynamic island, three side
-   buttons, and one restrained sweep of reflection across each screen.
-   They stand at a slight angle on a soft contact shadow, because an
-   object without one does not sit anywhere.
-   That shadow is the one exception to the No-Shadow Rule, and it is
-   deliberate: the rule exists so our own surfaces separate with a rule or
-   a change of ground rather than a drop shadow, and hardware is not one
-   of our surfaces. Nothing else on the page may take it as licence.
-   Proportions come from measurement, not from copying: a script read the
-   real machines' bezel art and the figures live in the CSS as fractions,
-   so a device keeps its proportions at any size. None of Apple's artwork
-   ships. Their licence grants mock-ups of software running only on Apple
-   systems, excludes interfaces for any other operating system, and
-   excludes website content outright; a website is all three.
+   Both devices are drawn, and their shapes are measurements of real
+   objects rather than anyone's artwork: a script read Apple's bezel art
+   and the figures are written here as fractions of the screen's width, so
+   a frame at any size keeps a real machine's proportions. On a 14-inch
+   MacBook Pro the bezel is 1.8% of the lid's width, the screen's corners
+   round at 2.1%, and the notch is 12.4% wide with the camera in it; on an
+   iPhone 17 Pro the bezel is 3.7%, the corners 16.4%, and the island is
+   22.6% and a pill, sitting in a status strip deep enough that the
+   board's own topbar begins below it (Device / rounded). The case keeps
+   Device Case, Device Edge and Device Lens, none of which follows the
+   theme, because hardware doesn't. None of Apple's artwork ships: their
+   licence covers mock-ups of software that runs only on Apple systems and
+   excludes website content.
 5. Four features as full-width rows, direct-source listings first and
    largest because it is the reason the board exists, each rising into
    place as it scrolls in. Two claims inside them are marked with

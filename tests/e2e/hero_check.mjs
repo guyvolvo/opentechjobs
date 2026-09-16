@@ -144,52 +144,42 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       check(`${tag}: a throw to the right sends the logos right, fast`, thrown > Math.abs(drift) * 4, speeds);
       check(`${tag}: after the spin the logos ease back into their drift`, settled < 0 && Math.abs(settled - drift) <= Math.abs(drift) * 0.3, speeds);
     }
-    // The product shot: both screens carrying a real screenshot, the
-    // laptop standing on its base inside the card, and the phone in front
-    // of it. Always the light board, whatever the reader's theme.
+    // The product shot: the right screenshot for this screen, actually
+    // loaded, and a device the section cuts off rather than fitting whole.
     const product = await page.evaluate(async () => {
-      const url = (el) => getComputedStyle(el).backgroundImage.match(/url\("?([^")]+)"?\)/)?.[1] || "";
-      const laptop = document.querySelector(".screen-content");
-      const phone = document.querySelector(".iphone-screen-content");
-      const loads = async (u) => {
-        try {
-          const img = new Image();
-          img.src = u;
-          await img.decode();
-          return img.naturalWidth > 200;
-        } catch { return false; }
-      };
+      const dev = document.querySelector(".showcase-device");
+      const screen = document.querySelector(".device-screen");
+      const url = getComputedStyle(screen).backgroundImage.match(/url\("?([^")]+)"?\)/)?.[1] || "";
+      let ok = false;
+      try {
+        const img = new Image();
+        img.src = url;
+        await img.decode();
+        ok = img.naturalWidth > 200;
+      } catch {}
+      const sect = document.querySelector(".hero-showcase").getBoundingClientRect();
+      const box = dev.getBoundingClientRect();
       const primary = document.querySelector(".hero-primary");
       const secondary = document.querySelector(".hero-secondary");
       const lede = document.querySelector(".hero-lede");
-      const sect = document.querySelector(".hero-showcase").getBoundingClientRect();
-      const stage = document.querySelector(".device-stage").getBoundingClientRect();
-      return {
-        laptopUrl: url(laptop), phoneUrl: url(phone),
-        cta: primary.textContent.replace(/\s+/g, " ").trim(),
-        href: primary.getAttribute("href"),
+      return { url, ok, cut: box.bottom >= sect.bottom - 1, wider: box.width <= sect.width,
+        cta: primary.textContent.replace(/\s+/g, " ").trim(), href: primary.getAttribute("href"),
         apiHref: secondary.getAttribute("href"),
         claim: document.querySelector(".hero-claim").textContent.trim(),
         lede: lede.textContent.replace(/\s+/g, " ").trim(),
         ledePx: parseFloat(getComputedStyle(lede).fontSize),
         ledeWidth: lede.getBoundingClientRect().width,
         ledeLines: lede.getClientRects().length,
-        wordPx: parseFloat(getComputedStyle(document.querySelector(".hero-word")).fontSize),
-        laptopOk: await loads(url(laptop)), phoneOk: await loads(url(phone)),
-        inside: stage.left >= sect.left - 1 && stage.right <= sect.right + 1,
-        mac: !!document.querySelector(".macbook-lid") && !!document.querySelector(".keyboard"),
-        island: !!document.querySelector(".dynamic-island"),
-        buttons: document.querySelectorAll(".iphone-side-button").length,
-      };
+        wordPx: parseFloat(getComputedStyle(document.querySelector(".hero-word")).fontSize) };
     });
-    check(`${tag}: both screens carry the light board`,
-      product.laptopOk && product.phoneOk
-      && product.laptopUrl.includes("board-desktop-light") && product.phoneUrl.includes("board-phone-light"),
-      JSON.stringify({ laptop: product.laptopUrl.slice(-34), phone: product.phoneUrl.slice(-32) }));
-    check(`${tag}: the stage sits inside the card`, product.inside, JSON.stringify(product.inside));
-    check(`${tag}: the laptop is a whole machine`, product.mac, String(product.mac));
-    check(`${tag}: the phone has its island and side buttons`,
-      product.island && product.buttons === 3, JSON.stringify({ island: product.island, buttons: product.buttons }));
+    // Always the light board, in either theme: the product shot is a
+    // photograph of the product, not a mirror of the reader's settings.
+    check(`${tag}: the product shot loads the light board for this screen`,
+      product.ok && product.url.includes(label === "phone" ? "board-phone" : "board-desktop")
+      && product.url.includes("light") && !product.url.includes("dark"),
+      JSON.stringify({ url: product.url, ok: product.ok }));
+    check(`${tag}: the device is cut off by the section`, product.cut && product.wider,
+      JSON.stringify({ cut: product.cut, wider: product.wider }));
     check(`${tag}: the claim leads, the brand does not`,
       product.claim === "Straight from the source." && product.wordPx <= 82,
       JSON.stringify({ claim: product.claim, wordPx: product.wordPx }));

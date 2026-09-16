@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-16T09:05:56Z",
+  "generatedAt": "2026-09-16T08:41:01Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -35,70 +35,6 @@
           "#a5a5a7",
           "#c9c9cb",
           "#eeeef1"
-        ]
-      },
-      "device-aluminium-light": {
-        "role": "neutral",
-        "displayName": "Device Aluminium Light",
-        "canonical": "#e8e9e7",
-        "oklch": "oklch(93.3% 0.003 128.5)",
-        "tonalRamp": [
-          "#0b0b0a",
-          "#252524",
-          "#414241",
-          "#616160",
-          "#828381",
-          "#a4a5a3",
-          "#c8c9c7",
-          "#eeefed"
-        ]
-      },
-      "device-aluminium-mid": {
-        "role": "neutral",
-        "displayName": "Device Aluminium Mid",
-        "canonical": "#b9bbb9",
-        "oklch": "oklch(79.0% 0.004 145.5)",
-        "tonalRamp": [
-          "#0a0c0a",
-          "#242524",
-          "#414241",
-          "#606260",
-          "#818381",
-          "#a4a6a4",
-          "#c8cac8",
-          "#edefed"
-        ]
-      },
-      "device-aluminium-dark": {
-        "role": "neutral",
-        "displayName": "Device Aluminium Dark",
-        "canonical": "#777b7b",
-        "oklch": "oklch(57.9% 0.005 197.0)",
-        "tonalRamp": [
-          "#090c0c",
-          "#222626",
-          "#3f4343",
-          "#5e6262",
-          "#7f8383",
-          "#a2a6a6",
-          "#c6caca",
-          "#ebefef"
-        ]
-      },
-      "device-glass": {
-        "role": "neutral",
-        "displayName": "Device Glass",
-        "canonical": "#080a0b",
-        "oklch": "oklch(14.3% 0.004 227.5)",
-        "tonalRamp": [
-          "#090c0d",
-          "#232527",
-          "#404244",
-          "#5f6263",
-          "#808384",
-          "#a2a5a7",
-          "#c6cacb",
-          "#eceff1"
         ]
       },
       "device-edge": {
