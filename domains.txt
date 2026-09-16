@@ -5521,3 +5521,25 @@ a_security.com
 walmart.com
 zeroport.com
 flexor.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+bulls-media.com
+mitrelli.com
+hyperguest.com
+droxi.com
+joinattil.com
+amimon.com
+comunix.co
+draftt.io
+appstock.com
+resolvglobal.co
+resolvglobal.co
+tripleten.com
+capslock.com
+inderocro.com
+sequoia-connect.com
+crystalia.de
+snapscale.com
+snapscale.com
+medvidi.com
+medvidi.com
