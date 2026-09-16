@@ -3333,7 +3333,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    --board-shot is the screenshot on the screen, a MacBook's on a desktop
    and an iPhone's on a phone, each in the reader's own theme. */
 .hero-showcase {
-  --showcase-bg: linear-gradient(180deg, var(--white) 0%, var(--hover-tint) 46%, var(--green-text) 100%);
+  --showcase-bg: url("/img/hills-light.svg");
   --board-shot: url("/img/board-desktop-light.webp");
   position: relative;
   overflow: hidden;
@@ -3341,11 +3341,20 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   text-align: center;
   background: var(--showcase-bg);
   background-size: cover;
-  background-position: center;
+  /* Bottom, so the ridges meet the foot of the section whatever its
+     height, and the sky takes whatever is left above the heading. */
+  background-position: bottom center;
+  background-repeat: no-repeat;
 }
-:root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+:root[data-theme="dark"] .hero-showcase {
+  --showcase-bg: url("/img/hills-dark.svg");
+  --board-shot: url("/img/board-desktop-dark.webp");
+}
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+  :root:not([data-theme="light"]) .hero-showcase {
+    --showcase-bg: url("/img/hills-dark.svg");
+    --board-shot: url("/img/board-desktop-dark.webp");
+  }
 }
 .hero-showcase h2 {
   font-family: var(--font-display);
