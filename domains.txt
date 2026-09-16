@@ -5543,3 +5543,17 @@ snapscale.com
 snapscale.com
 medvidi.com
 medvidi.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+historictoursofamerica.com
+openings.fansided.com
+iamusconsulting.com
+aretehealthpt.com
+shamrockroofer.com
+elevation.co
+goleadingit.com
+plumbingsolutionsllc.com
+plumbingsolutionsllc.com
+empowerment.ai
+ppcr.com
+flare.io
