@@ -53,11 +53,9 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
 
     const m = await page.evaluate(() => {
       const x = (id) => new DOMMatrixReadOnly(getComputedStyle(document.getElementById(id)).transform).m41;
-      const word = document.querySelector(".hero-word").getBoundingClientRect();
       const bandBox = document.querySelector(".hero-block").getBoundingClientRect();
-      return { overflow: document.documentElement.scrollWidth > innerWidth, wordRight: word.right, vw: innerWidth,
+      return { overflow: document.documentElement.scrollWidth > innerWidth, vw: innerWidth,
         bandLeft: bandBox.left, bandRight: bandBox.right, clientW: document.documentElement.clientWidth,
-        wordHref: document.querySelector(".hero-word")?.getAttribute("href"),
         tickerPx: parseFloat(getComputedStyle(document.getElementById("ticker-top")).fontSize),
         top0: x("ticker-top"), bottom0: x("ticker-logos"),
         topText: document.getElementById("ticker-top").textContent,
@@ -93,9 +91,7 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       return { top1: x("ticker-top"), bottom1: x("ticker-logos") };
     });
     check(`${tag}: no sideways scroll`, !m.overflow);
-    check(`${tag}: the wordmark links to the board`, m.wordHref === "/", String(m.wordHref));
     check(`${tag}: the green band runs edge to edge`, m.bandLeft === 0 && Math.abs(m.bandRight - m.clientW) < 1, JSON.stringify({ l: m.bandLeft, r: m.bandRight, w: m.clientW }));
-    check(`${tag}: the wordmark fits the page`, m.wordRight <= m.vw, `${m.wordRight} > ${m.vw}`);
     check(`${tag}: the numbers ticker carries live numbers`, m.topText.includes("176,465 open jobs") && m.topText.includes("25,841 remote") && !/Israel|median|24 hours/.test(m.topText), m.topText.slice(0, 120));
     check(`${tag}: the logo row shows the logos and drops the broken one`, m.tiles >= 60 && m.tiles % 6 === 0 && m.broken === 0, JSON.stringify({ tiles: m.tiles, broken: m.broken }));
     // The logos no longer track the ticker's type size: at proof-strip
@@ -167,7 +163,7 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
         ledePx: parseFloat(getComputedStyle(lede).fontSize),
         ledeWidth: lede.getBoundingClientRect().width,
         ledeLines: lede.getClientRects().length,
-        wordPx: parseFloat(getComputedStyle(document.querySelector(".hero-word")).fontSize),
+        claimLines: document.querySelector(".hero-claim").getClientRects().length,
       };
     });
     check(`${tag}: the device image loads, and it is the right one`,
@@ -177,15 +173,18 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       product.boxRatio > product.ratio + 0.05,
       JSON.stringify({ box: product.boxRatio.toFixed(3), image: product.ratio.toFixed(3) }));
     check(`${tag}: the device sits inside the card`, product.inside, String(product.inside));
-    check(`${tag}: the claim leads, the brand does not`,
-      product.claim === "Straight from the source." && product.wordPx <= 82,
-      JSON.stringify({ claim: product.claim, wordPx: product.wordPx }));
+    check(`${tag}: the claim is the only thing said up top`,
+      product.claim === "Find your next opportunity.",
+      JSON.stringify({ claim: product.claim }));
     check(`${tag}: the lede carries the live count and reads at size`,
       product.lede === "176,465 open jobs, read directly from company hiring systems and career sites."
       && product.ledePx >= 16 && product.ledeWidth <= 780,
       JSON.stringify({ lede: product.lede, px: product.ledePx, w: Math.round(product.ledeWidth) }));
     if (label === "desktop") {
       check(`${tag}: the lede is one line`, product.ledeLines === 1, `${product.ledeLines} lines`);
+      // The measure was widened for this sentence specifically, so the
+      // thing that would quietly undo it is a copy change, not a CSS one.
+      check(`${tag}: the claim is one line`, product.claimLines === 1, `${product.claimLines} lines`);
     }
     check(`${tag}: both doors are open, the board and the API`,
       /^Search open jobs/.test(product.cta) && product.href === "/" && product.apiHref === "/api/help",

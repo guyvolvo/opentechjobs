@@ -3249,30 +3249,22 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-nav a + a::before { content: ", "; color: var(--black); }
 
 .hero {
-  padding: 0 var(--edge);
+  /* The space above used to belong to the wordmark's own margin, so taking
+     the wordmark out left the claim sitting against the nav row. It lives
+     on the section now, where it survives whatever the first child happens
+     to be. The range matches what that margin actually resolved to: 0.5em
+     of a clamp(34px, 6.4vw, 82px) face, so 17px on a phone and 41px on a
+     desktop. */
+  padding: clamp(18px, 4vw, 44px) var(--edge) 0;
   container-type: inline-size;
-  /* Centred: the brand, the claim and the two doors read as one column
-     down the middle of the page rather than a left-hung stack. */
+  /* Centred: the claim and the two doors read as one column down the
+     middle of the page rather than a left-hung stack. */
   text-align: center;
 }
-/* The brand, said once. It ran the full width of the page for a while and
-   behaved like a poster: the visitor met the name before the promise. */
-.hero-word {
-  display: inline-block;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: clamp(34px, 6.4vw, 82px);
-  line-height: 0.9;
-  letter-spacing: -0.04em;
-  margin: 0.5em 0 0.3em;
-  white-space: nowrap;
-  color: inherit;
-  text-decoration: none;
-}
-.hero-word:hover { color: var(--green-text); }
-.hero-word:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; border-radius: 4px; }
-
-/* The claim carries the page: the one line a visitor has to read. */
+/* The claim carries the page, and now it is the only thing up here. The
+   brand used to sit above it and the visitor met the name before the
+   promise; the bar at the top of the page says who we are, which is
+   enough. */
 .hero-claim {
   font-family: var(--font-display);
   font-weight: 400;
@@ -3280,7 +3272,11 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   line-height: 1.02;
   letter-spacing: -0.03em;
   margin: 0;
-  max-width: 18ch;
+  /* Wide enough to keep the sentence on one line on a desktop: it is 27
+     characters, against the 25 of the claim this replaced, and the old
+     18ch measure broke it in two. Narrow screens still wrap it, where the
+     viewport is the real constraint rather than this. */
+  max-width: 30ch;
   margin-inline: auto;
 }
 .hero-lede {
@@ -3328,11 +3324,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   color: var(--black);
   overflow: hidden;
 }
-/* The wordmark is the way back to the board. Same colour at rest, green
-   on hover, as the utility row's links. */
-.hero-word a { color: inherit; text-decoration: none; }
-.hero-word a:hover { color: var(--green-text); }
-.hero-word a:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; border-radius: 4px; }
 /* Both rows fade out at the window's edges rather than being cut off by
    it, so they read as something passing through rather than a strip that
    stops. */
