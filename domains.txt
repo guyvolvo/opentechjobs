@@ -5576,3 +5576,10 @@ elsight.com
 acclaim.ai
 appnext.com
 lumus.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+webselenese.com
+final.co.il
+browzwear.com
+odigos.io
+milpower.com
