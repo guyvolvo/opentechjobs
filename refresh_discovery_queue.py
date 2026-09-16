@@ -92,8 +92,8 @@ ATS_LIMITS = {
     #
     # These grow the global board and barely touch Israel: sampling 40 of
     # each found 2, 0 and 0 Israeli roles.
-    "recruitee": (1, 1200),
-    "jazzhr": (1, 2000),
+    "recruitee": (1, 1600),
+    "jazzhr": (1, 2500),
     "breezy": (1, 3500),
 }
 
