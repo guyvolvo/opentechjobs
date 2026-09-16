@@ -4,6 +4,9 @@ description: Swiss-grid job board for the Israeli tech market, ground-truthed da
 colors:
   paper: "#f2f0ef"
   paper-fixed: "#f2f0ef"
+  device-case: "#1d1d1f"
+  device-edge: "#48484a"
+  device-lens: "#3a3a3c"
   ink: "#40513b"
   signal-green: "#609966"
   muted-grey: "#40513b"
@@ -83,6 +86,11 @@ typography:
 rounded:
   none: "0px"
   default: "4px"
+  device-laptop: "18px"
+  device-laptop-screen: "8px"
+  device-phone: "42px"
+  device-phone-screen: "32px"
+  device-island: "12px"
 spacing:
   gutter: "clamp(20px, 4vw, 64px)"
   rule: "2px"
@@ -587,6 +595,11 @@ it). Below them the board itself fills a device the section cuts off at
 the bottom edge, a MacBook from the hinge up on a desktop and an iPhone
 on a phone, each showing that screen's own screenshot in the reader's
 theme. The shots are decoration: the words above carry the meaning.
+The devices are drawn hardware, not surfaces of ours, so they keep
+Apple's own case black (Device Case), a drawn edge that separates them
+from a dark page (Device Edge), a camera (Device Lens) and the corner
+radii of the real things (Device / rounded). None of the five follows
+the theme, because the hardware doesn't.
 
 Below that, the features as full-width
 rows under a 2px rule, heading in Display / Feature beside a 16px

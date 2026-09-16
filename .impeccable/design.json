@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-16T06:09:34Z",
+  "generatedAt": "2026-09-16T06:12:40Z",
   "title": "Design System: OpenTechJobs",
   "extensions": {
     "colorMeta": {
@@ -35,6 +35,54 @@
           "#a6a4a4",
           "#cac9c8",
           "#f0eeed"
+        ]
+      },
+      "device-case": {
+        "role": "neutral",
+        "displayName": "Device Case",
+        "canonical": "#1d1d1f",
+        "oklch": "oklch(23.2% 0.004 286.1)",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef1"
+        ]
+      },
+      "device-edge": {
+        "role": "neutral",
+        "displayName": "Device Edge",
+        "canonical": "#48484a",
+        "oklch": "oklch(40.2% 0.003 286.3)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef1"
+        ]
+      },
+      "device-lens": {
+        "role": "neutral",
+        "displayName": "Device Lens",
+        "canonical": "#3a3a3c",
+        "oklch": "oklch(34.9% 0.003 286.2)",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef1"
         ]
       },
       "ink": {

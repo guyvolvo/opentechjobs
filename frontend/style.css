@@ -50,6 +50,13 @@
      to stay light whatever the theme: behind other companies' logos,
      which are drawn for a light page and vanish on a dark one. */
   --paper-fixed: #f2f0ef;
+  /* The laptop and phone on /hero are drawn hardware, not a surface of
+     ours: Apple's own case black, the edge that separates it from a dark
+     page, and the camera. None of the three follows the theme, because
+     the hardware doesn't. */
+  --device-case: #1d1d1f;
+  --device-edge: #48484a;
+  --device-lens: #3a3a3c;
   --black: #40513b;
   --green: #609966;
   --green-bright: #80ad85;
@@ -3349,10 +3356,10 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   margin: clamp(36px, 5vw, 72px) auto 0;
   padding: 12px 12px 0;
   border-radius: 18px 18px 0 0;
-  background: #1d1d1f;
+  background: var(--device-case);
   /* The case is near black, and so is the page in dark mode, so its edge
      is drawn rather than left to the difference between the two. */
-  border: 1px solid #48484a;
+  border: 1px solid var(--device-edge);
   border-bottom: 0;
 }
 .showcase-device::before {
@@ -3362,7 +3369,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   height: 5px;
   margin: 1px auto 5px;
   border-radius: 50%;
-  background: #3a3a3c;
+  background: var(--device-lens);
 }
 .device-screen {
   height: 100%;
@@ -3391,7 +3398,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
     height: 22px;
     margin: 0;
     border-radius: 12px;
-    background: #1d1d1f;
+    background: var(--device-case);
     transform: translateX(-50%);
     z-index: 1;
   }
