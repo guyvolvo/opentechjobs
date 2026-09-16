@@ -166,7 +166,19 @@ def main() -> int:
     batch = queue[:BATCH_SIZE]
     remaining = queue[BATCH_SIZE:]
     domains = [c["domain"] for c in batch]
+    # Comeet is the one ATS this step cannot re-resolve by probing a
+    # domain, and that is the whole reason companies.yml's first Comeet
+    # entries were extracted by hand. The API needs an opaque token that
+    # appears in no URL and that no guess reaches, so discovery already
+    # carried it here; re-deriving it would only lose it. These skip the
+    # probe below and go into known.json in the "uid:token" form
+    # refetch_known reads.
+    comeet_pins = [c for c in batch if c.get("ats") == "comeet" and c.get("token")]
+    probe_domains = [c["domain"] for c in batch if c.get("ats") != "comeet"]
     print(f"merging {len(batch)} candidates ({len(remaining)} will remain queued): {', '.join(domains)}", file=sys.stderr)
+    if comeet_pins:
+        print(f"  {len(comeet_pins)} are Comeet pins, merged on discovery's own token without re-probing",
+              file=sys.stderr)
 
     existing = set(
         line.strip() for line in DOMAINS_PATH.read_text(encoding="utf-8-sig").splitlines()
@@ -196,20 +208,23 @@ def main() -> int:
     # as any other company) on this company's own next shard rotation.
     # Paying for Comeet/Workday's extra per-job detail fetch here would
     # be pure waste now.
-    probe = subprocess.run(
-        [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(domains), "--json"],
-        capture_output=True, text=True, timeout=400,
-    )
-    if probe.stderr:
-        print(probe.stderr, file=sys.stderr)
-    if probe.returncode != 0:
-        print(f"probe.py exited {probe.returncode} -- batch NOT merged, queue left untouched", file=sys.stderr)
-        return 1
-    resolved_path.write_text(probe.stdout, encoding="utf-8")
+    data = []
+    if probe_domains:
+        probe = subprocess.run(
+            [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(probe_domains), "--json"],
+            capture_output=True, text=True, timeout=400,
+        )
+        if probe.stderr:
+            print(probe.stderr, file=sys.stderr)
+        if probe.returncode != 0:
+            print(f"probe.py exited {probe.returncode} -- batch NOT merged, queue left untouched", file=sys.stderr)
+            return 1
+        resolved_path.write_text(probe.stdout, encoding="utf-8")
+        data = json.loads(probe.stdout)
 
-    data = json.loads(probe.stdout)
     hits = [r for r in data if r.get("ats")]
-    print(f"{len(hits)}/{len(data)} resolved for real", file=sys.stderr)
+    hits.extend({"domain": c["domain"], "ats": "comeet", "token": c["token"]} for c in comeet_pins)
+    print(f"{len(hits)}/{len(data) + len(comeet_pins)} resolved for real", file=sys.stderr)
 
     bucket = os.environ.get("DATA_BUCKET")
     if bucket and hits:

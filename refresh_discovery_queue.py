@@ -56,6 +56,17 @@ ATS_LIMITS = {
     "ashby": (30, 2800),
     "workable": (20, 1800),
     "smartrecruiters": (20, 600),
+    # Comeet's pool is small and it does not page: every prefix of
+    # comeet.com/jobs/* answers with the same ~630 records, which come to
+    # roughly 170 companies in one crawl and about 330 across several. So
+    # max_pages buys nothing here and verify_limit is set to cover the
+    # whole pool rather than a slice of it.
+    #
+    # Each candidate costs two fetches instead of one, the board page for
+    # the token and then the API to confirm, which is what a non-guessable
+    # ATS costs. Worth it: measured 2026-09-16, 219 companies carrying 963
+    # Israeli roles, 943 of them on no other board here.
+    "comeet": (1, 400),
 }
 
 

@@ -86,9 +86,32 @@ CC_URL_PATTERNS = {
     "ashby": "jobs.ashbyhq.com/*",
     "workable": "apply.workable.com/*",
     "smartrecruiters": "jobs.smartrecruiters.com/*",
+    # The exception to the "guessable token" rule above, and the reason
+    # it is worth making one. Comeet is what most Israeli startups
+    # actually run, and no amount of token guessing reaches it: the API
+    # wants an opaque per-company token that appears nowhere in the URL.
+    # companies.yml's first Comeet entries were therefore extracted by
+    # hand, and its own header calls a Common Crawl harvest the
+    # alternative nobody had built. This is that harvest. The board URL
+    # carries a slug and a uid, the token sits in the page they address,
+    # so one extra fetch per candidate turns an index hit into a pin.
+    "comeet": "comeet.com/jobs/*",
 }
 
 _TOKEN_PATTERNS = dict(EMBED_ATS_PATTERNS)
+
+# Both halves of a Comeet board URL: /jobs/{slug}/{uid}.
+COMEET_JOB_RE = re.compile(r"comeet\.com/jobs/([A-Za-z0-9_.-]+)/([A-Za-z0-9.]+)")
+# The token as the board page embeds it, either through Comeet's
+# WordPress plugin or its generic widget. Same two shapes probe.py's own
+# f_comeet_scrape already knows, read here off comeet.com rather than off
+# the company's site, which is what makes this work for a company whose
+# own careers page embeds nothing at all.
+COMEET_TOKEN_RES = [
+    re.compile(r'"token"\s*:\s*"([^"]{16,})"'),
+    re.compile(r'comeet_token"?\s*[:=]\s*"([^"]{16,})"'),
+]
+COMEET_POSITIONS = "https://www.comeet.com/careers-api/1.0/company/{uid}/positions?token={token}"
 
 SITE_ORIGIN = "https://opentechjobs.org"
 
@@ -121,6 +144,18 @@ def fetch_cc_urls(url_pattern: str, max_pages: int) -> list[str]:
 
 
 def extract_tokens(ats: str, urls: list[str]) -> set[str]:
+    if ats == "comeet":
+        # uid first, so the half before the colon is the identity for
+        # both these candidates and the tokens load_already_tracked reads
+        # back. Case is preserved rather than folded like the tokens
+        # below: a uid is "B6.00F" and the positions API is not amused by
+        # "b6.00f", so only the comparison lowercases, never the value.
+        out = set()
+        for url in urls:
+            m = COMEET_JOB_RE.search(url)
+            if m:
+                out.add(f"{m.group(2)}:{m.group(1)}")
+        return out
     pattern = _TOKEN_PATTERNS[ats]
     tokens = set()
     for url in urls:
@@ -345,12 +380,84 @@ def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
     return f"{token}.com", False
 
 
+def _comeet_where(position: dict) -> str:
+    """Comeet answers with a location object on most postings and a bare
+    string on some, so both shapes have to read the same way here.
+    """
+    loc = position.get("location")
+    if isinstance(loc, dict):
+        return " ".join(str(v) for v in (loc.get("name"), loc.get("city"), loc.get("country")) if v)
+    return str(loc or "")
+
+
+def _verify_comeet(sess: requests.Session, candidate: str) -> dict | None:
+    """Turn a "uid:slug" index hit into a verified pin.
+
+    Two fetches, and each one earns its place. The first reads the board
+    page for the opaque token, which is the only thing standing between a
+    Common Crawl URL and a working API call. The second is the same
+    confirm-it-is-real call every other ATS here makes.
+
+    Nothing about the result is guessed, which is unusual for this file:
+    the postings carry the employer's own careers_page_url, so the domain
+    is read rather than inferred from the slug. _guess_domain stays as
+    the fallback for the rare board that names no page.
+    """
+    uid, _, slug = candidate.partition(":")
+    if not uid or not slug:
+        return None
+    try:
+        page = sess.get(f"https://www.comeet.com/jobs/{slug}/{uid}", timeout=20)
+    except requests.RequestException:
+        return None
+    token = None
+    for rx in COMEET_TOKEN_RES:
+        m = rx.search(page.text)
+        if m:
+            token = m.group(1)
+            break
+    if not token:
+        return None
+    try:
+        jobs = sess.get(COMEET_POSITIONS.format(uid=uid, token=token), timeout=25).json()
+    except (requests.RequestException, ValueError):
+        return None
+    if not isinstance(jobs, list) or not jobs:
+        return None
+
+    domain, domain_verified = "", True
+    for key in ("careers_page_url", "careers_page_active_url", "careers_page_detected_url"):
+        host = urlparse(str(jobs[0].get(key) or "")).netloc.lower().removeprefix("www.")
+        if host and "comeet" not in host:
+            domain = host
+            break
+    if not domain:
+        domain, domain_verified = _guess_domain(slug, sess)
+
+    return {
+        "ats": "comeet",
+        "token": f"{uid}:{token}",
+        "job_count": len(jobs),
+        "israel_job_count": sum(
+            1 for p in jobs if any(kw in _comeet_where(p).lower() for kw in IL_KEYWORDS)
+        ),
+        "guessed_domain": domain,
+        "domain_verified": domain_verified,
+        "sample_titles": [str(p.get("name") or "") for p in jobs[:3]],
+    }
+
+
 def verify_candidate(sess: requests.Session, ats: str, token: str,
                      known: dict | None = None) -> dict | None:
     """`known` carries what a directory source already told us: the real
     domain, and any alternate tokens to try. Common Crawl gives neither,
     so it passes None and the domain is guessed as before.
     """
+    if ats == "comeet":
+        # Its own path entirely: comeet is deliberately absent from
+        # FETCHERS (probe.py says why), so the loop below has nothing to
+        # call for it.
+        return _verify_comeet(sess, token)
     tokens = [token] + list((known or {}).get("fallbacks") or [])
     jobs = None
     for candidate in tokens:
@@ -442,7 +549,11 @@ def main() -> int:
             print("[]")
         return 1
     print(f"  {len(known)} already tracked for {args.ats}", file=sys.stderr)
-    new_tokens = sorted(tokens - known)
+    # Compared on the identity half rather than the whole string. A
+    # Comeet candidate is "uid:slug" while load_already_tracked reads
+    # back bare uids, and every other ATS's token carries no colon at
+    # all, so for them this is the same subtraction it always was.
+    new_tokens = sorted(t for t in tokens if t.split(":")[0].lower() not in known)
     print(f"  {len(new_tokens)} genuinely new candidates to verify", file=sys.stderr)
 
     # I/O-bound (waiting on each candidate's own ATS API + a domain HEAD
