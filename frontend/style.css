@@ -3343,8 +3343,11 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    stops. */
 .hero-ticker {
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  /* A stencil, not a colour: a mask reads only the alpha channel, so black
+     means "keep this" and transparent means "fade out". Nothing here is
+     painted black. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 7%, black 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, black 7%, black 93%, transparent);
 }
 .hero-ticker-track {
   display: flex;

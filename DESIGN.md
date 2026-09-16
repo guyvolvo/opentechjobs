@@ -28,6 +28,34 @@ typography:
     fontWeight: 400
     lineHeight: 0.85
     letterSpacing: "-0.02em"
+  display-hero-brand:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "clamp(34px, 6.4vw, 82px)"
+    fontWeight: 500
+    lineHeight: 0.9
+    letterSpacing: "-0.04em"
+  display-hero-claim:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "clamp(30px, 4.4vw, 4rem)"
+    fontWeight: 400
+    lineHeight: 1.02
+    letterSpacing: "-0.03em"
+  display-feature-lead:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "clamp(36px, 5.4vw, 5rem)"
+    fontWeight: 400
+    lineHeight: 1
+    letterSpacing: "-0.03em"
+  display-api-block:
+    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontSize: "clamp(28px, 3.4vw, 3rem)"
+    fontWeight: 400
+    lineHeight: 1
+    letterSpacing: "-0.03em"
+  hero-lede:
+    fontFamily: "Source Sans 3, -apple-system, BlinkMacSystemFont, sans-serif"
+    fontSize: "clamp(16px, 1.2vw, 19px)"
+    lineHeight: 1.45
   display-hero:
     fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "calc(100cqi / 6.1)"
@@ -581,8 +609,9 @@ else can I build.
    in Display / Hero. It ran the full width for a while and read as a
    poster: the name arrived before the promise, so it is now a brand
    line above the claim rather than the page's headline.
-2. The claim, "Straight from the source.", in Display / Feature, with a
-   lede at 16-19px on a 620px measure and 1.45 line height carrying the
+2. The claim, "Straight from the source.", in Display / Hero Claim under
+   the wordmark in Display / Hero Brand, with a lede (Hero Lede, 16-19px,
+   1.45) wide enough to hold one line on a desktop, carrying the
    live count: "177,871 open jobs, read directly from company hiring
    systems and career sites. Never reposted from another board." Two
    doors follow, an ink button to the board and a plain link to the API,
