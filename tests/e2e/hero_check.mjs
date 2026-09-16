@@ -172,8 +172,11 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
         ledeLines: lede.getClientRects().length,
         wordPx: parseFloat(getComputedStyle(document.querySelector(".hero-word")).fontSize) };
     });
-    check(`${tag}: the product shot loads the right screenshot`,
-      product.ok && product.url.includes(label === "phone" ? "board-phone" : "board-desktop") && product.url.includes(theme),
+    // Always the light board, in either theme: the product shot is a
+    // photograph of the product, not a mirror of the reader's settings.
+    check(`${tag}: the product shot loads the light board for this screen`,
+      product.ok && product.url.includes(label === "phone" ? "board-phone" : "board-desktop")
+      && product.url.includes("light") && !product.url.includes("dark"),
       JSON.stringify({ url: product.url, ok: product.ok }));
     check(`${tag}: the device is cut off by the section`, product.cut && product.wider,
       JSON.stringify({ cut: product.cut, wider: product.wider }));

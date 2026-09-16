@@ -634,8 +634,10 @@ else can I build.
 4. The product itself, in a card: the photograph and its veil held off
    both window edges by the page gutter and rounded to 24px (Card /
    Preview), with the board on a device the card cuts off at its foot, a
-   MacBook on a desktop and an iPhone on a phone, each in the reader's
-   theme. No caption: the picture is the sentence.
+   MacBook on a desktop and an iPhone on a phone. The board inside is
+   always the light one, in either theme: this is a picture of the
+   product, not a mirror of the reader's settings, and the photograph
+   behind it is a sunlit field. No caption: the picture is the sentence.
    Both devices are drawn, and their shapes are measurements of real
    objects rather than anyone's artwork: a script read Apple's bezel art
    and the figures are written here as fractions of the screen's width, so

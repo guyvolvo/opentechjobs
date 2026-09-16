@@ -3419,11 +3419,13 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   background: currentColor;
 }
 
-/* The product shot: a line about the board over the board itself, on a
-   laptop the section cuts off at the bottom edge. --showcase-bg is the
-   art behind it; swap the gradient for url("/img/<file>") to use a photo.
-   --board-shot is the screenshot on the screen, a MacBook's on a desktop
-   and an iPhone's on a phone, each in the reader's own theme. */
+/* The product shot: the board itself on a device the card cuts off at its
+   foot. --showcase-bg is the art behind it, a photograph under a veil;
+   point it at another file to change the picture. --board-shot is the
+   screenshot on the screen, a MacBook's on a desktop and an iPhone's on a
+   phone, and always the light board whatever the reader's theme: this is
+   a picture of the product, not a mirror of their settings, and it sits
+   on a sunlit field. */
 .hero-showcase {
   /* The photograph under a paper veil, the same one in both themes: the
      hills are a bright, sunlit thing and turning them to night to match a
@@ -3451,10 +3453,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   background-size: auto, cover;
   background-position: center, bottom center;
   background-repeat: no-repeat;
-}
-:root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp?v=2"); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp?v=2"); }
 }
 /* The API block, on the page's own ground. */
 .hero-api {
@@ -3558,7 +3556,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 @media (max-width: 720px) {
   /* An iPhone instead, so the shot is the board's own phone layout. */
   .hero-showcase { --board-shot: url("/img/board-phone-light.webp?v=2"); }
-  :root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-phone-dark.webp?v=2"); }
   /* A phone, to an iPhone 17 Pro's proportions: the bezel is 3.7% of the
      lid's width, the screen's corners are round at 16.4% of its width, and
      the island is 22.6% of that width. Measured the same way, drawn the
