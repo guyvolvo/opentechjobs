@@ -54,6 +54,9 @@
      ours: Apple's own case black, the edge that separates it from a dark
      page, and the camera. None of the three follows the theme, because
      the hardware doesn't. */
+  /* Ink that stays ink in dark mode, for the one section that keeps a
+     light ground in both themes (see .hero-showcase). */
+  --ink-fixed: #40513b;
   --device-case: #1d1d1f;
   --device-edge: #48484a;
   --device-lens: #3a3a3c;
@@ -3333,15 +3336,17 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    --board-shot is the screenshot on the screen, a MacBook's on a desktop
    and an iPhone's on a phone, each in the reader's own theme. */
 .hero-showcase {
-  /* The photograph, under a veil of the page's own ground. The sky is a
-     bright blue that leaves the heading at 2.7:1 unaided, so the veil is
-     heaviest where the type sits and clears toward the foot, where the
-     hills meet the laptop and nothing is written. */
+  /* The photograph under a paper veil, the same one in both themes: the
+     hills are a bright, sunlit thing and turning them to night to match a
+     dark page made them someone else's picture. Measured against the sky
+     itself, ink needs 0.51 at the heading and 0.42 at the copy to clear
+     4.5:1, so the veil starts a hair above that and thins to almost
+     nothing at the foot, where the laptop sits and nothing is written. */
   --showcase-veil: linear-gradient(180deg,
-    rgba(242, 240, 239, 0.92) 0%,
-    rgba(242, 240, 239, 0.86) 34%,
-    rgba(242, 240, 239, 0.58) 62%,
-    rgba(242, 240, 239, 0.3) 100%);
+    rgba(242, 240, 239, 0.54) 0%,
+    rgba(242, 240, 239, 0.52) 30%,
+    rgba(242, 240, 239, 0.34) 62%,
+    rgba(242, 240, 239, 0.16) 100%);
   --showcase-bg: var(--showcase-veil), url("/img/hills.webp");
   --board-shot: url("/img/board-desktop-light.webp");
   position: relative;
@@ -3353,23 +3358,24 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   background-position: center, bottom center;
   background-repeat: no-repeat;
 }
-:root[data-theme="dark"] .hero-showcase {
-  --showcase-veil: linear-gradient(180deg,
-    rgba(23, 24, 28, 0.93) 0%,
-    rgba(23, 24, 28, 0.88) 34%,
-    rgba(23, 24, 28, 0.66) 62%,
-    rgba(23, 24, 28, 0.42) 100%);
-  --board-shot: url("/img/board-desktop-dark.webp");
-}
+:root[data-theme="dark"] .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .hero-showcase {
-    --showcase-veil: linear-gradient(180deg,
-      rgba(23, 24, 28, 0.93) 0%,
-      rgba(23, 24, 28, 0.88) 34%,
-      rgba(23, 24, 28, 0.66) 62%,
-      rgba(23, 24, 28, 0.42) 100%);
-    --board-shot: url("/img/board-desktop-dark.webp");
-  }
+  :root:not([data-theme="light"]) .hero-showcase { --board-shot: url("/img/board-desktop-dark.webp"); }
+}
+/* The ground here is the photograph in either theme, so the words on it
+   stay ink and the button stays ink-on-paper rather than following the
+   page into dark. */
+.hero-showcase h2,
+.hero-showcase p { color: var(--ink-fixed); }
+.showcase-cta.btn {
+  background: var(--ink-fixed);
+  border-color: var(--ink-fixed);
+  color: var(--paper-fixed);
+}
+.showcase-cta.btn:hover {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--paper-fixed);
 }
 .hero-showcase h2 {
   font-family: var(--font-display);
