@@ -13,12 +13,20 @@ served this HTML. Kept as a hand-written string, not a template engine
 -- one static page, same reasoning as handler.py's own "no framework"
 docstring.
 
-The copy here is supplied verbatim by the site owner (2026-09-16) and is
-not ours to edit. Only the markup is ours: headings, tables, code blocks
-and the existing .api-* classes. Anyone tempted to "fix" the wording,
-including the Title Case headings that this project's own writing rules
-would otherwise change to sentence case, should leave it alone and raise
-it with the owner instead.
+The copy here is the site owner's (2026-09-16) and is not ours to edit.
+Only the markup is ours: headings, tables, code blocks and the existing
+.api-* classes. Anyone tempted to "fix" the wording, including the Title
+Case headings that this project's own writing rules would otherwise
+change to sentence case, should leave it alone and raise it with the
+owner instead.
+
+The examples are deliberately global and anonymous, on the owner's
+instruction: country=US rather than IL, placeholder domains rather than
+real customers, a placeholder job id rather than a live one. This is a
+public page for a worldwide audience and the Israeli market is not the
+example anyone reaching it needs. israel_only stays documented because
+it is a real parameter the API accepts; removing it would make the
+reference wrong rather than global.
 
 Three structural readings were needed, because the source arrived as
 flattened markdown. The bare "Bash" and "JSON" tokens ahead of each
@@ -71,14 +79,14 @@ HELP_HTML = """<!doctype html>
         <p><b>Base URL:</b> <a class="link" href="https://opentechjobs.org/api">https://opentechjobs.org/api</a> (HTTPS only).</p>
 
         <h3>Quick Start</h3>
-        <p>Fetch the 10 newest open job listings in Israel:</p>
-        <code>curl "https://opentechjobs.org/api/jobs?country=IL&amp;limit=10"</code>
+        <p>Fetch the 10 newest open job listings in the United States:</p>
+        <code>curl "https://opentechjobs.org/api/jobs?country=US&amp;limit=10"</code>
 
         <h3>Standard Response Format</h3>
         <p>Every response from /api/jobs returns the job records, total matching count, pagination limits, and matched skills:</p>
         <code>{
-  "jobs": [ { "id": "fef6f069a7697d5e", "title": "Backend Engineer" } ],
-  "total": 3667,
+  "jobs": [ { "id": "0a1b2c3d4e5f6a7b", "title": "Backend Engineer" } ],
+  "total": 12480,
   "limit": 10,
   "offset": 0,
   "matched_skills": []
@@ -125,7 +133,7 @@ HELP_HTML = """<!doctype html>
           <p><b>Search Parameters:</b></p>
           <table class="api-params">
             <tbody>
-              <tr><td><span class="param">search</span></td><td>Space-separated search terms (e.g., kubernetes tel aviv). Matches title, company, location, category, and description. Use quotes for exact phrases (e.g., "software engineer").</td></tr>
+              <tr><td><span class="param">search</span></td><td>Space-separated search terms (e.g., kubernetes new york). Matches title, company, location, category, and description. Use quotes for exact phrases (e.g., "software engineer").</td></tr>
               <tr><td><span class="param">q</span></td><td>Legacy title/company search.</td></tr>
               <tr><td><span class="param">keywords</span></td><td>Semicolon-separated terms (e.g., azure;excel;iso). Matches title and description.</td></tr>
             </tbody>
@@ -134,11 +142,11 @@ HELP_HTML = """<!doctype html>
           <p><b>Filter Parameters (Accepts comma-separated values):</b></p>
           <table class="api-params">
             <tbody>
-              <tr><td><span class="param">country</span></td><td>Two-letter country code (e.g., IL or IL,US). Uses normalized location data.</td></tr>
-              <tr><td><span class="param">city</span></td><td>City names (e.g., Tel Aviv,Haifa).</td></tr>
+              <tr><td><span class="param">country</span></td><td>Two-letter country code (e.g., US or US,GB). Uses normalized location data.</td></tr>
+              <tr><td><span class="param">city</span></td><td>City names (e.g., New York,London).</td></tr>
               <tr><td><span class="param">location</span></td><td>Raw location text provided by the employer.</td></tr>
-              <tr><td><span class="param">company</span></td><td>Company domain names (e.g., wix.com,monday.com).</td></tr>
-              <tr><td><span class="param">ats</span></td><td>Applicant tracking system names (e.g., greenhouse,comeet).</td></tr>
+              <tr><td><span class="param">company</span></td><td>Company domain names (e.g., example.com,example.org).</td></tr>
+              <tr><td><span class="param">ats</span></td><td>Applicant tracking system names (e.g., greenhouse,lever).</td></tr>
               <tr><td><span class="param">department</span></td><td>Normalized job categories (e.g., Security, Infrastructure). Fetch valid values via /api/facets.</td></tr>
               <tr><td><span class="param">seniority</span></td><td>intern, junior, mid, senior, staff, principal, lead, manager, director, exec.</td></tr>
               <tr><td><span class="param">workplace</span></td><td>remote, hybrid, onsite.</td></tr>
@@ -170,13 +178,13 @@ HELP_HTML = """<!doctype html>
 
           <p><b>Skill Matching (sort=match):</b></p>
           <p>Ranks jobs by the number of matching skills, adjusted for posting age (every 14 days reduces the effective match count by 1).</p>
-          <code>curl "https://opentechjobs.org/api/jobs?skills=Python,Kubernetes&amp;sort=match&amp;country=IL"</code>
+          <code>curl "https://opentechjobs.org/api/jobs?skills=Python,Kubernetes&amp;sort=match&amp;country=US"</code>
         </div>
 
         <div class="api-endpoint">
           <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/jobs/{id}</span></div>
           <p>Fetch a single job listing with its full description. These URLs remain accessible after a job closes (closed_at field populated).</p>
-          <code>curl https://opentechjobs.org/api/jobs/fef6f069a7697d5e</code>
+          <code>curl https://opentechjobs.org/api/jobs/0a1b2c3d4e5f6a7b</code>
         </div>
 
         <h3>2. Companies</h3>
@@ -201,7 +209,7 @@ HELP_HTML = """<!doctype html>
             </tbody>
           </table>
           <p>Accepts any /api/jobs filter to count open jobs per company under specific conditions.</p>
-          <code>curl "https://opentechjobs.org/api/companies/search?name=micr&amp;country=IL"</code>
+          <code>curl "https://opentechjobs.org/api/companies/search?name=acme&amp;country=US"</code>
         </div>
 
         <h3>3. Market Data</h3>
@@ -209,7 +217,7 @@ HELP_HTML = """<!doctype html>
         <div class="api-endpoint">
           <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/stats</span></div>
           <p>Returns aggregate statistics, 14-day trends, top hiring companies, and market breakdowns. Accepts all /api/jobs filters.</p>
-          <code>curl "https://opentechjobs.org/api/stats?country=IL"</code>
+          <code>curl "https://opentechjobs.org/api/stats?country=US"</code>
         </div>
 
         <div class="api-endpoint">
@@ -233,7 +241,7 @@ HELP_HTML = """<!doctype html>
           <code>curl -X POST https://opentechjobs.org/api/me/alerts \\
   -H "Authorization: Bearer &lt;id_token&gt;" \\
   -H "content-type: application/json" \\
-  -d '{"filter": {"search": "rust", "country": "IL"}}'</code>
+  -d '{"filter": {"search": "rust", "country": "US"}}'</code>
         </div>
 
         <div class="api-endpoint">
@@ -266,7 +274,7 @@ HELP_HTML = """<!doctype html>
 
         <div class="api-endpoint">
           <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/geo</span></div>
-          <p>Returns the estimated user country based on CDN headers ({"country": "IL", "source": "cf-ipcountry"}). Returns null if undetectable.</p>
+          <p>Returns the estimated user country based on CDN headers ({"country": "US", "source": "cf-ipcountry"}). Returns null if undetectable.</p>
         </div>
 
         <p class="legal-back"><a class="link" href="/">&larr; Back to the job board</a></p>
