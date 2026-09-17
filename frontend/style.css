@@ -3525,15 +3525,17 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   overflow: hidden;
   /* A card, not a full-bleed band: the photograph is held away from the
      window on both sides and rounded, so it reads as a picture of the
-     product rather than the page's own ground. */
-  margin: clamp(24px, 3vw, 48px) var(--edge) 0;
-  padding: clamp(44px, 6vw, 96px) clamp(20px, 3vw, 48px) 0;
+     product rather than the page's own ground. Closer to the window than
+     the text margin on desktop, so the picture gets the width. */
+  margin: clamp(24px, 3vw, 48px) clamp(16px, 2.4vw, 36px) 0;
   border-radius: 24px;
   text-align: center;
-  background-image: var(--showcase-bg);
-  background-size: auto, cover;
-  background-position: center, bottom center;
-  background-repeat: no-repeat;
+  /* Desktop is one finished picture: the sky, the hills and the board on
+     a screen cut off at the foot, at its own 5:2. Nothing is written on
+     it, so it needs no veil. The phone layout below still builds the
+     scene from the hills and the phone photograph. */
+  aspect-ratio: 5 / 2;
+  background: url("/img/showcase-desktop.webp") bottom center / cover no-repeat;
 }
 /* The API block, on the page's own ground. */
 .hero-api {
@@ -3567,25 +3569,29 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 /* The reason the board exists, so it is the largest of the four. */
 .hero-feature.feature-lead h2 { font-size: clamp(36px, 5.4vw, 5rem); }
-/* The device is a photograph now: a mockup with the board composited into
-   its screen, exported as one image (tools/, scratch). Drawn frames came
-   first and never stopped looking drawn, and the proportions, bezel weight
-   and finish are the mockup's own. One element, one image, no parts. */
-.showcase-device {
-  width: min(980px, 100%);
-  height: clamp(210px, 30vw, 430px);
-  margin: clamp(36px, 5vw, 72px) auto 0;
-  background: url("/img/device-macbook.webp") top center / 100% auto no-repeat;
-}
+/* Phones only: the desktop picture is the section's own background. */
+.showcase-device { display: none; }
 @media (max-width: 720px) {
-  /* The phone mockup instead, carrying the board's own phone layout. */
+  .hero-showcase {
+    margin-inline: var(--edge);
+    padding: clamp(44px, 6vw, 96px) clamp(20px, 3vw, 48px) 0;
+    aspect-ratio: auto;
+    background-image: var(--showcase-bg);
+    background-size: auto, cover;
+    background-position: center, bottom center;
+  }
+  /* A phone mockup with the board's own phone layout composited into its
+     screen, exported as one image. Drawn frames came first and never
+     stopped looking drawn. */
   .showcase-device {
+    display: block;
     width: min(300px, 78%);
     height: clamp(300px, 80vw, 420px);
+    margin: clamp(36px, 5vw, 72px) auto 0;
     /* The query string is bumped whenever the composite is re-exported.
        The deploy stamps only the .js and .css the HTML names, so without
        it the CDN and the reader's browser keep serving the old picture. */
-    background-image: url("/img/device-iphone.webp?v=2");
+    background: url("/img/device-iphone.webp?v=2") top center / 100% auto no-repeat;
   }
 }
 

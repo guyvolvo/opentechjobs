@@ -167,7 +167,7 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
       };
     });
     check(`${tag}: the device image loads, and it is the right one`,
-      product.ok && product.url.includes(label === "phone" ? "device-iphone" : "device-macbook"),
+      product.ok && product.url.includes(label === "phone" ? "device-iphone" : "showcase-desktop"),
       JSON.stringify({ url: product.url.slice(-28), ok: product.ok }));
     check(`${tag}: the device is cut off at the foot, not shrunk to fit`,
       product.boxRatio > product.ratio + 0.05,

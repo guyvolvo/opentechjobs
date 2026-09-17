@@ -647,16 +647,20 @@ else can I build.
    hiring, where a wall of colour says who paid.
    It was a green band for a while and read as a second headline. Both
    rows can be grabbed and thrown (see below).
-4. The product itself, in a card: the photograph and its veil held off
-   both window edges by the page gutter and rounded to 24px (Card /
-   Preview), with the board on a device the card cuts off at its foot, a
-   MacBook on a desktop and an iPhone on a phone. The board inside is
+4. The product itself, in a card rounded to 24px (Card / Preview), with
+   the board on a device the card cuts off at its foot. On a desktop the
+   card is one finished picture at 5:2 (`img/showcase-desktop.webp`: sky,
+   hills and the board on a dark-framed screen), held a little closer to
+   the window edges than the page gutter, with no veil because nothing is
+   written on it. It is also the source of the share card,
+   `og-image.jpg`. On a phone the card is the photograph and its veil,
+   held off the edges by the gutter, with an iPhone. The board inside is
    always the light one, in either theme: this is a picture of the
    product, not a mirror of the reader's settings, and the photograph
    behind it is a sunlit field. No caption: the picture is the sentence.
-   Each device is one image: a mockup of the owner's own making, with the
-   board composited into its screen and exported as a single WebP, about
-   60KB each (`img/device-macbook.webp`, `img/device-iphone.webp`). Two
+   The phone is one image: a mockup of the owner's own making, with the
+   board composited into its screen and exported as a single WebP
+   (`img/device-iphone.webp`). Two
    drawn versions came before it, one in flat CSS and one rendered with
    gradients and reflections, and neither stopped looking drawn; a
    photograph of a device is a photograph. The frame is one element with
