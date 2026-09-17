@@ -7,7 +7,7 @@ import { expect, type Locator, type Page, type Response } from "@playwright/test
  *   1. role and accessible name, which survive a restyle and assert
  *      something about accessibility at the same time;
  *   2. the element's id, where the app already treats it as a contract
- *      (#f-q and friends are read by name throughout app.js);
+ *      (#f-search and friends are read by name throughout app.js);
  *   3. data-testid, added only where the markup offers neither.
  *
  * No CSS descendant chains and no XPath: this app's class names are
@@ -18,6 +18,7 @@ export class BoardPage {
   static readonly PAGE_SIZE = 50;
 
   readonly page: Page;
+  private geoPromptSuppressed = false;
   readonly search: Locator;
   readonly resultCount: Locator;
   readonly rows: Locator;
@@ -30,7 +31,7 @@ export class BoardPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.search = page.locator("#f-q");
+    this.search = page.locator("#f-search");
     this.resultCount = page.locator("#result-count");
     this.rows = page.locator("#jobs-body tr");
     this.emptyState = page.locator("#jobs-empty");
@@ -42,6 +43,18 @@ export class BoardPage {
   }
 
   async goto(query = "", { clearStorage = true } = {}) {
+    // The first-visit country prompt holds the first load until it is
+    // answered, and a cleared browser is a first visit every time. Every
+    // spec here timed out behind it once it shipped. Marked as already
+    // asked before any page script runs, on every load, so specs that
+    // clear storage themselves are covered too. The prompt has its own
+    // check in geo_prompt_check.mjs.
+    if (!this.geoPromptSuppressed) {
+      await this.page.addInitScript(() => {
+        try { localStorage.setItem("iljobs_geo_asked", "1"); } catch { /* private mode */ }
+      });
+      this.geoPromptSuppressed = true;
+    }
     if (clearStorage) {
       // The board remembers filters across sessions on purpose, so a
       // spec that does not clear them inherits the previous one's. Three
@@ -91,7 +104,7 @@ export class BoardPage {
       (r) => {
         if (!r.url().includes("/api/jobs") || r.request().method() !== "GET") return false;
         const params = new URL(r.url()).searchParams;
-        return params.get("q") === term && params.get("limit") === String(BoardPage.PAGE_SIZE);
+        return params.get("search") === term && params.get("limit") === String(BoardPage.PAGE_SIZE);
       },
       { timeout: 60_000 },
     );

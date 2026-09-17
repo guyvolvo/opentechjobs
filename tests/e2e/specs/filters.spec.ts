@@ -26,7 +26,7 @@ test.describe("filters", () => {
     // The UI count and the API total are the same number, so a stale
     // render cannot pass this by showing an older result set.
     expect(narrowed, "the rendered count matches the API total").toBe(body.total);
-    expect((await board.urlParams()).get("q")).toBe("engineer");
+    expect((await board.urlParams()).get("search")).toBe("engineer");
 
     const shared = page.url();
     await page.goto(shared);
@@ -193,7 +193,7 @@ test.describe("filters", () => {
     await board.settled();
 
     await expect(board.search).toHaveValue("kubernetes");
-    expect((await board.urlParams()).get("q")).toBe("kubernetes");
+    expect((await board.urlParams()).get("search")).toBe("kubernetes");
     expect(await board.total()).toBeLessThan(baseline!);
   });
 
