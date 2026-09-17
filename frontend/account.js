@@ -284,7 +284,7 @@ async function loadSaved() {
 function paintSaved(jobs) {
   const host = $("saved-list");
   host.innerHTML = jobs.map((j) => {
-    const where = [j.company_name || j.company_domain, j.location].filter(Boolean).join(" · ");
+    const where = [j.company_name || (j.company_domain || "").replace(/\.invalid$/, ""), j.location].filter(Boolean).join(" · ");
     return `
       <div class="alert-row" data-saved="${escapeHtml(j.id)}">
         <div class="saved-main">

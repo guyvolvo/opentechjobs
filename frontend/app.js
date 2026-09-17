@@ -1958,8 +1958,18 @@ function renderJobs(data, starred) {
 // the company's own ATS reports, resolved once by
 // resolve_company_names.py. Falls back to the domain for Lever and
 // Workday, which expose no name anywhere, about 1% of companies.
+//
+// A company with no website of its own is keyed under the reserved
+// .invalid name (paragon-solutions.invalid). Until its name is resolved,
+// that key reads as "Paragon Solutions", never as the key itself.
 function companyLabel(j) {
-  return j.company_name || j.company_domain;
+  return j.company_name || domainLabel(j.company_domain);
+}
+
+function domainLabel(domain) {
+  const m = /^(.+)\.invalid$/.exec(domain || "");
+  if (!m) return domain;
+  return m[1].split(/[-.]/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
 }
 
 function jobMetaLine(j) {

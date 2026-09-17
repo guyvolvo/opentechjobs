@@ -1200,6 +1200,47 @@ def apply_company_logos(conn: sqlite3.Connection, path: Path) -> int:
     return conn.execute("SELECT COUNT(*) FROM companies WHERE logo_url IS NOT NULL").fetchone()[0]
 
 
+def keep_companies_added_meanwhile(bucket: str, key: str, known_out: Path,
+                                   baseline: Path, resolved: Path) -> int:
+    """Add back to known_out every company that reached known.json while a
+    long run was going. Returns how many.
+
+    The daily sweep takes over two hours, and export_known() writes what
+    the sweep itself resolved, from domains.txt as it was checked out at
+    the start. Meanwhile merge_discovered_batch.py and targeted discovery
+    runs add companies to known.json directly. The wholesale replace at
+    the end wiped every one of them: 2026-09-17 it took known.json from
+    6,900 companies to 6,017, and Atera and Paragon, pinned that morning,
+    went with them.
+
+    Kept: in the live file now, absent from the baseline, and not among
+    the domains this run probed. A company the run did probe is its
+    answer to give, and a company that was already in the baseline and
+    was not probed was dropped from domains.txt on purpose, which is what
+    --prune-stale is for.
+    """
+    live_path = known_out.with_name(known_out.stem + "-live.json")
+    existed, _ = s3_pull(bucket, key, live_path)
+    if not existed:
+        return 0
+    live = json.loads(live_path.read_text(encoding="utf-8"))
+    try:
+        before = {e.get("domain") for e in json.loads(baseline.read_text(encoding="utf-8"))}
+    except (OSError, ValueError):
+        # No baseline to compare against: keep nothing rather than guess.
+        return 0
+    swept = {r.get("domain") for r in json.loads(resolved.read_text(encoding="utf-8"))}
+    known = json.loads(known_out.read_text(encoding="utf-8"))
+    have = {e["domain"] for e in known}
+    added = [e for e in live
+             if e.get("domain") and e["domain"] not in before
+             and e["domain"] not in swept and e["domain"] not in have]
+    if added:
+        known.extend(added)
+        known_out.write_text(json.dumps(known, ensure_ascii=False), encoding="utf-8")
+    return len(added)
+
+
 def export_known(conn: sqlite3.Connection, path: Path) -> int:
     """Write every resolved company's (domain, ats, token) as JSON, in the
     shape probe.py's --known expects. Written on every load so a newly
@@ -1268,10 +1309,14 @@ def main() -> int:
     ap.add_argument("--drop-description", action="store_true",
                      help="index the description and upload its blob, but store NULL in the "
                           "description column. The applier writes straight into jobs-read.db, "
-                          "which must stay small: description text was ~42% of that file and the "
+                          "which must stay small: description text was ~42%% of that file and the "
                           "words remain searchable through jobs_fts either way.")
     ap.add_argument("--logos", type=Path,
                      help="company-logos.json, stamped onto the snapshot before it ships. Logos live in their own file on their own cadence (resolve_company_logos.py): resolving one costs several requests and then never changes, while this snapshot is rewritten every few minutes.")
+    ap.add_argument("--known-baseline", type=Path,
+                     help="known.json as it stood when this run started. With it, a company that is in "
+                          "the live known.json now, was not in the baseline, and was not in this run's "
+                          "--resolved is kept rather than wiped: it was added while the run was going.")
     ap.add_argument("--skip-known", action="store_true",
                      help="a --key pointed at a partition file (jobs-partition-{name}.db, see the Partition & "
                           "Merge design doc) only ever holds ITS OWN shard's companies -- export_known() run "
@@ -1362,6 +1407,11 @@ def main() -> int:
 
         if args.skip_known:
             return 0
+
+        if args.known_baseline:
+            kept = keep_companies_added_meanwhile(args.bucket, args.known_key, known_out,
+                                                  args.known_baseline, args.resolved)
+            print(f"known.json: kept {kept} companies added while this run was going", file=sys.stderr)
 
         # known.json has no reader that needs it pinned to one exact
         # jobs.db version (the fast-poll just wants "the latest resolved

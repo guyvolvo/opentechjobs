@@ -89,7 +89,12 @@ jobs:
       # on a first run, which is not an error: probe.py says so and
       # guesses from scratch.
       - name: Pull known.json for hints
-        run: aws s3 cp "s3://${{ vars.DATA_BUCKET }}/known.json" known.json || true
+        # A second copy, because the load step below writes its own export
+        # over known.json. The load compares the live file against this one
+        # to keep companies added while the sweep was running.
+        run: |
+          aws s3 cp "s3://${{ vars.DATA_BUCKET }}/known.json" known.json || true
+          [ -f known.json ] && cp known.json known-at-start.json || true
 
       - name: Full probe, guess, Comeet scrape, embed/JSON-LD fallback
         if: ${{ github.event.inputs.domains == '' }}
@@ -169,7 +174,7 @@ jobs:
             --out jobs-full-discover.db \
             --bucket ${{ vars.DATA_BUCKET }} \
             --key jobs-full-discover.db \
-            ${{ github.event.inputs.domains == '' && '--prune-stale' || '--skip-known' }}
+            ${{ github.event.inputs.domains == '' && '--prune-stale --known-baseline known-at-start.json' || '--skip-known' }}
 
       # A targeted run still has to reach the fast poll, which reads only
       # known.json. --skip-known above stops the wholesale replace that
