@@ -2449,11 +2449,20 @@ def f_wpjobs(sess, token):
         return None
     listing = f"https://{token}"
     headers = {"User-Agent": _BROWSER_UA, "Accept": "text/html", "Accept-Language": "en-US,en;q=0.9"}
+    # Every refusal says why on stderr. It is a pinned company, so a
+    # silent None reads as "no ATS matched" with nothing to go on, which
+    # is how the first run for nsogroup.com failed on GitHub's runners
+    # while the same command worked everywhere else.
     try:
         r = sess.get(listing, timeout=TIMEOUT, headers=headers)
-    except requests.RequestException:
+    except requests.RequestException as e:
+        print(f"wpjobs {token}: listing failed: {e!r}", file=sys.stderr)
         return None
-    if r.status_code != 200 or _WPJOBS_MORE_RE.search(r.text):
+    if r.status_code != 200:
+        print(f"wpjobs {token}: listing answered {r.status_code}", file=sys.stderr)
+        return None
+    if _WPJOBS_MORE_RE.search(r.text):
+        print(f"wpjobs {token}: listing has a load-more button, refusing a partial read", file=sys.stderr)
         return None
     links, departments = [], {}
     for card in r.text.split('class="awsm-job-listing-item')[1:]:
@@ -2465,17 +2474,22 @@ def f_wpjobs(sess, token):
         dept = _WPJOBS_CATEGORY_RE.search(card)
         departments[url] = html.unescape(dept.group(1)).strip() if dept else None
     if not links:
+        print(f"wpjobs {token}: no roles on the listing ({len(r.text)} bytes)", file=sys.stderr)
         return None
 
     def read(link):
         url, title = link
         try:
             page = sess.get(url, timeout=TIMEOUT, headers=headers)
-        except requests.RequestException:
+        except requests.RequestException as e:
+            print(f"wpjobs {token}: {url} failed: {e!r}", file=sys.stderr)
             return None
         if page.status_code != 200:
+            print(f"wpjobs {token}: {url} answered {page.status_code}", file=sys.stderr)
             return None
         found = _extract_jobposting_jsonld(page.text, url)
+        if not found:
+            print(f"wpjobs {token}: {url} has no JobPosting ({len(page.text)} bytes)", file=sys.stderr)
         return found[0] if found else None
 
     with ThreadPoolExecutor(max_workers=4) as pool:
