@@ -95,7 +95,29 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       };
     }
 
-    var PAGES = { "/account": true, "/stats": true, "/privacy": true, "/hero": true };
+    var PAGES = { "/account": true, "/stats": true, "/privacy": true, "/hero": true, "/board": true };
+
+    // The board used to live at /, so every link anyone shared or
+    // bookmarked before the move reads /?country=IL or /?job=... A
+    // request for / carrying any of these goes to /board with its query
+    // intact. A bare /, or one with only tracking parameters (utm_*,
+    // fbclid), still gets the landing page. code is Google sign-in
+    // coming back from Cognito, whose registered callback is still /.
+    var BOARD_KEYS = {
+      "search": true, "q": true, "keywords": true, "department": true,
+      "seniority": true, "company": true, "country": true, "city": true,
+      "workplace": true, "skills": true, "confidence": true,
+      "max_age_days": true, "starred": true, "sort": true, "dir": true,
+      "offset": true, "job": true, "view": true, "israel_only": true,
+      "code": true
+    };
+
+    function wantsBoard(request) {
+      for (var key in request.querystring) {
+        if (BOARD_KEYS[key]) return true;
+      }
+      return false;
+    }
 
     function handler(event) {
       var request = event.request;
@@ -109,6 +131,10 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       // means. Nothing below applies to it.
       if (uri.indexOf("/api/") === 0 || uri === "/api") {
         return request;
+      }
+
+      if (uri === "/" && wantsBoard(request)) {
+        return redirect("/board" + queryOf(request));
       }
 
       var last = uri.substring(uri.lastIndexOf("/") + 1);

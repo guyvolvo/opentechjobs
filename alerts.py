@@ -210,7 +210,7 @@ def _digest_html(n: int, matches: list[dict]) -> str:
             </tr>
             <tr>
               <td style="padding-top:20px; font-size:12.5px; color:{_DIGEST_GREY};">
-                Manage this alert: <a href="{SITE_ORIGIN}/" style="color:{_DIGEST_GREEN};">{SITE_ORIGIN.replace("https://", "")}</a>
+                Manage this alert: <a href="{SITE_ORIGIN}/board" style="color:{_DIGEST_GREEN};">{SITE_ORIGIN.replace("https://", "")}</a>
               </td>
             </tr>
           </table>

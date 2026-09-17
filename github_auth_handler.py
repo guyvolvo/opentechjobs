@@ -93,7 +93,7 @@ def _get_json(url: str, headers: dict) -> object:
 def _redirect(fragment: str) -> dict:
     return {
         "statusCode": 302,
-        "headers": {"Location": f"{SITE_ORIGIN}/#{fragment}"},
+        "headers": {"Location": f"{SITE_ORIGIN}/board#{fragment}"},
         "body": "",
     }
 
