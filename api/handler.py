@@ -30,7 +30,7 @@ from boto3.dynamodb.conditions import Key
 
 from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
                         has_board_filters, search_companies)
-from db import get_connection
+from db import get_connection, status as db_status
 from help_page import HELP_HTML
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
@@ -677,6 +677,9 @@ def route_health() -> dict:
     return {
         "ok": True,
         "db_reachable": True,
+        # This container's own snapshot and background refresh (api/db.py).
+        # Each Lambda container has its own, so two calls can differ.
+        "snapshot": db_status(),
         "jobs_total": row["jobs_total"],
         "jobs_open": row["jobs_open"],
         "companies_resolved": row["companies_resolved"],

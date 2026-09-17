@@ -1,15 +1,52 @@
 """
 jobs.db lifecycle for the Lambda execution environment.
 
-Cold start: download jobs.db from S3 into /tmp, open it read-only. Warm
-invocations reuse the same connection (module-level globals persist
-across invocations), periodically HEAD-checking S3 (cheap, no data
-transfer) so a long-lived container doesn't serve an outdated copy
-indefinitely.
+Cold start: download the snapshot from S3 into /tmp and open it
+read-only. A container has nothing to serve until that finishes, so this
+one download still happens inside the first request.
+
+Warm: serve what is already open, and refresh in the background. At most
+once a minute a request HEADs the S3 object. When the ETag has moved, a
+background thread downloads the new snapshot to its own file, checks it,
+and hands it over; the request that noticed, and every request while the
+download runs, is answered from the previous snapshot. The swap happens
+at the start of a later request, never under one.
+
+Why. The snapshot is about 1GB and takes 12 to 15 seconds to fetch. The
+refresh used to run inside whichever request noticed the new ETag, so
+every container stalled a visitor for that long after each five-minute
+merge. While it stalled, the browser's other calls could not use it,
+Lambda started more containers, each of those downloaded the snapshot
+too, and on 2026-09-17 the account's limit of 10 concurrent executions
+turned the rest away as 503s. Reported live from a filter change right
+after an update.
+
+What a refresh guarantees:
+  - one at a time per container; a new ETag seen while one runs waits
+  - the download goes to its own file, never over the open one
+  - the ETag is read before and after; if the object changed during the
+    download the parts may be from two versions, so it is thrown away
+  - the size must match S3's and be plausible next to the current file
+  - the file must open, have the tables the API reads, and answer a query
+  - a failure keeps the old snapshot, is logged, and is retried with
+    backoff, not on every request
+  - the old connection is closed only once no request can still be using
+    it (a request can call get_connection() more than once)
+
+A frozen container: Lambda pauses the process between invocations, so a
+download only progresses while requests are arriving. A container that
+goes quiet mid-download resumes when traffic does, or its S3 read times
+out and the refresh is retried. Either way it keeps serving the old copy.
+
+Several containers each download their own copy. That is S3 to Lambda in
+the same region, which costs no transfer, and each copy has to live on
+that container's own /tmp anyway.
 """
 
+import glob
 import os
 import sqlite3
+import threading
 import time
 
 import boto3
@@ -19,7 +56,8 @@ from job_filters import register_functions
 
 DATA_BUCKET = os.environ["DATA_BUCKET"]
 DATA_KEY = os.environ["DATA_KEY"]
-LOCAL_PATH = "/tmp/jobs.db"
+TMP_DIR = "/tmp"
+LOCAL_PREFIX = "jobs"
 # Re-check S3 for a newer version at most this often, per warm container.
 # Used to be 300s, exactly matching scrape-fast's own 5-min cadence --
 # meaning a warm container's worst-case staleness was a FULL cycle, not
@@ -30,15 +68,22 @@ LOCAL_PATH = "/tmp/jobs.db"
 # a sort bug, this exact per-container lag. 60s bounds that to at most
 # one fast-poll cycle's worth of staleness instead of up to five, at the
 # cost of 5x more HEAD requests -- cheap (no data transfer; the actual
-# ~100MB re-download only happens when the ETag has genuinely changed,
-# which is still gated by scrape-fast's own 5-min cadence, not this).
+# re-download only happens when the ETag has genuinely changed).
 S3_RECHECK_SECONDS = 60
+# A retired connection stays open this long. The API Gateway integration
+# times out at 29s, so no request can still hold it after that.
+RETIRE_AFTER_SECONDS = 40
+# A failed refresh of the same ETag is retried after this, doubling up to
+# the cap.
+RETRY_BASE_SECONDS = 60
+RETRY_MAX_SECONDS = 900
+# A new snapshot smaller than this share of the current one is refused.
+# The file grows by a few MB a day; a half-sized one is a bad object.
+MIN_SIZE_RATIO = 0.5
+# Tables the API reads. A file without them is not a snapshot.
+REQUIRED_TABLES = ("jobs", "companies", "meta")
 
 _s3 = boto3.client("s3")
-_conn: sqlite3.Connection | None = None
-_etag: str | None = None
-_last_checked: float = 0.0
-
 
 # download_file defaults to 10 concurrent 8MB parts, each buffered in
 # memory. On a snapshot this size that is the largest single thing this
@@ -48,71 +93,210 @@ _last_checked: float = 0.0
 # footprint, which is what lets the memory setting come down.
 _TRANSFER = TransferConfig(max_concurrency=2, multipart_chunksize=8 * 1024 * 1024)
 
+_lock = threading.Lock()
+_conn: sqlite3.Connection | None = None
+_path: str | None = None
+_etag: str | None = None
+_loaded_at: float | None = None
+_last_checked: float = 0.0
+_downloads = 0
+# (connection, path, retired_at) waiting to be closed and deleted
+_retired: list[tuple[sqlite3.Connection, str, float]] = []
+# The background refresh. Guarded by _lock.
+_refresh = {
+    "state": "idle",          # idle | downloading | ready | failed
+    "etag": None,             # the ETag being fetched, or last fetched
+    "started_at": None,
+    "finished_at": None,
+    "seconds": None,
+    "error": None,
+    "failures": 0,
+    "retry_at": 0.0,
+    "ready": None,            # (conn, path, etag) once a download checks out
+}
 
-def _download() -> str:
-    _s3.download_file(DATA_BUCKET, DATA_KEY, LOCAL_PATH, Config=_TRANSFER)
-    return _s3.head_object(Bucket=DATA_BUCKET, Key=DATA_KEY)["ETag"]
+
+def _local_path(etag: str) -> str:
+    # Numbered as well as named by ETag, so a download can never land on
+    # the path of the file being served, even for an ETag seen before.
+    global _downloads
+    _downloads += 1
+    return os.path.join(TMP_DIR, f"{LOCAL_PREFIX}-{etag.strip(chr(34))}-{_downloads}.db")
 
 
-def _open_readonly() -> sqlite3.Connection:
+def _head() -> tuple[str, int]:
+    h = _s3.head_object(Bucket=DATA_BUCKET, Key=DATA_KEY)
+    return h["ETag"], h["ContentLength"]
+
+
+def _open_readonly(path: str) -> sqlite3.Connection:
     # uri=True + mode=ro: Lambda never writes to this file, and being
     # explicit about that is cheap insurance against a bug ever trying to.
-    conn = sqlite3.connect(f"file:{LOCAL_PATH}?mode=ro", uri=True, check_same_thread=False)
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     register_functions(conn)
     return conn
 
 
+def _check(conn: sqlite3.Connection) -> None:
+    """Raises unless this looks like a snapshot the API can serve."""
+    names = {r[0] for r in conn.execute(
+        f"SELECT name FROM sqlite_master WHERE type = 'table' AND name IN "
+        f"({','.join('?' * len(REQUIRED_TABLES))})", REQUIRED_TABLES)}
+    missing = set(REQUIRED_TABLES) - names
+    if missing:
+        raise ValueError(f"snapshot is missing tables: {sorted(missing)}")
+    if conn.execute("SELECT 1 FROM jobs LIMIT 1").fetchone() is None:
+        raise ValueError("snapshot has no jobs")
+
+
+def _fetch(etag: str, size: int, current_size: int | None) -> tuple[sqlite3.Connection, str]:
+    """Download, check and open one snapshot. Returns (conn, path) or raises.
+    Never touches the file that is being served."""
+    if current_size and size < current_size * MIN_SIZE_RATIO:
+        raise ValueError(f"new snapshot is {size} bytes against {current_size} now")
+    final = _local_path(etag)
+    tmp = final + ".part"
+    try:
+        _s3.download_file(DATA_BUCKET, DATA_KEY, tmp, Config=_TRANSFER)
+        after, _ = _head()
+        if after != etag:
+            raise ValueError(f"object changed during the download ({etag} -> {after})")
+        got = os.path.getsize(tmp)
+        if got != size:
+            raise ValueError(f"downloaded {got} bytes, S3 says {size}")
+        os.replace(tmp, final)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    conn = _open_readonly(final)
+    try:
+        _check(conn)
+    except Exception:
+        conn.close()
+        os.remove(final)
+        raise
+    return conn, final
+
+
+def _background(etag: str, size: int, current_size: int | None) -> None:
+    started = time.monotonic()
+    print(f"jobs.db refresh started: {_etag} -> {etag} ({size} bytes)")
+    try:
+        conn, path = _fetch(etag, size, current_size)
+    except Exception as e:
+        with _lock:
+            _refresh["failures"] += 1
+            delay = min(RETRY_BASE_SECONDS * 2 ** (_refresh["failures"] - 1), RETRY_MAX_SECONDS)
+            _refresh.update(state="failed", error=repr(e), retry_at=time.monotonic() + delay,
+                            finished_at=time.time(), seconds=round(time.monotonic() - started, 1))
+        # A failed refresh is real signal, not a hiccup to swallow quietly:
+        # the site keeps serving the previous snapshot, and without this
+        # line nothing would say why it stopped moving.
+        print(f"jobs.db refresh failed, staying on {_etag}, retry in {delay}s: {e!r}")
+        return
+    seconds = round(time.monotonic() - started, 1)
+    with _lock:
+        _refresh.update(state="ready", ready=(conn, path, etag), error=None, failures=0,
+                        finished_at=time.time(), seconds=seconds)
+    print(f"jobs.db refresh ready: {etag} in {seconds}s")
+
+
+def _start_refresh(etag: str, size: int) -> None:
+    """Start a background download of etag unless one is already running,
+    ready, or backing off for this same ETag. Caller holds _lock."""
+    state = _refresh["state"]
+    if state in ("downloading", "ready"):
+        return
+    if state == "failed" and _refresh["etag"] == etag and time.monotonic() < _refresh["retry_at"]:
+        return
+    if _refresh["etag"] != etag:
+        _refresh["failures"] = 0
+    current_size = os.path.getsize(_path) if _path and os.path.exists(_path) else None
+    _refresh.update(state="downloading", etag=etag, started_at=time.time(),
+                    finished_at=None, seconds=None, error=None)
+    threading.Thread(target=_background, args=(etag, size, current_size),
+                     name="jobs-db-refresh", daemon=True).start()
+
+
+def _close_retired(now: float) -> None:
+    keep = []
+    for conn, path, retired_at in _retired:
+        if now - retired_at < RETIRE_AFTER_SECONDS:
+            keep.append((conn, path, retired_at))
+            continue
+        try:
+            conn.close()
+        finally:
+            if path and os.path.exists(path):
+                os.remove(path)
+    _retired[:] = keep
+
+
+def _clear_leftovers() -> None:
+    """Files a previous container life left in /tmp: half downloads, and
+    snapshots nothing has open. /tmp persists across warm invocations and
+    is only 3GB, two snapshots' worth."""
+    for p in glob.glob(os.path.join(TMP_DIR, f"{LOCAL_PREFIX}-*.db*")) + [os.path.join(TMP_DIR, "jobs.db")]:
+        if p != _path and os.path.exists(p):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+
+
 def get_connection() -> sqlite3.Connection:
-    global _conn, _etag, _last_checked
+    global _conn, _path, _etag, _loaded_at, _last_checked
 
     now = time.monotonic()
+    with _lock:
+        if _conn is None:
+            # Cold start: nothing to serve until this finishes.
+            _clear_leftovers()
+            etag, size = _head()
+            _conn, _path = _fetch(etag, size, None)
+            _etag, _loaded_at, _last_checked = etag, time.time(), now
+            return _conn
 
-    if _conn is None:
-        # cold start: no local copy yet, must download
-        _etag = _download()
-        _conn = _open_readonly()
+        _close_retired(now)
+
+        ready = _refresh["ready"]
+        if ready:
+            new_conn, new_path, new_etag = ready
+            _retired.append((_conn, _path, now))
+            _conn, _path, _etag, _loaded_at = new_conn, new_path, new_etag, time.time()
+            _refresh.update(state="idle", ready=None)
+            print(f"jobs.db now serving {new_etag}")
+
+        if now - _last_checked < S3_RECHECK_SECONDS:
+            return _conn
         _last_checked = now
-        return _conn
 
-    if now - _last_checked < S3_RECHECK_SECONDS:
-        return _conn  # warm and recently checked, reuse as-is
-
-    _last_checked = now
     try:
-        current_etag = _s3.head_object(Bucket=DATA_BUCKET, Key=DATA_KEY)["ETag"]
+        etag, size = _head()
     except Exception:
         return _conn  # S3 hiccup: keep serving what we have rather than fail the request
 
-    if current_etag != _etag:
-        # Confirmed live (2026-09-08): the old order (close, then
-        # download+reopen) left _conn permanently closed with no
-        # fallback if anything went wrong in between -- a _download()
-        # exception, or even just the whole Lambda invocation getting
-        # killed by its own timeout mid-download (increasingly likely
-        # once jobs.db passed ~40MB and kept growing every few minutes
-        # from the discovery pipeline's own merges). Every request on
-        # that warm container then failed with "Cannot operate on a
-        # closed database" until the container recycled, since
-        # _last_checked was already updated and skips the next N
-        # seconds of rechecks. Preparing the new connection FIRST and
-        # only closing the old one once it's confirmed ready means a
-        # failed or interrupted refresh just falls back to serving the
-        # still-valid old connection, staler but never broken.
-        try:
-            new_etag = _download()
-            new_conn = _open_readonly()
-        except Exception as e:
-            # Silent before 2026-09-08's same-day follow-up: confirmed
-            # live that a persistently-failing refresh (jobs.db passed
-            # 600MB+ from one large discovery-pipeline batch) left the
-            # site stuck serving stale data with NOTHING in CloudWatch
-            # to explain why -- the fail-safe worked (no outage) but was
-            # undiagnosable. A failed refresh is real signal, not a
-            # hiccup to swallow quietly.
-            print(f"jobs.db refresh failed, staying on the previous version (etag {_etag}): {e!r}")
-            return _conn  # refresh failed -- old connection is still open and valid
-        _conn.close()
-        _etag, _conn = new_etag, new_conn
+    with _lock:
+        if etag != _etag:
+            _start_refresh(etag, size)
+        return _conn
 
-    return _conn
+
+def status() -> dict:
+    """What this container is serving and how its refresh is going, for
+    /api/health."""
+    with _lock:
+        return {
+            "etag": (_etag or "").strip('"') or None,
+            "loaded_at": None if _loaded_at is None else
+                time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(_loaded_at)),
+            "age_seconds": None if _loaded_at is None else round(time.time() - _loaded_at),
+            "refresh": {
+                "state": _refresh["state"],
+                "etag": (_refresh["etag"] or "").strip('"') or None,
+                "seconds": _refresh["seconds"],
+                "error": _refresh["error"],
+                "failures": _refresh["failures"],
+            },
+        }
