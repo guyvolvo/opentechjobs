@@ -147,6 +147,13 @@ comeet:
     source: hand-extracted
     note: requested by the site owner. atera.com was never in domains.txt. The token is the one in the careers page's comeet embed; the shorter token in its per-position API links is not accepted by the positions endpoint. Verified live 2026-09-17, 9 roles.
 
+  - domain: paragon-solutions.invalid
+    uid: "76.006"
+    token: "67626C46762D3A33B02D3A204E26C4676676"
+    jobs_seen: 27
+    source: hand-extracted
+    note: Paragon Solutions, the Israeli company, requested by the site owner. Its board is comeet.com/jobs/paragon/76.006 and it publishes no website, neither on the board nor in its postings. paragon.com is a different company already on the board (Ashby, Los Angeles), and paragon.co.il is a fire-safety firm. .invalid is reserved and never resolves, so this key cannot collide with a real site or pick up a stranger's favicon. The shown name comes from Comeet's company_name. Verified live 2026-09-17, 27 roles.
+
 # Rejected during extraction, kept as a note so nobody re-does this work:
 #   "Guideline" (comeet.com/jobs/guideline) is a US 401(k) provider,
 #   unrelated to Israel: a coincidental token match, not a company to add.
