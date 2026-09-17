@@ -1716,8 +1716,11 @@ function getBootstrap() {
 let jobsRequestSeq = 0;
 let jobsInFlight = null;
 
-async function loadJobs() {
+// background: a timer or tab-return refresh, not something the reader
+// did. Only those may hold new rows back (see holdForReader).
+async function loadJobs({ background = false } = {}) {
   const seq = ++jobsRequestSeq;
+  if (!background) clearHeldJobs();
   // Cancel rather than ignore. Ignoring would still cost the reader's
   // bandwidth and our Lambda invocation for an answer nobody will see,
   // and someone typing a ten-character search fires several of these.
@@ -1783,7 +1786,13 @@ async function loadJobs() {
   }
 
   tbody.closest("table").style.display = "";
-  if (cached) {
+  if (background) {
+    // The screen already shows this view. Drawing the cached copy first
+    // could put up rows a previous refresh held back (holdForReader
+    // caches what it holds), which is the jump holding exists to avoid.
+    // What changed is decided against the rows on screen instead.
+    cached = lastJobsResponse;
+  } else if (cached) {
     document.getElementById("jobs-loading").textContent = "";
     lastJobsResponse = cached;
     renderJobs(cached, starred);
@@ -1804,12 +1813,14 @@ async function loadJobs() {
     // nothing changed -- avoids a jarring flicker/scroll-reset for what
     // will be the common case (revisiting within the same 5-min window).
     const changed = !cached || JSON.stringify(data) !== JSON.stringify(cached);
+    setCachedJobs(params, data);
+    if (changed && background && holdForReader(data, starred)) return;
     lastJobsResponse = data;
     if (changed) {
+      clearHeldJobs();
       renderJobs(data, starred);
       renderPagination(data);
     }
-    setCachedJobs(params, data);
   } catch (err) {
     // An abort is this function cancelling itself, not a failure, and a
     // stale rejection belongs to a filter nobody is looking at.
@@ -1834,6 +1845,55 @@ async function loadJobs() {
     // in review before anyone saw it.
     setLoadBar(false);
   }
+}
+
+// New rows a background refresh found while the reader was further down
+// the list. Rendering them would push everything down by their height and
+// move whatever the reader was looking at, so they wait behind a button,
+// or until the reader is back at the top of the list. A refresh that only
+// changed rows already on screen renders in place.
+let heldJobs = null;
+
+function jobsListTop() {
+  const table = document.getElementById("jobs-body").closest("table");
+  return table ? table.getBoundingClientRect().top : 0;
+}
+
+// The topbar is sticky, and taller on a phone (66px) than on a desktop
+// (58px), so it is measured. The list's top edge below it is on screen.
+function topbarBottom() {
+  const bar = document.querySelector(".topbar");
+  return bar ? bar.getBoundingClientRect().bottom : 0;
+}
+
+function holdForReader(data, starred) {
+  const shown = new Set([...document.querySelectorAll("#jobs-body tr[data-id]")].map((tr) => tr.dataset.id));
+  const fresh = data.jobs.filter((j) => !shown.has(j.id)).length;
+  if (!fresh || jobsListTop() >= topbarBottom()) return false;
+  heldJobs = { data, starred };
+  const btn = document.getElementById("new-listings");
+  btn.parentElement.style.top = `${Math.round(topbarBottom()) + 12}px`;
+  btn.textContent = `${fmtInt(fresh)} new listing${fresh === 1 ? "" : "s"} · Show`;
+  btn.hidden = false;
+  return true;
+}
+
+function showHeldJobs({ scroll = true } = {}) {
+  if (!heldJobs) return;
+  const { data, starred } = heldJobs;
+  clearHeldJobs();
+  lastJobsResponse = data;
+  renderJobs(data, starred);
+  renderPagination(data);
+  if (scroll) {
+    window.scrollTo({ top: window.scrollY + jobsListTop() - topbarBottom() - 12, behavior: "smooth" });
+  }
+}
+
+function clearHeldJobs() {
+  heldJobs = null;
+  const btn = document.getElementById("new-listings");
+  if (btn) btn.hidden = true;
 }
 
 // Every empty state says the same two things: that there is nothing to
@@ -4740,25 +4800,69 @@ async function boot() {
       if (!document.hidden) fn();
     };
   }
-  document.addEventListener("visibilitychange", () => {
+
+  // The board's data refreshes as one: listings, ticker, statistics and
+  // the status line. The return from a hidden tab used to refresh only
+  // the statistics, so for up to two minutes fresh numbers sat beside an
+  // old list. loadJobs() still skips the re-render when nothing changed,
+  // and keeps the reader's place when something did (holdForReader).
+  //
+  // One timer, restarted by every refresh, rather than an interval: a
+  // return refresh is then never followed seconds later by a scheduled
+  // one, and two refreshes never overlap.
+  let boardTimer = 0;
+  let boardRefreshing = false;
+  let hiddenAt = null;
+
+  async function refreshBoard() {
+    // The next one is scheduled from the start of this one, not its end:
+    // a request that never settles must not stop the polling for good.
+    scheduleBoardRefresh();
+    if (boardRefreshing) return;
+    boardRefreshing = true;
+    try {
+      await Promise.allSettled([
+        loadJobs({ background: true }),
+        loadTicker(),
+        refreshStats(),
+        refreshFreshness(),
+        refreshPipelineStatus(),
+      ]);
+    } finally {
+      boardRefreshing = false;
+    }
+  }
+
+  function scheduleBoardRefresh() {
+    clearTimeout(boardTimer);
+    // A hidden tab stops here; the return below starts it again.
     if (document.hidden) return;
-    refreshStats();
-    refreshFreshness();
-    refreshPipelineStatus();
+    boardTimer = setTimeout(refreshBoard, STATS_POLL_MS);
+  }
+
+  // Background tabs get throttled or frozen, so nothing is assumed to have
+  // run while hidden. Coming back is the moment to catch up. A glance away
+  // of under RETURN_REFRESH_MS refreshes nothing and keeps the schedule.
+  const RETURN_REFRESH_MS = 30_000;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      hiddenAt = Date.now();
+      clearTimeout(boardTimer);
+      return;
+    }
+    const away = hiddenAt === null ? 0 : Date.now() - hiddenAt;
+    hiddenAt = null;
+    if (away > RETURN_REFRESH_MS) refreshBoard();
+    else scheduleBoardRefresh();
   });
 
-  setInterval(whenVisible(() => {
-    refreshStats();
-    loadTicker();
-    // Piggybacks on the same 2-min tick as the stats/ticker refresh
-    // above, not a separate timer -- loadJobs() already has its own
-    // "did the response actually change" guard (see its own comment),
-    // so an open tab quietly picks up new listings without a page
-    // reload, a scroll jump, or losing the open detail drawer, but
-    // never re-renders (and never flickers) when nothing really did
-    // change, which is the common case within one 2-min window.
-    loadJobs();
-  }), STATS_POLL_MS);
+  document.getElementById("new-listings").addEventListener("click", () => showHeldJobs());
+  // Scrolling back to the top of the list shows held rows without a click.
+  window.addEventListener("scroll", () => {
+    if (heldJobs && jobsListTop() >= topbarBottom()) showHeldJobs({ scroll: false });
+  }, { passive: true });
+
+  scheduleBoardRefresh();
   // The countdown tick stays unconditional: it reads no network, it only
   // recomputes a number already in memory.
   setInterval(tickApiStatus, API_STATUS_TICK_MS);

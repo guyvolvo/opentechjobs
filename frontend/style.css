@@ -1637,6 +1637,37 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 }
 .result-count b { color: var(--black); }
 
+/* New listings a background refresh held back because the reader was
+   scrolled into the list. Sticks under the topbar so it is visible from
+   wherever they are; inserting the rows above them would have moved what
+   they were reading. */
+/* A zero-height sticky strip, so showing the button moves nothing: taking
+   room in the flow would itself shift the rows it is there to keep still. */
+.new-listings-anchor {
+  position: sticky;
+  top: 70px; /* holdForReader sets the real value from the topbar's height */
+  z-index: 5;
+  height: 0;
+  display: flex;
+  justify-content: center;
+}
+.new-listings {
+  height: max-content;
+  padding: 7px 14px;
+  box-shadow: 0 2px 8px var(--scrim);
+  border: var(--rule) solid var(--green-text);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--green-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.new-listings[hidden] { display: none; }
+.new-listings:hover { background: var(--green-text); color: var(--white); }
+.new-listings:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
 /* #board's content padding leaves a gutter-wide gap between the table's
    own right edge and the divider. Widen by --gutter and pull back with a
    matching negative margin to bleed the table out to the true box edge;

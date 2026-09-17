@@ -200,6 +200,11 @@
                  only thing on screen saying what the order means. -->
             <div class="match-panel" id="match-panel" hidden></div>
             <div id="result-count" class="result-count"></div>
+            <!-- Shown by a background refresh that found new listings while
+                 the reader was further down the list (see loadJobs). -->
+            <div class="new-listings-anchor">
+              <button type="button" class="new-listings" id="new-listings" hidden></button>
+            </div>
 
             <!-- Skeleton rows replaced the text loader (see jobsSkeletonHtml
                  in app.js); this stays as the screen-reader half of that,
