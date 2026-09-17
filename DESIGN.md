@@ -652,8 +652,8 @@ else can I build.
    card is one finished picture at 5:2 (`img/showcase-desktop.webp`: sky,
    hills and the board on a dark-framed screen), held a little closer to
    the window edges than the page gutter, with no veil because nothing is
-   written on it. It is also the source of the share card,
-   `og-image.jpg`. On a phone the card is the photograph and its veil,
+   written on it. The share card, `og-card.jpg`, is its own picture: the
+   mark and the headline over the same hills. On a phone the card is the photograph and its veil,
    held off the edges by the gutter, with an iPhone. The board inside is
    always the light one, in either theme: this is a picture of the
    product, not a mirror of the reader's settings, and the photograph
