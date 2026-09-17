@@ -3339,7 +3339,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-bar a { color: inherit; text-decoration: none; }
 .hero-bar a:hover { color: var(--green-text); }
 .hero-bar a:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
-.hero-nav a + a::before { content: ", "; color: var(--black); }
 
 .hero {
   /* The space above used to belong to the wordmark's own margin, so taking
