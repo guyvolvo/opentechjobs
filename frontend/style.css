@@ -52,6 +52,10 @@
   --black: #40513b;
   --green: #609966;
   --green-bright: #80ad85;
+  /* The loading sweep runs along the topbar's dark rule, not on paper, so
+     it is measured against #40513b: --green was 2.5:1 there and hard to
+     see. This is 5.1:1. */
+  --load-bar: #9fd4a5;
   --grey: #40513b;
   /* Neutral, not green. The structure (row dividers, panel and tile
      borders, bar tracks) used to be a sage tint, which made the whole
@@ -121,6 +125,7 @@
   --black: #ededec;
   --green: #2fae60;
   --green-bright: #4ee585;
+  --load-bar: var(--green); /* already clear against the light rule */
   --grey: #9a9a9a;
   --grey-line: #2b2c31;
   --hover-bg: #1e1f24;
@@ -2718,7 +2723,7 @@ footer {
   bottom: 0;
   left: 0;
   width: 26%;
-  background: var(--green);
+  background: var(--load-bar);
   will-change: transform;
   /* Deliberately not animated here.
 
