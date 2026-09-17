@@ -147,6 +147,15 @@ RESOLVERS = {
 }
 
 
+# What a board calls itself when nobody set a company name. Lemonade's
+# Ashby page is titled just "Jobs", which _ashby's " Jobs" suffix strip
+# leaves alone, and Corelight's Greenhouse board is named "Job Board".
+# Thirteen companies showed one of these as their name (2026-09-17). No
+# name is better: the board falls back to the domain.
+GENERIC_NAMES = {"jobs", "job board", "job openings", "careers", "career site",
+                 "open positions", "current openings", "home"}
+
+
 def resolve_one(entry: dict, sess: requests.Session) -> tuple[str, str | None]:
     known = REFERRAL_BOARDS.get(entry.get("domain") or "")
     if known:
@@ -156,9 +165,12 @@ def resolve_one(entry: dict, sess: requests.Session) -> tuple[str, str | None]:
     if not fn or not token:
         return entry["domain"], None
     try:
-        return entry["domain"], fn(sess, token)
+        name = fn(sess, token)
     except Exception:
         return entry["domain"], None
+    if name and name.strip().lower() in GENERIC_NAMES:
+        return entry["domain"], None
+    return entry["domain"], name
 
 
 def main() -> int:
