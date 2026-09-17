@@ -297,9 +297,21 @@ def get_connection() -> sqlite3.Connection:
         # transfer's own threads. Lambda runs one request per container,
         # so nothing else is here to race it.
         _clear_leftovers()
-        etag, size = _head()
-        conn, path = _fetch(etag, size, None)
+        # A merge can land mid-download, and _fetch then refuses the file.
+        # A warm container just keeps its old snapshot; a cold one has
+        # none, so it tries again. Seen on the first deploy: one request
+        # failed outright that way.
+        for attempt in range(3):
+            etag, size = _head()
+            try:
+                conn, path = _fetch(etag, size, None)
+                break
+            except ValueError as e:
+                if attempt == 2 or "changed during the download" not in str(e):
+                    raise
+                print(f"jobs.db cold start: {e}, trying again")
         with _lock:
+            _refresh["bytes"] = 0   # the progress figure is the refresh's, not this
             _conn, _path, _etag, _loaded_at, _last_checked = conn, path, etag, time.time(), now
             return _conn
 

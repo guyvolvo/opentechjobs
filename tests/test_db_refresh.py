@@ -146,9 +146,23 @@ try:
     check("cold start downloaded once", fake.downloads == 1, str(fake.downloads))
     check("no half-downloaded file is left", not list(Path(db.TMP_DIR).glob("*.part")))
 
+    # A cold start whose object changes mid-download tries again.
+    reset(FakeS3())
+    cold = db._s3
+    cold.publish("c1", v1)
+    cold.swap_during_download = ("c2", v2)
+    conn = db.get_connection()
+    check("a cold start retries when a merge lands mid-download",
+          title(conn) == "v2" and cold.downloads == 2, f"{title(conn)} after {cold.downloads}")
+    check("and does not report its bytes as refresh progress", db.status()["refresh"]["bytes"] == 0)
+    reset(fake)
+    fake.publish("e1", v1)
+    db.get_connection()
+
     # A new ETag starts a background download; requests keep the old one.
     fake.publish("e2", v2)
     fake.gate = threading.Event()
+    before_downloads = fake.downloads
     expire_recheck()
     started = time.monotonic()
     conn = db.get_connection()
@@ -159,7 +173,7 @@ try:
         expire_recheck()
         check_conn = db.get_connection()
     check("requests during the download get the old snapshot", title(check_conn) == "v1")
-    check("twenty checks start one download", fake.downloads == 2, str(fake.downloads))
+    check("twenty checks start one download", fake.downloads == before_downloads + 1, str(fake.downloads))
 
     fake.gate.set()
     check("the refresh finishes", wait_for(lambda: db.status()["refresh"]["state"] == "ready"))
