@@ -86,7 +86,9 @@ probe.FETCH_FULL_DESCRIPTIONS = True
 # Check Point rides along here for a different reason: its site is one
 # 4MB page read in about a second, but it has no dates and no API, so it
 # is read hourly rather than every five minutes to go easy on it.
-BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon", "checkpoint")
+# WP Job Openings sites (NSO) are here because nsogroup.com refuses
+# GitHub's runners, and that is the only way into the sweep.
+BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon", "checkpoint", "wpjobs")
 # Two budgets, because the two kinds of description cost different things.
 # Microsoft and Apple need a request per description, so theirs is a time
 # budget: 300 calls fits a run beside Workday, four global reads and the

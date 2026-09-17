@@ -2434,6 +2434,10 @@ def f_checkpoint(sess, token, known_ids=None, description_budget=None, open_ids=
 # The token is the listing URL without its scheme, so a guessed slug
 # never matches and this makes no request until a pin names it.
 #
+# Polled hourly from AWS, not in the five-minute sweep. nsogroup.com
+# answers GitHub's runners with a 403, and a company only reaches the
+# sweep through the discovery run that happens on those runners.
+#
 # The plugin shows 30 roles and then a load-more button driven by
 # admin-ajax. A page with that button is a partial read, and a partial
 # read would close every role past the fold, so it is refused.
@@ -2444,7 +2448,10 @@ _WPJOBS_CATEGORY_RE = re.compile(
     r'awsm-job-specification-job-category">\s*<span class="awsm-job-specification-term">([^<]+)</span>')
 
 
-def f_wpjobs(sess, token):
+def f_wpjobs(sess, token, known_ids=None, description_budget=None):
+    # The two keywords are what the hourly Lambda passes every board it
+    # polls. Neither applies: a role's date and place are on its own page,
+    # so every page is read on every poll. NSO is about twenty.
     if not isinstance(token, str) or "/" not in token or "." not in token.split("/", 1)[0]:
         return None
     listing = f"https://{token}"
@@ -2610,7 +2617,7 @@ FETCHERS: dict[str, Callable] = {
 # Boards too big or too slow for the five-minute sweep. They poll from the
 # hourly Lambda (scrape_workday_handler.py), which reads them with known
 # state so a run only describes jobs it has not seen.
-SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple", "checkpoint"})
+SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple", "checkpoint", "wpjobs"})
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered

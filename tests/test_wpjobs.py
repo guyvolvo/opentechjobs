@@ -99,6 +99,13 @@ check("an empty listing fails the read",
       probe.f_wpjobs(Sess({f"{BASE}/jobs/": Resp(200, "<div></div>")}), "www.nsogroup.com/jobs/") is None)
 
 check("registered as a fetcher", probe.FETCHERS.get("wpjobs") is probe.f_wpjobs)
+check("polls hourly, not in the sweep", "wpjobs" in probe.SLOW_BOARD_ATS)
+jobs = probe.f_wpjobs(Sess(PAGES), "www.nsogroup.com/jobs/", known_ids={"ai-engineer"}, description_budget=5)
+check("takes the hourly Lambda's keywords", jobs is not None and len(jobs) == 2)
+import os  # noqa: E402
+os.environ.setdefault("DATA_BUCKET", "unused-in-this-test")
+import scrape_workday_handler  # noqa: E402
+check("the hourly Lambda polls it", "wpjobs" in scrape_workday_handler.BIG_TECH_ATS)
 pin = probe.load_pins().get("wpjobs", {}).get("nsogroup.com", {})
 check("nsogroup.com is pinned", pin.get("token") == "www.nsogroup.com/jobs/", repr(pin))
 check("nsogroup.com is in the sweep",
