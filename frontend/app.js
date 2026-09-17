@@ -2847,7 +2847,7 @@ function createLocationSelect(containerId, { placeholder, onChange }) {
   function labelFor(value, kind) {
     if (kind === "country") {
       const hit = countries.find((c) => c.value === value);
-      return hit ? hit.label : value;
+      return hit ? hit.label : countryLabel(value);
     }
     for (const c of countries) {
       const hit = (c.cities || []).find((t) => t.value === value);
@@ -2929,21 +2929,46 @@ function createLocationSelect(containerId, { placeholder, onChange }) {
       // it would drop every pick the reader can still read in the URL,
       // so treat it as no news and keep what is already on screen.
       if (!next.length) return;
-      const before = selectedCountries.size + selectedCities.size;
-      countries = next;
-      const cityValues = new Set(next.flatMap((c) => (c.cities || []).map((t) => t.value)));
-      // Drop any pick the new option set no longer offers, same as the
-      // flat widget does, and for the same reason: state must not keep
-      // sending a value this dropdown no longer shows as selected.
-      for (const v of [...selectedCountries]) {
-        if (!next.some((c) => c.value === v)) selectedCountries.delete(v);
+      // Picks are kept, never pruned. The list is the top 40 countries
+      // under the other filters, so a pick can fall off it without being
+      // wrong: Israel with Workplace set to Remote has 64 roles, not
+      // enough for the top 40. Pruning it here re-ran the search without
+      // it, and the reader landed on the global remote board. Reported
+      // live. A kept pick is shown at the top of the list, without a
+      // count, carrying whatever cities it had last time, so it is still
+      // visible and can be unticked.
+      const merged = next.map((c) => ({ ...c, cities: [...(c.cities || [])] }));
+      const byValue = new Map(merged.map((c) => [c.value, c]));
+      const shownCities = () => new Set(merged.flatMap((c) => c.cities.map((t) => t.value)));
+      const kept = [];
+      for (const v of selectedCountries) {
+        if (byValue.has(v)) continue;
+        const old = countries.find((c) => c.value === v);
+        const row = { value: v, label: old ? old.label : countryLabel(v), n: null,
+                      cities: old ? [...(old.cities || [])] : [] };
+        kept.push(row);
+        byValue.set(v, row);
       }
-      for (const v of [...selectedCities]) {
-        if (!cityValues.has(v)) selectedCities.delete(v);
+      const onScreen = shownCities();
+      for (const v of selectedCities) {
+        if (onScreen.has(v) || kept.some((c) => c.cities.some((t) => t.value === v))) continue;
+        const home = countries.find((c) => (c.cities || []).some((t) => t.value === v));
+        const city = home && home.cities.find((t) => t.value === v);
+        const row = byValue.get(home ? home.value : "");
+        const entry = { value: v, label: city ? city.label : v, n: null };
+        if (row) {
+          row.cities.unshift(entry);
+        } else if (home) {
+          const group = { value: home.value, label: home.label, n: null, cities: [entry] };
+          kept.push(group);
+          byValue.set(group.value, group);
+        }
+        // A city whose country was never listed (a shared link, say) has
+        // no row to hang from. It stays selected and in the label anyway.
       }
+      countries = [...kept, ...merged];
       renderOptions(searchEl.value);
       updateLabel();
-      if (selectedCountries.size + selectedCities.size !== before) emit();
     },
     reset() {
       selectedCountries.clear();
@@ -4131,8 +4156,20 @@ async function loadMyAlerts() {
 // country the facet no longer lists will show.
 const COUNTRY_LABELS_SEEN = new Map();
 
+// The browser's own region names cover a code the facets never listed
+// this visit, such as Israel on a link that also asks for Remote.
+let REGION_NAMES = null;
+try {
+  REGION_NAMES = new Intl.DisplayNames(["en"], { type: "region" });
+} catch { /* old browser: the code itself is the fallback */ }
+
 function countryLabel(code) {
-  return COUNTRY_LABELS_SEEN.get(code) || code;
+  if (COUNTRY_LABELS_SEEN.has(code)) return COUNTRY_LABELS_SEEN.get(code);
+  try {
+    const name = REGION_NAMES && REGION_NAMES.of(code);
+    if (name && name !== code) return name;
+  } catch { /* not a region code */ }
+  return code;
 }
 
 // Trimmed, because a saved value like "Tel Aviv, Israel" splits into a
