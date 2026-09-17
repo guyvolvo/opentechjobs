@@ -34,9 +34,15 @@ What a refresh guarantees:
     it (a request can call get_connection() more than once)
 
 A frozen container: Lambda pauses the process between invocations, so a
-download only progresses while requests are arriving. A container that
-goes quiet mid-download resumes when traffic does, or its S3 read times
-out and the refresh is retried. Either way it keeps serving the old copy.
+background download only runs while a request is being handled. On a
+busy container that is most of the time and the download finishes in the
+background. On a quiet one it barely moves: seen in production on the
+first deploy, short requests seconds apart left a download at the same
+place for minutes while the container kept serving the old snapshot.
+So a download older than JOIN_AFTER_SECONDS is joined by the next
+request, for up to JOIN_SECONDS: that request waits, the thread runs, and
+staleness is bounded. Under real load the download has long finished by
+then, which is the case the background refresh exists for.
 
 Several containers each download their own copy. That is S3 to Lambda in
 the same region, which costs no transfer, and each copy has to live on
@@ -73,6 +79,18 @@ S3_RECHECK_SECONDS = 60
 # A retired connection stays open this long. The API Gateway integration
 # times out at 29s, so no request can still hold it after that.
 RETIRE_AFTER_SECONDS = 40
+# A download running longer than this is joined by the next request, for up
+# to JOIN_SECONDS, so a quiet container still finishes it. 20s leaves room
+# under the 29s API Gateway timeout for the request's own query.
+JOIN_AFTER_SECONDS = 60
+JOIN_SECONDS = 20
+# At most one joining request a minute, so a download that is stuck does
+# not make every request wait.
+JOIN_EVERY_SECONDS = 60
+# A download still running after this is abandoned and started again. Its
+# thread cannot be stopped; if it ever finishes, its generation is stale
+# and its file is thrown away.
+HUNG_AFTER_SECONDS = 300
 # A failed refresh of the same ETag is retried after this, doubling up to
 # the cap.
 RETRY_BASE_SECONDS = 60
@@ -113,6 +131,12 @@ _refresh = {
     "failures": 0,
     "retry_at": 0.0,
     "ready": None,            # (conn, path, etag) once a download checks out
+    "bytes": 0,               # downloaded so far
+    "size": None,
+    "started_mono": None,
+    "thread": None,
+    "gen": 0,                 # which download is current
+    "last_join": 0.0,
 }
 
 
@@ -150,6 +174,13 @@ def _check(conn: sqlite3.Connection) -> None:
         raise ValueError("snapshot has no jobs")
 
 
+def _progress(n: int) -> None:
+    # Called from the transfer's worker threads. A plain add under the
+    # lock; it only feeds status().
+    with _lock:
+        _refresh["bytes"] += n
+
+
 def _fetch(etag: str, size: int, current_size: int | None) -> tuple[sqlite3.Connection, str]:
     """Download, check and open one snapshot. Returns (conn, path) or raises.
     Never touches the file that is being served."""
@@ -158,7 +189,7 @@ def _fetch(etag: str, size: int, current_size: int | None) -> tuple[sqlite3.Conn
     final = _local_path(etag)
     tmp = final + ".part"
     try:
-        _s3.download_file(DATA_BUCKET, DATA_KEY, tmp, Config=_TRANSFER)
+        _s3.download_file(DATA_BUCKET, DATA_KEY, tmp, Config=_TRANSFER, Callback=_progress)
         after, _ = _head()
         if after != etag:
             raise ValueError(f"object changed during the download ({etag} -> {after})")
@@ -179,13 +210,16 @@ def _fetch(etag: str, size: int, current_size: int | None) -> tuple[sqlite3.Conn
     return conn, final
 
 
-def _background(etag: str, size: int, current_size: int | None) -> None:
+def _background(gen: int, etag: str, size: int, current_size: int | None) -> None:
     started = time.monotonic()
     print(f"jobs.db refresh started: {_etag} -> {etag} ({size} bytes)")
     try:
         conn, path = _fetch(etag, size, current_size)
     except Exception as e:
         with _lock:
+            if gen != _refresh["gen"]:
+                print(f"jobs.db abandoned refresh of {etag} ended: {e!r}")
+                return
             _refresh["failures"] += 1
             delay = min(RETRY_BASE_SECONDS * 2 ** (_refresh["failures"] - 1), RETRY_MAX_SECONDS)
             _refresh.update(state="failed", error=repr(e), retry_at=time.monotonic() + delay,
@@ -197,6 +231,11 @@ def _background(etag: str, size: int, current_size: int | None) -> None:
         return
     seconds = round(time.monotonic() - started, 1)
     with _lock:
+        if gen != _refresh["gen"]:
+            conn.close()
+            os.remove(path)
+            print(f"jobs.db abandoned refresh of {etag} finished late, discarded")
+            return
         _refresh.update(state="ready", ready=(conn, path, etag), error=None, failures=0,
                         finished_at=time.time(), seconds=seconds)
     print(f"jobs.db refresh ready: {etag} in {seconds}s")
@@ -213,10 +252,13 @@ def _start_refresh(etag: str, size: int) -> None:
     if _refresh["etag"] != etag:
         _refresh["failures"] = 0
     current_size = os.path.getsize(_path) if _path and os.path.exists(_path) else None
+    _refresh["gen"] += 1
+    thread = threading.Thread(target=_background, args=(_refresh["gen"], etag, size, current_size),
+                              name="jobs-db-refresh", daemon=True)
     _refresh.update(state="downloading", etag=etag, started_at=time.time(),
+                    started_mono=time.monotonic(), bytes=0, size=size, thread=thread,
                     finished_at=None, seconds=None, error=None)
-    threading.Thread(target=_background, args=(etag, size, current_size),
-                     name="jobs-db-refresh", daemon=True).start()
+    thread.start()
 
 
 def _close_retired(now: float) -> None:
@@ -249,17 +291,41 @@ def get_connection() -> sqlite3.Connection:
     global _conn, _path, _etag, _loaded_at, _last_checked
 
     now = time.monotonic()
-    with _lock:
-        if _conn is None:
-            # Cold start: nothing to serve until this finishes.
-            _clear_leftovers()
-            etag, size = _head()
-            _conn, _path = _fetch(etag, size, None)
-            _etag, _loaded_at, _last_checked = etag, time.time(), now
+    if _conn is None:
+        # Cold start: nothing to serve until this finishes. Not under the
+        # lock, which the download's progress callback takes from the
+        # transfer's own threads. Lambda runs one request per container,
+        # so nothing else is here to race it.
+        _clear_leftovers()
+        etag, size = _head()
+        conn, path = _fetch(etag, size, None)
+        with _lock:
+            _conn, _path, _etag, _loaded_at, _last_checked = conn, path, etag, time.time(), now
             return _conn
 
+    with _lock:
         _close_retired(now)
 
+        thread = _refresh["thread"]
+        running = _refresh["state"] == "downloading" and thread is not None
+        age = now - _refresh["started_mono"] if running else 0
+        if running and age > HUNG_AFTER_SECONDS:
+            print(f"jobs.db refresh of {_refresh['etag']} hung after {age:.0f}s "
+                  f"({_refresh['bytes']} of {_refresh['size']} bytes), starting over")
+            _refresh.update(state="idle", thread=None)
+            _refresh["gen"] += 1
+            _last_checked = 0.0   # check S3 again on this request
+            running = False
+        join = (running and age > JOIN_AFTER_SECONDS
+                and now - _refresh["last_join"] > JOIN_EVERY_SECONDS)
+        if join:
+            _refresh["last_join"] = now
+
+    if join:
+        # Outside the lock: the download's progress callback needs it.
+        thread.join(JOIN_SECONDS)
+
+    with _lock:
         ready = _refresh["ready"]
         if ready:
             new_conn, new_path, new_etag = ready
@@ -296,6 +362,8 @@ def status() -> dict:
                 "state": _refresh["state"],
                 "etag": (_refresh["etag"] or "").strip('"') or None,
                 "seconds": _refresh["seconds"],
+                "bytes": _refresh["bytes"],
+                "size": _refresh["size"],
                 "error": _refresh["error"],
                 "failures": _refresh["failures"],
             },

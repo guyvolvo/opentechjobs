@@ -79,15 +79,18 @@ class FakeS3:
     def head_object(self, Bucket, Key):
         return {"ETag": self.etag, "ContentLength": os.path.getsize(self.src)}
 
-    def download_file(self, Bucket, Key, Filename, Config=None):
+    def download_file(self, Bucket, Key, Filename, Config=None, Callback=None):
         self.downloads += 1
         src = self.src
-        if self.gate is not None:
-            self.gate.wait(10)
+        gate = self.gate
+        if gate is not None:
+            gate.wait(10)
         data = Path(src).read_bytes()
         if self.short_write:
             data = data[: len(data) // 2]
         Path(Filename).write_bytes(data)
+        if Callback:
+            Callback(len(data))
         if self.swap_during_download:
             self.publish(*self.swap_during_download)
             self.swap_during_download = None
@@ -103,7 +106,9 @@ def reset(fake):
         db._conn = db._path = db._etag = db._loaded_at = None
         db._last_checked = 0.0
         db._refresh.update(state="idle", etag=None, started_at=None, finished_at=None,
-                           seconds=None, error=None, failures=0, retry_at=0.0, ready=None)
+                           seconds=None, error=None, failures=0, retry_at=0.0, ready=None,
+                           bytes=0, size=None, started_mono=None, thread=None, last_join=0.0)
+        db._refresh["gen"] += 1
     db._s3 = fake
     tmp = WORK / "tmp"
     shutil.rmtree(tmp, ignore_errors=True)
@@ -245,10 +250,66 @@ try:
           and "bytes against" in (db.status()["refresh"]["error"] or ""))
     check("without downloading it", fake.downloads == n)
 
+    # A quiet container: the download has run past JOIN_AFTER_SECONDS, so
+    # the next request waits for it (the thread runs while it waits).
+    reset(FakeS3())
+    fake = db._s3
+    fake.publish("e1", v1)
+    db.get_connection()
+    fake.publish("e2", v2)
+    fake.gate = threading.Event()
+    expire_recheck()
+    db.get_connection()
+    db._refresh["started_mono"] -= db.JOIN_AFTER_SECONDS + 1
+    threading.Timer(0.3, fake.gate.set).start()
+    started = time.monotonic()
+    conn = db.get_connection()
+    waited = time.monotonic() - started
+    check("an old download is joined by the next request, which gets the new snapshot",
+          title(conn) == "v2" and 0.2 < waited < db.JOIN_SECONDS, f"{title(conn)} after {waited:.2f}s")
+    check("progress is reported", db.status()["refresh"]["bytes"] > 0 or db.status()["refresh"]["state"] == "idle")
+
+    # Only one joining request a minute.
+    fake.publish("e3", v3)
+    fake.gate = threading.Event()
+    expire_recheck()
+    db.get_connection()
+    db._refresh["started_mono"] -= db.JOIN_AFTER_SECONDS + 1
+    db._refresh["last_join"] = time.monotonic()
+    old_join = db.JOIN_SECONDS
+    db.JOIN_SECONDS = 2
+    started = time.monotonic()
+    db.get_connection()
+    check("a second join inside the minute does not wait", time.monotonic() - started < 1)
+    db._refresh["last_join"] = 0.0
+    started = time.monotonic()
+    db.get_connection()
+    check("a join waits at most JOIN_SECONDS", 1.5 < time.monotonic() - started < 4,
+          f"{time.monotonic() - started:.2f}s")
+    db.JOIN_SECONDS = old_join
+
+    # Hung: abandoned, started again, and the late finish is discarded.
+    hung_gate = fake.gate
+    db._refresh["started_mono"] -= db.HUNG_AFTER_SECONDS + 1
+    db._refresh["last_join"] = time.monotonic()   # keep this request from waiting
+    fake.gate = None
+    n = fake.downloads
+    db.get_connection()
+    check("a hung download is abandoned and started again", fake.downloads == n + 1,
+          f"{fake.downloads} vs {n}")
+    check("the new attempt finishes", wait_for(lambda: db.status()["refresh"]["state"] == "ready"))
+    check("and is served", title(db.get_connection()) == "v3")
+    before = sorted(p.name for p in Path(db.TMP_DIR).iterdir())
+    hung_gate.set()
+    time.sleep(0.5)
+    after = sorted(p.name for p in Path(db.TMP_DIR).iterdir())
+    check("the abandoned download's late finish is discarded",
+          title(db.get_connection()) == "v3" and len(after) <= len(before), f"{before} -> {after}")
+
     # S3 unreachable on the recheck: keep serving.
     fake.head_object = lambda **kw: (_ for _ in ()).throw(RuntimeError("no network"))
     expire_recheck()
-    check("an S3 error on the recheck keeps serving", title(db.get_connection()) == "big")
+    check("an S3 error on the recheck keeps serving", title(db.get_connection()) == "v3")
 finally:
     reset(FakeS3())
     shutil.rmtree(WORK, ignore_errors=True)
