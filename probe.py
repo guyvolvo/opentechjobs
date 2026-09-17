@@ -2424,6 +2424,74 @@ def f_checkpoint(sess, token, known_ids=None, description_budget=None, open_ids=
     return out
 
 
+# WP Job Openings, the WordPress plugin (awsm-job-* classes), for a
+# company that lists roles on its own site with no ATS behind it. NSO
+# Group is the first (nsogroup.com/jobs/). The listing page names each
+# role and links to it; each role's own page carries a schema.org
+# JobPosting with the date, place and full text, which is what this
+# reads. The site's REST API is closed to anonymous callers.
+#
+# The token is the listing URL without its scheme, so a guessed slug
+# never matches and this makes no request until a pin names it.
+#
+# The plugin shows 30 roles and then a load-more button driven by
+# admin-ajax. A page with that button is a partial read, and a partial
+# read would close every role past the fold, so it is refused.
+_WPJOBS_LINK_RE = re.compile(
+    r'<h2 class="awsm-job-post-title">\s*<a href="(https?://[^"]+)"[^>]*>(.*?)</a>', re.S)
+_WPJOBS_MORE_RE = re.compile(r'awsm-load-more|awsm-jobs-pagination')
+_WPJOBS_CATEGORY_RE = re.compile(
+    r'awsm-job-specification-job-category">\s*<span class="awsm-job-specification-term">([^<]+)</span>')
+
+
+def f_wpjobs(sess, token):
+    if not isinstance(token, str) or "/" not in token or "." not in token.split("/", 1)[0]:
+        return None
+    listing = f"https://{token}"
+    headers = {"User-Agent": _BROWSER_UA, "Accept": "text/html", "Accept-Language": "en-US,en;q=0.9"}
+    try:
+        r = sess.get(listing, timeout=TIMEOUT, headers=headers)
+    except requests.RequestException:
+        return None
+    if r.status_code != 200 or _WPJOBS_MORE_RE.search(r.text):
+        return None
+    links, departments = [], {}
+    for card in r.text.split('class="awsm-job-listing-item')[1:]:
+        m = _WPJOBS_LINK_RE.search(card)
+        if not m or m.group(1) in departments:
+            continue
+        url = m.group(1)
+        links.append((url, html.unescape(re.sub(r"<[^>]+>", "", m.group(2))).strip()))
+        dept = _WPJOBS_CATEGORY_RE.search(card)
+        departments[url] = html.unescape(dept.group(1)).strip() if dept else None
+    if not links:
+        return None
+
+    def read(link):
+        url, title = link
+        try:
+            page = sess.get(url, timeout=TIMEOUT, headers=headers)
+        except requests.RequestException:
+            return None
+        if page.status_code != 200:
+            return None
+        found = _extract_jobposting_jsonld(page.text, url)
+        return found[0] if found else None
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        read_jobs = list(pool.map(read, links))
+    # One page that failed to answer is a failed read, for the same
+    # reason as the load-more button.
+    if any(j is None for j in read_jobs):
+        return None
+    out = []
+    for (url, title), j in zip(links, read_jobs):
+        slug = url.rstrip("/").rsplit("/", 1)[-1]
+        out.append(Job("wpjobs", token, slug, j.title or title, j.location, url,
+                       j.posted_at, departments.get(url), j.description_chars, j.description))
+    return out
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -2521,6 +2589,8 @@ FETCHERS: dict[str, Callable] = {
     "apple": f_apple,
     # Keyed on its careers host, like ness. See the note above it.
     "checkpoint": f_checkpoint,
+    # Keyed on a listing URL. See the note above it.
+    "wpjobs": f_wpjobs,
 }
 
 # Boards too big or too slow for the five-minute sweep. They poll from the
@@ -3054,6 +3124,10 @@ def _extract_jobposting_jsonld(html: str, page_url: str) -> list[Job]:
             if isinstance(loc, list):
                 loc = loc[0] if loc else {}
             addr = (loc or {}).get("address", {}) if isinstance(loc, dict) else {}
+            # Some sites write the address as plain text ("Israel" on
+            # nsogroup.com) rather than a PostalAddress.
+            if isinstance(addr, str):
+                addr = {"addressLocality": addr}
             location = ", ".join(x for x in [
                 _txt(addr.get("addressLocality")) if isinstance(addr, dict) else "",
                 _txt(addr.get("addressCountry")) if isinstance(addr, dict) else "",

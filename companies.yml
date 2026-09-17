@@ -431,6 +431,15 @@ apple:
     jobs_seen: 122
     source: own-careers-api
 
+wpjobs:
+  # Company sites running the WP Job Openings plugin with no ATS behind
+  # it (f_wpjobs in probe.py). The token is the listing URL without its
+  # scheme. Count as of 2026-09-17.
+  - domain: nsogroup.com
+    token: "www.nsogroup.com/jobs/"
+    jobs_seen: 21
+    source: own-careers-page
+
 checkpoint:
   # Check Point's own careers site, one server-rendered page with every
   # role on it (f_checkpoint in probe.py). The token is the host.
