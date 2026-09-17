@@ -55,7 +55,7 @@ def _with_logos(conn, rows: list[dict]) -> list[dict]:
 
 
 def top_companies_with_logos(conn, limit: int = 30) -> list[dict]:
-    """The companies on /hero's logo row, hand-picked ones first.
+    """The companies on the landing page's logo row, hand-picked ones first.
 
     HOT_COMPANIES (hot_companies.py) is big tech and well-known startups,
     picked by hand because nothing in the data says which companies those

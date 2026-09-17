@@ -1,4 +1,4 @@
-// The board as a real iPhone draws it, for /hero's phone product shot.
+// The board as a real iPhone draws it, for the landing page's phone product shot.
 //
 // The old capture was 402x824 and went into a screen hole of 804x1748
 // (0.4600). Compositing fitted the wider picture by cropping, so the search
@@ -48,7 +48,7 @@ await context.addInitScript(() => {
   } catch {}
 });
 const page = await context.newPage();
-await page.goto(`https://opentechjobs.org/${QUERY}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+await page.goto(`https://opentechjobs.org/board${QUERY}`, { waitUntil: "domcontentloaded", timeout: 60000 });
 // A row exists long before it says anything: the board puts skeleton rows
 // in first, and waiting on "#jobs-body tr" caught those, which is how a
 // shot of grey bars got composited into the frame. This waits for real

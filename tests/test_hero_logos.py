@@ -1,4 +1,4 @@
-"""top_companies_with_logos: the row of logos on /hero."""
+"""top_companies_with_logos: the row of logos on the landing page."""
 
 import sqlite3
 import sys

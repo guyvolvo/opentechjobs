@@ -277,7 +277,7 @@ HELP_HTML = """<!doctype html>
           <p>Returns the estimated user country based on CDN headers ({"country": "US", "source": "cf-ipcountry"}). Returns null if undetectable.</p>
         </div>
 
-        <p class="legal-back"><a class="link" href="/">&larr; Back to the job board</a></p>
+        <p class="legal-back"><a class="link" href="/board">&larr; Back to the job board</a></p>
       </div>
     </section>
   </div>

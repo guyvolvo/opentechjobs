@@ -1,4 +1,4 @@
-"""The companies /hero's logo row puts first.
+"""The companies the landing page's logo row puts first.
 
 Big tech and well-known startups past their seed round. Nothing in the
 data says which companies those are: ranked by open jobs alone, the row

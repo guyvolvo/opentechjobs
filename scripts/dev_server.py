@@ -62,6 +62,11 @@ def make_handler(db_path: Path):
 
         def _serve_static(self, parsed):
             rel = parsed.path.lstrip("/") or "index.html"
+            # Same as the edge function in infra/cloudfront.tf: /board
+            # is board.html. The redirects there are not reproduced, so
+            # an old /?country=IL link shows the landing page locally.
+            if "." not in rel.rsplit("/", 1)[-1]:
+                rel += ".html"
             path = (FRONTEND_DIR / rel).resolve()
             if FRONTEND_DIR not in path.parents and path != FRONTEND_DIR:
                 self.send_error(403)

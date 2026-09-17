@@ -9,7 +9,7 @@ const browser = await chromium.launch();
 for (const [label, opts] of [["phone", devices["Pixel 7"]], ["desktop", { viewport: { width: 1440, height: 900 } }]]) {
   const context = await browser.newContext({ ...opts });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:8837/hero.html", { waitUntil: "networkidle" });
+  await page.goto("http://127.0.0.1:8837/index.html", { waitUntil: "networkidle" });
   await page.waitForTimeout(700);
   const m = await page.evaluate(() => {
     const block = document.querySelector(".hero-block");

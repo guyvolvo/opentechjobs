@@ -1,4 +1,4 @@
-// The /hero product-shot section, desktop and phone, light and dark.
+// The landing page's product-shot section, desktop and phone, light and dark.
 import { chromium, devices } from "@playwright/test";
 import { spawn } from "node:child_process";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -12,7 +12,7 @@ for (const [label, opts] of [["desktop", { viewport: { width: 1440, height: 900 
     const context = await browser.newContext({ ...opts });
     await context.addInitScript((t) => { try { localStorage.setItem("iljobs_theme", t); } catch {} }, theme);
     const page = await context.newPage();
-    await page.goto("http://127.0.0.1:8835/hero.html", { waitUntil: "networkidle" });
+    await page.goto("http://127.0.0.1:8835/index.html", { waitUntil: "networkidle" });
     await page.waitForTimeout(900);
     const el = page.locator(".hero-showcase");
     await el.scrollIntoViewIfNeeded();

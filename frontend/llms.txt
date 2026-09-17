@@ -6,7 +6,8 @@ Every listing links to the employer's own application page. Salaries come in thr
 
 ## Pages
 
-- [Job board](https://opentechjobs.org/): search and filter open listings, with live hiring statistics for the current search.
+- [Home](https://opentechjobs.org/): what the project is, with live numbers.
+- [Job board](https://opentechjobs.org/board): search and filter open listings, with live hiring statistics for the current search.
 - [Explore](https://opentechjobs.org/stats): query every tracked listing with filters and groupings, or with SQL, in the browser.
 - [API reference](https://opentechjobs.org/api/help): every public endpoint and parameter.
 - [Privacy policy](https://opentechjobs.org/privacy): what the optional alerts feature stores.

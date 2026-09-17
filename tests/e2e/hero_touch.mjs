@@ -1,4 +1,4 @@
-// /hero on a phone with real touch input (Chromium, CDP touch events): a
+// The landing page on a phone with real touch input (Chromium, CDP touch events): a
 // horizontal swipe throws the logo row, a vertical swipe still scrolls.
 // Run from tests/e2e:  node hero_touch.mjs
 import { chromium, devices } from "@playwright/test";
@@ -28,7 +28,7 @@ await context.addInitScript((stats) => {
     : real(i, init);
 }, STATS);
 const page = await context.newPage();
-await page.goto("http://127.0.0.1:8833/hero.html", { waitUntil: "networkidle" });
+await page.goto("http://127.0.0.1:8833/index.html", { waitUntil: "networkidle" });
 await page.waitForTimeout(800);
 const cdp = await context.newCDPSession(page);
 const touch = async (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });

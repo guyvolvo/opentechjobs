@@ -46,12 +46,12 @@ export class BoardPage {
       // The board remembers filters across sessions on purpose, so a
       // spec that does not clear them inherits the previous one's. Three
       // false failures came from exactly this before it was handled.
-      await this.page.goto("/");
+      await this.page.goto("/board");
       await this.page.evaluate(() => {
         try { localStorage.clear(); } catch { /* private mode */ }
       });
     }
-    await this.page.goto(`/${query}`);
+    await this.page.goto(`/board${query}`);
     await this.settled();
   }
 

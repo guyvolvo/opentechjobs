@@ -1,4 +1,4 @@
-// /hero: desktop and phone, light and dark. Checks the numbers ticker
+// The landing page: desktop and phone, light and dark. Checks the numbers ticker
 // carries real numbers, the logo row under it is half its height, drops a
 // logo that fails to load, and runs the other way, the green band shows
 // the same margin above and below, the wordmark fits, nothing scrolls
@@ -47,7 +47,7 @@ for (const [label, device] of [["desktop", { viewport: { width: 1440, height: 90
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto("http://127.0.0.1:8832/hero.html", { waitUntil: "networkidle" });
+    await page.goto("http://127.0.0.1:8832/index.html", { waitUntil: "networkidle" });
     await page.waitForTimeout(700);
     const tag = `${label}/${theme}`;
 

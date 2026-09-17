@@ -33,7 +33,7 @@ test.describe("malformed input", () => {
     await expect(board.errorState).toBeHidden();
 
     for (const attempt of [1, 2]) {
-      await page.goto("/");
+      await page.goto("/board");
       await board.settled();
       await expect(board.errorState, `still broken on visit ${attempt}`).toBeHidden();
       expect(await board.total()).toBeGreaterThan(0);
@@ -54,7 +54,7 @@ test.describe("malformed input", () => {
       localStorage.setItem("iljobs_filters", JSON.stringify(raw));
     });
 
-    await page.goto("/");
+    await page.goto("/board");
     await board.settled();
     await expect(board.errorState, "a poisoned browser must recover unaided").toBeHidden();
     expect(await board.total()).toBeGreaterThan(0);
@@ -129,7 +129,7 @@ test.describe("session and storage", () => {
     });
     const page = await context.newPage();
     const board = new BoardPage(page);
-    await page.goto("/");
+    await page.goto("/board");
     await board.settled();
     await expect(board.errorState).toBeHidden();
     expect(await board.total()).toBeGreaterThan(0);
@@ -140,7 +140,7 @@ test.describe("session and storage", () => {
     const board = new BoardPage(page);
     await board.goto();
     await page.evaluate(() => localStorage.setItem("iljobs_filters", "{not json"));
-    await page.goto("/");
+    await page.goto("/board");
     await board.settled();
     await expect(board.errorState).toBeHidden();
     expect(await board.total()).toBeGreaterThan(0);
@@ -156,7 +156,7 @@ test.describe("session and storage", () => {
         id_token: `header.${payload}.sig`, access_token: "stale", refresh_token: "stale",
       }));
     });
-    await page.goto("/");
+    await page.goto("/board");
     await board.settled();
     await expect(board.errorState, "listings are public and must still load").toBeHidden();
     expect(await board.total()).toBeGreaterThan(0);
@@ -199,7 +199,7 @@ test.describe("console health", () => {
     await filters.sort.selectOption("age:desc");
     await board.settled();
     await board.reset();
-    await page.goto("/?sort=banana&dir=sideways&max_age_days=abc");
+    await page.goto("/board?sort=banana&dir=sideways&max_age_days=abc");
     await board.settled();
 
     expect(errors, errors.join("\n")).toHaveLength(0);

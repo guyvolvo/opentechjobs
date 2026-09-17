@@ -1356,8 +1356,8 @@ function currentFilterParams() {
 // at a time. Opening a job IS treated as a real navigation (see
 // openJobDetailAndPush), so that one pushes instead.
 
-// Only ever set for a non-default value, so a plain visit to "/" stays
-// a plain "/" instead of growing every field's default into the URL.
+// Only ever set for a non-default value, so a plain visit to /board
+// stays a plain /board instead of growing every field's default into the URL.
 function buildShareParams() {
   const p = new URLSearchParams();
   if (state.search) p.set("search", state.search);
@@ -1508,7 +1508,7 @@ function applyStateFromUrl(search) {
 
 // Filters persisting across browser sessions -- requested directly: the
 // URL round-trip above only reproduces a filter set that's actually IN
-// the address bar (a shared/bookmarked link), so a plain revisit to "/"
+// the address bar (a shared/bookmarked link), so a plain revisit to /board
 // after closing the tab landed back on hardcoded defaults regardless of
 // what was last picked. Same offset/job exclusions as buildShareParams,
 // for the same reason (a fresh visit shouldn't resume on page 3, or with
@@ -3743,6 +3743,8 @@ async function startGoogleSignIn() {
   const verifier = randomUrlSafe(64);
   sessionStorage.setItem(PKCE_VERIFIER_KEY, verifier);
   const challenge = await base64UrlDigest(verifier);
+  // Still /, not /board: it has to match the callback Cognito has
+  // registered (infra/cognito.tf). The edge forwards /?code= to /board.
   const redirectUri = `${location.origin}/`;
   const url = `https://${COGNITO_DOMAIN}/oauth2/authorize?${qs({
     client_id: COGNITO_CLIENT_ID,
@@ -3841,9 +3843,10 @@ async function exchangeGoogleCode(code) {
   setAuthTokens({ id_token: data.id_token, access_token: data.access_token, refresh_token: data.refresh_token });
 }
 
-// Two unrelated redirect shapes land here, both back at "/": Google's
+// Two unrelated redirect shapes land here, both at /board: Google's
 // via Cognito's own authorization-code flow (?code=... query param,
-// exchanged client-side above) and GitHub's via github_auth_handler.py's
+// exchanged client-side above; Cognito sends it to /, and the edge
+// forwards any /?code= to /board) and GitHub's via github_auth_handler.py's
 // own 302 (#id_token=...&access_token=...&refresh_token=... hash
 // fragment -- that Lambda already did the full exchange server-side).
 async function handleAuthRedirect() {

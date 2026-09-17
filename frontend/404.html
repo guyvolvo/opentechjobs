@@ -44,14 +44,14 @@
         <h2 class="section-title" id="nf-title">Page not found</h2>
         <p class="not-found-lede" id="nf-lede">This page does not exist. The link may be mistyped or out of date.</p>
 
-        <form class="not-found-search" action="/" method="get" role="search">
+        <form class="not-found-search" action="/board" method="get" role="search">
           <input type="text" name="search" id="nf-search" placeholder="Search listings" aria-label="Search listings" />
           <button class="btn" type="submit">Search</button>
         </form>
 
         <div class="not-found-actions">
-          <a class="btn ghost btn-small" href="/">All listings</a>
-          <a class="btn ghost btn-small" href="/?view=matches">Best matches</a>
+          <a class="btn ghost btn-small" href="/board">All listings</a>
+          <a class="btn ghost btn-small" href="/board?view=matches">Best matches</a>
           <button class="btn ghost btn-small" type="button" id="nf-back" hidden>Go back</button>
         </div>
       </div>

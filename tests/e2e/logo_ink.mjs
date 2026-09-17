@@ -28,7 +28,7 @@ for (const theme of ["light", "dark"]) {
       : real(i, init);
   }, { t: theme, s: stats });
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:8846/hero.html", { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto("http://127.0.0.1:8846/index.html", { waitUntil: "networkidle", timeout: 60000 });
   await page.waitForTimeout(3500);
   await page.evaluate(() => document.querySelectorAll(".hero-ticker-track").forEach((el) => { el.style.animationPlayState = "paused"; }));
   await page.waitForTimeout(200);

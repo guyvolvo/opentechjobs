@@ -1,4 +1,4 @@
-// The board for /hero's devices, filtered to companies people know, so
+// The board for the landing page's devices, filtered to companies people know, so
 // the product shot shows real jobs at Apple, AWS and Nvidia rather than
 // whatever happens to be newest. 16:10 for the MacBook, phone-sized for
 // the iPhone, light and dark each.
@@ -25,7 +25,7 @@ for (const [name, opts] of [
       } catch {}
     }, theme);
     const page = await context.newPage();
-    await page.goto(`https://opentechjobs.org/${QUERY}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.goto(`https://opentechjobs.org/board${QUERY}`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForSelector("#jobs-body tr", { timeout: 60000 });
     // "Updating" while the pipeline is mid-scrape, "Live" once it settles.
     // That is the board's real state, not a render race, so this waits for

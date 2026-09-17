@@ -25,7 +25,7 @@ for (const [label, opts] of [["desktop", { viewport: { width: 1440, height: 900 
       : real(i, init);
   }, STATS);
   const page = await context.newPage();
-  await page.goto("http://127.0.0.1:8844/hero.html", { waitUntil: "networkidle" });
+  await page.goto("http://127.0.0.1:8844/index.html", { waitUntil: "networkidle" });
   await page.waitForTimeout(700);
   const m = await page.evaluate(() => {
     const r = (sel) => document.querySelector(sel).getBoundingClientRect();

@@ -65,7 +65,7 @@ def build(db_path: Path) -> dict[str, dict]:
         # connection rather than a second pass over the whole route.
         stats["top_locations_israel"] = compute_stats(
             conn, {"israel_only": "1"})["top_locations"]
-        # For /hero's row of logos. Only here, not in compute_stats: the page
+        # For the landing page's row of logos. Only here, not in compute_stats: the page
         # reads the static file, and the live /api/stats has no use for it.
         stats["top_companies_logos"] = top_companies_with_logos(conn)
         # Keyed by confidence, because that is the one filter the page

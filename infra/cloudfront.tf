@@ -95,7 +95,7 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       };
     }
 
-    var PAGES = { "/account": true, "/stats": true, "/privacy": true, "/hero": true, "/board": true };
+    var PAGES = { "/account": true, "/stats": true, "/privacy": true, "/board": true };
 
     // The board used to live at /, so every link anyone shared or
     // bookmarked before the move reads /?country=IL or /?job=... A
@@ -131,6 +131,11 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       // means. Nothing below applies to it.
       if (uri.indexOf("/api/") === 0 || uri === "/api") {
         return request;
+      }
+
+      // The landing page was drafted at /hero before it became /.
+      if (uri === "/hero" || uri === "/hero.html") {
+        return redirect("/" + queryOf(request));
       }
 
       if (uri === "/" && wantsBoard(request)) {

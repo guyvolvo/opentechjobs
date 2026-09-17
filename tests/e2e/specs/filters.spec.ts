@@ -131,11 +131,11 @@ test.describe("filters", () => {
   });
 
   test("two filters compose instead of replacing each other", async ({ page }) => {
-    await page.goto("/?israel_only=1");
+    await page.goto("/board?israel_only=1");
     await board.settled();
     const israelOnly = await board.total();
 
-    await page.goto("/?israel_only=1&seniority=senior");
+    await page.goto("/board?israel_only=1&seniority=senior");
     await board.settled();
     const both = await board.total();
 
@@ -160,7 +160,7 @@ test.describe("filters", () => {
 
     // The real regression risk: reset clears the screen but not storage,
     // so the old filter returns on the next visit.
-    await page.goto("/");
+    await page.goto("/board");
     await board.settled();
     await expect(board.search, "and does not come back on the next visit").toHaveValue("");
   });
@@ -207,7 +207,7 @@ test.describe("filters", () => {
   });
 
   test("the Filters button counts what is active", async ({ page }) => {
-    await page.goto("/?israel_only=1&seniority=senior&max_age_days=7");
+    await page.goto("/board?israel_only=1&seniority=senior&max_age_days=7");
     await board.settled();
     expect(await filters.activeCount()).toBeGreaterThanOrEqual(2);
   });

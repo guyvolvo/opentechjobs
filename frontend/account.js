@@ -115,7 +115,7 @@ function paintMatchLink() {
   if (draft.workplace.length) p.set("workplace", draft.workplace.join(","));
   if (draft.israel_only) p.set("israel_only", "1");
   const link = $("profile-matches");
-  if (link) link.href = "/?" + p.toString();
+  if (link) link.href = "/board?" + p.toString();
 }
 
 function wireProfile() {
