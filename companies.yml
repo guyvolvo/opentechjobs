@@ -424,6 +424,16 @@ apple:
     jobs_seen: 122
     source: own-careers-api
 
+checkpoint:
+  # Check Point's own careers site, one server-rendered page with every
+  # role on it (f_checkpoint in probe.py). The token is the host.
+  # Guessing had settled on an empty Workable board of the same name.
+  # Count as of 2026-09-17.
+  - domain: checkpoint.com
+    token: "careers.checkpoint.com"
+    jobs_seen: 406
+    source: own-careers-page
+
 lever:
   # Found on careers.mobileye.com, which links every role to
   # jobs.eu.lever.co/mobileye. f_lever tries the EU host after the US one.

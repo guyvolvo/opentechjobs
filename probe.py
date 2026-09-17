@@ -2294,6 +2294,136 @@ def f_apple(sess, token, known_ids=None, detail_budget=None):
     return out
 
 
+# Check Point runs its own careers site: a PHP page over Solr, no JSON
+# endpoint. The search page renders every role server-side, and rows=
+# lifts its ten-a-page limit, so one request reads the whole board
+# (about 4MB for 406 roles on 2026-09-17). The token is the careers host,
+# and nothing else is accepted, so the guess loop never reaches it.
+#
+# The site's CloudFront refuses python-requests' own user agent with a
+# 403, so every request here sends a browser one.
+#
+# No posting date is shown anywhere. Solr has one (the page sorts on
+# date_published_display_s) but ignores any filter on it, so it cannot
+# be read back out. A role that appears after the first read is dated to
+# the run that first saw it; this polls hourly, so that is within an hour
+# of the real thing. Roles already open on the first read stay undated,
+# because stamping four hundred of them "just now" would put all of them
+# at the top of the board. load_to_sqlite.py freezes a checkpoint date
+# once it is set, like Comeet's.
+CHECKPOINT_HOST = "careers.checkpoint.com"
+CHECKPOINT_BASE = f"https://{CHECKPOINT_HOST}/index.php?m=cpcareers"
+_CHECKPOINT_ROWS = 2000
+# The title link, not the save button's data-link that comes first.
+_CHECKPOINT_ID_RE = re.compile(r'<a href="[^"]*a=show&(?:amp;)?joborderid=(\d+)">\s*(.*?)\s*</a>', re.S)
+_CHECKPOINT_PLACE_RE = re.compile(r'class="place">\s*(.*?)\s*</p>', re.S)
+_CHECKPOINT_INFO_RE = re.compile(r'class="briefcase">(.*?)</p>', re.S)
+_CHECKPOINT_TOTAL_RE = re.compile(r'class="currentPage">[^<]*?of\s+(\d+)\s*<')
+_CHECKPOINT_BODY_RE = re.compile(r'<div id="jobOrderInfo">(.*?)<div id="shareSection"', re.S)
+_CHECKPOINT_SECTION_RE = re.compile(r'<div class="info">\s*<h3>(.*?)</h3>(.*?)</div>', re.S)
+_CHECKPOINT_KINDS = {"full-time", "part-time", "contract", "temporary", "internship"}
+# The two country names on the site that the board's country reader
+# does not know, checked against all 43 the site used on 2026-09-17.
+_CHECKPOINT_COUNTRIES = {"Great Britain": "United Kingdom", "Russian Federation": "Russia"}
+
+
+def _checkpoint_get(sess, url):
+    try:
+        r = sess.get(url, timeout=60, headers={"User-Agent": _BROWSER_UA,
+                                               "Accept": "text/html",
+                                               "Accept-Language": "en-US,en;q=0.9"})
+    except requests.RequestException:
+        return None
+    return r.content.decode("utf-8", errors="replace") if r.status_code == 200 else None
+
+
+def _checkpoint_plain(fragment):
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", fragment)).split())
+
+
+def _checkpoint_location(raw):
+    """("Tel Aviv, Israel", "hybrid") from "Israel: Tel Aviv/ Hybrid (Israel)".
+    The site writes country first; the board's country reader expects it last.
+    """
+    country, _, city = _checkpoint_plain(raw).partition(":")
+    country = _CHECKPOINT_COUNTRIES.get(country.strip(), country.strip())
+    city = city.strip()
+    workplace = None
+    m = re.search(r"/\s*(hybrid|remote)\b.*$", city, re.I)
+    if m:
+        workplace = m.group(1).lower()
+        city = city[:m.start()].strip()
+    if not country:
+        return "", workplace
+    return (f"{city}, {country}" if city and city != country else country), workplace
+
+
+def _checkpoint_description(sess, jid):
+    page = _checkpoint_get(sess, f"{CHECKPOINT_BASE}&a=show&joborderid={jid}")
+    m = _CHECKPOINT_BODY_RE.search(page or "")
+    if not m:
+        return None
+    parts = []
+    for heading, body in _CHECKPOINT_SECTION_RE.findall(m.group(1)):
+        heading = _checkpoint_plain(heading)
+        # The same paragraph about Check Point opens every role, and a
+        # preview made of it says nothing about the job. Apple's did the
+        # same; see _apple_description.
+        if heading.lower().startswith("why join"):
+            continue
+        parts.append(f"<h3>{html.escape(heading)}</h3>{body}")
+    return _clean_text("".join(parts)) if parts else None
+
+
+def f_checkpoint(sess, token, known_ids=None, description_budget=None, open_ids=None):
+    if token != CHECKPOINT_HOST:
+        return None
+    page = _checkpoint_get(sess, f"{CHECKPOINT_BASE}&a=search&rows={_CHECKPOINT_ROWS}")
+    if page is None:
+        return None
+    total = _CHECKPOINT_TOTAL_RE.search(page)
+    cards = page.split('<div class="position">')[1:]
+    rows, seen = [], set()
+    for card in cards:
+        m = _CHECKPOINT_ID_RE.search(card)
+        if not m or m.group(1) in seen:
+            continue
+        jid = m.group(1)
+        seen.add(jid)
+        place = _CHECKPOINT_PLACE_RE.search(card)
+        where, workplace = _checkpoint_location(place.group(1)) if place else ("", None)
+        info = _CHECKPOINT_INFO_RE.search(card)
+        bits = [b for b in (_checkpoint_plain(x) for x in re.split(r"<span[^>]*>\|</span>", info.group(1)))
+                if b] if info else []
+        department = bits[0] if bits and bits[0].lower() not in _CHECKPOINT_KINDS \
+            and not bits[0].startswith("Job ID") else None
+        rows.append((jid, _checkpoint_plain(m.group(2)), where, workplace, department))
+    # A short read is a failed read. Returning it would close every role
+    # that fell off the end.
+    if not rows or not total or len(rows) < int(total.group(1)):
+        return None
+
+    budget = description_budget if description_budget is not None else 0
+    wanted = [r[0] for r in rows if not (known_ids and r[0] in known_ids)][:budget]
+    bodies = {}
+    if wanted:
+        # Four, not eight: this is one company's own web server, not an
+        # API built for it.
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            bodies = dict(zip(wanted, pool.map(lambda j: _checkpoint_description(sess, j), wanted)))
+
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    out = []
+    for jid, title, where, workplace, department in rows:
+        body = bodies.get(jid)
+        dated = now if open_ids and jid not in open_ids else None
+        out.append(Job("checkpoint", token, jid, title, where,
+                       f"{CHECKPOINT_BASE}&a=show&joborderid={jid}",
+                       dated, department, len(body or ""), body,
+                       workplace_type=workplace))
+    return out
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -2334,6 +2464,7 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("ashby", "snyk"),            # snyk.io, really Workday
     ("workable", "mobileye"),     # mobileye.com, really Lever's EU host
     ("workable", "microsoft"),    # microsoft.com, its own careers site
+    ("workable", "checkpoint"),   # checkpoint.com, its own careers site
     ("workable", "navan"),        # navan.com, really greenhouse:tripactions
     ("workable", "matrix"),       # matrix.co.il, its own WordPress jobs pages
     ("jazzhr", "electra"),        # electra.co.il: real board is "Electra Aero," an unrelated US eVTOL company
@@ -2388,12 +2519,14 @@ FETCHERS: dict[str, Callable] = {
     "microsoft": f_microsoft,
     "google": f_google,
     "apple": f_apple,
+    # Keyed on its careers host, like ness. See the note above it.
+    "checkpoint": f_checkpoint,
 }
 
 # Boards too big or too slow for the five-minute sweep. They poll from the
 # hourly Lambda (scrape_workday_handler.py), which reads them with known
 # state so a run only describes jobs it has not seen.
-SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple"})
+SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple", "checkpoint"})
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered

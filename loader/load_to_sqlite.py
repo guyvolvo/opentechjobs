@@ -555,7 +555,7 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- the first-ever insert for a Comeet job uses this run's own
             -- timestamp instead of time_updated, which this CASE then
             -- correctly holds forever after, same as any other ats.
-            posted_at = CASE WHEN excluded.ats IN ('workday', 'comeet') AND posted_at IS NOT NULL THEN posted_at ELSE excluded.posted_at END,
+            posted_at = CASE WHEN excluded.ats IN ('workday', 'comeet', 'checkpoint') AND posted_at IS NOT NULL THEN posted_at ELSE excluded.posted_at END,
             -- Keep the existing description/description_chars when this
             -- upsert's own value is empty, rather than blindly overwriting.
             -- Real for two cases today: Comeet and Workday's fast-poll

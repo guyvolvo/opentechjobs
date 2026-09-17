@@ -82,7 +82,11 @@ probe.FETCH_FULL_DESCRIPTIONS = True
 # describes only jobs this partition has no description for yet, at most
 # NEW_DESCRIPTIONS_PER_RUN a company, and the first run's backlog drains
 # over the next few hours instead of one run that cannot finish.
-BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon")
+#
+# Check Point rides along here for a different reason: its site is one
+# 4MB page read in about a second, but it has no dates and no API, so it
+# is read hourly rather than every five minutes to go easy on it.
+BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon", "checkpoint")
 # Two budgets, because the two kinds of description cost different things.
 # Microsoft and Apple need a request per description, so theirs is a time
 # budget: 300 calls fits a run beside Workday, four global reads and the
@@ -91,6 +95,7 @@ BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon")
 # and died at 1024MB before writing anything.
 NEW_DESCRIPTIONS_PER_RUN = 1000
 DETAIL_CALLS_PER_RUN = 300
+CHECKPOINT_DESCRIPTIONS_PER_RUN = 100
 # Left for the load and the fragments once polling is done.
 BIG_TECH_TIME_RESERVE_MS = 300_000
 
@@ -189,10 +194,20 @@ def _due(pin: dict, last_polled: str | None, now: datetime | None = None) -> boo
     return (now - last).total_seconds() >= hours * 3600 - DUE_SLACK_S
 
 
-def _poll_big_tech(sess, ats: str, domain: str, pin: dict, described: set[str]) -> dict:
+def _poll_big_tech(sess, ats: str, domain: str, pin: dict, described: set[str],
+                   open_ids: set[str] | None = None) -> dict:
     token = pin.get("token")
     kwargs = {"known_ids": described}
-    if ats in ("microsoft", "apple"):
+    if ats == "checkpoint":
+        # Its site shows no posting date, so f_checkpoint dates a role by
+        # the run that first sees it, and needs every open id for that,
+        # not only the described ones.
+        kwargs["open_ids"] = open_ids or set()
+        # A company web server behind a firewall that already turns away
+        # one user agent, so its 406-role backlog fills over a few runs
+        # instead of all at once.
+        kwargs["description_budget"] = CHECKPOINT_DESCRIPTIONS_PER_RUN
+    elif ats in ("microsoft", "apple"):
         kwargs["detail_budget"] = DETAIL_CALLS_PER_RUN
     else:
         kwargs["description_budget"] = NEW_DESCRIPTIONS_PER_RUN
@@ -281,7 +296,7 @@ def lambda_handler(event, context):
             results.append({"domain": domain, "ats": None, "token": None, "job_count": 0, "tried": 0,
                             "error": "out of time this run", "retryable": True, "jobs": []})
             continue
-        r = _poll_big_tech(sess, ats, domain, pin, described.get(domain, set()))
+        r = _poll_big_tech(sess, ats, domain, pin, described.get(domain, set()), known_ids.get(domain))
         print(f"{domain}: {ats} {'%d jobs' % r['job_count'] if r['ats'] else r['error']}")
         results.append(r)
 
