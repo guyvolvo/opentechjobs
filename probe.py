@@ -3528,6 +3528,7 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
     # falls through to the search below, so a company that really has
     # moved is still found.
     hint = HINTS.get(domain)
+    hint_unanswered = False
     if hint and hint.get("ats") in FETCHERS and hint.get("token"):
         tried += 1
         if VERBOSE:
@@ -3536,6 +3537,9 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
             jobs = FETCHERS[hint["ats"]](sess, hint["token"])
         except Exception:
             jobs = None
+        # None is no answer at all, which a rate limit looks like too. An
+        # empty list is a board that answered with nothing open.
+        hint_unanswered = jobs is None
         if jobs and _match_is_fresh(jobs):
             res.ats, res.token = hint["ats"], hint["token"]
             res.jobs = _fill_classifications(jobs, res.domain)
@@ -3669,6 +3673,16 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
     if best:
         res.ats, res.token, res.jobs = best[0], best[1], _fill_classifications(best[2], res.domain)
         res.job_count = len(res.jobs)
+    elif hint_unanswered:
+        # The board this company had yesterday did not answer, and nothing
+        # else matched. That is not evidence the company has no board, and
+        # recording it as a confident miss made the loader clear the
+        # company's ats and token. On 2026-09-17 the daily sweep did that to
+        # 746 working boards, 564 of them Workable with tokens guessing can
+        # never reach (eramtalent-1), and dropped them from known.json.
+        # Retryable, the same as refetch_known's failed re-poll.
+        res.error = f"known {hint['ats']}:{hint['token']} did not answer this run"
+        res.retryable = True
     else:
         res.error = "no ATS matched any token candidate"
     return res

@@ -1213,11 +1213,16 @@ def keep_companies_added_meanwhile(bucket: str, key: str, known_out: Path,
     6,900 companies to 6,017, and Atera and Paragon, pinned that morning,
     went with them.
 
-    Kept: in the live file now, absent from the baseline, and not among
-    the domains this run probed. A company the run did probe is its
-    answer to give, and a company that was already in the baseline and
-    was not probed was dropped from domains.txt on purpose, which is what
-    --prune-stale is for.
+    Kept: in the live file now and either
+      - absent from the baseline and not probed by this run, or
+      - probed by this run with an inconclusive answer (retryable): the
+        board did not answer, which says nothing about whether the
+        company still has one. The same day's sweep dropped 746 working
+        boards that way, most of them added by the batch merge, so they
+        were never in this run's own database to be kept by the loader.
+    A company the run probed and answered for is its answer to give, and
+    a company that was in the baseline and was not probed was dropped
+    from domains.txt on purpose, which is what --prune-stale is for.
     """
     live_path = known_out.with_name(known_out.stem + "-live.json")
     existed, _ = s3_pull(bucket, key, live_path)
@@ -1229,12 +1234,15 @@ def keep_companies_added_meanwhile(bucket: str, key: str, known_out: Path,
     except (OSError, ValueError):
         # No baseline to compare against: keep nothing rather than guess.
         return 0
-    swept = {r.get("domain") for r in json.loads(resolved.read_text(encoding="utf-8"))}
+    results = json.loads(resolved.read_text(encoding="utf-8"))
+    swept = {r.get("domain") for r in results}
+    unanswered = {r.get("domain") for r in results if not r.get("ats") and r.get("retryable")}
     known = json.loads(known_out.read_text(encoding="utf-8"))
     have = {e["domain"] for e in known}
     added = [e for e in live
-             if e.get("domain") and e["domain"] not in before
-             and e["domain"] not in swept and e["domain"] not in have]
+             if e.get("domain") and e["domain"] not in have
+             and (e["domain"] in unanswered
+                  or (e["domain"] not in before and e["domain"] not in swept))]
     if added:
         known.extend(added)
         known_out.write_text(json.dumps(known, ensure_ascii=False), encoding="utf-8")

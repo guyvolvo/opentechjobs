@@ -36,9 +36,13 @@ def row(domain, ats="greenhouse"):
 tmp = Path(tempfile.mkdtemp())
 try:
     # When the sweep started.
-    baseline = [row("old.com"), row("dropped.com"), row("swept-away.com")]
+    baseline = [row("old.com"), row("dropped.com"), row("swept-away.com"),
+                row("eramtalent.com", "workable")]
     # What the sweep probed (domains.txt at checkout) and resolved.
-    resolved = [{"domain": "old.com", "ats": "greenhouse"}, {"domain": "swept-away.com", "ats": None}]
+    resolved = [{"domain": "old.com", "ats": "greenhouse"},
+                {"domain": "swept-away.com", "ats": None, "retryable": False},
+                # Its Workable board did not answer the sweep.
+                {"domain": "eramtalent.com", "ats": None, "retryable": True}]
     export = [row("old.com")]
     # known.json in S3 by the time the sweep finished: the batch merge and a
     # targeted run added two companies, and one of them the sweep also
@@ -63,7 +67,8 @@ try:
     out = {e["domain"] for e in json.loads((tmp / "known.json").read_text())}
 
     check("companies added during the run are kept", {"atera.com", "paragon-solutions.invalid"} <= out, repr(out))
-    check("the count says how many", n == 2, repr(n))
+    check("a board that did not answer the run is kept", "eramtalent.com" in out, repr(out))
+    check("the count says how many", n == 3, repr(n))
     check("the run's own answer stays", "old.com" in out)
     check("a company pruned from domains.txt stays pruned", "dropped.com" not in out, repr(out))
     check("a company the run probed and lost stays lost", "swept-away.com" not in out, repr(out))
@@ -92,6 +97,31 @@ try:
     check("the baseline is copied before the load overwrites known.json", "cp known.json known-at-start.json" in wf)
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
+
+# probe.resolve: a hinted board that does not answer is inconclusive.
+sys.path.insert(0, str(ROOT))
+import probe  # noqa: E402
+
+saved = (dict(probe.HINTS), probe.FETCHERS, probe.token_candidates, probe.PINS)
+try:
+    answers = {}
+    probe.FETCHERS = {"workable": lambda sess, token: answers.get(token)}
+    probe.token_candidates = lambda domain: []   # nothing to guess
+    probe.PINS = {}
+    probe.HINTS.clear()
+    probe.HINTS["eramtalent.com"] = {"ats": "workable", "token": "eramtalent-1"}
+
+    res = probe.resolve("eramtalent.com", None)
+    check("an unanswered hint is retryable", res.ats is None and res.retryable, repr((res.ats, res.retryable, res.error)))
+    check("and says which board", "eramtalent-1" in (res.error or ""), repr(res.error))
+
+    probe.HINTS.clear()
+    res = probe.resolve("eramtalent.com", None)
+    check("no hint and no match is a confident miss", res.ats is None and not res.retryable, repr(res.retryable))
+finally:
+    probe.HINTS.clear()
+    probe.HINTS.update(saved[0])
+    probe.FETCHERS, probe.token_candidates, probe.PINS = saved[1], saved[2], saved[3]
 
 print()
 if failures:
