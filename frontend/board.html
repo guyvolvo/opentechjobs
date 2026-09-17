@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- Google tag (gtag.js). Google's own instruction is "immediately
+       after <head>"; it sits after the charset instead, because a
+       document's encoding has to be declared inside the first 1024
+       bytes and this snippet is long enough to push it out. async, so
+       it never blocks the theme script below or first paint. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GXP63R1JP1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GXP63R1JP1');
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>OpenTechJobs: Tech Job Board</title>
+  <meta name="description" content="OpenTechJobs.org: the open-source job board that makes hunting for your next opportunity easy, fast, and transparent." />
+  <!-- A link shared without these falls back to whatever a platform's own
+       crawler screenshots live -- reported live (2026-09-08): that's a
+       JS-rendered page mid-fetch, so the preview showed the loading
+       skeleton ("Loading market panels...") instead of anything real.
+       og-image.png is a static, purpose-built card (the horizontal logo
+       centered on its own flat background, no live render involved), so
+       every platform shows the same correct thing regardless of whether
+       or how well its crawler executes JS. Absolute URLs throughout --
+       a relative image path doesn't resolve for an external crawler. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentechjobs.org/board" />
+  <meta property="og:title" content="OpenTechJobs.org" />
+  <meta property="og:description" content="The open-source job board that makes hunting for your next opportunity easy, fast, and transparent." />
+  <meta property="og:image" content="https://opentechjobs.org/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="OpenTechJobs.org" />
+  <meta name="twitter:description" content="The open-source job board that makes hunting for your next opportunity easy, fast, and transparent." />
+  <meta name="twitter:image" content="https://opentechjobs.org/og-image.png" />
+  <!-- SVG first (crisp at any size, modern browsers use it over the .ico
+       below); .ico stays for older browsers that don't support rel="icon"
+       type="image/svg+xml" at all. apple-touch-icon is PNG-only -- iOS
+       doesn't accept SVG there. favicon.svg wraps the actual provided
+       mark (favicon-512.png) as a base64 <image>, not a redrawn
+       approximation -- the 16/32/180px PNGs and the .ico are resized
+       directly from that same source file too. -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2" />
+  <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png?v=2" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- The default first page, precomputed at merge time and served from
+       CloudFront's edge with no Lambda in the path (loader/bootstrap.py).
+       Preloaded so it downloads alongside app.js rather than after it.
+       app.js ignores it unless it matches the exact query it was about
+       to make, so a mismatched file costs nothing but a normal fetch. -->
+  <link rel="preload" href="/bootstrap.json" as="fetch" crossorigin="anonymous" />
+  <script>
+    // Applied before first paint so there's no flash of the wrong theme
+    // on reload. app.js still owns the toggle button/click handling.
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+    // Same for a Statistics column collapsed on an earlier visit (see
+    // wireStatsToggle in app.js), so it does not open and ease shut.
+    try {
+      if (localStorage.getItem("iljobs_stats_collapsed") === "1") {
+        document.documentElement.classList.add("stats-collapsed");
+      }
+    } catch (e) {}
+  </script>
+</head>
+<body>
+
+  <!-- Status glyph sprite, defined once and referenced by <use> wherever
+       a state is shown. Two places today: the topbar indicator and the
+       Data Health tile. Shapes carry the meaning so the state survives
+       being read in greyscale, by someone colourblind, or at the 13px
+       the topbar renders it. -->
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <symbol id="status-positive" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M7.7 12.3 10.7 15.3 16.4 9" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <!-- Signed-in account. Drawn here rather than shipped as an image
+         for the same reason the status marks are: one stroke weight, one
+         colour that follows the text it sits beside, and it stays sharp
+         at any size. The head sits clear of the shoulders and both stay
+         inside the ring, so it reads at the 18px the topbar gives it. -->
+    <symbol id="account" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="12" cy="9.2" r="2.9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M6.7 19.1a5.3 5.3 0 0 1 10.6 0" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="status-warning" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M12 7.4v5.4" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round"/>
+      <circle cx="12" cy="16.4" r="1.15" fill="currentColor"/>
+    </symbol>
+    <symbol id="status-negative" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round"/>
+    </symbol>
+    <!-- Updating: the same ring, faint, with one quarter drawn solid. CSS
+         spins the whole mark (see .status-icon.updating). -->
+    <symbol id="status-updating" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" opacity="0.25"/>
+      <path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <div class="topbar">
+    <div class="container">
+      <span class="status-indicator"><svg class="status-icon" id="status-dot" role="img" aria-label="Pipeline status"><use href="#status-positive"></use></svg><span id="status-text">...</span></span>
+      <a class="wordmark" href="/">
+        <img src="logo-square.png" alt="OpenTechJobs.org" class="wordmark-logo" />
+      </a>
+      <div class="ticker-rule"></div>
+      <div class="ticker" id="ticker" aria-label="Recently posted jobs">
+        <div class="ticker-track" id="ticker-track"></div>
+      </div>
+      <div class="ticker-rule"></div>
+      <nav class="topnav">
+        <!-- Populated entirely by app.js's renderAuthState(), same convention as the .ms filter dropdowns below -->
+        <div class="auth-area" id="auth-area"></div>
+        <button id="theme-toggle" class="theme-toggle" type="button">Dark</button>
+        <a class="link" href="/api/jobs" target="_blank">API</a>
+        <a class="icon-link" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener" aria-label="View source on GitHub" title="View source on GitHub">
+          <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+      </nav>
+    </div>
+    <!-- Sits on the topbar's existing 2px bottom rule and turns it green
+         while a fetch is in flight. Results stay visible underneath. -->
+    <div class="load-bar" id="load-bar" aria-hidden="true"></div>
+  </div>
+
+  <div class="workspace">
+    <section class="section" id="board">
+      <div class="container">
+        <div class="board-split">
+          <div class="board-list">
+            <div class="filters">
+              <input type="text" id="f-search" placeholder="Search" title="Every word must appear somewhere in the listing: title, company, location, category or description. &quot;Quote a phrase&quot; to keep it together." />
+              <!-- Collapsed behind #filters-toggle below a certain #board
+                   width (see style.css's @container rule) -- everything
+                   here is a refinement on top of the search box above,
+                   never the only way to find something. Above that
+                   width .filters-sub is just another flex row, visually
+                   identical to before this existed. -->
+              <button type="button" class="btn ghost filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="filters-sub">Filters</button>
+              <div class="filters-sub" id="filters-sub">
+                <div class="ms" id="ms-department"></div>
+                <div class="ms" id="ms-seniority"></div>
+                <div class="ms" id="ms-company"></div>
+                <div class="ms" id="ms-location"></div>
+                <div class="ms" id="ms-workplace"></div>
+                <select id="f-date-posted" title="Date posted">
+                  <option value="">Date posted</option>
+                  <option value="any">Any time</option>
+                  <option value="1">Past 24 hours</option>
+                  <option value="3">Past 3 days</option>
+                  <option value="7">Past 7 days</option>
+                  <option value="14">Past 14 days</option>
+                  <option value="30">Past 30 days</option>
+                </select>
+                <select id="f-sort" title="Sort">
+                  <option value="">Sort</option>
+                  <option value="match:asc" hidden>Best match</option>
+                  <option value="age:asc">Newest</option>
+                  <option value="age:desc">Oldest</option>
+                </select>
+                <button class="btn ghost" id="f-reset">Reset</button>
+              </div>
+            </div>
+
+            <!-- Which listings the board shows. Saved used to be a checkbox
+                 among the filters, and the CV match a chip that only
+                 appeared once a link from /account had set it, so neither
+                 was something a reader could find. Filters apply in every
+                 view: Best matches orders what they leave, it does not
+                 replace them. -->
+            <div class="view-switch seg" id="view-switch" role="tablist" aria-label="Which listings to show">
+              <button type="button" class="seg-btn active" data-view="all" role="tab" aria-selected="true">Show all</button>
+              <button type="button" class="seg-btn" data-view="matches" role="tab" aria-selected="false">Best matches</button>
+              <button type="button" class="seg-btn" data-view="saved" role="tab" aria-selected="false">★ Saved</button>
+            </div>
+
+            <button id="company-chip" class="chip" style="display:none" title="Clear company filter">
+              <span class="chip-label"></span> ✕
+            </button>
+            <!-- Best matches only: the CV skills the order is built from.
+                 A ranked board looks like an unranked one, so this is the
+                 only thing on screen saying what the order means. -->
+            <div class="match-panel" id="match-panel" hidden></div>
+            <div id="result-count" class="result-count"></div>
+
+            <!-- Skeleton rows replaced the text loader (see jobsSkeletonHtml
+                 in app.js); this stays as the screen-reader half of that,
+                 since the bones themselves are aria-hidden. -->
+            <div id="jobs-loading" class="visually-hidden" role="status"></div>
+            <div id="jobs-error" class="error-state" style="display:none"></div>
+            <div id="jobs-empty" class="empty-state" style="display:none"><strong>No results</strong><span>No listings match these filters.</span></div>
+
+            <table class="jobs">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th data-sort="title">Listing</th>
+                  <th data-sort="age">Age</th>
+                </tr>
+              </thead>
+              <tbody id="jobs-body"></tbody>
+            </table>
+
+            <div class="pagination" id="pagination">
+              <span id="pagination-info"></span>
+              <div class="pages" id="pagination-pages"></div>
+            </div>
+          </div>
+
+          <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail" hidden></aside>
+          <!-- Dims and catches clicks on the board while the job sheet is
+               up. -->
+          <div id="job-scrim" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="stats-board" id="stats-board">
+      <!-- Folds the column away to the right. Collapsed, this button is
+           all that stays, as a slim tab. -->
+      <button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true" aria-controls="stats-board" title="Hide statistics">
+        <span class="stats-toggle-icon" aria-hidden="true">›</span>
+        <span class="stats-toggle-label">Statistics</span>
+      </button>
+      <h2 class="section-title">Statistics</h2>
+      <a class="link stats-more" href="/stats">Explore advanced statistics</a>
+
+      <!-- Three labelled blocks, not one flat stack. Some of these
+           numbers follow the board's filters now and the rest never
+           can, and an unlabelled column gives the reader no way to tell
+           which is which: "GLOBAL OPEN JOBS" over a count of twelve
+           remote Ruby roles in Haifa is the exact failure. The heading
+           of each block says which question it answers. -->
+      <section class="stats-section" aria-labelledby="stats-search-title">
+        <h3 class="stats-section-title" id="stats-search-title">Current search</h3>
+        <p class="stats-scope" id="stats-scope">No filters applied</p>
+
+        <div id="metrics-grid" class="metrics-grid">
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <span class="visually-hidden" role="status">Loading metrics</span>
+        </div>
+
+        <div id="scoped-panel-grid" class="panel-grid">
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <span class="visually-hidden" role="status">Loading companies</span>
+        </div>
+      </section>
+
+      <section class="stats-section" aria-labelledby="stats-market-title">
+        <h3 class="stats-section-title" id="stats-market-title">Market overview</h3>
+        <p class="stats-scope">Global Statistics</p>
+
+        <div id="panel-grid" class="panel-grid stats-grid-solo">
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <span class="visually-hidden" role="status">Loading market panels</span>
+        </div>
+      </section>
+
+      <section class="stats-section" aria-labelledby="stats-pipeline-title">
+        <h3 class="stats-section-title" id="stats-pipeline-title">Pipeline status</h3>
+
+        <div id="pipeline-grid" class="metrics-grid stats-grid-solo">
+          <div class="sk-tile" aria-hidden="true"><span class="skeleton sk-label"></span><span class="skeleton sk-value"></span></div>
+          <span class="visually-hidden" role="status">Loading pipeline status</span>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer>
+    <div class="container">
+      <div class="footer-meta">
+        <span>&copy; 2026 OpenTechJobs.org</span>
+        <!-- Full endpoint/parameter docs used to live inline here --
+             moved to /api/help (api/help_page.py, served by the API
+             Lambda itself) 2026-09-08, since almost nobody scrolled
+             this far and every page load was shipping the whole
+             reference regardless. -->
+        <a class="link" href="/api/help">API Reference</a>
+        <a class="link" href="/privacy">Privacy</a>
+        <a class="link" href="https://github.com/guyvolvo/opentechjobs/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+      </div>
+      <!-- Buy Me a Coffee, on its own row under the footer links. The
+           widget injects its own button, styled entirely by their script
+           (their yellow, their Poppins), so it deliberately sits outside
+           the palette and type ramp rather than half-matching them. -->
+      <div class="footer-support">
+        <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="guyvoloshin" data-color="#FFDD00" data-emoji="" data-font="Poppins" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff"></script>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
