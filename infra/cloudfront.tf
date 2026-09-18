@@ -128,8 +128,11 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
 
       var uri = request.uri;
       // The API has its own behaviours and its own idea of what a path
-      // means. Nothing below applies to it.
-      if (uri.indexOf("/api/") === 0 || uri === "/api") {
+      // means. Nothing below applies to it, nor to a listing's own page,
+      // which the API also serves: without this line /job/<id> read as
+      // an unknown page and was rewritten to /404.html before it ever
+      // reached the origin. Caught on the first deploy.
+      if (uri.indexOf("/api/") === 0 || uri === "/api" || uri.indexOf("/job/") === 0) {
         return request;
       }
 
