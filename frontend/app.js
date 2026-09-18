@@ -2621,6 +2621,7 @@ async function openJobDetail(id) {
 
   const previousId = selectedJobId;
   selectedJobId = id;
+  setCanonical(`/job/${encodeURIComponent(id)}`);
   document.querySelector(`tr[data-id="${previousId}"]`)?.classList.remove("selected");
   if (known) document.querySelector(`tr[data-id="${id}"]`)?.classList.add("selected");
 
@@ -2692,6 +2693,16 @@ function closeJobDetail() {
   }, 250);
   document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.remove("selected");
   selectedJobId = null;
+  setCanonical("/board");
+}
+
+// The board's canonical follows whichever listing is open. A listing has
+// its own page at /job/<id> (api/job_page.py), and that page is what
+// the sitemap lists; ?job= on the board is the same content behind a
+// parameter, so it points at the page rather than competing with it.
+function setCanonical(path) {
+  const link = document.getElementById("canonical");
+  if (link) link.href = `${location.origin}${path}`;
 }
 
 // Same reasoning as openJobDetailAndPush -- closing via the header

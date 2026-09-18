@@ -70,6 +70,9 @@ jobs:
           aws s3 sync frontend/ "s3://${{ vars.FRONTEND_BUCKET }}/" --delete \
             --exclude "bootstrap.json" \
             --exclude "bootstrap-il.json" \
+            --exclude "sitemap.xml" \
+            --exclude "sitemap-*.xml" \
+            --exclude "feed.xml" \
             --exclude "stats.json" \
             --exclude "facets.json" \
             --exclude "explore.json" \

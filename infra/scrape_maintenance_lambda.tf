@@ -117,6 +117,12 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # prompt's accept button asks for. See loader/bootstrap.py's
           # VIEWS for why these two and no others.
           "${aws_s3_bucket.frontend.arn}/bootstrap-il.json",
+          # The sitemap index, its job shards and the RSS feed, generated
+          # from the snapshot (loader/sitemap.py). A hand-kept sitemap of
+          # 271,000 listings is not a thing.
+          "${aws_s3_bucket.frontend.arn}/sitemap.xml",
+          "${aws_s3_bucket.frontend.arn}/sitemap-*.xml",
+          "${aws_s3_bucket.frontend.arn}/feed.xml",
           # stats.json/facets.json: the same answers the API serves,
           # published where the browser can fetch them from the edge
           # without invoking anything. The page polls these every two
@@ -134,10 +140,15 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
       {
         # Retiring builds nobody can reach any more, which needs to see
         # what is there. Listing is scoped to that one prefix.
-        Sid      = "RetireExploreBuilds"
-        Effect   = "Allow"
-        Action   = ["s3:DeleteObject"]
-        Resource = ["${aws_s3_bucket.frontend.arn}/explore/*"]
+        Sid    = "RetireExploreBuilds"
+        Effect = "Allow"
+        Action = ["s3:DeleteObject"]
+        Resource = [
+          "${aws_s3_bucket.frontend.arn}/explore/*",
+          # A job-shard count that shrinks leaves files the index no
+          # longer names; the publisher deletes the next few numbers.
+          "${aws_s3_bucket.frontend.arn}/sitemap-jobs-*.xml",
+        ]
       },
       {
         Sid       = "ListExploreBuilds"

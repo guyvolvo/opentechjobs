@@ -51,6 +51,7 @@ sys.path.insert(0, str(ROOT / "loader"))
 from alerts import evaluate_alerts  # noqa: E402
 from deltas import delete_fragments, list_fragments_sized, read_fragments  # noqa: E402
 import build_explore
+import sitemap
 import precompute
 
 # Listings closed longer ago than this leave the snapshot for S3. Every
@@ -400,6 +401,9 @@ def lambda_handler(event, context):
                "alerts": alerts_result, "precomputed": len(written),
                "explore": explore["bytes"] if explore else None}
     _publish_bootstrap(s3)
+    # The sitemap index, its job shards and the feed, once an hour at
+    # most. See loader/sitemap.py for what goes in and why.
+    sitemap.publish(FRONTEND_BUCKET, snapshot, TMP)
 
     print(f"delta apply complete: {json.dumps(summary, default=str)}")
     _write_status(s3, "idle", f"last apply: {applied_count} companies from {len(keys)} fragments")

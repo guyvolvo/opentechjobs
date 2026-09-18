@@ -199,6 +199,21 @@ resource "aws_cloudfront_cache_policy" "api" {
   }
 }
 
+resource "aws_cloudfront_cache_policy" "job_page" {
+  name        = "${var.project_name}-job-page-cache"
+  comment     = "Listing pages: ten minutes, keyed on the path alone"
+  default_ttl = 600
+  min_ttl     = 0
+  max_ttl     = 3600
+  parameters_in_cache_key_and_forwarded_to_origin {
+    cookies_config { cookie_behavior = "none" }
+    headers_config { header_behavior = "none" }
+    query_strings_config { query_string_behavior = "none" }
+    enable_accept_encoding_gzip   = true
+    enable_accept_encoding_brotli = true
+  }
+}
+
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
@@ -304,6 +319,26 @@ resource "aws_cloudfront_distribution" "main" {
     cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
     origin_request_policy_id = aws_cloudfront_origin_request_policy.viewer_country.id
     compress                 = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.legacy_domain_redirect.arn
+    }
+  }
+
+  # A listing's own HTML page, served by the API Lambda (api/job_page.py).
+  # Its own behavior rather than a path under /api/ because the URL is
+  # the point: /job/<id> is what the sitemap lists and what a crawler
+  # indexes, and it must not carry the API prefix. No query strings in
+  # the key: the page is a function of the id alone.
+  ordered_cache_behavior {
+    path_pattern           = "/job/*"
+    target_origin_id       = "api-lambda"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    cache_policy_id        = aws_cloudfront_cache_policy.job_page.id
+    compress               = true
 
     function_association {
       event_type   = "viewer-request"

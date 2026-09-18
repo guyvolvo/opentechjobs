@@ -26,6 +26,11 @@
        every platform shows the same correct thing regardless of whether
        or how well its crawler executes JS. Absolute URLs throughout --
        a relative image path doesn't resolve for an external crawler. -->
+  <!-- The board is one page; a listing open on it has its own page at
+       /job/<id>, which app.js swaps in here while one is open, so the
+       two never compete in an index. -->
+  <link rel="canonical" href="https://opentechjobs.org/board" id="canonical" />
+  <link rel="alternate" type="application/rss+xml" title="OpenTechJobs newest listings" href="https://opentechjobs.org/feed.xml" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://opentechjobs.org/board" />
   <meta property="og:title" content="OpenTechJobs.org" />

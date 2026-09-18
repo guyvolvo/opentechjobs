@@ -32,6 +32,7 @@ from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
                         has_board_filters, search_companies)
 from db import get_connection, status as db_status
 from help_page import HELP_HTML
+import job_page
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
 from saved import is_saved_id, job_id_of, saved_id
@@ -39,7 +40,7 @@ from skills import SKILL_TERMS
 from skills import spec as skill_spec
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, MAX_SEARCH_TERMS, bool_param,
                          build_jobs_where, has_fts_index, has_places,
-                         relevance_score_sql, salary_source_select, search_mode,
+                         is_job_id, relevance_score_sql, salary_source_select, search_mode,
                          search_terms, skills_score_sql, wanted_skills)
 
 _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
@@ -116,12 +117,68 @@ SORT_COLUMNS = {
 # logic, not a second copy that quietly drifts from this one.
 
 
+def route_job_page(job_id: str):
+    """GET /job/{id}: the listing as its own HTML page (api/job_page.py).
+
+    Its own query rather than route_job_detail's, because the page shows
+    salary and the derived place columns that the JSON route leaves out,
+    and because the JSON route's shape is a public surface that should
+    not grow to serve a page.
+    """
+    if not is_job_id(job_id):
+        return _html_response(404, job_page.render_missing(404, job_id), cache_seconds=60,
+                              extra_headers={"X-Robots-Tag": "noindex"})
+    conn = get_connection()
+    company_name_select = (
+        "(SELECT company_name FROM companies WHERE domain = jobs.company_domain) AS company_name"
+        if _has_company_name(conn) else "NULL AS company_name"
+    )
+    logo_select = (
+        "(SELECT logo_url FROM companies WHERE domain = jobs.company_domain) AS logo_url"
+        if _has_company_column(conn, "logo_url") else "NULL AS logo_url"
+    )
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(jobs)")}
+    place_select = "country, city" if {"country", "city"} <= cols else "NULL AS country, NULL AS city"
+    row = conn.execute(
+        f"""
+        SELECT id, company_domain, ats, external_id, title, location, department,
+               category_of(department, title) AS category, seniority, workplace_type,
+               {_apply_url_select(conn)}, posted_at, description, first_seen, last_seen, closed_at,
+               salary_text, salary_is_estimate, {salary_source_select(conn)}, {place_select},
+               {company_name_select}, {logo_select}
+        FROM jobs WHERE id = ?
+        """,
+        (job_id,),
+    ).fetchone()
+    job = dict(row) if row else None
+    status = job_page.status_for(job)
+    if status != 200:
+        return _html_response(status, job_page.render_missing(status, job_id), cache_seconds=60,
+                              extra_headers={"X-Robots-Tag": "noindex"})
+    blob = _description_from_s3(job_id)
+    if blob:
+        job["description"] = blob
+    extra = {"X-Robots-Tag": "noindex"} if job.get("closed_at") else None
+    # Ten minutes at the edge: a listing's page changes when it closes,
+    # and the sitemap tells crawlers about new ones, so nothing here
+    # needs the API's three-minute window.
+    return _html_response(200, job_page.render(job), cache_seconds=600, edge_seconds=600, extra_headers=extra)
+
+
 def lambda_handler(event, context):
     method = event.get("requestContext", {}).get("http", {}).get("method", "GET")
     if method == "OPTIONS":
         return _response(204, "")
 
     path = event.get("rawPath") or "/"
+    # The one route this Lambda serves outside /api: a listing's own HTML
+    # page. Before the prefix strip, since it has no prefix.
+    if path.startswith("/job/") and len(path) > len("/job/"):
+        try:
+            return route_job_page(path[len("/job/"):].split("?")[0])
+        except Exception as e:  # noqa: BLE001 -- a page must answer, not 502
+            print(f"job page failed: {e!r}")
+            return _html_response(500, job_page.render_missing(404, ""), extra_headers={"X-Robots-Tag": "noindex"})
     if path.startswith("/api"):
         path = path[4:] or "/"
     params = _query_params(event)
@@ -284,13 +341,18 @@ def _response(status: int, body: str, cache_seconds: int | None = None):
     }
 
 
-def _html_response(status: int, body: str, cache_seconds: int | None = None):
-    """Same shape as _response, just text/html -- only /help needs this;
-    every other route on this Lambda answers JSON.
+def _html_response(status: int, body: str, cache_seconds: int | None = None,
+                   edge_seconds: int | None = None, extra_headers: dict | None = None):
+    """Same shape as _response, just text/html: /help and the job pages.
+
+    edge_seconds sets s-maxage separately from the browser's max-age,
+    the same split _response makes. extra_headers is for X-Robots-Tag on
+    the pages that must not be indexed.
     """
-    headers = {"Content-Type": "text/html; charset=utf-8", **CORS_HEADERS}
+    headers = {"Content-Type": "text/html; charset=utf-8", **CORS_HEADERS, **(extra_headers or {})}
     if cache_seconds is not None:
-        headers["Cache-Control"] = f"public, max-age={cache_seconds}"
+        headers["Cache-Control"] = f"public, max-age={cache_seconds}" + (
+            f", s-maxage={edge_seconds}" if edge_seconds is not None else "")
     return {
         "statusCode": status,
         "headers": headers,
