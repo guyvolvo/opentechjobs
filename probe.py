@@ -2776,6 +2776,149 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
                                    # entry lets the search actually reach.
 }
 
+# RedMatch, an Israeli recruiting platform. Clalit Health Services runs
+# it, and Clalit is the largest employer in the country: 559 open
+# positions on 2026-09-18, none of them findable by any guess because the
+# site is a static page that POSTs to its own CandidateAPI with the
+# employer's affiliate id. The token is the site path the apply links
+# hang off and that id, "jobs.clalitapps.co.il/clalit:<guid>".
+#
+# One request answers everything: the body below is what the page's own
+# script sends for "all categories, all cities", and the reply is the
+# full list with titles, cities, an activation date and the description
+# HTML. Positions carry isActivePosition; the site shows only the active
+# ones, so this does too.
+#
+# The country is named, not guessed, on the same reasoning as
+# _niloosoft_location: an Israeli platform whose locations are Hebrew
+# cities and regions, which IL_KEYWORDS does not read.
+REDMATCH_SEARCH_BODY = {"KeyWords": "", "CategoryId": ["0"], "countryId": 2, "cityId": []}
+REDMATCH_TIMEOUT = 60
+
+
+def f_redmatch(sess, token, known_ids=None, description_budget=None):
+    if not isinstance(token, str) or ":" not in token:
+        return None
+    site, _, affiliate = token.partition(":")
+    host = site.split("/", 1)[0]
+    if "." not in host or not affiliate:
+        return None
+    # The double slash is the site's own; the API answers 404 without it.
+    url = f"https://{host}/CandidateAPI/api//position/Search/{affiliate}"
+    d = get_json_post(sess, url, REDMATCH_SEARCH_BODY, timeout=REDMATCH_TIMEOUT)
+    if isinstance(d, dict):
+        d = next((v for v in d.values() if isinstance(v, list)), None)
+    if not isinstance(d, list):
+        return None
+    out = []
+    for j in d:
+        if not isinstance(j, dict) or j.get("isActivePosition") is False:
+            continue
+        pid = _txt(j.get("compPositionID"))
+        title = _txt(j.get("jobTitleText")).strip()
+        if not pid or not title:
+            continue
+        where = _txt(j.get("displayLocation")) or _txt(j.get("location"))
+        out.append(Job("redmatch", token, pid, title,
+                       f"{where}, Israel" if where else "Israel",
+                       f"https://{site}/redmatch-apply/redmatch.apply.html?compPositionID={pid}",
+                       _txt(j.get("activationDate")) or None,
+                       _txt(j.get("fieldDesc")) or None,
+                       description=_clean_text(j.get("description"))))
+    return out
+
+
+# WordPress sites that publish jobs as their own post type and leave the
+# REST API open for it. One Technologies is the first: a `job` type, 157
+# posts, a `region` taxonomy for where and a `job-category` one for the
+# field. Nothing about that is guessable and the names differ per site,
+# so the token names the host, the post type, and the country to put on
+# every location, since a region taxonomy says "Gush Dan" in Hebrew and
+# never which country that is: "www.one1.co.il:job:Israel".
+#
+# Taxonomies are discovered from the type rather than assumed. Whichever
+# of them sound like a place become the location and whichever sound
+# like a field become the department; the terms are read once per poll.
+# A site that has closed the REST API for the type answers 401, which
+# is no answer and not an empty board.
+WPREST_PAGE = 100
+WPREST_MAX_PAGES = 40
+_WPREST_PLACE_RE = re.compile(r"region|location|area|city|branch|site", re.I)
+_WPREST_FIELD_RE = re.compile(r"categor|field|department|team|profession", re.I)
+
+
+def _wprest_get(sess, url):
+    """(json, headers) for a 200, (None, None) for anything else."""
+    try:
+        r = sess.get(url, timeout=TIMEOUT, headers={"User-Agent": _BROWSER_UA, "Accept": "application/json"})
+    except requests.RequestException:
+        return None, None
+    if r.status_code != 200:
+        return None, None
+    try:
+        return r.json(), r.headers
+    except ValueError:
+        return None, None
+
+
+def _wprest_terms(sess, base, rest_base):
+    """id -> name for one taxonomy, every page of it."""
+    names = {}
+    for page in range(1, WPREST_MAX_PAGES + 1):
+        body, headers = _wprest_get(sess, f"{base}/{rest_base}?per_page={WPREST_PAGE}&page={page}")
+        if not isinstance(body, list):
+            break
+        for t in body:
+            if isinstance(t, dict) and t.get("id") is not None:
+                names[t["id"]] = html.unescape(_txt(t.get("name")))
+        if page >= int((headers or {}).get("X-WP-TotalPages") or 1):
+            break
+    return names
+
+
+def f_wprest(sess, token, known_ids=None, description_budget=None):
+    parts = token.split(":") if isinstance(token, str) else []
+    if len(parts) != 3 or "." not in parts[0] or not parts[1] or not parts[2]:
+        return None
+    host, post_type, country = parts
+    base = f"https://{host}/wp-json/wp/v2"
+
+    taxonomies, _ = _wprest_get(sess, f"{base}/taxonomies?type={post_type}")
+    place_tax, field_tax = {}, {}
+    if isinstance(taxonomies, dict):
+        for name, tax in taxonomies.items():
+            rest_base = (tax or {}).get("rest_base") or name
+            if _WPREST_PLACE_RE.search(name):
+                place_tax[rest_base] = _wprest_terms(sess, base, rest_base)
+            elif _WPREST_FIELD_RE.search(name):
+                field_tax[rest_base] = _wprest_terms(sess, base, rest_base)
+
+    out = []
+    for page in range(1, WPREST_MAX_PAGES + 1):
+        body, headers = _wprest_get(sess, f"{base}/{post_type}?per_page={WPREST_PAGE}&page={page}")
+        if not isinstance(body, list):
+            # A refusal on the first page is a closed API; one later on is
+            # a partial read, and both mean no answer rather than "fewer".
+            return None
+        for j in body:
+            if not isinstance(j, dict) or j.get("id") is None:
+                continue
+            title = html.unescape(re.sub(r"<[^>]+>", "", _txt((j.get("title") or {}).get("rendered")))).strip()
+            if not title:
+                continue
+            places = [names[i] for rest_base, names in place_tax.items() for i in (j.get(rest_base) or []) if i in names]
+            fields = [names[i] for rest_base, names in field_tax.items() for i in (j.get(rest_base) or []) if i in names]
+            out.append(Job("wprest", token, str(j["id"]), title,
+                           f"{'; '.join(places)}, {country}" if places else country,
+                           _txt(j.get("link")),
+                           _txt(j.get("date")) or None,
+                           "; ".join(fields) or None,
+                           description=_clean_text((j.get("content") or {}).get("rendered"))))
+        if page >= int((headers or {}).get("X-WP-TotalPages") or 1):
+            break
+    return out
+
+
 # Ordered by how often each one actually wins, because the guess loop
 # below tries them in this order and stops at the first hit. The old
 # order was roughly the order they were written in, which put personio
@@ -2814,6 +2957,8 @@ FETCHERS: dict[str, Callable] = {
     "checkpoint": f_checkpoint,
     # Keyed on a listing URL. See the note above it.
     "wpjobs": f_wpjobs,
+    "redmatch": f_redmatch,
+    "wprest": f_wprest,
     # Keyed on "pod:site". See the note above it.
     "oracle": f_oracle_cx,
     # Keyed on "host:domain". See the note above it.
@@ -2824,7 +2969,7 @@ FETCHERS: dict[str, Callable] = {
 # hourly Lambda (scrape_workday_handler.py), which reads them with known
 # state so a run only describes jobs it has not seen.
 SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple", "checkpoint",
-                            "wpjobs", "oracle", "eightfold"})
+                            "wpjobs", "oracle", "eightfold", "redmatch", "wprest"})
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered

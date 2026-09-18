@@ -518,6 +518,33 @@ wpjobs:
     jobs_seen: 21
     source: own-careers-page
 
+redmatch:
+  # RedMatch, an Israeli recruiting platform (f_redmatch in probe.py).
+  # The careers site is a static page that POSTs to a CandidateAPI on the
+  # same host with the employer's affiliate id, and answers every open
+  # position in one response. The token is the site path the apply links
+  # hang off, then that id. Israeli platform, Israeli employers: every
+  # location is a Hebrew city or region and the fetcher names the
+  # country, the same reasoning as the Niloosoft boards.
+  # Counts as of 2026-09-18.
+  - domain: clalit.co.il
+    token: "jobs.clalitapps.co.il/clalit:9E6C0368-A39E-4D83-803E-CF2AF0BA28DD"
+    jobs_seen: 559
+    source: own-careers-api
+    note: added 2026-09-18. Clalit Health Services, the largest employer in Israel. 559 open positions, all in Israel, most of them not tech. Was not tracked at all.
+
+wprest:
+  # WordPress sites that publish their jobs as a custom post type and
+  # leave the REST API open for it (f_wprest in probe.py). The token is
+  # host, post type, and the country to name, since the site's own
+  # region taxonomy carries "גוש דן" and nothing the classifier reads.
+  # Counts as of 2026-09-18.
+  - domain: one1.co.il
+    token: "www.one1.co.il:job:Israel"
+    jobs_seen: 157
+    source: own-careers-api
+    note: added 2026-09-18. One Technologies, IT services. 157 roles across six Israeli regions. Was not tracked at all.
+
 eightfold:
   # Eightfold's careers platform. The token is the careers host and the
   # tenant name its API wants, which are rarely the same string
