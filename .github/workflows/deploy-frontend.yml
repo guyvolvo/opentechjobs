@@ -65,9 +65,11 @@ jobs:
           # noticed each frontend deploy deleted both and sent every poll
           # back through the Lambda until the next precompute. Not an
           # outage, the page falls back to the API, but exactly the cost
-          # those files exist to avoid.
+          # those files exist to avoid. bootstrap-il.json joined
+          # the list the day it was added, for the same reason.
           aws s3 sync frontend/ "s3://${{ vars.FRONTEND_BUCKET }}/" --delete \
             --exclude "bootstrap.json" \
+            --exclude "bootstrap-il.json" \
             --exclude "stats.json" \
             --exclude "facets.json" \
             --exclude "explore.json" \

@@ -49,13 +49,14 @@ async function open() {
     const res = performance.getEntriesByType("resource");
     const stats = res.find((e) => /stats\.json/.test(e.name));
     const api = res.filter((e) => /\/api\/jobs\b/.test(e.name) && /limit=50/.test(e.name))[0];
-    return { stats_end: stats ? Math.round(stats.responseEnd) : null, api_start: api ? Math.round(api.startTime) : null };
+    return { stats_start: stats ? Math.round(stats.startTime) : null, api_start: api ? Math.round(api.startTime) : null };
   });
-  // The point of un-awaiting refreshStats: the jobs request no longer
-  // starts only once stats has landed.
-  check("the jobs request does not queue behind stats.json",
-    t.api_start === null || t.stats_end === null || t.api_start < t.stats_end + 5,
-    `api_start=${t.api_start} stats_end=${t.stats_end}`);
+  // Both are started together now, so they begin within a frame or two
+  // of each other. Comparing against when stats FINISHED would pass by
+  // luck whenever stats happens to be fast, which it usually is.
+  check("the jobs request starts alongside stats, not after it",
+    t.api_start === null || t.stats_start === null || t.api_start - t.stats_start < 250,
+    `api_start=${t.api_start} stats_start=${t.stats_start}`);
 
   // Accepting re-queries, with the country on it. The wait is generous
   // because country=IL is the one first view with no precomputed page
@@ -87,7 +88,6 @@ async function open() {
   await p.goto("https://opentechjobs.org/board", { waitUntil: "commit" });
   await p.locator(".geo-prompt").waitFor({ state: "visible", timeout: 30_000 });
   await p.waitForSelector("#jobs-body tr[data-id]", { timeout: 30_000 });
-  const firstRow = await p.locator("#jobs-body tr[data-id]").first().getAttribute("data-id");
   await p.locator(".geo-prompt button", { hasText: "Skip" }).first().click();
   await p.waitForTimeout(3000);
   // One request for the whole visit: the confirming fetch behind the
@@ -95,8 +95,12 @@ async function open() {
   // must not add a second one.
   check("skipping does not re-query", jobCalls.length === 1 && !/country=/.test(jobCalls[0] || ""),
     JSON.stringify(jobCalls));
-  check("and leaves the same rows on screen",
-    (await p.locator("#jobs-body tr[data-id]").first().getAttribute("data-id")) === firstRow);
+  // Not row identity: the confirming fetch behind the bootstrap render
+  // can legitimately bring newer listings. What must hold is that Skip
+  // left a full page of the global board up, not an empty table.
+  check("and leaves a full page of listings up",
+    (await p.locator("#jobs-body tr[data-id]").count()) >= 50,
+    String(await p.locator("#jobs-body tr[data-id]").count()));
   check("and no country filter is set", !new URL(p.url()).searchParams.get("country"), p.url());
   await ctx.close();
 }

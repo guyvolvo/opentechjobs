@@ -66,19 +66,35 @@ async function visit(n) {
     if (ARM !== "link") {
       const btn = page.locator(".geo-prompt button", { hasText: ARM === "skip" ? "Skip" : "jobs" }).first();
       await btn.waitFor({ state: "visible", timeout: 60_000 });
+      // Armed before the click, because on a warm instance the answer
+      // beats a listener attached after it.
+      const swap = ARM === "prompt"
+        ? page.waitForResponse((r) => /\/api\/jobs/.test(r.url()) && /country=/.test(r.url()) && /limit=50/.test(r.url()),
+            { timeout: 60_000 })
+        : null;
       await btn.click();
       row.answered_at = await page.evaluate(() => Math.round(performance.now()));
+      // The country view is the one first screen with nothing
+      // precomputed behind it, so this is where a cold API instance
+      // still pays for a whole snapshot download.
+      if (swap) await swap;
+      // waitForResponse returns on the headers; the timing entry is
+      // only filed at responseEnd, so reading it immediately finds
+      // nothing.
+      if (swap) await page.waitForTimeout(400);
     }
     await page.waitForSelector("#jobs-body tr[data-id]", { timeout: 60_000 });
 
     Object.assign(row, await page.evaluate(() => {
       const nav = performance.getEntriesByType("navigation")[0] || {};
       const res = performance.getEntriesByType("resource");
-      // The board's own call, not the 10-row ticker that fires beside it.
-      const api = res.filter((e) => /\/api\/jobs\b/.test(e.name) && /limit=50/.test(e.name))
-        .sort((a, b) => a.startTime - b.startTime)[0];
-      const stats = res.filter((e) => /stats\.json|\/api\/stats\b/.test(e.name))
-        .sort((a, b) => a.startTime - b.startTime)[0];
+      const first = (re) => res.filter((e) => re.test(e.name)).sort((x, y) => x.startTime - y.startTime)[0];
+      // The board's own call, not the 10-row ticker beside it.
+      const api = first(/\/api\/jobs\?.*limit=50/);
+      // The same call once a country has been chosen, which is the one
+      // first view with nothing precomputed behind it.
+      const country = first(/\/api\/jobs\?.*country=.*limit=50/);
+      const stats = first(/stats\.json|\/api\/stats/);
       const fcp = performance.getEntriesByName("first-contentful-paint")[0];
       return {
         html_ttfb: Math.round(nav.responseStart || 0),
@@ -88,6 +104,7 @@ async function visit(n) {
         stats_ms: stats ? Math.round(stats.duration) : null,
         api_start: api ? Math.round(api.startTime) : null,
         api_ms: api ? Math.round(api.duration) : null,
+        country_api_ms: country ? Math.round(country.duration) : null,
         api_kb: api ? Math.round((api.transferSize || api.encodedBodySize || 0) / 1024) : null,
         requests: res.length,
         rows: document.querySelectorAll("#jobs-body tr[data-id]").length,
@@ -146,7 +163,7 @@ const summary = {
   rows_median: pct(ok.map((r) => r.rows), 50),
   api_kb_median: pct(ok.map((r) => r.api_kb).filter((x) => typeof x === "number"), 50),
   ms: Object.fromEntries(
-    ["html_ttfb", "fcp", "html_done", "dom_ready", "prompt_at", "stats_ms", "api_start", "api_ms", "first_row", "after_answer"]
+    ["html_ttfb", "fcp", "html_done", "dom_ready", "prompt_at", "stats_ms", "api_start", "api_ms", "country_api_ms", "first_row", "after_answer"]
       .map((k) => [k, stat(k)]).filter(([, v]) => v.n)
   ),
 };

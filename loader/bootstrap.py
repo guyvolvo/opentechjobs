@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from job_filters import FRESH_CLAUSE, register_functions  # noqa: E402
+from job_filters import build_jobs_where, has_places, register_functions  # noqa: E402
 
 # Must match what frontend/app.js actually requests for the unfiltered
 # default view: currentFilterParams() with everything empty leaves only
@@ -43,6 +43,29 @@ from job_filters import FRESH_CLAUSE, register_functions  # noqa: E402
 # drops empty values, which is why no other keys appear.
 BOOTSTRAP_PARAMS = "confidence=all&sort=age&dir=asc&limit=50&offset=0"
 PAGE_SIZE = 50
+
+# The views worth precomputing, as file name to the filter behind it.
+# Two, and there is a reason for each. The empty one is the board's
+# default. country=IL is the other because the geo prompt's own accept
+# button asks for exactly this, which made it the most requested view
+# with nothing behind it: measured over 50 cold visits, the first five
+# took 14.3 seconds each while the other 45 took under 17ms, all of it a
+# cold API instance downloading the whole snapshot before it could
+# answer. Anything beyond these two is guesswork, and a precomputed page
+# nobody asks for is just a file to keep correct.
+#
+# currentFilterParams() emits country ahead of confidence, so that is the
+# order here. The frontend compares this string exactly.
+VIEWS = {
+    "bootstrap.json": {},
+    "bootstrap-il.json": {"country": "IL"},
+}
+
+
+def params_for(filters: dict) -> str:
+    """The query string app.js builds for this view, in its order."""
+    lead = "".join(f"{k}={v}&" for k, v in filters.items())
+    return lead + BOOTSTRAP_PARAMS
 
 # Same column list as route_jobs. Notably no `description`: the list
 # endpoint doesn't return one either, which is why the whole page is
@@ -73,24 +96,36 @@ def _salary_source_select(conn) -> str:
         pass
     return _SALARY_SOURCE_FALLBACK
 
-# confidence=all contributes no clause (see build_jobs_where), and
-# neither include_closed nor include_outdated is set, so those two
-# defaults are the whole filter.
-_WHERE = f"closed_at IS NULL AND {FRESH_CLAUSE}"
+def build(db_path: Path, filters: dict | None = None) -> dict:
+    """Read the just-merged snapshot and return the payload to publish.
 
-
-def build(db_path: Path) -> dict:
-    """Read the just-merged snapshot and return the payload to publish."""
+    The WHERE clause comes from build_jobs_where rather than being
+    written out here, which is the one part of this file that must not
+    drift: the country filter reads a column that only some snapshots
+    carry (has_places), and getting that wrong means publishing a page
+    that quietly disagrees with the API it is standing in for.
+    """
+    filters = filters or {}
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     register_functions(conn)  # category_of(), same as api/db.py does
     try:
-        total = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {_WHERE}").fetchone()[0]
+        places = has_places(conn)
+        # build_jobs_where drops a country filter it cannot answer, which
+        # is right for the API (a reader sees too much for one merge
+        # cycle rather than an error) and wrong here. Publishing a global
+        # first page under the params string country=IL would hand every
+        # Israeli visitor the whole board and look like the real thing.
+        # Better to publish nothing and let the API answer.
+        if filters.get("country") and not places:
+            raise ValueError("this snapshot has no country column yet")
+        where, args = build_jobs_where({"confidence": "all", **filters}, places=places)
+        total = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {where}", args).fetchone()[0]
         rows = conn.execute(
             f"""
             SELECT {_COLUMNS}, {_salary_source_select(conn)}
             FROM jobs
-            WHERE {_WHERE}
+            WHERE {where}
             -- datetime(), and NULLs last, matching route_jobs exactly:
             -- posted_at is TEXT and rows predating _normalize_date can
             -- carry other offsets, which a lexicographic sort gets wrong.
@@ -99,7 +134,7 @@ def build(db_path: Path) -> dict:
             ORDER BY posted_at IS NULL, datetime(posted_at) DESC, id DESC
             LIMIT ? OFFSET 0
             """,
-            (PAGE_SIZE,),
+            (*args, PAGE_SIZE),
         ).fetchall()
     finally:
         conn.close()
@@ -107,7 +142,7 @@ def build(db_path: Path) -> dict:
     return {
         # The frontend compares this against the query string it was
         # about to send and ignores the whole file on any mismatch.
-        "params": BOOTSTRAP_PARAMS,
+        "params": params_for(filters),
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "jobs": {
             "jobs": [dict(r) for r in rows],
@@ -123,9 +158,10 @@ def main() -> int:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", required=True, type=Path, help="local jobs-read.db to read")
-    ap.add_argument("--out", required=True, type=Path, help="where to write bootstrap.json")
+    ap.add_argument("--out", required=True, type=Path, help="where to write the payload")
+    ap.add_argument("--country", help="build the country view instead of the default")
     args = ap.parse_args()
-    payload = build(args.db)
+    payload = build(args.db, {"country": args.country} if args.country else {})
     args.out.write_text(json.dumps(payload, ensure_ascii=False, default=str), encoding="utf-8")
     print(f"wrote {args.out} ({args.out.stat().st_size} bytes, "
           f"{len(payload['jobs']['jobs'])} of {payload['jobs']['total']} jobs)", file=sys.stderr)
