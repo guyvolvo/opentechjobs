@@ -26,11 +26,13 @@ The pipeline uses two EventBridge Lambdas running on 5-minute schedules. Polling
 
 ### Components
 
-**`scrape_handler.py` (Every 5 min):** Runs `probe.py` to poll ~3,450 companies using `If-None-Match` HTTP headers. ~88% of requests return a `304 Not Modified` with no payload (Greenhouse, Lever, Ashby, SmartRecruiters). Writes small delta files (`deltas/{ts}-{run}.json`) for companies with changed listings. Never touches the database directly.
+**`scrape_handler.py` (Every 5 min):** Runs `probe.py` against the boards that are due this tick, using `If-None-Match` HTTP headers. Around 94% of polls return `304 Not Modified` with no payload (Greenhouse, Lever, Ashby, SmartRecruiters). Writes small delta files (`deltas/{ts}-{run}.json`) for companies with changed listings. Never touches the database directly.
+
+Which boards are due is decided by observed activity, not by position in a list (`loader/scrape_state.py`). A board that just posted is polled again in five minutes, the tick's own floor. One that answers "nothing changed" backs off gradually -- 5, 8, 11, 17, 25, 38, 57, 85, 128, 192 minutes -- to a four-hour ceiling, and drops straight back to five minutes the moment it posts again. A board that errors holds its interval rather than backing off, because failing is not the same as quiet.
 
 **`scrape_maintenance_handler.py` (Every 5 min):** Replays pending delta fragments into `jobs-read.db` incrementally, uploads the updated database to S3, and deletes fragments only after a successful push. Evaluates saved-filter alerts and rebuilds `bootstrap.json`.
 
-**`scrape_workday_handler.py` (Every 30 min):** Polls Workday tenants explicitly pinned in `companies.yml`.
+**`scrape_workday_handler.py` (Hourly):** Polls the boards that are too big or too slow for the five-minute sweep: the Workday tenants pinned in `companies.yml`, the companies that run their own careers software (Amazon, Microsoft, Google, Apple, Check Point), and the platforms reached through a pin (Oracle Recruiting Cloud, Eightfold, WP Job Openings). Each pin can ask for a slower cadence with `every_hours`.
 
 **`api/handler.py` (Behind Cloudflare → CloudFront → API Gateway):** Reads `jobs-read.db` from `/tmp`, refreshed via lightweight HEAD checks.
 
@@ -38,13 +40,23 @@ The pipeline uses two EventBridge Lambdas running on 5-minute schedules. Polling
 
 ### Storage Optimizations
 
-Database size is ~370MB (down from 1.2GB):
+The snapshot stays small enough to download into a Lambda's `/tmp` on every refresh:
 
 - Job descriptions are stored as individual S3 objects and fetched on-demand.
 - Raw JSON payloads were removed entirely.
 - Search runs on a contentless SQLite FTS5 index.
 
-A new job reaches the live site within ~5 minutes.
+Counts and file size move every few minutes, so they are not written down here: `/api/health` reports the live totals, the snapshot's version and how old the copy being served is, and `/api/stats` reports the rest.
+
+### Freshness
+
+Two different ages, and they are worth keeping apart. A listing's **age** is how long ago the employer posted it, which is what the board sorts by. A board's **refresh age** is how long ago this project last asked that employer for its listings.
+
+A new job reaches the live site within about five minutes of the next poll of the board carrying it, and how soon that comes depends on how active the board is: five minutes for one posting regularly, up to four hours for one that has been quiet through ten straight polls. The merge then publishes within five minutes, and the API serves the new snapshot within a minute of that.
+
+Not every board is polled every five minutes, and the claim that they were was wrong when this said so: measured over 288 runs in September 2026, around 7,500 boards were due each tick against a cap of 600, which is a queue rather than a rotation.
+
+Some employers cannot be read at all. IBM's Avature board answers every listing URL, its sitemap included, with an empty response; Amdocs and Qualcomm's Eightfold tenants refuse anonymous requests. Those companies are recorded as unresolved rather than attached to a guessed board.
 
 ## Authentication
 
