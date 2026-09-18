@@ -4696,10 +4696,19 @@ const STATS_COLLAPSED_KEY = "iljobs_stats_collapsed";
 // filter state would do exactly that every time the board emptied.
 const GEO_ASKED_KEY = "iljobs_geo_asked";
 
-// Offers the visitor's own country as a filter before the first load,
-// and never mentions it again. Resolves when there is nothing to ask or
-// the visitor has answered, so the caller can await it and let the board
-// render behind the answer rather than under it.
+// Offers the visitor's own country as a filter, and never mentions it
+// again. Resolves true only when the visitor accepted, which is the
+// caller's signal to re-query; every other outcome, including skip, is
+// false and leaves the board showing what it already drew.
+//
+// This used to gate the first load. It doesn't any more: boot() renders
+// the global board behind the prompt, because holding the listings until
+// a human reads a dialog left first-time visitors looking at an empty
+// table for three to five seconds. The old ordering was worth its cost
+// when the default view meant a Lambda round trip and answering after
+// the fact would have fetched the whole board twice. bootstrap.json made
+// that first view a 4KB static file, so the second fetch is now the
+// cheap half and the wait was the expensive one.
 //
 // Silent in three cases, all of which mean the question is not worth
 // asking: it has been asked before, the visitor already has a country
@@ -4709,11 +4718,11 @@ const GEO_ASKED_KEY = "iljobs_geo_asked";
 // right response to "we do not know" is to say nothing at all.
 async function maybeAskCountry() {
   try {
-    if (localStorage.getItem(GEO_ASKED_KEY)) return;
+    if (localStorage.getItem(GEO_ASKED_KEY)) return false;
   } catch {
-    return; // private browsing: no way to remember the answer, so never ask
+    return false; // private browsing: no way to remember the answer, so never ask
   }
-  if (state.country.length) return;
+  if (state.country.length) return false;
 
   let country = null;
   let source = null;
@@ -4722,9 +4731,9 @@ async function maybeAskCountry() {
     country = geo && geo.country;
     source = geo && geo.source;
   } catch {
-    return; // offline or the endpoint is down; the board is what matters
+    return false; // offline or the endpoint is down; the board is what matters
   }
-  if (!country) return;
+  if (!country) return false;
 
   // The country's name, fetched here rather than inherited. Labels live
   // in COUNTRY_LABELS_SEEN, which normalizeLocationFacets fills from
@@ -4752,13 +4761,13 @@ async function maybeAskCountry() {
   // Still no name for it. Saying "Are you in IL?" is worse than staying
   // quiet, the same reasoning route_geo uses when it answers null rather
   // than guessing at XX or T1.
-  if (where === country) return;
+  if (where === country) return false;
 
   const remember = () => {
     try { localStorage.setItem(GEO_ASKED_KEY, "1"); } catch {}
   };
 
-  await new Promise((resolve) => {
+  return await new Promise((resolve) => {
     const scrim = document.createElement("div");
     scrim.className = "geo-scrim";
     const box = document.createElement("div");
@@ -4778,12 +4787,14 @@ async function maybeAskCountry() {
         <button class="btn btn-quiet" id="geo-skip" type="button">Skip</button>
       </div>`;
 
-    const close = () => {
+    // chose: the visitor picked their country, so the caller re-queries.
+    // Skip, Escape and the scrim all answer false and change nothing.
+    const close = (chose = false) => {
       remember();
       scrim.remove();
       box.remove();
       document.removeEventListener("keydown", onKey);
-      resolve();
+      resolve(chose);
     };
     // Escape and the scrim both mean skip. A prompt with no way out
     // other than answering it is a dialog nobody thanks you for.
@@ -4795,10 +4806,14 @@ async function maybeAskCountry() {
       // with nothing on screen saying so.
       applyStateToFilterUI();
       saveFiltersToStorage();
-      close();
+      close(true);
     });
-    box.querySelector("#geo-skip").addEventListener("click", close);
-    scrim.addEventListener("click", close);
+    // Wrapped, not passed directly: an event listener calls its handler
+    // with the event, and close() reads its first argument as the
+    // visitor's answer. Handing it a MouseEvent made Skip look like a
+    // choice and re-ran the query it is supposed to avoid.
+    box.querySelector("#geo-skip").addEventListener("click", () => close());
+    scrim.addEventListener("click", () => close());
     document.addEventListener("keydown", onKey);
 
     document.body.append(scrim, box);
@@ -4871,14 +4886,26 @@ async function boot() {
   wireStatsToggle();
   watchSkillLines();
   loadTicker();
-  await refreshStats();
-  // Before the first loadJobs, deliberately: accepting the suggestion
-  // changes the query, and asking afterwards would mean fetching the
-  // whole board twice and rearranging it under the reader. Awaited, so
-  // the answer is part of state by the time the first request goes out.
-  // It returns immediately for everyone who has already been asked.
-  await maybeAskCountry();
+  // Not awaited. The statistics column is supplementary and this sat in
+  // front of the listings: measured over 50 cold visits, /stats.json
+  // cost the first /api/jobs request 232ms at p90 purely by being ahead
+  // of it in the queue. refreshStats renders from its own cache and
+  // paints itself whenever it lands.
+  refreshStats();
+
+  // Both started together, and neither waits for the other. The prompt
+  // renders over a board that is already filling in rather than over an
+  // empty table, and answering it re-queries. Only an accepted country
+  // re-queries: skip leaves the global view that is already on screen,
+  // which is the same board the visitor would have got anyway.
+  //
+  // The re-query replaces the rows wholesale rather than merging, which
+  // is what loadJobs does anyway. It also cancels the global request
+  // still in flight, so choosing Israel costs one aborted fetch and not
+  // a second full render.
+  const asked = maybeAskCountry();
   loadJobs();
+  asked.then((chose) => { if (chose) loadJobs(); });
 
   // ?view=matches opens Best matches directly, for the 404 page and any
   // other link that wants it. Not filter state: setView works out the
