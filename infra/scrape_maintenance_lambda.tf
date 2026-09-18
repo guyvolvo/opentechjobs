@@ -101,17 +101,22 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         ]
       },
       {
-        # bootstrap.json only. The merge is the one moment this data
-        # changes and the one process holding the freshly-built snapshot
-        # on local disk, so it publishes the site's default first page
-        # here as a static object CloudFront can serve from the edge with
-        # no Lambda in the request path at all. Scoped to that single
-        # key: this role has no other business in the frontend bucket.
+        # The merge is the one moment this data changes and the one
+        # process holding the freshly-built snapshot on local disk, so it
+        # publishes the site's precomputed first pages here as static
+        # objects CloudFront can serve from the edge with no Lambda in
+        # the request path at all. Named key by key rather than with a
+        # wildcard: this role has no other business in the frontend
+        # bucket, and a new page should have to be added here on purpose.
         Sid    = "PublishBootstrap"
         Effect = "Allow"
         Action = ["s3:PutObject"]
         Resource = [
           "${aws_s3_bucket.frontend.arn}/bootstrap.json",
+          # The same page filtered to Israel, which is what the country
+          # prompt's accept button asks for. See loader/bootstrap.py's
+          # VIEWS for why these two and no others.
+          "${aws_s3_bucket.frontend.arn}/bootstrap-il.json",
           # stats.json/facets.json: the same answers the API serves,
           # published where the browser can fetch them from the edge
           # without invoking anything. The page polls these every two
