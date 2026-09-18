@@ -2741,6 +2741,12 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("workable", "hp"),           # hp.com, really Workday (pinned)
     ("workable", "hpe"),          # hpe.com, really Workday (pinned)
     ("workable", "playtika"),     # playtika.com, really greenhouse:playtikaltd (pinned)
+    ("workable", "dell"),         # dell.com, really Oracle Recruiting Cloud (pinned)
+    # ibm.com runs Avature (ibmglobal.avature.net), which answers every
+    # listing URL with HTTP 202 and an empty body, sitemap included.
+    # Nothing here can read it, and the squatted Workable slug was hiding
+    # that behind a company that looked resolved.
+    ("workable", "ibm"),
     ("workable", "navan"),        # navan.com, really greenhouse:tripactions
     ("workable", "matrix"),       # matrix.co.il, its own WordPress jobs pages
     ("jazzhr", "electra"),        # electra.co.il: real board is "Electra Aero," an unrelated US eVTOL company
