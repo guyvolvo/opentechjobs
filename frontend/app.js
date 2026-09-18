@@ -42,6 +42,12 @@ const state = {
   // other a single substring, and the separator was a semicolon. The API
   // still answers both, because saved alerts carry them.
   search: "",
+  // Whether the reader picked the order themselves, from the Sort menu,
+  // a column header or a link that named one. Until they do, a search
+  // sorts by relevance and an empty box by newest (see followSearchSort).
+  // Not persisted and not in the URL: it describes this session's
+  // clicking, not the view.
+  sortExplicit: false,
   // "any" only when the reader asked for it, from a search that found
   // nothing (see emptySearchState). "" is the default: every word must
   // appear.
@@ -1377,7 +1383,11 @@ function buildShareParams() {
   if (state.confidence !== "all") p.set("confidence", state.confidence);
   if (state.max_age_days) p.set("max_age_days", state.max_age_days);
   if (state.starred_only) p.set("starred", "1");
-  if (state.sort !== "age") p.set("sort", state.sort);
+  // Against the order this view would take on its own (see
+  // followSearchSort), not against "age" flat: with a search in the box
+  // that IS relevance, so a reader who chose Newest has to have it
+  // written down or the link would come back ranked.
+  if (state.sort !== (state.search ? "relevance" : "age")) p.set("sort", state.sort);
   if (state.dir !== "asc") p.set("dir", state.dir);
   if (state.offset) p.set("offset", String(state.offset));
   if (selectedJobId) p.set("job", selectedJobId);
@@ -1460,6 +1470,7 @@ function applyStateFromUrl(search) {
   if (p.has("skills")) {
     state.search = "";
     state.search_mode = "";
+    state.sortExplicit = false;
     state.department = [];
     state.seniority = [];
     state.company = [];
@@ -1504,7 +1515,12 @@ function applyStateFromUrl(search) {
   if (p.has("starred")) state.starred_only = p.get("starred") === "1";
   if (p.has("sort")) {
     const v = cleanFilterValue("sort", p.get("sort"));
-    if (v !== undefined) state.sort = v;
+    if (v !== undefined) {
+      state.sort = v;
+      state.sortExplicit = true;
+    }
+  } else {
+    followSearchSort();
   }
   if (p.has("dir")) {
     const v = cleanFilterValue("dir", p.get("dir"));
@@ -1922,6 +1938,17 @@ function searchTermsInPlay() {
     if (term) out.push(term);
   }
   return out.slice(0, 10);
+}
+
+// With a search in the box, relevance is the order that answers it; with
+// an empty box there is nothing to rank, so newest is. The board follows
+// the box until the reader picks an order themselves, and then leaves it
+// alone. sort=relevance with no search reads as newest on the server
+// too, so the two never disagree.
+function followSearchSort() {
+  if (state.sortExplicit) return;
+  const wanted = state.search ? "relevance" : "age";
+  if (state.sort !== wanted) setActiveSortHeader(wanted, "asc");
 }
 
 // Marks the search words inside text a row shows, so a reader can see
@@ -3165,6 +3192,7 @@ function wireFilters() {
       // A broadening applies to the search it was asked for, not to the
       // next one somebody types.
       state.search_mode = "";
+      followSearchSort();
       state.offset = 0;
       loadJobs();
       loadTicker();
@@ -3255,6 +3283,7 @@ function wireFilters() {
   document.getElementById("f-sort").addEventListener("change", (e) => {
     if (!e.target.value) return; // the blank "Sort" placeholder, not a real choice
     const [key, dir] = e.target.value.split(":");
+    state.sortExplicit = true;
     setActiveSortHeader(key, dir);
     state.offset = 0;
     loadJobs();
@@ -3268,6 +3297,7 @@ function wireFilters() {
   document.getElementById("f-reset").addEventListener("click", () => {
     state.search = "";
     state.search_mode = "";
+    state.sortExplicit = false;
     state.department = [];
     state.seniority = [];
     state.company = [];
@@ -3327,6 +3357,7 @@ function wireFilters() {
       const key = th.dataset.sort;
       const isSameColumn = state.sort === key;
       const dir = isSameColumn && state.dir === "desc" ? "asc" : "desc";
+      state.sortExplicit = true;
       setActiveSortHeader(key, dir);
       state.offset = 0;
       loadJobs();
