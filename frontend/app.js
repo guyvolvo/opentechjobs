@@ -42,6 +42,10 @@ const state = {
   // other a single substring, and the separator was a semicolon. The API
   // still answers both, because saved alerts carry them.
   search: "",
+  // "any" only when the reader asked for it, from a search that found
+  // nothing (see emptySearchState). "" is the default: every word must
+  // appear.
+  search_mode: "",
   // The CV match, from /account: canonical skill labels, OR-matched
   // and ranked by overlap. Deliberately not folded into `keywords` or
   // `q` -- those ask "which jobs demand all of this" and "which titles
@@ -1335,6 +1339,7 @@ function renderCompanyChip() {
 function currentFilterParams() {
   return {
     search: state.search,
+    search_mode: state.search_mode,
     department: state.department.join(","),
     seniority: state.seniority.join(","),
     company: state.company.join(","),
@@ -1361,6 +1366,7 @@ function currentFilterParams() {
 function buildShareParams() {
   const p = new URLSearchParams();
   if (state.search) p.set("search", state.search);
+  if (state.search_mode) p.set("search_mode", state.search_mode);
   if (state.department.length) p.set("department", state.department.join(","));
   if (state.seniority.length) p.set("seniority", state.seniority.join(","));
   if (state.company.length) p.set("company", state.company.join(","));
@@ -1451,6 +1457,7 @@ function applyStateFromUrl(search) {
   // shared ?skills=...&department=... keeps its department.
   if (p.has("skills")) {
     state.search = "";
+    state.search_mode = "";
     state.department = [];
     state.seniority = [];
     state.company = [];
@@ -1462,6 +1469,7 @@ function applyStateFromUrl(search) {
     state.starred_only = false;
   }
   if (p.has("search")) state.search = p.get("search");
+  state.search_mode = p.get("search_mode") === "any" ? "any" : "";
   // Links older than the single box. Semicolons were the separator
   // there; here a space is, and quoting keeps a multi-word term whole.
   if (p.has("q") || p.has("keywords")) {
@@ -1902,6 +1910,83 @@ function emptyState(line) {
   return `<strong>No results</strong><span>${line}</span>`;
 }
 
+// The words the current search is matching on, lowercased. Read from
+// state rather than the response so a row highlights the moment it
+// renders, including from cache.
+function searchTermsInPlay() {
+  const out = [];
+  for (const m of (state.search || "").matchAll(/"([^"]*)"|(\S+)/g)) {
+    const term = (m[1] || m[2] || "").trim().toLowerCase();
+    if (term) out.push(term);
+  }
+  return out.slice(0, 10);
+}
+
+// Marks the search words inside text a row shows, so a reader can see
+// why it came back. Escapes first, then wraps: the mark tags are the
+// only markup this ever adds.
+function highlight(text) {
+  const safe = escapeHtml(text ?? "");
+  const terms = searchTermsInPlay();
+  if (!terms.length) return safe;
+  const pattern = terms
+    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .sort((a, b) => b.length - a.length)
+    .join("|");
+  try {
+    return safe.replace(new RegExp(`(${pattern})`, "gi"), "<mark>$1</mark>");
+  } catch {
+    return safe; // a term that will not compile is not worth failing a row over
+  }
+}
+
+// A search that found nothing says what it asked, rather than leaving the
+// reader to guess that every word had to appear. The ways out are offered
+// as buttons, never taken automatically: results must always answer the
+// question that was actually put.
+function emptySearchState(data) {
+  const terms = (data.search && data.search.terms) || searchTermsInPlay();
+  const mode = (data.search && data.search.mode) || "all";
+  const shown = terms.map((t) => `<code>${escapeHtml(t)}</code>`).join(" · ");
+  const lines = [
+    `<strong>No results</strong>`,
+    `<span>${mode === "any" ? "No listing mentions any of these words" : `No listing has all ${terms.length} of these words`}: ${shown}</span>`,
+  ];
+  const actions = [];
+  if (mode === "all" && terms.length > 1) {
+    actions.push(`<button type="button" class="btn ghost btn-small" data-search-any>Search any of these words</button>`);
+    for (const term of terms.slice(-2).reverse()) {
+      actions.push(`<button type="button" class="btn ghost btn-small" data-drop-term="${escapeHtml(term)}">Without ${escapeHtml(term)}</button>`);
+    }
+  }
+  actions.push(`<button type="button" class="btn ghost btn-small" data-clear-search>Clear the search</button>`);
+  lines.push(`<span class="empty-actions">${actions.join("")}</span>`);
+  return lines.join("");
+}
+
+// The terms past the cap were dropped in silence, so a reader could be
+// looking at results for four of their six words and have no way to know.
+function renderSearchNotice(data) {
+  const el = document.getElementById("search-notice");
+  if (!el) return;
+  const info = data && data.search;
+  const ignored = (info && info.ignored) || [];
+  const bits = [];
+  if (ignored.length) {
+    bits.push(`Searching the first ${MAX_SEARCH_TERMS} words. Not used: ` +
+              ignored.map((t) => `<code>${escapeHtml(t)}</code>`).join(" · "));
+  }
+  if (info && info.mode === "any" && (info.terms || []).length > 1) {
+    bits.push(`Any of these words: ${info.terms.map((t) => `<code>${escapeHtml(t)}</code>`).join(" · ")}` +
+              ` <button type="button" class="link-inline" data-search-all>Require all</button>`);
+  }
+  el.innerHTML = bits.join(" ");
+  el.hidden = !bits.length;
+}
+
+// Mirrors job_filters.MAX_SEARCH_TERMS.
+const MAX_SEARCH_TERMS = 10;
+
 // The saved view used to filter lastJobsResponse, which is whichever 50
 // rows the board happens to be holding. Save a job, change one filter,
 // open Saved, and it showed nothing. So it asks for the ids instead.
@@ -1990,9 +2075,12 @@ function resultNoun() {
 
 function renderJobs(data, starred) {
   matchedSkills = new Set(data.matched_skills || []);
+  renderSearchNotice(data);
   document.getElementById("pagination").style.display = "flex";
   if (!data.jobs.length) {
-    document.getElementById("jobs-empty").innerHTML = emptyState("No listings match these filters.");
+    document.getElementById("jobs-empty").innerHTML = state.search
+      ? emptySearchState(data)
+      : emptyState("No listings match these filters.");
     document.getElementById("jobs-empty").style.display = "block";
     document.getElementById("jobs-body").innerHTML = "";
     document.getElementById("result-count").innerHTML = "";
@@ -2038,9 +2126,9 @@ function jobMetaLine(j) {
   // employer read with exactly the same weight as the department it
   // happens to be hiring into, and a reader scanning the column had
   // nothing to land on between the title and the location.
-  const parts = [`<span class="job-company">${escapeHtml(companyLabel(j))}</span>`];
-  if (j.department) parts.push(escapeHtml(j.department));
-  if (j.location) parts.push(escapeHtml(j.location));
+  const parts = [`<span class="job-company">${highlight(companyLabel(j))}</span>`];
+  if (j.department) parts.push(highlight(j.department));
+  if (j.location) parts.push(highlight(j.location));
   let line = parts.join(" · ");
   if (j.workplace_type) line += ` (${escapeHtml(WORKPLACE_LABELS[j.workplace_type] || j.workplace_type)})`;
   return line;
@@ -2227,7 +2315,7 @@ function renderJobRows(jobs, starred) {
           ${companyLogoImg(j.company_domain, 64, "listing", j.logo_url)}
           <div class="job-card-body">
             <div class="job-card-title">
-              <a href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>
+              <a href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${highlight(j.title)}</a>
               ${j.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[j.seniority] || j.seniority)}</span>` : ""}
               ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
               ${j.closed_at ? '<span class="badge closed" title="This listing is no longer open">Closed</span>' : ""}
@@ -3069,6 +3157,9 @@ function wireFilters() {
     "input",
     debounce((e) => {
       state.search = e.target.value.trim();
+      // A broadening applies to the search it was asked for, not to the
+      // next one somebody types.
+      state.search_mode = "";
       state.offset = 0;
       loadJobs();
       loadTicker();
@@ -3171,6 +3262,7 @@ function wireFilters() {
 
   document.getElementById("f-reset").addEventListener("click", () => {
     state.search = "";
+    state.search_mode = "";
     state.department = [];
     state.seniority = [];
     state.company = [];
@@ -4857,6 +4949,35 @@ async function boot() {
   });
 
   document.getElementById("new-listings").addEventListener("click", () => showHeldJobs());
+
+  // The ways out of a search that found nothing, and back out of a
+  // broadened one. Each sets the filter and reloads, so the URL, the
+  // saved filters and the stats panel all follow as they do for any
+  // other filter change.
+  function setSearch({ search, mode }) {
+    if (search !== undefined) {
+      state.search = search;
+      document.getElementById("f-search").value = search;
+    }
+    if (mode !== undefined) state.search_mode = mode;
+    state.offset = 0;
+    loadJobs();
+    loadTicker();
+    refreshStats();
+  }
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-search-any], [data-search-all], [data-clear-search], [data-drop-term]");
+    if (!el) return;
+    if (el.hasAttribute("data-search-any")) setSearch({ mode: "any" });
+    else if (el.hasAttribute("data-search-all")) setSearch({ mode: "" });
+    else if (el.hasAttribute("data-clear-search")) setSearch({ search: "", mode: "" });
+    else {
+      const drop = el.getAttribute("data-drop-term").toLowerCase();
+      const kept = searchTermsInPlay().filter((t) => t !== drop)
+        .map((t) => (t.includes(" ") ? `"${t}"` : t)).join(" ");
+      setSearch({ search: kept });
+    }
+  });
   // Scrolling back to the top of the list shows held rows without a click.
   window.addEventListener("scroll", () => {
     if (heldJobs && jobsListTop() >= topbarBottom()) showHeldJobs({ scroll: false });

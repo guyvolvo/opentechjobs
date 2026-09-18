@@ -173,6 +173,10 @@
                 <select id="f-sort" title="Sort">
                   <option value="">Sort</option>
                   <option value="match:asc" hidden>Best match</option>
+                  <!-- Relevance ranks by where the search words appear
+                       (see relevance_score_sql). Newest stays the default:
+                       a job board is read by date first. -->
+                  <option value="relevance:asc">Relevance</option>
                   <option value="age:asc">Newest</option>
                   <option value="age:desc">Oldest</option>
                 </select>
@@ -199,6 +203,9 @@
                  A ranked board looks like an unranked one, so this is the
                  only thing on screen saying what the order means. -->
             <div class="match-panel" id="match-panel" hidden></div>
+            <!-- What the search did that the result count cannot say:
+                 words past the ten-word cap, or an any-word search. -->
+            <div id="search-notice" class="search-notice" hidden></div>
             <div id="result-count" class="result-count"></div>
             <!-- Shown by a background refresh that found new listings while
                  the reader was further down the list (see loadJobs). -->

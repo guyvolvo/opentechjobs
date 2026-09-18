@@ -1630,6 +1630,41 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 }
 .chip:hover { background: var(--black); border-color: var(--black); }
 
+.search-notice {
+  font-size: 12px;
+  color: var(--grey);
+  margin-bottom: 8px;
+}
+.search-notice code, .empty-state code {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--black);
+}
+/* A button that reads as part of the sentence it sits in. */
+.link-inline {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: var(--green-text);
+  border-bottom: 1px solid var(--green-text);
+  cursor: pointer;
+}
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+/* The search words, where a row matched them. */
+mark {
+  background: var(--row-selected);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
 .result-count {
   font-size: 12px;
   color: var(--grey);
@@ -1654,9 +1689,11 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 .new-listings {
   height: max-content;
   padding: 7px 14px;
-  box-shadow: 0 2px 8px var(--scrim);
+  /* The system's own shape for a bordered box: 4px, a 2px rule, paper
+     behind it. It sits over the rows, and the separation comes from the
+     border and the solid background, never a shadow (see DESIGN.md). */
   border: var(--rule) solid var(--green-text);
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--white);
   color: var(--green-text);
   font: inherit;
