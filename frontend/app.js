@@ -1419,7 +1419,9 @@ function syncUrl() {
 // "match" has no column header to click. It is not a column: it is what
 // the board orders by while a CV match is on, set when the match arrives
 // and dropped the moment someone clicks a real header.
-const SORTABLE_KEYS = new Set(["age", "title", "match"]);
+// "relevance" is in the same position as "match": no column header,
+// chosen from the Sort dropdown, and meaningless without a search.
+const SORTABLE_KEYS = new Set(["age", "title", "match", "relevance"]);
 
 function cleanFilterValue(key, value) {
   switch (key) {
@@ -1927,7 +1929,10 @@ function searchTermsInPlay() {
 // only markup this ever adds.
 function highlight(text) {
   const safe = escapeHtml(text ?? "");
-  const terms = searchTermsInPlay();
+  // A one-letter word marks half the alphabet on every row (2,094 marks
+  // across 50 rows, measured), which tells the reader nothing. It still
+  // filters; it just is not worth pointing at.
+  const terms = searchTermsInPlay().filter((t) => t.length > 1);
   if (!terms.length) return safe;
   const pattern = terms
     .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
@@ -3374,7 +3379,8 @@ function setActiveSortHeader(key, dir) {
   // sorts (Newest/Oldest), so clicking the Age header updates it and
   // clicking the Listing header falls back to its blank "Sort" placeholder
   // rather than showing a now-wrong stale option.
-  document.getElementById("f-sort").value = key === "age" ? `age:${dir}` : key === "match" ? "match:asc" : "";
+  document.getElementById("f-sort").value =
+    key === "age" ? `age:${dir}` : key === "match" ? "match:asc" : key === "relevance" ? "relevance:asc" : "";
 }
 
 // boot
