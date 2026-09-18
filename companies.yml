@@ -234,6 +234,7 @@ workday:
     wd: wd5
     site: apply
     source: hand-verified
+    every_hours: 4  # no Israeli roles in its own facets (asked 2026-09-18); 300+ global rows an hour buys nothing
 
   - domain: mastercard.com
     tenant: mastercard
@@ -257,6 +258,7 @@ workday:
     wd: wd1
     site: External_Career
     source: hand-verified
+    every_hours: 4  # no Israeli roles in its own facets (asked 2026-09-18); 300+ global rows an hour buys nothing
 
   - domain: cisco.com
     tenant: cisco
@@ -277,12 +279,14 @@ workday:
     wd: wd5
     site: Visa
     source: hand-verified
+    every_hours: 4  # no Israeli roles in its own facets (asked 2026-09-18); 300+ global rows an hour buys nothing
 
   - domain: paypal.com
     tenant: paypal
     wd: wd1
     site: jobs
     source: hand-verified
+    every_hours: 4  # no Israeli roles in its own facets (asked 2026-09-18); 300+ global rows an hour buys nothing
 
   - domain: salesforce.com
     tenant: salesforce
@@ -291,6 +295,52 @@ workday:
     source: hand-verified
     note: salesforce.wd1 (the other shard search results pointed at) 404s -- wd12 is the live one
     israel_facets: {locations: ["26e99ef44f7b1005bacbfb729a5d0000"]}
+
+  # Added 2026-09-18 while hunting for Israeli jobs. Each verified live
+  # against the tenant's own API before landing here, with the Israel
+  # facet discovered the same run (discover_workday_israel_facets).
+  - domain: kla.com
+    tenant: kla
+    wd: wd1
+    site: Search
+    israel_facets: {"Country": ["084562884af243748dad7c84c304d89a"]}
+    jobs_seen: 76
+    source: hand-verified
+    note: 76 Israeli roles, the largest single pin added that day. Was not tracked at all.
+
+  - domain: medtronic.com
+    tenant: medtronic
+    wd: wd1
+    site: MedtronicCareers
+    israel_facets: {"locationCountry": ["084562884af243748dad7c84c304d89a"]}
+    jobs_seen: 23
+    source: hand-verified
+
+  - domain: hp.com
+    tenant: hp
+    wd: wd5
+    site: ExternalCareerSite
+    israel_facets: {"Location_Country": ["084562884af243748dad7c84c304d89a"]}
+    jobs_seen: 9
+    source: hand-verified
+    note: guessing had settled on workable:hp, a squatted slug with no jobs, now a known false positive.
+
+  - domain: hpe.com
+    tenant: hpe
+    wd: wd5
+    site: Jobsathpe
+    israel_facets: {"locations": ["15e0be34582201bbb90c7ff6ec1b4b57", "cdbf089057c210057be03997c63c0000", "0f31b665393d1005823f5de875380000", "ca87150ff3ea100a6193d4abd6ad0000"]}
+    jobs_seen: 7
+    source: hand-verified
+    note: same squatted-slug story as hp.com.
+
+  - domain: philips.com
+    tenant: philips
+    wd: wd3
+    site: jobs-and-careers
+    israel_facets: {"locationHierarchy1": ["6e1b2a934716103c2adde8e0944f00ee"]}
+    jobs_seen: 1
+    source: hand-verified
 
 niloosoft:
   # Niloosoft's Hunter, the ATS behind most of Israel's large traditional
@@ -487,6 +537,12 @@ ashby:
     source: careers-page
 
 greenhouse:
+  - domain: playtika.com
+    token: "playtikaltd"
+    jobs_seen: 26
+    source: hand-verified
+    note: added 2026-09-18. The domain guesses "playtika", a squatted Workable slug with no jobs, so the real board (26 roles, 16 of them Israeli) was never reached. The guess is a known false positive now.
+
   # Navan was TripActions, and the board kept the old name.
   - domain: navan.com
     token: "tripactions"

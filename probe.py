@@ -2669,6 +2669,9 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("workable", "mobileye"),     # mobileye.com, really Lever's EU host
     ("workable", "microsoft"),    # microsoft.com, its own careers site
     ("workable", "checkpoint"),   # checkpoint.com, its own careers site
+    ("workable", "hp"),           # hp.com, really Workday (pinned)
+    ("workable", "hpe"),          # hpe.com, really Workday (pinned)
+    ("workable", "playtika"),     # playtika.com, really greenhouse:playtikaltd (pinned)
     ("workable", "navan"),        # navan.com, really greenhouse:tripactions
     ("workable", "matrix"),       # matrix.co.il, its own WordPress jobs pages
     ("jazzhr", "electra"),        # electra.co.il: real board is "Electra Aero," an unrelated US eVTOL company
@@ -3071,8 +3074,16 @@ def _workday_job_detail(
 # simultaneous connections (a few concurrent Workday companies, each at
 # 4 inner workers) actually fits inside that 16-connection budget instead
 # of routinely exceeding it.
+#
+# 500 since 2026-09-18. The paragraph above is about the 5-min sweep's own
+# 90s subprocess budget, and Workday has not run there since it joined
+# SLOW_BOARD_ATS: these boards are read hourly, by a Lambda with 900s and
+# no shared pool to starve. 60 was costing real jobs by then -- nine
+# pinned companies sat at exactly 60, and NVIDIA's Israel-filtered board
+# alone is 421. Measured across all 13 pins at 500: 2,229 rows in 198s
+# from a home connection, 716 of them Israeli against 269 before.
 WORKDAY_PAGE_SIZE = 20
-WORKDAY_MAX_JOBS = 60
+WORKDAY_MAX_JOBS = 500
 
 
 def _workday_build_job(
