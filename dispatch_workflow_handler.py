@@ -44,10 +44,19 @@ def lambda_handler(event, context):
         raise ValueError("event must carry {'workflow_file': '<name>.yml'} -- see the EventBridge rule's own input")
 
     ref = event.get("ref", "main")
+    # Optional, and only what the workflow itself declares under
+    # workflow_dispatch.inputs: GitHub rejects the call outright for an
+    # input the workflow does not know. Used by the weekly rule that runs
+    # discover-companies.yml in its directory mode rather than its
+    # Common Crawl one.
+    inputs = event.get("inputs") or {}
     token = _get_token()
 
     url = f"https://api.github.com/repos/{REPO}/actions/workflows/{workflow_file}/dispatches"
-    body = json.dumps({"ref": ref}).encode("utf-8")
+    payload = {"ref": ref}
+    if inputs:
+        payload["inputs"] = {k: str(v) for k, v in inputs.items()}
+    body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=body, method="POST", headers={
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
@@ -62,5 +71,5 @@ def lambda_handler(event, context):
         # is a real failure worth surfacing in CloudWatch, not swallowing.
         raise RuntimeError(f"dispatching {workflow_file} failed: {e.code} {e.read().decode(errors='replace')}")
 
-    print(f"dispatched {workflow_file} on {ref}: HTTP {status}")
+    print(f"dispatched {workflow_file} on {ref}{' with ' + json.dumps(inputs) if inputs else ''}: HTTP {status}")
     return {"workflow_file": workflow_file, "status": status}

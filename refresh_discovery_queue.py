@@ -41,6 +41,7 @@ found several live 2026-09-08), which this pipeline doesn't have
 automated access to.
 """
 
+import argparse
 import json
 import subprocess
 import sys
@@ -98,31 +99,96 @@ ATS_LIMITS = {
 }
 
 
+def _discover(args: list[str], label: str) -> list[dict]:
+    """One discover_companies.py run, as candidates. An empty list on any
+    failure: one ATS misbehaving is not a reason to lose the rest."""
+    proc = subprocess.run([sys.executable, str(ROOT / "discover_companies.py"), *args, "--json"],
+                          capture_output=True, text=True, timeout=3600)
+    if proc.stderr:
+        print(proc.stderr, file=sys.stderr)
+    if proc.returncode != 0:
+        print(f"discover_companies.py {label} exited {proc.returncode}, skipping", file=sys.stderr)
+        return []
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        print(f"couldn't parse discover_companies.py output for {label}, skipping", file=sys.stderr)
+        return []
+
+
+def directory_pass(queue: list, seen: set, location: str) -> int:
+    """Workable's own cross-customer search, filtered by location: the one
+    directory any of these ATSes publishes, and the only Israel-first
+    source here that is not a crawl.
+
+    Deliberately its own weekly pass rather than part of the daily Common
+    Crawl one. It is cheap (one search plus a verify per candidate) and it
+    moves slowly: measured 2026-09-18, 21 candidates not already tracked,
+    13 with live boards, 2,907 jobs between them but only 42 Israeli, one
+    recruiting account accounting for 2,560 of the jobs and 2 of the
+    Israeli ones. So the number to read run over run is new Israeli jobs
+    and new domains, never total jobs, which one such account can carry on
+    its own.
+    """
+    candidates = _discover(["--ats", "workable", "--source", "directory", "--location", location],
+                           f"--source directory --location {location}")
+    known_domains = {l.strip().lower() for l in (ROOT / "domains.txt").read_text(encoding="utf-8").splitlines()
+                     if l.strip() and not l.startswith("#")}
+    stats = {"location": location, "candidates": len(candidates), "live_boards": 0, "open_boards": 0,
+             "israeli_boards": 0, "queued_new": 0, "already_queued": 0, "new_domains": 0,
+             "jobs": 0, "israeli_jobs": 0, "empty_boards": 0}
+    for c in candidates:
+        jobs, il = c.get("job_count", 0), c.get("israel_job_count", 0)
+        stats["live_boards"] += 1
+        stats["jobs"] += jobs
+        stats["israeli_jobs"] += il
+        stats["open_boards"] += 1 if jobs else 0
+        stats["empty_boards"] += 0 if jobs else 1
+        stats["israeli_boards"] += 1 if il else 0
+        domain = (c.get("guessed_domain") or "").lower()
+        if domain and domain not in known_domains:
+            stats["new_domains"] += 1
+        key = (c["ats"], c["token"])
+        if key in seen:
+            stats["already_queued"] += 1
+            continue
+        seen.add(key)
+        queue.append({"ats": c["ats"], "token": c["token"], "domain": c.get("guessed_domain"),
+                      "domain_verified": bool(c.get("domain_verified")),
+                      "job_count": jobs, "israel_job_count": il})
+        stats["queued_new"] += 1
+    queue.sort(key=lambda c: (-c.get("israel_job_count", 0), -c["job_count"]))
+    QUEUE_PATH.write_text(json.dumps(queue, indent=2, ensure_ascii=False), encoding="utf-8")
+    # One line, parseable, so several runs can be compared without digging
+    # through the log.
+    print("directory-run " + json.dumps(stats, ensure_ascii=False))
+    print(f"queued {stats['queued_new']} new candidates; queue now {len(queue)} total", file=sys.stderr)
+    return 0
+
+
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
+
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--only-directory", action="store_true",
+                     help="skip the Common Crawl pass and run only the ATS's own directory "
+                          "search, filtered by --location. Workable is the only ATS that "
+                          "publishes one. Cheap enough to run weekly on its own schedule.")
+    ap.add_argument("--location", default="Israel", help="location filter for the directory pass")
+    args = ap.parse_args()
 
     queue = json.loads(QUEUE_PATH.read_text(encoding="utf-8")) if QUEUE_PATH.exists() else []
     seen = {(c["ats"], c["token"]) for c in queue}
     added = 0
 
+    if args.only_directory:
+        return directory_pass(queue, seen, args.location)
+
     for ats, (max_pages, verify_limit) in ATS_LIMITS.items():
         print(f"discovering {ats} (max-pages={max_pages}, verify-limit={verify_limit})...", file=sys.stderr)
-        proc = subprocess.run(
-            [sys.executable, str(ROOT / "discover_companies.py"), "--ats", ats,
-             "--max-pages", str(max_pages), "--verify-limit", str(verify_limit), "--json"],
-            capture_output=True, text=True, timeout=3600,
-        )
-        if proc.stderr:
-            print(proc.stderr, file=sys.stderr)
-        if proc.returncode != 0:
-            print(f"discover_companies.py --ats {ats} exited {proc.returncode}, skipping this ats", file=sys.stderr)
-            continue
-        try:
-            candidates = json.loads(proc.stdout)
-        except json.JSONDecodeError:
-            print(f"couldn't parse discover_companies.py output for {ats}, skipping", file=sys.stderr)
-            continue
+        candidates = _discover(["--ats", ats, "--max-pages", str(max_pages),
+                                "--verify-limit", str(verify_limit)], f"--ats {ats}")
         for c in candidates:
             key = (c["ats"], c["token"])
             if key in seen:

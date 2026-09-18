@@ -109,6 +109,34 @@ resource "aws_lambda_permission" "allow_eventbridge_dispatch_merge" {
   source_arn    = aws_cloudwatch_event_rule.dispatch_merge_discovered.arn
 }
 
+# Weekly, and separate from the daily rule above because it is a
+# different question: Workable's own cross-customer search filtered to
+# Israel, which is the only Israel-first source here that is not a crawl.
+# It moves slowly -- 21 candidates and 42 Israeli jobs on 2026-09-18 --
+# so a daily run would mostly re-read the same answer.
+resource "aws_cloudwatch_event_rule" "dispatch_directory_israel" {
+  name                = "${var.project_name}-dispatch-directory-israel"
+  description         = "Fires discover-companies.yml weekly in its directory mode (Workable's own Israel search)"
+  schedule_expression = "rate(7 days)"
+}
+
+resource "aws_cloudwatch_event_target" "dispatch_directory_israel" {
+  rule = aws_cloudwatch_event_rule.dispatch_directory_israel.name
+  arn  = aws_lambda_function.dispatch_workflow.arn
+  input = jsonencode({
+    workflow_file = "discover-companies.yml"
+    inputs        = { mode = "directory" }
+  })
+}
+
+resource "aws_lambda_permission" "allow_eventbridge_dispatch_directory" {
+  statement_id  = "AllowEventBridgeInvokeDirectory"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.dispatch_workflow.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.dispatch_directory_israel.arn
+}
+
 resource "aws_cloudwatch_event_rule" "dispatch_discover_companies" {
   name                = "${var.project_name}-dispatch-discover-companies"
   description         = "Reliably fires discover-companies.yml daily -- same schedule: unreliability as the merge workflow above"

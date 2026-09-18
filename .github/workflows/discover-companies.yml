@@ -19,7 +19,14 @@ name: discover-companies
 # workflow_dispatch below once a day instead.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "queue = the daily Common Crawl pass; directory = Workable's own Israel search"
+        required: false
+        default: "queue"
+        type: choice
+        options: ["queue", "directory"]
 
 # Same reasoning as merge-discovered-companies.yml's own concurrency
 # block -- this one's daily cadence makes an overlap far less likely,
@@ -46,7 +53,19 @@ jobs:
         run: pip install requests pyyaml
 
       - name: Refresh the discovery queue
+        if: ${{ (github.event.inputs.mode || 'queue') == 'queue' }}
         run: python refresh_discovery_queue.py
+
+      # Weekly, from its own EventBridge rule. Workable is the only ATS
+      # here that publishes a cross-customer search, and filtering it by
+      # location is the one Israel-first source in this repo that is not a
+      # crawl. Cheap: one search and a verify per candidate. Read the
+      # directory-run line run over run for new Israeli jobs and new
+      # domains, never total jobs -- one recruiting account carried 2,560
+      # of the 2,907 jobs on 2026-09-18 and 2 of the 42 Israeli ones.
+      - name: Workable's own Israel directory
+        if: ${{ github.event.inputs.mode == 'directory' }}
+        run: python refresh_discovery_queue.py --only-directory --location Israel
 
       - name: Commit queue changes, if any
         run: |
