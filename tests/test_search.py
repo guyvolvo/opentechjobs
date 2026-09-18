@@ -127,6 +127,43 @@ check("an empty quote is dropped", job_filters.search_terms('"" go') == ["go"])
 check("the term count is capped",
       len(job_filters.search_terms(" ".join(str(i) for i in range(50)))) == 10)
 
+check("terms past the cap can still be read back",
+      job_filters.search_terms("a b c", limit=2) == ["a", "b"]
+      and len(job_filters.search_terms(" ".join(str(i) for i in range(50)), limit=None)) == 50)
+
+# Any-word mode: asked for explicitly, never inferred from a thin result.
+check("all terms must appear by default", found({"search": "devops office"}) == [])
+check("any-word mode takes either", found({"search": "devops office", "search_mode": "any"}) == ["a", "c"],
+      repr(found({"search": "devops office", "search_mode": "any"})))
+check("any-word mode still obeys the other filters",
+      found({"search": "devops office", "search_mode": "any", "company": "wiz.io"}) == ["a", "c"])
+check("an unknown mode is treated as all", found({"search": "devops office", "search_mode": "zzz"}) == [])
+check("mode reads the param", job_filters.search_mode({"search_mode": "ANY"}) == "any")
+
+
+# Relevance: field-weighted, countable by hand.
+def score(params, jid):
+    # By id directly: the ids filter takes real job-id hashes, not the
+    # one-letter ids this fixture uses.
+    expr, sargs = job_filters.relevance_score_sql(params)
+    return conn.execute(f"SELECT {expr} AS s FROM jobs WHERE id = ?", [*sargs, jid]).fetchone()["s"]
+
+
+check("no search scores nothing", job_filters.relevance_score_sql({})[0] == "0")
+check("a term in the title outscores one in the description",
+      score({"search": "kubernetes"}, "b") < score({"search": "devops"}, "a"),
+      f'{score({"search": "kubernetes"}, "b")} vs {score({"search": "devops"}, "a")}')
+check("the title beats the location", score({"search": "devops"}, "a") > score({"search": "haifa"}, "c"))
+check("one query, and the row matching it in more fields scores higher",
+      score({"search": "wiz"}, "c") > score({"search": "wiz"}, "b")
+      and score({"search": "wiz office"}, "c") > score({"search": "wiz office"}, "a"),
+      f'{score({"search": "wiz office"}, "c")} vs {score({"search": "wiz office"}, "a")}')
+check("the whole query in the title is worth more than the terms apart",
+      score({"search": "machine learning"}, "d")
+      > score({"search": "machine tel"}, "d"),
+      f'{score({"search": "machine learning"}, "d")} vs {score({"search": "machine tel"}, "d")}')
+check("a row that matches nothing scores zero", score({"search": "zzzz"}, "a") == 0)
+
 # A search is not a way to reach other rows.
 check("a closed job still stays out",
       "x" not in found({"search": "devops", "include_closed": "0"}))

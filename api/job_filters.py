@@ -259,14 +259,76 @@ def skills_score_sql(wanted: list[str]) -> tuple[str, list]:
 # q and keywords are still honoured below, because saved alerts carry
 # them and a filter someone saved in March must keep meaning what it
 # meant in March.
-def search_terms(raw: str) -> list[str]:
+# Past this many terms a query costs more than it can be worth. The
+# extras used to be dropped in silence; callers are told now (route_jobs
+# returns them, and the board says so).
+MAX_SEARCH_TERMS = 10
+
+
+def search_terms(raw: str, limit: int | None = MAX_SEARCH_TERMS) -> list[str]:
     """Whitespace-separated, with "quoted phrases" kept whole."""
     out = []
     for match in re.findall(r'"([^"]*)"|(\S+)', raw or ""):
         term = (match[0] or match[1]).strip()
         if term:
             out.append(term)
-    return out[:10]
+    return out if limit is None else out[:limit]
+
+
+# Every term must appear ("all", the default) or any one of them may
+# ("any"). Never inferred: a search that finds nothing is broadened by
+# the reader asking for it, so the results always answer the question
+# that was actually put.
+def search_mode(params: dict) -> str:
+    return "any" if (params.get("search_mode") or "").lower() == "any" else "all"
+
+
+# What a term matching each field is worth, for sort=relevance. A term in
+# the title is the strongest signal a listing can give; one buried in a
+# long description is the weakest. Relevance is never the default sort
+# (route_jobs keeps newest), so nothing about the board's usual order
+# depends on these numbers.
+RELEVANCE_WEIGHTS = {"title": 10, "company_domain": 7, "location": 6, "department": 5}
+RELEVANCE_DESCRIPTION = 2
+# The whole query, in that order, inside the title.
+RELEVANCE_PHRASE_BONUS = 40
+# Every term in the title, in any order.
+RELEVANCE_ALL_IN_TITLE_BONUS = 30
+
+
+def relevance_score_sql(params: dict, has_fts: bool = False) -> tuple[str, list]:
+    """How well each row answers the search, as a SQL expression.
+
+    Field-weighted and countable by hand: no hidden model, and a reader
+    asking why a row is where it is can be told. "0" when there is no
+    search to score against, which route_jobs treats as no relevance sort
+    to do.
+    """
+    terms = search_terms(params.get("search") or "")
+    if not terms:
+        return "0", []
+    parts, args = [], []
+    for term in terms:
+        like = f"%{term.lower()}%"
+        for column, weight in RELEVANCE_WEIGHTS.items():
+            parts.append(f"(CASE WHEN LOWER(COALESCE({column}, '')) LIKE ? THEN {weight} ELSE 0 END)")
+            args.append(like)
+        if has_fts:
+            parts.append(f"(CASE WHEN jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)"
+                         f" THEN {RELEVANCE_DESCRIPTION} ELSE 0 END)")
+            args.append(fts_escape(term))
+        else:
+            parts.append(f"(CASE WHEN LOWER(COALESCE(description, '')) LIKE ? "
+                         f"THEN {RELEVANCE_DESCRIPTION} ELSE 0 END)")
+            args.append(like)
+    if len(terms) > 1:
+        whole = " ".join(terms).lower()
+        parts.append(f"(CASE WHEN LOWER(title) LIKE ? THEN {RELEVANCE_PHRASE_BONUS} ELSE 0 END)")
+        args.append(f"%{whole}%")
+        every = " AND ".join("LOWER(title) LIKE ?" for _ in terms)
+        parts.append(f"(CASE WHEN {every} THEN {RELEVANCE_ALL_IN_TITLE_BONUS} ELSE 0 END)")
+        args.extend(f"%{t.lower()}%" for t in terms)
+    return "(" + " + ".join(parts) + ")", args
 
 
 # The countries a caller asked for, as codes this vocabulary knows.
@@ -503,6 +565,11 @@ def build_jobs_where(params: dict, has_fts: bool = False,
         args.extend(f"%,{c},%" for c in wanted_city_names)
 
     if params.get("search"):
+        # "any" collects each term's clause and ORs them at the end;
+        # "all" appends them to where, which ANDs them.
+        any_mode = search_mode(params) == "any"
+        any_parts: list[str] = []
+        any_args: list = []
         for term in search_terms(params["search"]):
             like = f"%{term.lower()}%"
             # Every field a job has an answer for. company_domain rather
@@ -520,8 +587,15 @@ def build_jobs_where(params: dict, has_fts: bool = False,
                 # before the index existed still carries the column.
                 parts.append("LOWER(COALESCE(description, '')) LIKE ?")
                 term_args.append(like)
-            where.append("(" + " OR ".join(parts) + ")")
-            args.extend(term_args)
+            if any_mode:
+                any_parts.append("(" + " OR ".join(parts) + ")")
+                any_args.extend(term_args)
+            else:
+                where.append("(" + " OR ".join(parts) + ")")
+                args.extend(term_args)
+        if any_mode and any_parts:
+            where.append("(" + " OR ".join(any_parts) + ")")
+            args.extend(any_args)
 
     if params.get("keywords"):
         # ';'-separated, ALL must appear (AND, not OR): "azure;excel;iso"

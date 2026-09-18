@@ -37,9 +37,10 @@ from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
 from saved import is_saved_id, job_id_of, saved_id
 from skills import SKILL_TERMS
 from skills import spec as skill_spec
-from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, bool_param, build_jobs_where,
-                         has_fts_index, has_places, salary_source_select,
-                         skills_score_sql, wanted_skills)
+from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, MAX_SEARCH_TERMS, bool_param,
+                         build_jobs_where, has_fts_index, has_places,
+                         relevance_score_sql, salary_source_select, search_mode,
+                         search_terms, skills_score_sql, wanted_skills)
 
 _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 
@@ -50,7 +51,7 @@ _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 _ALLOWED_FILTER_KEYS = {
     "search", "q", "keywords", "ats", "company", "department", "seniority", "location", "country",
     "city", "workplace", "confidence", "israel_only", "include_closed", "include_outdated",
-    "min_age_days", "max_age_days", "skills", "ids",
+    "min_age_days", "max_age_days", "skills", "ids", "search_mode",
 }
 
 # Best matches: how many days since posting cost one matched skill in the
@@ -364,8 +365,13 @@ def route_jobs(params: dict) -> dict:
     # back in date order with the ranking silently discarded.
     if sort_key == "match" and not wanted:
         sort_key = "age"
-    if sort_key not in SORT_COLUMNS and sort_key != "match":
-        raise ValueError(f"sort must be one of: {', '.join(SORT_COLUMNS)}, match")
+    # Same rule for relevance: nothing to rank against without a search,
+    # so it reads as the default order rather than erroring a shared link.
+    rank_sql, rank_args = relevance_score_sql(params, has_fts_index(conn))
+    if sort_key == "relevance" and rank_sql == "0":
+        sort_key = "age"
+    if sort_key not in SORT_COLUMNS and sort_key not in ("match", "relevance"):
+        raise ValueError(f"sort must be one of: {', '.join(SORT_COLUMNS)}, match, relevance")
     sort_col = SORT_COLUMNS.get(sort_key, SORT_COLUMNS["age"])
     sort_dir = "DESC" if params.get("dir", "asc").lower() == "desc" else "ASC"
     # age and posted_at run in opposite directions: a lower age means a
@@ -373,14 +379,14 @@ def route_jobs(params: dict) -> dict:
     # posted_at DESC. Flip only for this column.
     # "match" shares this: inside a band of equally-good matches the
     # rows are read newest first, same as everywhere else on the board.
-    if sort_key in ("age", "match"):
+    if sort_key in ("age", "match", "relevance"):
         sort_dir = "ASC" if sort_dir == "DESC" else "DESC"
     # NULLS LAST regardless of direction: SQLite treats NULL as smaller
     # than everything else, which would put it first on an ASC sort. The
     # non-age branch needs a genuine no-op constant, not a bare "0":
     # SQLite reads a bare integer literal in ORDER BY as a 1-indexed
     # column-position reference, and "0" is out of range there.
-    null_order = "posted_at IS NULL" if sort_key in ("age", "match") else "NULL"
+    null_order = "posted_at IS NULL" if sort_key in ("age", "match", "relevance") else "NULL"
     # datetime() belongs to the date column alone. It used to wrap every
     # sort column, and datetime('Senior Backend Engineer') is NULL, so
     # every row tied and the board came back in scan order. Sorting by
@@ -394,7 +400,7 @@ def route_jobs(params: dict) -> dict:
     # columns so "adobe" and "Adobe" are not two separate alphabets.
     # TRIM because a handful of ATSes serve titles with a leading space,
     # which otherwise sorts them above the letter A.
-    sort_expr = (f"datetime({sort_col})" if sort_key in ("age", "match")
+    sort_expr = (f"datetime({sort_col})" if sort_key in ("age", "match", "relevance")
                  else f"TRIM({sort_col}) COLLATE NOCASE")
     order_sql = f"{null_order}, {sort_expr} {sort_dir}"
     order_args: list = []
@@ -410,6 +416,14 @@ def route_jobs(params: dict) -> dict:
     # still cannot jump a strong match. Ties go newest first, as before.
     # match_score in the response stays the plain count, which is what the
     # row's "4 of your 7 skills" says.
+    if sort_key == "relevance":
+        # Score first, then the usual newest-first order inside a band of
+        # equally relevant rows. Freshness is the tiebreaker and nothing
+        # more: a good older listing should not lose to a barely matching
+        # new one, which is what folding age into the score would do.
+        order_sql = f"{rank_sql} DESC, {order_sql}"
+        order_args = list(rank_args)
+
     if sort_key == "match":
         age_steps = (f"CAST(MAX(0, julianday('now') - julianday(COALESCE(posted_at, first_seen)))"
                      f" / {MATCH_RECENCY_DAYS} AS INTEGER)")
@@ -473,6 +487,14 @@ def route_jobs(params: dict) -> dict:
         # ones that put it there, and can say what it is matching on
         # without re-parsing the URL it was handed.
         "matched_skills": wanted,
+        # What the search actually asked, so the board can say so rather
+        # than leave a reader guessing: the terms used, any past the
+        # limit that were not, and whether every term had to appear.
+        "search": {
+            "terms": search_terms(params.get("search") or ""),
+            "ignored": search_terms(params.get("search") or "", limit=None)[MAX_SEARCH_TERMS:],
+            "mode": search_mode(params),
+        },
     }
 
 
