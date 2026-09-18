@@ -2513,6 +2513,121 @@ def f_wpjobs(sess, token, known_ids=None, description_budget=None):
     return out
 
 
+# Oracle Recruiting Cloud, the careers half of Oracle Fusion HCM. Akamai
+# is the first one here, and the shape is the tenant's, not Akamai's, so
+# every other employer on this platform is a pin away.
+#
+# The token is "host:site": the Fusion pod and the site number, e.g.
+# "fa-extu-saasfaprod1.fa.ocs.oraclecloud.com:CX_1". A guessed slug has
+# neither a dot nor a colon, so this makes no request until a pin names
+# it.
+#
+# Always the pod, never the employer's own vanity host: akamai.com and
+# jobs.akamai.com answer 403 to everything, robots.txt included, while
+# the pod serves the same jobs to a plain request. Every company on this
+# platform shares the handful of pods, so the vanity name buys nothing.
+#
+# expand=requisitionList.secondaryLocations is not optional: without it
+# the response carries no requisitionList at all.
+ORACLE_PAGE = 200
+ORACLE_MAX_JOBS = 4000
+_ORACLE_LIST = ("https://{host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
+                "?onlyData=true&expand=requisitionList.secondaryLocations"
+                "&finder=findReqs;siteNumber={site},limit={limit},sortBy=POSTING_DATES_DESC,offset={offset}")
+_ORACLE_DETAIL = ("https://{host}/hcmRestApi/resources/latest/recruitingCEJobRequisitionDetails"
+                  "?onlyData=true&expand=all&finder=ById;Id=%22{jid}%22,siteNumber={site}")
+_ORACLE_JOB_URL = "https://{host}/hcmUI/CandidateExperience/en/sites/{site}/job/{jid}"
+# ORA_REMOTE / ORA_HYBRID / ORA_ONSITE, and the plain words some tenants
+# send instead.
+_ORACLE_WORKPLACE = {"ORA_REMOTE": "remote", "ORA_HYBRID": "hybrid", "ORA_ONSITE": "onsite"}
+
+
+def _oracle_get(sess, url):
+    try:
+        r = sess.get(url, timeout=TIMEOUT, headers={"User-Agent": _BROWSER_UA,
+                                                    "Accept": "application/json"})
+    except requests.RequestException:
+        return None
+    if r.status_code != 200:
+        return None
+    try:
+        return r.json()
+    except ValueError:
+        return None
+
+
+def _oracle_rows(payload):
+    items = (payload or {}).get("items") or []
+    first = items[0] if items else {}
+    return first.get("requisitionList") or [], int(first.get("TotalJobsCount") or 0)
+
+
+def _oracle_location(row):
+    """The primary location plus any others the posting names. Tenants
+    write these as plain country or city names ("Israel", "Herzliya"),
+    which is what the board's own country reader expects.
+    """
+    names = [_txt(row.get("PrimaryLocation"))]
+    for extra in row.get("secondaryLocations") or []:
+        name = _txt((extra or {}).get("Name"))
+        if name and name not in names:
+            names.append(name)
+    return "; ".join(n for n in names if n)
+
+
+def f_oracle_cx(sess, token, known_ids=None, description_budget=None):
+    if not isinstance(token, str) or ":" not in token:
+        return None
+    host, _, site = token.partition(":")
+    if "." not in host or not site:
+        return None
+
+    rows, total = [], None
+    while total is None or len(rows) < min(total, ORACLE_MAX_JOBS):
+        page, count = _oracle_rows(_oracle_get(sess, _ORACLE_LIST.format(
+            host=host, site=site, limit=ORACLE_PAGE, offset=len(rows))))
+        if total is None:
+            total = count
+            if not total:
+                return None
+        # A page that fails part way through is not "these jobs closed".
+        if not page:
+            return rows and None
+        rows.extend(page)
+        if len(page) < ORACLE_PAGE:
+            break
+
+    budget = description_budget if description_budget is not None else 0
+    wanted = [_txt(r.get("Id")) for r in rows if not (known_ids and _txt(r.get("Id")) in known_ids)][:budget]
+
+    def detail(jid):
+        payload = _oracle_get(sess, _ORACLE_DETAIL.format(host=host, site=site, jid=jid))
+        items = (payload or {}).get("items") or []
+        return _clean_text((items[0] if items else {}).get("ExternalDescriptionStr"))
+
+    bodies = {}
+    if wanted:
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            bodies = dict(zip(wanted, pool.map(detail, wanted)))
+
+    out = []
+    for row in rows:
+        jid = _txt(row.get("Id"))
+        if not jid:
+            continue
+        # The full posting where one was fetched, the blurb the list
+        # carries otherwise. Both are the employer's own words.
+        body = bodies.get(jid) or _clean_text(row.get("ShortDescriptionStr"))
+        out.append(Job("oracle", token, jid, _txt(row.get("Title")), _oracle_location(row),
+                       _ORACLE_JOB_URL.format(host=host, site=site, jid=jid),
+                       _normalize_date(row.get("PostedDate")),
+                       _txt(row.get("JobFamily")) or None,
+                       len(body or ""), body,
+                       workplace_type=_ORACLE_WORKPLACE.get(_txt(row.get("WorkplaceTypeCode")))
+                       or _ATS_WORKPLACE_MAP.get(_txt(row.get("WorkplaceType")).lower())))
+    return out
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -2612,12 +2727,15 @@ FETCHERS: dict[str, Callable] = {
     "checkpoint": f_checkpoint,
     # Keyed on a listing URL. See the note above it.
     "wpjobs": f_wpjobs,
+    # Keyed on "pod:site". See the note above it.
+    "oracle": f_oracle_cx,
 }
 
 # Boards too big or too slow for the five-minute sweep. They poll from the
 # hourly Lambda (scrape_workday_handler.py), which reads them with known
 # state so a run only describes jobs it has not seen.
-SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple", "checkpoint", "wpjobs"})
+SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple", "checkpoint",
+                            "wpjobs", "oracle"})
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered

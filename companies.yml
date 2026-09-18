@@ -447,6 +447,20 @@ wpjobs:
     jobs_seen: 21
     source: own-careers-page
 
+oracle:
+  # Oracle Recruiting Cloud (Oracle Fusion HCM). The token is the Fusion
+  # pod and the site number, never the employer's own careers host:
+  # akamai.com and jobs.akamai.com answer 403 to everything including
+  # robots.txt, while the pod serves the same jobs to a plain request.
+  # Every employer on this platform shares a handful of pods, so one
+  # fetcher covers all of them (f_oracle_cx in probe.py).
+  # Counts as of 2026-09-18.
+  - domain: akamai.com
+    token: "fa-extu-saasfaprod1.fa.ocs.oraclecloud.com:CX_1"
+    jobs_seen: 242
+    source: own-careers-api
+    note: requested by the site owner. 242 roles worldwide, 10 of them in Israel.
+
 checkpoint:
   # Check Point's own careers site, one server-rendered page with every
   # role on it (f_checkpoint in probe.py). The token is the host.
