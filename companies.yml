@@ -629,14 +629,6 @@ greenhouse:
     source: hand-verified
     note: added 2026-09-18. The domain guesses "playtika", a squatted Workable slug with no jobs, so the real board (26 roles, 16 of them Israeli) was never reached. The guess is a known false positive now.
 
-  # SentinelOne's board keeps the research arm's name. The domain guess
-  # "sentinelone" is a 404 on every ATS, so the company sat unresolved.
-  - domain: sentinelone.com
-    token: "sentinellabs"
-    jobs_seen: 216
-    source: hand-verified
-    note: added 2026-09-18. 216 roles, 11 in Israel.
-
   # Navan was TripActions, and the board kept the old name.
   - domain: navan.com
     token: "tripactions"

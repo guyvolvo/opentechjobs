@@ -27,4 +27,9 @@ probe.py skips it in a batch, so discovery cannot bring it back.
 # Duplicate domain -> the domain whose board is kept.
 SAME_COMPANY = {
     "wayve.fr": "wayve.ai",
+    # SentinelOne is on the board as sentinellabs.io, the domain its
+    # Greenhouse board is named for. Pinning sentinelone.com to the same
+    # board on 2026-09-18 just made the loader demote it as an alias
+    # every day, so this says so once instead.
+    "sentinelone.com": "sentinellabs.io",
 }
