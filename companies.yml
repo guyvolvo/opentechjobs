@@ -545,6 +545,19 @@ wprest:
     source: own-careers-api
     note: added 2026-09-18. One Technologies, IT services. 157 roles across six Israeli regions. Was not tracked at all.
 
+tycowp:
+  # A WordPress theme that publishes its whole board as one static JSON
+  # file (f_tycowp in probe.py). The token is the careers host. Israel
+  # Aerospace Industries is the first: the site sits behind a bot
+  # challenge and nothing else on it is readable, but the listings page
+  # loads its data from this file and the file is served plainly.
+  # Counts as of 2026-09-18.
+  - domain: iai.co.il
+    token: "jobs.iai.co.il"
+    jobs_seen: 517
+    source: own-careers-data
+    note: added 2026-09-18. 517 roles, all in Israel, no posting dates in the source. Was pinned to an empty Workable slug.
+
 eightfold:
   # Eightfold's careers platform. The token is the careers host and the
   # tenant name its API wants, which are rarely the same string

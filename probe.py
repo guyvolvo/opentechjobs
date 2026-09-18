@@ -2919,6 +2919,49 @@ def f_wprest(sess, token, known_ids=None, description_budget=None):
     return out
 
 
+# Israel Aerospace Industries. jobs.iai.co.il is WordPress on a theme
+# called tyco-wp, and the theme does something unusual: it publishes the
+# whole board as one static JSON file that the listings page fetches,
+# /wp-content/themes/tyco-wp/assets/json/jobs.json. 517 roles on
+# 2026-09-18, all in Israel. The file is the site's own public data and
+# is served plainly; the job pages themselves sit behind a bot challenge
+# (Reblaze), which is fine for the apply link, since a person clicks it,
+# and is why nothing else about this site is readable. The token is the
+# host, and the theme's path is the convention. No posting date exists
+# anywhere in the file, so posted_at stays empty rather than invented.
+#
+# The keys are the theme's own abbreviations: tl title, dc description,
+# ct city, tp employment type, jc field, cd the employer's job code.
+TYCOWP_JSON = "/wp-content/themes/tyco-wp/assets/json/jobs.json"
+TYCOWP_STUDENT = "משרת סטודנט"
+
+
+def f_tycowp(sess, token, known_ids=None, description_budget=None):
+    if not isinstance(token, str) or "." not in token or "/" in token:
+        return None
+    d = get_json(sess, f"https://{token}{TYCOWP_JSON}")
+    if not isinstance(d, list):
+        return None
+    out = []
+    for j in d:
+        if not isinstance(j, dict):
+            continue
+        jid, title = _txt(j.get("id")), _txt(j.get("tl")).strip()
+        if not jid or not title:
+            continue
+        city = _txt(j.get("ct")).strip()
+        job = Job("tycowp", token, jid, title,
+                  f"{city}, Israel" if city else "Israel",
+                  f"https://{token}/job/{jid}",
+                  None,
+                  _txt(j.get("jc")).strip() or None,
+                  description=_clean_text(j.get("dc")))
+        if _txt(j.get("tp")).strip() == TYCOWP_STUDENT:
+            job.seniority = "intern"
+        out.append(job)
+    return out
+
+
 # Ordered by how often each one actually wins, because the guess loop
 # below tries them in this order and stops at the first hit. The old
 # order was roughly the order they were written in, which put personio
@@ -2959,6 +3002,7 @@ FETCHERS: dict[str, Callable] = {
     "wpjobs": f_wpjobs,
     "redmatch": f_redmatch,
     "wprest": f_wprest,
+    "tycowp": f_tycowp,
     # Keyed on "pod:site". See the note above it.
     "oracle": f_oracle_cx,
     # Keyed on "host:domain". See the note above it.
@@ -2969,7 +3013,7 @@ FETCHERS: dict[str, Callable] = {
 # hourly Lambda (scrape_workday_handler.py), which reads them with known
 # state so a run only describes jobs it has not seen.
 SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple", "checkpoint",
-                            "wpjobs", "oracle", "eightfold", "redmatch", "wprest"})
+                            "wpjobs", "oracle", "eightfold", "redmatch", "wprest", "tycowp"})
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered
