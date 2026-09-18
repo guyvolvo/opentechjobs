@@ -3870,7 +3870,23 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
                 best = (ats, token, jobs)
 
     res.tried = tried
-    if best:
+    if best and not best[2]:
+        # Every board that answered was empty, and all of them here were
+        # guessed. That is not this company's board, it is a slug that
+        # happens to exist: measured 2026-09-18 over 60 Israeli hosts from
+        # Common Crawl, five of the seven "matches" were empty boards on
+        # tokens taken off a subdomain -- workable:school for
+        # school.walla.co.il, workable:online for online.study.co.il,
+        # lever:career for career.bbalev.co.il. Recording those is how 331
+        # companies, Dell and IBM among them, came to sit on empty Workable
+        # slugs that then masked their real boards.
+        #
+        # Retryable, not a confident miss: a real board can genuinely be
+        # empty for a week, and the loader leaves a company's stored ats
+        # alone on an inconclusive answer rather than clearing it.
+        res.error = f"only an empty {best[0]}:{best[1]} board matched, which is not evidence"
+        res.retryable = True
+    elif best:
         res.ats, res.token, res.jobs = best[0], best[1], _fill_classifications(best[2], res.domain)
         res.job_count = len(res.jobs)
     elif hint_unanswered:
