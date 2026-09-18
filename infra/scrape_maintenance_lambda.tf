@@ -110,7 +110,10 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
         # bucket, and a new page should have to be added here on purpose.
         Sid    = "PublishBootstrap"
         Effect = "Allow"
-        Action = ["s3:PutObject"]
+        # GetObject as well as PutObject: the sitemap publisher HEADs its
+        # own index to decide whether an hour has passed, and a role that
+        # can write a key but not read it fails that check every run.
+        Action = ["s3:PutObject", "s3:GetObject"]
         Resource = [
           "${aws_s3_bucket.frontend.arn}/bootstrap.json",
           # The same page filtered to Israel, which is what the country

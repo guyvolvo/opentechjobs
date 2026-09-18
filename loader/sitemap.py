@@ -169,9 +169,20 @@ def build(db_path: Path, now: datetime | None = None) -> dict[str, tuple[bytes, 
 
 
 def _fresh_enough(s3, bucket: str) -> bool:
+    """Whether the published sitemap is under MAX_AGE_S old.
+
+    Says why when it cannot tell. The first deploy answered False on
+    every run because the role could write these keys but not HEAD
+    them, and a silent False meant 30MB republished every five minutes
+    with nothing in the log to say so. A missing object is the normal
+    first-run case; anything else is a problem worth a line.
+    """
     try:
         head = s3.head_object(Bucket=bucket, Key="sitemap.xml")
-    except Exception:
+    except Exception as e:
+        code = getattr(e, "response", {}).get("Error", {}).get("Code", "")
+        if code not in ("404", "NoSuchKey", "NotFound"):
+            print(f"sitemap age check failed ({code or e!r}), publishing anyway", file=sys.stderr)
         return False
     age = (datetime.now(timezone.utc) - head["LastModified"]).total_seconds()
     if age < MAX_AGE_S:
