@@ -2628,6 +2628,75 @@ def f_oracle_cx(sess, token, known_ids=None, description_budget=None):
     return out
 
 
+# Eightfold, the careers platform behind several large employers. Teva is
+# the first one here; the shape belongs to the platform, so others are a
+# pin away when they allow it.
+#
+# The token is "host:domain": the careers host and the tenant name the
+# API wants, e.g. "careers.teva:tevapharm.com". They are rarely the same
+# string, which is why both are pinned rather than derived. A guessed
+# slug has neither a dot nor a colon, so this makes no request until a
+# pin names it.
+#
+# Not every tenant is open. Amdocs and Qualcomm answer this exact call
+# with 403 {"message": "Not authorized for PCSX"}, so a pin has to be
+# verified against the tenant before it lands, the same as Workday's.
+#
+# Paging is the server's to decide: it answered 10 rows to num=100 on
+# 2026-09-18, so the next offset is however many came back, never the
+# number asked for. Advancing by the requested size skipped 498 of Teva's
+# 558 jobs while looking like it had read them all.
+EIGHTFOLD_PAGE = 100
+EIGHTFOLD_MAX_JOBS = 2000
+_EIGHTFOLD_LIST = ("https://{host}/api/apply/v2/jobs?domain={domain}"
+                   "&start={start}&num={num}&sort_by=timestamp")
+
+
+def f_eightfold(sess, token, known_ids=None, description_budget=None):
+    if not isinstance(token, str) or ":" not in token:
+        return None
+    host, _, domain = token.partition(":")
+    if "." not in host or not domain:
+        return None
+
+    rows, total = [], None
+    while True:
+        payload = _oracle_get(sess, _EIGHTFOLD_LIST.format(
+            host=host, domain=domain, start=len(rows), num=EIGHTFOLD_PAGE))
+        if payload is None:
+            # A page that fails part way through is not "these jobs
+            # closed": keep nothing rather than close the rest.
+            return None
+        page = payload.get("positions") or []
+        if total is None:
+            total = int(payload.get("count") or 0)
+            if not total:
+                return None
+        if not page:
+            break
+        rows.extend(page)
+        if len(rows) >= min(total, EIGHTFOLD_MAX_JOBS):
+            break
+
+    out = []
+    for row in rows:
+        jid = _txt(row.get("id"))
+        if not jid:
+            continue
+        places = [_txt(p) for p in (row.get("locations") or []) if _txt(p)]
+        where = "; ".join(dict.fromkeys([_txt(row.get("location"))] + places).keys()).strip("; ")
+        body = _clean_text(row.get("job_description"))
+        out.append(Job("eightfold", token, jid, _txt(row.get("name")), where,
+                       _txt(row.get("canonicalPositionUrl")) or f"https://{host}/careers/job/{jid}",
+                       _epoch_date(row.get("t_create") or row.get("t_update")),
+                       _txt(row.get("department")) or None,
+                       len(body or ""), body,
+                       workplace_type=_ATS_WORKPLACE_MAP.get(
+                           _txt(row.get("work_location_option")).lower()
+                           or _txt(row.get("location_flexibility")).lower())))
+    return out
+
+
 # All endpoint shapes below are ground-truthed against real boards
 # (greenhouse: jfrog, wiz.io; ashby: snyk, ramp; lever: lever's own token;
 # workable: huggingface; smartrecruiters: see the empty-content guard
@@ -2732,13 +2801,15 @@ FETCHERS: dict[str, Callable] = {
     "wpjobs": f_wpjobs,
     # Keyed on "pod:site". See the note above it.
     "oracle": f_oracle_cx,
+    # Keyed on "host:domain". See the note above it.
+    "eightfold": f_eightfold,
 }
 
 # Boards too big or too slow for the five-minute sweep. They poll from the
 # hourly Lambda (scrape_workday_handler.py), which reads them with known
 # state so a run only describes jobs it has not seen.
 SLOW_BOARD_ATS = frozenset({"workday", "amazon", "microsoft", "google", "apple", "checkpoint",
-                            "wpjobs", "oracle"})
+                            "wpjobs", "oracle", "eightfold"})
 
 # Comeet: not guessable like the ATSes above. The API needs an opaque
 # per-company `token` + `uid`, not derivable from the domain. Recovered

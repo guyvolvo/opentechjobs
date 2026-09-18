@@ -497,6 +497,19 @@ wpjobs:
     jobs_seen: 21
     source: own-careers-page
 
+eightfold:
+  # Eightfold's careers platform. The token is the careers host and the
+  # tenant name its API wants, which are rarely the same string
+  # (f_eightfold in probe.py). Not every tenant is open: amdocs and
+  # qualcomm answer the same call with 403 "Not authorized for PCSX",
+  # so verify against the tenant before pinning.
+  # Counts as of 2026-09-18.
+  - domain: tevapharm.com
+    token: "careers.teva:tevapharm.com"
+    jobs_seen: 558
+    source: own-careers-api
+    note: 558 roles worldwide, 23 of them in Israel. Teva was not tracked at all.
+
 oracle:
   # Oracle Recruiting Cloud (Oracle Fusion HCM). The token is the Fusion
   # pod and the site number, never the employer's own careers host:

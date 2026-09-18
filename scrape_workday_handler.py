@@ -91,7 +91,8 @@ probe.FETCH_FULL_DESCRIPTIONS = True
 # Oracle Recruiting Cloud boards read a couple of hundred roles a page
 # and want a per-job call for each full posting, so they read hourly
 # with a budget rather than every five minutes.
-BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon", "checkpoint", "wpjobs", "oracle")
+BIG_TECH_ATS = ("microsoft", "google", "apple", "amazon", "checkpoint", "wpjobs", "oracle",
+                "eightfold")
 # Two budgets, because the two kinds of description cost different things.
 # Microsoft and Apple need a request per description, so theirs is a time
 # budget: 300 calls fits a run beside Workday, four global reads and the
