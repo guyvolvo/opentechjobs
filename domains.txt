@@ -10823,3 +10823,27 @@ ruggedrobotics.com
 stackexchange.com
 studiokraftonboard.com
 tetra.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+libertexgroup.com
+transfergo.com
+truloveorthodontics.com
+transcendinc.org
+verusen.com
+worldsurfleague.com
+formula.com
+impossible.com
+neotaste.com
+optery.com
+vivian.com
+xephyr.com
+28stone.com
+agile-robots.com
+allwynnorthamerica.com
+amcon.com
+access.co
+apt.co
+mixcloud.com
+mitchell.com
+modus-group.com
+neota.net
