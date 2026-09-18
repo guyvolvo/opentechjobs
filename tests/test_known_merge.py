@@ -93,7 +93,12 @@ try:
     check("no baseline keeps nothing", n == 0)
 
     wf = (ROOT / ".github/workflows/scrape-discover.yml").read_text(encoding="utf-8")
-    check("the full sweep passes a baseline", "--prune-stale --known-baseline known-at-start.json" in wf)
+    # The flags travel together in one branch of the workflow's
+    # conditional; what matters is that the baseline rides with the
+    # prune, not the exact spelling between them.
+    full = next((l for l in wf.splitlines() if "'--prune-stale" in l), "")
+    check("the full sweep passes a baseline", "--known-baseline known-at-start.json" in full, full.strip()[:120])
+    check("and releases long-empty boards", "--demote-empty-days" in full, full.strip()[:120])
     check("the baseline is copied before the load overwrites known.json", "cp known.json known-at-start.json" in wf)
 finally:
     shutil.rmtree(tmp, ignore_errors=True)

@@ -317,6 +317,18 @@ workday:
     source: hand-verified
     note: 76 Israeli roles, the largest single pin added that day. Was not tracked at all.
 
+  # Red Hat. The domain guess "redhat" is an empty Workable slug, now a
+  # known false positive, and the real board is Workday. No israel_facets:
+  # the tenant lists one Israeli role, so the whole board is cheaper than
+  # a facet that would need verifying.
+  - domain: redhat.com
+    tenant: redhat
+    wd: wd5
+    site: jobs
+    jobs_seen: 150
+    source: hand-verified
+    note: added 2026-09-18. 150 roles, 1 in Israel.
+
   - domain: medtronic.com
     tenant: medtronic
     wd: wd1
@@ -533,6 +545,25 @@ oracle:
     source: hand-verified
     note: added 2026-09-18. jobs.dell.com now redirects here; Dell left Workday, and dell.wd1/wd5 answer 422 ("no such tenant"), the same as a made-up name. 469 roles, 10 in Israel. CX_1 through CX_8 all answer with the same 469, so the site number is not discriminating for this tenant; CX_1 is what Dell's own job links use. Guessing had settled on workable:dell, a squatted slug with no jobs, now a known false positive.
 
+  # Israel Discount Bank. The whole board is Israeli and written in
+  # Hebrew, which the country classifier reads. Found by watching the
+  # careers page's own requests: the pod is on em2 and the site is
+  # numbered, not CX_1. Not a tech employer, and that is fine: the board
+  # counts every role at a tracked company, and always has.
+  - domain: discountbank.co.il
+    token: "ehsb.fa.em2.oraclecloud.com:CX_3001"
+    jobs_seen: 67
+    source: hand-verified
+    note: added 2026-09-18. 67 roles, all of them in Israel. Guessing found nothing on this domain.
+
+  # Verint. Its site is plain "CX" with no number. The domain guess had
+  # settled on ashby:verint, an empty board, now a known false positive.
+  - domain: verint.com
+    token: "fa-epcb-saasfaprod1.fa.ocs.oraclecloud.com:CX"
+    jobs_seen: 36
+    source: hand-verified
+    note: added 2026-09-18. 36 roles, 2 in Israel.
+
   - domain: akamai.com
     token: "fa-extu-saasfaprod1.fa.ocs.oraclecloud.com:CX_1"
     jobs_seen: 242
@@ -570,6 +601,14 @@ greenhouse:
     jobs_seen: 26
     source: hand-verified
     note: added 2026-09-18. The domain guesses "playtika", a squatted Workable slug with no jobs, so the real board (26 roles, 16 of them Israeli) was never reached. The guess is a known false positive now.
+
+  # SentinelOne's board keeps the research arm's name. The domain guess
+  # "sentinelone" is a 404 on every ATS, so the company sat unresolved.
+  - domain: sentinelone.com
+    token: "sentinellabs"
+    jobs_seen: 216
+    source: hand-verified
+    note: added 2026-09-18. 216 roles, 11 in Israel.
 
   # Navan was TripActions, and the board kept the old name.
   - domain: navan.com

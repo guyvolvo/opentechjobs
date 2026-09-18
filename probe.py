@@ -2759,6 +2759,10 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
                                    # literally titled "Sample Job" -- an unconfigured demo tenant, not the
                                    # real Intuit. Titled convincingly enough that the Inactive-Career-Page
                                    # check above doesn't catch it, hence the explicit entry.
+    ("recruitee", "samsung"),     # samsung.com: one posting, not Samsung's. The real board is Workday.
+    ("recruitee", "meta"),        # meta.com: same shape, one unrelated posting.
+    ("workable", "redhat"),       # redhat.com: empty slug; the real board is workday redhat:wd5:jobs
+    ("ashby", "verint"),          # verint.com: empty board; the real one is Oracle Recruiting (pinned)
     ("recruitee", "google"),      # google.com: the one posting is literally titled "Senior Marketer
                                    # (Sample)" -- an unconfigured demo tenant, not the real Google (which
                                    # has no third-party ATS at all; see the workday pins block above for

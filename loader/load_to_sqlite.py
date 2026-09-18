@@ -826,6 +826,67 @@ def prune_stale_companies(conn: sqlite3.Connection, current_domains: set[str], t
     return len(stale)
 
 
+DEMOTED_EMPTY_MARK = "board empty for"
+
+
+def demote_empty_boards(conn: sqlite3.Connection, ts: str, days: int) -> list[str]:
+    """Release a resolved company whose board has shown nothing for `days`.
+
+    Measured 2026-09-18: 446 companies resolved to an ATS with no open
+    job, 355 of them on Workable slugs that never held one. Rafael, IAI,
+    the Electric Corporation and Israel Railways were all pinned that way,
+    and while a company is resolved nothing ever looks at its real
+    careers site again. The empty-guess rule in probe.resolve stops new
+    ones being recorded; this is the same rule applied to the ones that
+    were recorded before it existed, plus the boards that emptied later
+    because the company moved ATS (Cellebrite and Rapyd left Workable and
+    their widgets have answered zero ever since).
+
+    Demoting means ats/token go to NULL with an error that says why, so
+    the company drops out of known.json and the five-minute sweep, and
+    the daily batch probes it from scratch. If a real board turns up the
+    normal upsert resolves it again; if only the same empty board
+    answers, resolve() reports that as inconclusive and the row stays
+    released. Nothing is deleted: the job rows keep their history.
+
+    "Empty for `days`" is the last closure at the company, or, for a
+    company that never had a job at all, when it was first probed. A
+    board that is legitimately between hires is released too, which
+    costs nothing but a poll of an empty page until it hires again.
+    """
+    rows = conn.execute(
+        """
+        SELECT c.domain, c.ats, c.token, c.first_seen,
+               (SELECT COUNT(*) FROM jobs j WHERE j.company_domain = c.domain AND j.closed_at IS NULL) AS open_n,
+               (SELECT MAX(closed_at) FROM jobs j WHERE j.company_domain = c.domain) AS last_closed,
+               (SELECT COUNT(*) FROM jobs j WHERE j.company_domain = c.domain) AS ever_n
+        FROM companies c
+        WHERE c.ats IS NOT NULL AND c.job_count = 0
+        """
+    ).fetchall()
+    demoted = []
+    for r in rows:
+        if r["open_n"]:
+            continue
+        empty_since = r["last_closed"] if r["ever_n"] else r["first_seen"]
+        if not empty_since:
+            continue
+        age = conn.execute("SELECT julianday(?) - julianday(?)", (ts, empty_since)).fetchone()[0]
+        if age is None or age < days:
+            continue
+        conn.execute(
+            """
+            UPDATE companies SET ats = NULL, token = NULL, confidence = NULL, job_count = 0,
+                error = ?, last_checked = ?
+            WHERE domain = ?
+            """,
+            (f"{DEMOTED_EMPTY_MARK} {int(age)} days ({r['ats']}:{r['token']}), released for re-resolution",
+             ts, r["domain"]),
+        )
+        demoted.append(r["domain"])
+    return demoted
+
+
 def close_missing_jobs(conn: sqlite3.Connection, seen_ids_by_domain: dict[str, set[str]], ts: str) -> None:
     """A job still open in the DB, for a domain we successfully re-probed
     this run, that didn't come back in this run's results: mark it closed.
@@ -1201,7 +1262,8 @@ def apply_company_logos(conn: sqlite3.Connection, path: Path) -> int:
 
 
 def keep_companies_added_meanwhile(bucket: str, key: str, known_out: Path,
-                                   baseline: Path, resolved: Path) -> int:
+                                   baseline: Path, resolved: Path,
+                                  exclude: set[str] | None = None) -> int:
     """Add back to known_out every company that reached known.json while a
     long run was going. Returns how many.
 
@@ -1239,8 +1301,12 @@ def keep_companies_added_meanwhile(bucket: str, key: str, known_out: Path,
     unanswered = {r.get("domain") for r in results if not r.get("ats") and r.get("retryable")}
     known = json.loads(known_out.read_text(encoding="utf-8"))
     have = {e["domain"] for e in known}
+    # A company this run released (demote_empty_boards) answered the
+    # sweep inconclusively too, since the only board it has is the empty
+    # one. Without this it would come straight back from the live file.
+    exclude = exclude or set()
     added = [e for e in live
-             if e.get("domain") and e["domain"] not in have
+             if e.get("domain") and e["domain"] not in have and e["domain"] not in exclude
              and (e["domain"] in unanswered
                   or (e["domain"] not in before and e["domain"] not in swept))]
     if added:
@@ -1299,6 +1365,9 @@ def main() -> int:
                      help="demote any resolved company whose domain isn't in this run's --resolved data "
                           "(see prune_stale_companies) -- only correct for a full --batch domains.txt run, "
                           "never for --known's own partial re-poll, so scrape-fast.yml must never pass this")
+    ap.add_argument("--demote-empty-days", type=int, default=0,
+                    help="release a resolved company whose board has held no job for this many days "
+                         "(see demote_empty_boards); 0 disables. Full-sweep runs only, like --prune-stale")
     ap.add_argument("--archive-closed-days", type=int, default=0,
                      help="Move listings closed longer ago than this out of the snapshot and into "
                           "S3, then delete them. 0 disables it. Nothing ever removed a job, so the "
@@ -1360,6 +1429,7 @@ def main() -> int:
             existed, etag = s3_pull(args.bucket, args.key, args.out)
             print(f"pulled existing jobs.db from s3://{args.bucket}/{args.key}: {existed}", file=sys.stderr)
 
+        demoted: list[str] = []
         conn = open_db(args.out)
         with conn:
             current_domains = load_resolved(conn, args.resolved, args.drop_description)
@@ -1370,6 +1440,12 @@ def main() -> int:
                 n_pruned = prune_stale_companies(conn, current_domains, ts)
                 if n_pruned:
                     print(f"pruned {n_pruned} companies no longer in domains.txt/companies.yml", file=sys.stderr)
+            if args.demote_empty_days:
+                demoted = demote_empty_boards(conn, now_iso(), args.demote_empty_days)
+                if demoted:
+                    print(f"released {len(demoted)} companies whose boards have been empty "
+                          f"for {args.demote_empty_days}+ days: {', '.join(demoted[:8])}"
+                          f"{' ...' if len(demoted) > 8 else ''}", file=sys.stderr)
             if args.archive_closed_days and args.bucket:
                 # Before update_meta so the recorded totals describe the
                 # snapshot that actually ships, and inside this
@@ -1418,7 +1494,8 @@ def main() -> int:
 
         if args.known_baseline:
             kept = keep_companies_added_meanwhile(args.bucket, args.known_key, known_out,
-                                                  args.known_baseline, args.resolved)
+                                                  args.known_baseline, args.resolved,
+                                                  exclude=set(demoted))
             print(f"known.json: kept {kept} companies added while this run was going", file=sys.stderr)
 
         # known.json has no reader that needs it pinned to one exact

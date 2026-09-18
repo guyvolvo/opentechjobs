@@ -174,7 +174,7 @@ jobs:
             --out jobs-full-discover.db \
             --bucket ${{ vars.DATA_BUCKET }} \
             --key jobs-full-discover.db \
-            ${{ github.event.inputs.domains == '' && '--prune-stale --known-baseline known-at-start.json' || '--skip-known' }}
+            ${{ github.event.inputs.domains == '' && '--prune-stale --demote-empty-days 3 --known-baseline known-at-start.json' || '--skip-known' }}
 
       # A targeted run still has to reach the fast poll, which reads only
       # known.json. --skip-known above stops the wholesale replace that
