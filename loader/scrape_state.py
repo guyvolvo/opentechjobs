@@ -39,10 +39,25 @@ KEY = "scrape-state.json.gz"
 # A change resets to this. Faster than the flat 5 minutes every board
 # gets today, which is the point: the saving buys better freshness where
 # freshness is worth something.
-FLOOR_S = 180
+#
+# 300 since 2026-09-18, up from 180. The sweep runs every 300s, so a
+# shorter floor cannot be honoured: it only manufactures demand the tick
+# can never serve. Measured that day: 666 boards sat at 180s and alone
+# asked for 1,110 polls a tick against a cap of 600.
+FLOOR_S = 300
 
 # Nothing waits longer than this, however long it has been quiet.
-CEILING_S = 1200
+#
+# 14400 (4h) since 2026-09-18, up from 1200. Measured that day: 9,158
+# boards in state, 6,560 of them (71%) parked at the 20-minute ceiling,
+# so the quiet majority alone asked for about 1,640 polls a tick against
+# a cap of 600. Every tick had 7,500 boards due and swept 600, which is
+# not a rotation, it is a queue that never drains: p90 time since poll
+# was 77 minutes, and the per-board intervals below were decoration.
+# 94% of polls come back unchanged, so the quiet majority is exactly
+# what should wait, and GROWTH still takes about eleven quiet polls to
+# get here, so a board that posts even occasionally never does.
+CEILING_S = 14400
 
 # Gentle on purpose. At 1.5 a board reaches the ceiling after five
 # consecutive quiet polls, roughly half an hour of silence, so a board
@@ -83,7 +98,14 @@ JITTER = 0.35
 # desk and over 200s in the Lambda, and the sweep failed every run for
 # 45 minutes. Half the batch finishes, saves its state, and the backlog
 # drains across runs instead of blocking all of them.
-MAX_PER_SWEEP = 600
+#
+# 900 since 2026-09-18. A poll costs 68ms at p50 and 138ms at p90
+# (measured over 288 runs), so 900 is about 124s of sweeping against
+# that 200-second ceiling, still inside the margin that 1,200 blew
+# through. Paired with the floor and ceiling above, steady-state demand
+# drops from about 4,100 polls a tick to about 1,600, so this cap stops
+# being what decides freshness.
+MAX_PER_SWEEP = 900
 
 _VALIDATORS = ("etag", "last_modified", "content_hash")
 
