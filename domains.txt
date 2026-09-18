@@ -11233,3 +11233,17 @@ serverless.com
 silana.com
 shiny.com
 sinai.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+sleepres.com
+social.com
+soles4souls.net
+sonno.ai
+sports-reference.com
+startup.com
+sharesource.org
+sown.com
+step-up.com
+st-mark.org
+sales-excellence.de
+soliant.com
