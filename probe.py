@@ -2742,6 +2742,11 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("workable", "hpe"),          # hpe.com, really Workday (pinned)
     ("workable", "playtika"),     # playtika.com, really greenhouse:playtikaltd (pinned)
     ("workable", "dell"),         # dell.com, really Oracle Recruiting Cloud (pinned)
+    # imperva.com was acquired by Thales: its own careers page now sends
+    # applicants to careers.thalesgroup.com, so Imperva has no board of
+    # its own to find, and the guessed Workable slug was the only thing
+    # making it look tracked.
+    ("workable", "imperva"),
     # ibm.com runs Avature (ibmglobal.avature.net), which answers every
     # listing URL with HTTP 202 and an empty body, sitemap included.
     # Nothing here can read it, and the squatted Workable slug was hiding

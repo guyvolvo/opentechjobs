@@ -299,6 +299,15 @@ workday:
   # Added 2026-09-18 while hunting for Israeli jobs. Each verified live
   # against the tenant's own API before landing here, with the Israel
   # facet discovered the same run (discover_workday_israel_facets).
+  - domain: f5.com
+    tenant: ffive
+    wd: wd5
+    site: f5jobs
+    israel_facets: {"locationCountry": ["084562884af243748dad7c84c304d89a"]}
+    jobs_seen: 210
+    source: hand-verified
+    note: added 2026-09-18. The tenant is "ffive" rather than "f5" - every f5.* tenant answers 422, and the real name appears only in the careers page's own link. 210 roles, 7 touching Israel (5 resolve to IL, the rest multi-city such as "Dublin, Tel Aviv").
+
   - domain: kla.com
     tenant: kla
     wd: wd1
