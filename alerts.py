@@ -302,7 +302,8 @@ def _place(job: dict, alert: dict | None = None) -> str:
 # says it is never a panel colour and the site draws its cards with
 # hairlines rather than fills, so the mail does the same. Green is
 # Signal Green and Green Text, and it goes on exactly what it means:
-# the rule under the header, the apply links, the one call to action.
+# the Apply buttons and the links back to the board, and nowhere else:
+# the header rule is ink, the footer links are ink.
 # Titles and metadata are ink. The logo band tokens are the site's own
 # treatment for a company mark on paper.
 _PAPER = "#f2f0ef"
@@ -318,27 +319,29 @@ _DARK_GREEN = "#2fae60"
 _DARK_GREY = "#9a9a9a"
 _DARK_LINE = "#2b2c31"
 _DARK_BAND = "#23252b"
+# The Apply button is the board's own: Green Text fill with paper text
+# in light mode, and in dark mode the site's dark Signal Green with the
+# dark row tint as its text, which is the button as it appears there.
+_BTN_TEXT = _PAPER
+_DARK_BTN_TEXT = "#23252b"
 _FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
 _MARK = f"{SITE_ORIGIN}/favicon-32.png"
 
 
 def _logo_cell(job: dict) -> str:
-    """A 28px company mark in the site's logo band, or a lettered square
-    of the same size when there is none, so every row lines up."""
+    """The company's mark in the site's logo band, the band running the
+    full height of the listing so the mark sits centred beside all three
+    lines. 44px inside a 52px band; a lettered square of the same size
+    when there is no logo, so every row lines up."""
     esc = html.escape
-    # The band is its own 28px table, not the outer cell, or it would
-    # stretch to the row's full height with the mark sat at the top.
-    band = f"width:28px; height:28px; background:{_LOGO_BAND}; border:1px solid {_LOGO_RULE};"
+    band = f"width:52px; background:{_LOGO_BAND}; border:1px solid {_LOGO_RULE}; vertical-align:middle;"
     if job.get("logo_url"):
-        inner = (f'<td class="otj-band" style="{band}">'
-                 f'<img src="{esc(job["logo_url"])}" width="28" height="28" alt="" '
-                 f'style="display:block; width:28px; height:28px; border:0;" /></td>')
-    else:
-        letter = (_company(job)[:1] or "?").upper()
-        inner = (f'<td class="otj-band otj-ink" align="center" style="{band} '
-                 f'font-family:{_FONT}; font-size:13px; font-weight:700; line-height:28px; color:{_INK};">{esc(letter)}</td>')
-    return (f'<td width="30" style="width:30px; vertical-align:top;">'
-            f'<table role="presentation" cellpadding="0" cellspacing="0"><tr>{inner}</tr></table></td>')
+        return (f'<td width="52" align="center" valign="middle" class="otj-band" style="{band}">'
+                f'<img src="{esc(job["logo_url"])}" width="44" height="44" alt="" '
+                f'style="display:block; width:44px; height:44px; border:0;" /></td>')
+    letter = (_company(job)[:1] or "?").upper()
+    return (f'<td width="52" align="center" valign="middle" class="otj-band otj-ink" style="{band} '
+            f'font-family:{_FONT}; font-size:18px; font-weight:700; color:{_INK};">{esc(letter)}</td>')
 
 
 def _row_html(j: dict, now: datetime, alert: dict | None = None) -> str:
@@ -372,8 +375,12 @@ def _row_html(j: dict, now: datetime, alert: dict | None = None) -> str:
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;">
                       <tr>
                         <td dir="ltr" class="otj-grey" style="font-family:{_FONT}; font-size:12px; line-height:1.4; color:{_INK};">{" &middot; ".join(bits)}</td>
-                        <td dir="ltr" align="right" style="font-family:{_FONT}; font-size:13px; white-space:nowrap; padding-left:12px;">
-                          <a href="{esc(j['url'])}" class="otj-link" style="color:{_LINK}; font-weight:700; text-decoration:none;">Apply &rarr;</a>
+                        <td dir="ltr" align="right" style="white-space:nowrap; padding-left:12px;">
+                          <table role="presentation" cellpadding="0" cellspacing="0" align="right"><tr>
+                            <td class="otj-btn" style="background:{_LINK}; border-radius:4px;">
+                              <a href="{esc(j['url'])}" class="otj-btn-text" style="display:inline-block; padding:7px 12px; font-family:{_FONT}; font-size:13px; line-height:1; font-weight:700; color:{_BTN_TEXT}; text-decoration:none; white-space:nowrap;">Apply &#8599;</a>
+                            </td>
+                          </tr></table>
                         </td>
                       </tr>
                     </table>
@@ -417,7 +424,9 @@ def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: da
       .otj-ink {{ color: {_DARK_INK} !important; }}
       .otj-grey {{ color: {_DARK_GREY} !important; }}
       .otj-link {{ color: {_DARK_GREEN} !important; }}
-      .otj-rule {{ border-bottom-color: {_DARK_GREEN} !important; }}
+      .otj-rule {{ border-bottom-color: {_DARK_INK} !important; }}
+      .otj-btn {{ background: {_DARK_GREEN} !important; }}
+      .otj-btn-text {{ color: {_DARK_BTN_TEXT} !important; }}
       .otj-line {{ border-bottom-color: {_DARK_LINE} !important; }}
       .otj-band {{ background: {_DARK_BAND} !important; border-color: {_DARK_LINE} !important; }}
     }}
@@ -430,7 +439,7 @@ def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: da
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
 
           <tr>
-            <td class="otj-rule" style="padding:0 0 10px 0; border-bottom:2px solid {_GREEN};">
+            <td class="otj-rule" style="padding:0 0 10px 0; border-bottom:2px solid {_INK};">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td width="24" class="otj-band" style="width:24px; height:24px; background:{_LOGO_BAND};">
@@ -471,11 +480,11 @@ def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: da
                 You're receiving this because you saved an alert on OpenTechJobs.
               </div>
               <div style="font-family:{_FONT}; font-size:12px; line-height:1.5; margin-top:6px;">
-                <a href="{SITE_ORIGIN}/account" class="otj-link" style="color:{_LINK}; text-decoration:underline;">Manage alert</a>
+                <a href="{SITE_ORIGIN}/account" class="otj-ink" style="color:{_INK}; text-decoration:underline;">Manage alert</a>
                 <span class="otj-grey" style="color:{_INK};">&nbsp;&middot;&nbsp;</span>
-                <a href="{SITE_ORIGIN}/account" class="otj-link" style="color:{_LINK}; text-decoration:underline;">Pause alert</a>
+                <a href="{SITE_ORIGIN}/account" class="otj-ink" style="color:{_INK}; text-decoration:underline;">Pause alert</a>
                 <span class="otj-grey" style="color:{_INK};">&nbsp;&middot;&nbsp;</span>
-                <a href="{SITE_ORIGIN}/account" class="otj-link" style="color:{_LINK}; text-decoration:underline;">Unsubscribe</a>
+                <a href="{SITE_ORIGIN}/account" class="otj-ink" style="color:{_INK}; text-decoration:underline;">Unsubscribe</a>
               </div>
             </td>
           </tr>
