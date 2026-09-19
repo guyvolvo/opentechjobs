@@ -852,7 +852,7 @@ button, input, select {
    an empty cell here is not whitespace. It is the hairline background
    showing through where a tile should be. The odd one out takes the
    whole row instead. */
-.stats-board .metrics-grid .metric-card:last-child:nth-child(odd) {
+.stats-board .metrics-grid .metric-card:last-of-type:nth-of-type(odd) {
   grid-column: 1 / -1;
 }
 
@@ -1668,6 +1668,9 @@ mark {
   font-size: 12px;
   color: var(--grey);
   margin-bottom: 12px;
+  /* One line tall while empty too: the count arrives with the rows, and
+     an empty div here moved the whole table down 18px when it did. */
+  min-height: 1.5em;
 }
 .result-count b { color: var(--black); }
 
@@ -2504,6 +2507,10 @@ footer {
     align-items: start;
   }
   table.jobs td.title-cell > .company-logo.listing { grid-column: 1; grid-row: 1 / span 7; align-self: start; margin-top: 2px; }
+  /* At phone width the meta line (company, place, age) wraps to two
+     lines on most rows, so the bone reserves two. */
+  .skeleton-row .job-meta { min-height: calc(2 * 1.5 * 13px); }
+  .skeleton-row .sk-meta2 { display: inline-block; }
   table.jobs td.title-cell > .job-card-body { display: contents; }
   table.jobs td.title-cell > .job-card-body > *,
   table.jobs td.title-cell > .job-salary-col { grid-column: 2; }
@@ -2711,35 +2718,49 @@ footer {
   to   { background-position: 160% 0; }
 }
 
-/* Matched to the real row's own geometry so nothing shifts when the
-   data lands: same 12px/10px cell padding, same 40px logo column, same
-   three stacked lines in the card body. */
-.skeleton-row td { padding: 12px 10px; vertical-align: top; }
+/* The skeleton row is the real row's markup (see board.html's
+   #skeleton-row template) with bones inside the title, meta and links
+   wrappers, so every line box is the real line box and the row is the
+   real row's height at every width. Measured live before this: 79px of
+   bone against 114px of row on desktop, 157 against 177 on a phone,
+   fifty rows at a time. Only the links line needs a stated height: its
+   real height comes from the Apply button's padding, not from text. */
 .sk-star { width: 14px; height: 14px; }
-.sk-logo { width: 40px; height: 40px; }
-.sk-line { height: 11px; margin-bottom: 7px; }
+.sk-logo { display: block; }
+.sk-line { height: 11px; }
 .sk-title { width: 62%; height: 14px; }
 .sk-meta  { width: 84%; }
-.sk-links { width: 38%; margin-bottom: 0; }
+.sk-meta2 { width: 46%; display: none; } /* the phone's second meta line, see the phone block */
+.sk-links { width: 38%; }
+.sk-salary { width: 72px; }
+.skeleton-row .job-links { min-height: 32px; }
 .sk-age   { width: 44px; height: 11px; }
+/* A bone inside a text wrapper sits in the wrapper's line box, so the
+   wrapper is one line of its own font tall, exactly as it is with text
+   in it. As a block the wrapper collapsed to the bone's 11px, and the
+   skeleton was one line short per line. */
+.skeleton-row .sk-line,
+.metric-card.pending .skeleton,
+.sk-panel .skeleton { display: inline-block; vertical-align: middle; }
 /* Uneven widths so a column of rows reads as text, not a barcode. */
 .skeleton-row:nth-child(3n+2) .sk-title { width: 47%; }
 .skeleton-row:nth-child(3n+2) .sk-meta  { width: 71%; }
 .skeleton-row:nth-child(3n)   .sk-title { width: 73%; }
 .skeleton-row:nth-child(3n)   .sk-meta  { width: 58%; }
 
-/* Stat tiles. The grid supplies the border (see DESIGN.md Layout), so
-   these only ever fill the tile's interior. */
-.sk-tile { padding: 14px 16px; }
-.sk-tile .sk-label { width: 54%; height: 9px; margin-bottom: 12px; }
-.sk-tile .sk-value { width: 38%; height: 26px; }
-.sk-panel { padding: 16px; }
-.sk-panel .sk-label { width: 44%; height: 9px; margin-bottom: 16px; }
-.sk-panel .sk-bar { height: 10px; margin-bottom: 10px; }
-.sk-panel .sk-bar:nth-child(2) { width: 88%; }
-.sk-panel .sk-bar:nth-child(3) { width: 66%; }
-.sk-panel .sk-bar:nth-child(4) { width: 79%; }
-.sk-panel .sk-bar:nth-child(5) { width: 41%; margin-bottom: 0; }
+/* Stat tiles and panels are bones inside the real tile and panel
+   markup (.metric-card.pending, .panel with .bar-row children), for the
+   same reason as the rows above: the tile's own line boxes set the
+   height, so the column does not grow when the numbers land. The value
+   bone is 26px inside the 30px value line; the sub bone one line of
+   the sub's own size. */
+.metric-card.pending .sub .sk-sub { width: 62%; height: 9px; }
+.sk-panel .sk-label { width: 44%; height: 9px; }
+.sk-panel .sk-name { width: 70%; height: 10px; }
+.sk-panel .sk-n { width: 60%; height: 10px; }
+.sk-panel .bar-row:nth-child(3n) .sk-name { width: 52%; }
+.sk-panel .bar-row:nth-child(3n+1) .sk-name { width: 84%; }
+.sk-panel .sk-more .sk-name { width: 64px; }
 
 /* Refetch indicator. Rides the topbar's existing 2px ink bottom rule
    rather than adding furniture: the rule that is already there turns

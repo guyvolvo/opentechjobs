@@ -937,7 +937,7 @@ function renderScopedMetrics(stats) {
         <div class="label">${c.label}</div>
         <div>
           <div class="value">${pending ? '<span class="skeleton" aria-hidden="true"></span>' : c.value}</div>
-          <div class="sub">${pending ? "" : c.sub}</div>
+          <div class="sub">${pending ? '<span class="skeleton sk-sub" aria-hidden="true"></span>' : c.sub}</div>
         </div>
       </div>`
     )
@@ -1149,15 +1149,11 @@ function renderScopedPanels(stats) {
   if (mode === "pending") {
     // Bones rather than the previous filter's leaderboard. A list of
     // companies is read as an answer, and holding the old one there for
-    // up to 2.9s answers a question the reader has stopped asking.
-    el.innerHTML = `
-      <div class="panel sk-panel" aria-busy="true">
-        <span class="skeleton sk-label"></span>
-        <span class="skeleton sk-bar"></span>
-        <span class="skeleton sk-bar"></span>
-        <span class="skeleton sk-bar"></span>
-        <span class="skeleton sk-bar"></span>
-      </div>`;
+    // up to 2.9s answers a question the reader has stopped asking. The
+    // bones are the ones the page stamps in before this file loads (see
+    // board.html's #panel-skeleton): the real panel's shape, so the
+    // column keeps its height while the scoped answer is out.
+    el.innerHTML = document.getElementById("panel-skeleton").innerHTML.replace('aria-hidden="true"', 'aria-busy="true"');
     return;
   }
 
@@ -1668,26 +1664,26 @@ function setCachedJobs(params, data) {
 //   skeleton rows  -> first load, nothing on screen yet
 //   the load bar   -> a refetch while real results are still readable
 //   .btn-busy      -> one control the user just clicked
-const SKELETON_ROWS = 8;
+const SKELETON_ROWS = 16;
 
 function jobsSkeletonHtml(n = SKELETON_ROWS) {
-  // Mirrors renderJobs' own row shape (star cell, logo + three stacked
-  // lines, age cell) so the real rows land in the same places these
-  // occupy and nothing jumps. aria-hidden throughout: a screen reader
-  // gets the status line instead, not eight rows of nothing.
-  return Array.from({ length: n }, () => `
-    <tr class="skeleton-row" aria-hidden="true">
-      <td><span class="skeleton sk-star"></span></td>
-      <td class="title-cell">
-        <span class="skeleton sk-logo"></span>
-        <div class="job-card-body">
-          <span class="skeleton sk-line sk-title"></span>
-          <span class="skeleton sk-line sk-meta"></span>
-          <span class="skeleton sk-line sk-links"></span>
-        </div>
-      </td>
-      <td><span class="skeleton sk-age"></span></td>
-    </tr>`).join("");
+  // The row shape lives in board.html's #skeleton-row template, which
+  // the page stamps in before this file has loaded; this reads the same
+  // template so there is one skeleton row, not two that drift apart.
+  // aria-hidden throughout: a screen reader gets the status line
+  // instead, not a page of nothing.
+  const tpl = document.getElementById("skeleton-row");
+  return tpl ? tpl.innerHTML.repeat(n) : "";
+}
+
+// How many bones to show while a fetch is out: as many rows as are on
+// screen now, so the page keeps its height and nothing under the table
+// (pagination, and on a phone the whole statistics column) jumps up and
+// back down. Never fewer than the first-paint sixteen, never more than
+// a page.
+function skeletonRowCount() {
+  const shown = lastJobsResponse?.jobs?.length || 0;
+  return Math.min(PAGE_SIZE, Math.max(SKELETON_ROWS, shown));
 }
 
 // Rides the topbar's own bottom rule (see .load-bar in style.css).
@@ -1841,7 +1837,7 @@ async function loadJobs({ background = false } = {}) {
   } else {
     // Bones, not "Loading listings…". Same height as the rows about to
     // replace them, so the page doesn't reflow when data lands.
-    tbody.innerHTML = jobsSkeletonHtml();
+    tbody.innerHTML = jobsSkeletonHtml(skeletonRowCount());
     document.getElementById("jobs-loading").textContent = "Loading listings";
   }
 
@@ -2071,7 +2067,7 @@ async function renderStarredOnly(starred, seq, inFlight) {
   });
 
   tbody.closest("table").style.display = "";
-  tbody.innerHTML = jobsSkeletonHtml();
+  tbody.innerHTML = jobsSkeletonHtml(skeletonRowCount());
   document.getElementById("jobs-loading").textContent = "Loading listings";
   document.getElementById("result-count").innerHTML = "";
   setLoadBar(true);
