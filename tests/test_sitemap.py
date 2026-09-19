@@ -52,15 +52,19 @@ conn.commit()
 conn.close()
 
 docs = sitemap.build(db, NOW)
-check("an index, a pages sitemap, the feed, and two job shards",
-      sorted(docs) == ["feed.xml", "sitemap-jobs-1.xml", "sitemap-jobs-2.xml", "sitemap-pages.xml", "sitemap.xml"], repr(sorted(docs)))
+check("an index, a pages sitemap, the feed, two job shards and a company shard",
+      sorted(docs) == ["feed.xml", "sitemap-companies-1.xml", "sitemap-jobs-1.xml", "sitemap-jobs-2.xml", "sitemap-pages.xml", "sitemap.xml"], repr(sorted(docs)))
+companies = docs["sitemap-companies-1.xml"][0].decode("utf-8")
+check("the company page is listed once, with the newest open listing's arrival as lastmod",
+      companies.count("<loc>https://opentechjobs.org/company/wix.com</loc>") == 1
+      and "<loc>https://opentechjobs.org/company/wix.com</loc><lastmod>2026-09-10T08:00:00Z</lastmod>" in companies, companies[:400])
 
 idx = ET.fromstring(docs["sitemap.xml"][0])
 ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 locs = [e.text for e in idx.findall("s:sitemap/s:loc", ns)]
 check("the index names every file by absolute URL",
       locs == ["https://opentechjobs.org/sitemap-pages.xml", "https://opentechjobs.org/sitemap-jobs-1.xml",
-               "https://opentechjobs.org/sitemap-jobs-2.xml"], repr(locs))
+               "https://opentechjobs.org/sitemap-jobs-2.xml", "https://opentechjobs.org/sitemap-companies-1.xml"], repr(locs))
 check("index entries carry the build time", all(e.text == "2026-09-18T12:00:00Z" for e in idx.findall("s:sitemap/s:lastmod", ns)))
 
 s1 = ET.fromstring(docs["sitemap-jobs-1.xml"][0])

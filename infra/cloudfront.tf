@@ -132,7 +132,7 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       // which the API also serves: without this line /job/<id> read as
       // an unknown page and was rewritten to /404.html before it ever
       // reached the origin. Caught on the first deploy.
-      if (uri.indexOf("/api/") === 0 || uri === "/api" || uri.indexOf("/job/") === 0) {
+      if (uri.indexOf("/api/") === 0 || uri === "/api" || uri.indexOf("/job/") === 0 || uri.indexOf("/company/") === 0) {
         return request;
       }
 
@@ -336,6 +336,24 @@ resource "aws_cloudfront_distribution" "main" {
   # the key: the page is a function of the id alone.
   ordered_cache_behavior {
     path_pattern           = "/job/*"
+    target_origin_id       = "api-lambda"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    cache_policy_id        = aws_cloudfront_cache_policy.job_page.id
+    compress               = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.legacy_domain_redirect.arn
+    }
+  }
+
+  # An employer's own page (api/company_page.py), the same shape as a
+  # listing's: the URL is the point, and the page is a function of the
+  # domain alone.
+  ordered_cache_behavior {
+    path_pattern           = "/company/*"
     target_origin_id       = "api-lambda"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]

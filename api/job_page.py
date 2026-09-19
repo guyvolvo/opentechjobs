@@ -268,15 +268,16 @@ def json_ld(job) -> dict:
     return {k: v for k, v in data.items() if v is not None}
 
 
-def _head(title, description, job_id, robots=None, ld=None, og_type="article"):
+def _head(title, description, canonical, robots=None, ld=None, og_type="article"):
+    """The head every server-rendered page shares; company_page.py uses
+    it too. canonical is the page's own absolute URL."""
     esc = html.escape
-    canonical = canonical_url(job_id)
     ld_tag = ""
     if ld is not None:
-        # "</" inside a script element would end it early; JSON is happy
-        # to carry the slash escaped.
+        # "<" inside a script element could open a tag; JSON is happy to
+        # carry it as <, and every parser reads it back as "<".
         ld_tag = ('  <script type="application/ld+json">'
-                  + json.dumps(ld, ensure_ascii=False).replace("</", "<\\/")
+                  + json.dumps(ld, ensure_ascii=False).replace("<", "\\u003c")
                   + "</script>\n")
     robots_tag = f'  <meta name="robots" content="{robots}" />\n' if robots else ""
     return f"""<!doctype html>
@@ -343,7 +344,7 @@ def render(job, now=None) -> str:
     posted = _parse(job.get("posted_at")) or _parse(job.get("first_seen"))
     open_ = closed is None
     desc = _meta_description(job)
-    head = _head(title, desc, job["id"], robots=None if open_ else "noindex,follow", ld=json_ld(job) if open_ else None)
+    head = _head(title, desc, canonical_url(job["id"]), robots=None if open_ else "noindex,follow", ld=json_ld(job) if open_ else None)
 
     badges = []
     if job.get("seniority"):
@@ -390,7 +391,7 @@ def render(job, now=None) -> str:
     <section class="section">
       <article class="container job-page">
         {notice}
-        <div class="job-page-company">{logo}<span>{esc(company)}</span></div>
+        <div class="job-page-company">{logo}<a class="link" href="/company/{esc(job.get("company_domain") or "")}">{esc(company)}</a></div>
         <h1 class="job-page-title">{esc(job.get("title", ""))}</h1>
         <div class="job-detail-badges">{"".join(badges)}</div>
         <div class="job-page-actions">{apply}</div>
@@ -410,7 +411,7 @@ def render_missing(status: int, job_id: str) -> str:
     title = "Listing no longer available | OpenTechJobs" if gone else "Listing not found | OpenTechJobs"
     what = ("This listing closed a while ago and the page has been retired."
             if gone else "There is no listing with this id. It may have been removed, or the link may be wrong.")
-    head = _head(title, what, job_id, robots="noindex", og_type="website")
+    head = _head(title, what, canonical_url(job_id), robots="noindex", og_type="website")
     return head + f"""{TOPBAR}
   <main class="workspace">
     <section class="section">

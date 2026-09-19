@@ -151,6 +151,7 @@ resource "aws_iam_role_policy" "scrape_maintenance_lambda" {
           # A job-shard count that shrinks leaves files the index no
           # longer names; the publisher deletes the next few numbers.
           "${aws_s3_bucket.frontend.arn}/sitemap-jobs-*.xml",
+          "${aws_s3_bucket.frontend.arn}/sitemap-companies-*.xml",
         ]
       },
       {

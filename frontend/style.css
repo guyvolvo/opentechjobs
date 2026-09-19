@@ -3795,3 +3795,12 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .topbar-nav { margin-left: auto; }
 .topbar-nav a { font-size: 13px; }
 .job-page-footer { padding: 24px 0 40px; font-size: 13px; color: var(--grey); }
+
+/* /company/<domain>: the employer's open roles as a plain numbered
+   list, each a link to the listing's own page. Same type steps as the
+   listing page around it. */
+.company-summary { font-size: 14px; color: var(--grey); margin: -6px 0 0; }
+.company-jobs { padding-left: 22px; margin: 8px 0 16px; font-size: 14px; line-height: 1.5; }
+.company-jobs li { margin: 0 0 8px; }
+.company-job-meta { display: block; font-size: 13px; color: var(--grey); }
+.company-more { font-size: 13px; }

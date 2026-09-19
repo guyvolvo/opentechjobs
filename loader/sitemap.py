@@ -7,7 +7,10 @@ now and already publishes bootstrap.json and stats.json beside the
 snapshot it just built, writes these too.
 
 What goes in: every listing the board would show, meaning open and
-inside the freshness window, at its own page /job/<id>. Closed listings
+inside the freshness window, at its own page /job/<id>, and every
+company with at least one such listing at /company/<domain>, with the
+newest open listing's arrival as lastmod (that is when the page last
+gained a row). Closed listings
 are left out the day they close; api/job_page.py keeps their page up
 for thirty days with a "closed" notice and noindex, then answers 410,
 so a crawler that already has the URL is told plainly rather than fed
@@ -95,9 +98,25 @@ def job_shards(conn: sqlite3.Connection) -> list[str]:
     return shards
 
 
-def index(shard_count: int, now: datetime) -> str:
+def company_shards(conn: sqlite3.Connection) -> list[str]:
+    """Companies with an open listing, at /company/<domain>."""
+    rows = conn.execute(
+        f"""
+        SELECT company_domain, MAX(first_seen) FROM jobs WHERE {_OPEN}
+        GROUP BY company_domain ORDER BY company_domain
+        """).fetchall()
+    shards = []
+    for start in range(0, len(rows), SHARD):
+        body = "".join(_url(f"{SITE}/company/{r[0]}", _w3c(r[1])) for r in rows[start:start + SHARD] if r[0])
+        shards.append('<?xml version="1.0" encoding="UTF-8"?>\n'
+                      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + body + "</urlset>\n")
+    return shards
+
+
+def index(shard_count: int, now: datetime, company_shard_count: int = 0) -> str:
     stamp = now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    names = ["sitemap-pages.xml"] + [f"sitemap-jobs-{i}.xml" for i in range(1, shard_count + 1)]
+    names = (["sitemap-pages.xml"] + [f"sitemap-jobs-{i}.xml" for i in range(1, shard_count + 1)]
+             + [f"sitemap-companies-{i}.xml" for i in range(1, company_shard_count + 1)])
     body = "".join(f"  <sitemap><loc>{SITE}/{n}</loc><lastmod>{stamp}</lastmod></sitemap>\n" for n in names)
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + body + "</sitemapindex>\n")
@@ -154,17 +173,20 @@ def build(db_path: Path, now: datetime | None = None) -> dict[str, tuple[bytes, 
     conn.row_factory = sqlite3.Row
     try:
         shards = job_shards(conn)
+        companies = company_shards(conn)
         rss = feed(conn, now)
     finally:
         conn.close()
     xml = "application/xml; charset=utf-8"
     out = {
-        "sitemap.xml": (index(len(shards), now).encode("utf-8"), xml),
+        "sitemap.xml": (index(len(shards), now, len(companies)).encode("utf-8"), xml),
         "sitemap-pages.xml": (pages_sitemap(now).encode("utf-8"), xml),
         "feed.xml": (rss.encode("utf-8"), "application/rss+xml; charset=utf-8"),
     }
     for i, doc in enumerate(shards, 1):
         out[f"sitemap-jobs-{i}.xml"] = (doc.encode("utf-8"), xml)
+    for i, doc in enumerate(companies, 1):
+        out[f"sitemap-companies-{i}.xml"] = (doc.encode("utf-8"), xml)
     return out
 
 
@@ -215,9 +237,11 @@ def publish(frontend_bucket: str, db_path: Path, tmp: Path | None = None) -> lis
         # A shard count that shrank leaves old files behind; the index no
         # longer names them, but a crawler that remembers them would get
         # a stale list. Deleting a key that is not there is not an error.
+        for prefix in ("sitemap-jobs-", "sitemap-companies-"):
+            count = sum(1 for k in docs if k.startswith(prefix))
+            for i in range(count + 1, count + 4):
+                s3.delete_object(Bucket=frontend_bucket, Key=f"{prefix}{i}.xml")
         shard_count = sum(1 for k in docs if k.startswith("sitemap-jobs-"))
-        for i in range(shard_count + 1, shard_count + 4):
-            s3.delete_object(Bucket=frontend_bucket, Key=f"sitemap-jobs-{i}.xml")
         total = sum(len(b) for b, _ in docs.values())
         print(f"published {len(written)} sitemap/feed files ({total} bytes, {shard_count} job shards)", file=sys.stderr)
         return written

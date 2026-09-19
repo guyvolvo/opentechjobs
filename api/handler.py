@@ -32,6 +32,7 @@ from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
                         has_board_filters, search_companies)
 from db import get_connection, status as db_status
 from help_page import HELP_HTML
+import company_page
 import job_page
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
@@ -117,6 +118,49 @@ SORT_COLUMNS = {
 # logic, not a second copy that quietly drifts from this one.
 
 
+def route_company_page(domain: str):
+    """GET /company/{domain}: the employer's own HTML page (api/company_page.py)."""
+    domain = domain.lower().strip("/")
+    if not company_page.is_domain(domain):
+        return _html_response(404, company_page.render_missing(domain), cache_seconds=60,
+                              extra_headers={"X-Robots-Tag": "noindex"})
+    conn = get_connection()
+    ccols = {r[1] for r in conn.execute("PRAGMA table_info(companies)")}
+    pick = ", ".join(c for c in ("domain", "ats", "error", "first_seen", "company_name", "logo_url") if c in ccols)
+    row = conn.execute(f"SELECT {pick} FROM companies WHERE domain = ?", (domain,)).fetchone()
+    company = dict(row) if row else None
+    status = company_page.status_for(company)
+    if status == 404:
+        return _html_response(404, company_page.render_missing(domain), cache_seconds=60,
+                              extra_headers={"X-Robots-Tag": "noindex"})
+    if status == 301:
+        target = company_page.redirect_target(company)
+        return _html_response(301, company_page.render_redirect(target), cache_seconds=3600,
+                              extra_headers={"Location": company_page.canonical_url(target)})
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(jobs)")}
+    place_select = "country, city" if {"country", "city"} <= cols else "NULL AS country, NULL AS city"
+    jobs = [dict(r) for r in conn.execute(
+        f"""
+        SELECT id, title, location, department, seniority, workplace_type, posted_at, first_seen, {place_select}
+        FROM jobs
+        WHERE company_domain = ? AND closed_at IS NULL AND {FRESH_CLAUSE}
+        ORDER BY posted_at IS NULL, datetime(posted_at) DESC, datetime(first_seen) DESC, id
+        LIMIT ?
+        """, (domain, company_page.MAX_LISTED + 1)).fetchall()]
+    total, since = conn.execute(
+        "SELECT COUNT(*), MIN(first_seen) FROM jobs WHERE company_domain = ?", (domain,)).fetchone()
+    last_open = None
+    if not jobs:
+        last_open = conn.execute(
+            "SELECT MAX(closed_at) FROM jobs WHERE company_domain = ?", (domain,)).fetchone()[0]
+    facts = {"total": total or 0, "since": (since or company.get("first_seen") or "")[:10], "last_open": last_open}
+    extra = None if jobs else {"X-Robots-Tag": "noindex"}
+    # Same ten minutes at the edge as a listing's page: the page changes
+    # as roles open and close, and the sitemap carries the lastmod.
+    return _html_response(200, company_page.render(company, jobs, facts), cache_seconds=600, edge_seconds=600,
+                          extra_headers=extra)
+
+
 def route_job_page(job_id: str):
     """GET /job/{id}: the listing as its own HTML page (api/job_page.py).
 
@@ -179,6 +223,12 @@ def lambda_handler(event, context):
         except Exception as e:  # noqa: BLE001 -- a page must answer, not 502
             print(f"job page failed: {e!r}")
             return _html_response(500, job_page.render_missing(404, ""), extra_headers={"X-Robots-Tag": "noindex"})
+    if path.startswith("/company/") and len(path) > len("/company/"):
+        try:
+            return route_company_page(path[len("/company/"):].split("?")[0])
+        except Exception as e:  # noqa: BLE001
+            print(f"company page failed: {e!r}")
+            return _html_response(500, company_page.render_missing(""), extra_headers={"X-Robots-Tag": "noindex"})
     if path.startswith("/api"):
         path = path[4:] or "/"
     params = _query_params(event)
