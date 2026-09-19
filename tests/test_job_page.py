@@ -54,7 +54,7 @@ def ld_of(page):
 # An open Israeli job.
 p = job_page.render(job(), NOW)
 check("open job is 200", job_page.status_for(job(), NOW) == 200)
-check("title names the job and the company", "<title>Senior Software Engineer at Wix | OpenTechJobs</title>" in p)
+check("title names the job, the company and the city", "<title>Senior Software Engineer at Wix, Tel Aviv | OpenTechJobs</title>" in p)
 check("canonical is the job's own page", '<link rel="canonical" href="https://opentechjobs.org/job/b561172d4d0ff1d6" />' in p)
 check("no robots restriction on an open job", 'name="robots"' not in p)
 check("the visible page has the title, company, place and apply link",

@@ -333,7 +333,12 @@ def render(job, now=None) -> str:
     esc = html.escape
     now = now or datetime.now(timezone.utc)
     company = company_label(job)
-    title = f"{job.get('title', '').strip()} at {company} | OpenTechJobs"
+    # The city goes in the title when there is one: "at Wix, Tel Aviv" is
+    # what someone searching for the role types, and the title is the
+    # one line of ours a search result shows.
+    city = (job.get("city") or "").split(",")[0].strip()
+    where = f", {city}" if city else ""
+    title = f"{job.get('title', '').strip()} at {company}{where} | OpenTechJobs"
     closed = _parse(job.get("closed_at"))
     posted = _parse(job.get("posted_at")) or _parse(job.get("first_seen"))
     open_ = closed is None

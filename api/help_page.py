@@ -73,7 +73,7 @@ HELP_HTML = """<!doctype html>
         <p><b>Public Routes:</b> Open to everyone. No API keys or authentication required.</p>
         <p><b>Account Routes (/api/me):</b> Require a user authentication token. These endpoints only access or modify your own account data.</p>
         <p><b>Data Format:</b> All responses are JSON (except this documentation page).</p>
-        <p><b>Base URL:</b> <a class="link" href="https://opentechjobs.org/api">https://opentechjobs.org/api</a> (HTTPS only).</p>
+        <p><b>Base URL:</b> <code>https://opentechjobs.org/api</code> (HTTPS only).</p>
 
         <h3>Quick Start</h3>
         <p>Fetch the 10 newest open job listings in the United States:</p>
