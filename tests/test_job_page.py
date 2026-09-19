@@ -95,6 +95,29 @@ check("disclosed salary is shown as salary", ">Salary<" in d and "$150K – $200
 e = job_page.render(job(salary_text="₪30K – ₪40K", salary_source="model"), NOW)
 check("an estimate is labelled as one, in words", ">Estimated salary<" in e and "market estimate" in e)
 check("and never appears in the markup", "baseSalary" not in (ld_of(e) or {}))
+check("a disclosed range is baseSalary, min and max, yearly by default",
+      ld_of(d)["baseSalary"] == {"@type": "MonetaryAmount", "currency": "USD",
+                                 "value": {"@type": "QuantitativeValue", "unitText": "YEAR", "minValue": 150000.0, "maxValue": 200000.0}},
+      repr(ld_of(d).get("baseSalary")))
+bs = lambda text: job_page.base_salary(job(salary_text=text, salary_source="disclosed"))
+check("the employer's own shapes read right",
+      bs("$165,000 - $216,562")["value"] == {"@type": "QuantitativeValue", "unitText": "YEAR", "minValue": 165000.0, "maxValue": 216562.0}
+      and bs("$40 per hour")["value"] == {"@type": "QuantitativeValue", "unitText": "HOUR", "value": 40.0}
+      and bs("CA$90K - CA$115K")["currency"] == "CAD" and bs("CA$90K - CA$115K")["value"]["maxValue"] == 115000.0
+      and bs("€60K - €70K")["currency"] == "EUR" and bs("₪30K – ₪40K")["currency"] == "ILS"
+      and bs("$40 – $45 per hour · $2,500 sign-on bonus")["value"] == {"@type": "QuantitativeValue", "unitText": "HOUR", "minValue": 40.0, "maxValue": 45.0},
+      repr((bs("$165,000 - $216,562"), bs("$40 per hour"), bs("CA$90K - CA$115K"), bs("$40 – $45 per hour · $2,500 sign-on bonus"))))
+check("more than one range, or no currency, is left out rather than half-read",
+      bs("$600 – $2,000 per month · Multiple Ranges") is None and bs("Competitive") is None and bs("30K - 40K") is None)
+
+# Region: only a spelled-out US state code, never a guess.
+r = job_page.json_ld(job(location="Boston, MA", country="US", city="Boston"))
+check("Boston, MA carries addressRegion MA", r["jobLocation"]["address"].get("addressRegion") == "MA", repr(r["jobLocation"]))
+r2 = job_page.json_ld(job(location="Cambridge, Massachusetts", country="US", city="Cambridge"))
+r3 = job_page.json_ld(job(location="Tel Aviv-Yafo, Tel Aviv District, Israel", country="IL", city="Tel Aviv"))
+check("a spelled-out state or a non-US listing gets none",
+      "addressRegion" not in r2["jobLocation"]["address"] and "addressRegion" not in r3["jobLocation"]["address"])
+check("validThrough is not invented", "validThrough" not in job_page.json_ld(job()))
 old = job_page.render(job(salary_text="₪30K", salary_source=None, salary_is_estimate=1), NOW)
 check("the old boolean still reads as an estimate", ">Estimated salary<" in old)
 

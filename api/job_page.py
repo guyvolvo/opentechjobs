@@ -133,16 +133,39 @@ def _meta_description(job) -> str:
     return text[:157].rstrip() + ("…" if len(text) > 157 else "")
 
 
+US_STATES = {
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY",
+    "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH",
+    "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+}
+
+
+def _us_region(job, city):
+    """The state code when a US listing spells it: "Boston, MA" gives MA.
+    Only the two-letter form right after the city is trusted; a listing
+    that says "Cambridge, Massachusetts" or just "Austin" gets no region
+    rather than a guessed one."""
+    if (job.get("country") or "") != "US":
+        return None
+    m = re.search(re.escape(city) + r"\s*,\s*([A-Z]{2})(?:\s*,|\s*$|\s*;)", job.get("location") or "")
+    return m.group(1) if m and m.group(1) in US_STATES else None
+
+
 def _places(job):
     """JobPosting jobLocation entries from the derived city and country
     columns, which are what the board's own filters trust. One Place per
-    city when the countries are unambiguous, else one per country."""
+    city when the countries are unambiguous, else one per country. No
+    street or postal code: the listings do not carry one, and Search
+    Console's note about them is a suggestion, not something to invent."""
     countries = [c for c in (job.get("country") or "").split(",") if c]
     cities = [c for c in (job.get("city") or "").split(",") if c]
     places = []
     if cities and len(countries) <= 1:
         for city in cities:
             addr = {"@type": "PostalAddress", "addressLocality": city}
+            region = _us_region(job, city)
+            if region:
+                addr["addressRegion"] = region
             if countries:
                 addr["addressCountry"] = countries[0]
             places.append({"@type": "Place", "address": addr})
@@ -152,9 +175,70 @@ def _places(job):
     return places
 
 
+_CURRENCIES = [
+    # longest prefixes first, so CA$ is read before $
+    ("CA$", "CAD"), ("C$", "CAD"), ("A$", "AUD"), ("AU$", "AUD"), ("NZ$", "NZD"), ("US$", "USD"), ("S$", "SGD"),
+    ("HK$", "HKD"), ("USD", "USD"), ("EUR", "EUR"), ("GBP", "GBP"), ("ILS", "ILS"), ("NIS", "ILS"), ("CAD", "CAD"),
+    ("AUD", "AUD"), ("CHF", "CHF"), ("INR", "INR"), ("SGD", "SGD"), ("$", "USD"), ("€", "EUR"), ("£", "GBP"),
+    ("₪", "ILS"), ("₹", "INR"), ("¥", "JPY"),
+]
+_UNITS = [("per hour", "HOUR"), ("/hour", "HOUR"), ("/hr", "HOUR"), ("hourly", "HOUR"), ("per day", "DAY"),
+          ("per week", "WEEK"), ("per month", "MONTH"), ("/month", "MONTH"), ("monthly", "MONTH"),
+          ("per year", "YEAR"), ("/year", "YEAR"), ("annually", "YEAR"), ("a year", "YEAR")]
+_AMOUNT = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*([kK])?")
+
+
+def _amounts(text):
+    out = []
+    for num, k in _AMOUNT.findall(text):
+        try:
+            v = float(num.replace(",", ""))
+        except ValueError:
+            continue
+        out.append(v * 1000 if k else v)
+    return out
+
+
+def base_salary(job):
+    """schema.org baseSalary, and only from a figure the employer gave.
+    An estimate never goes into the markup, whatever the page says next
+    to it. The text is the employer's own string, so a range reads as
+    min and max, a single figure as a value, and anything with more than
+    one range in it ("$600 – $2,000 per month · Multiple Ranges") is
+    left out rather than half-read."""
+    text = (job.get("salary_text") or "").strip()
+    source = job.get("salary_source") or ("table" if job.get("salary_is_estimate") else "disclosed")
+    if not text or source != "disclosed":
+        return None
+    # the first segment is the figure; anything after a separator is a
+    # note (sign-on bonus, commission, "Multiple Ranges")
+    head = re.split(r"\s[·•|]\s", text)[0]
+    lower = head.lower()
+    currency = next((code for sym, code in _CURRENCIES if sym.lower() in lower), None)
+    if not currency:
+        return None
+    unit = next((u for word, u in _UNITS if word in lower), "YEAR")
+    # strip currency words so "CA$90K" does not read its CA as a number
+    figures = _amounts(re.sub(r"[A-Za-z]{2,3}\$", "$", head))
+    if not figures or len(figures) > 2 or "multiple" in text.lower():
+        return None
+    value = {"@type": "QuantitativeValue", "unitText": unit}
+    if len(figures) == 2:
+        lo, hi = sorted(figures)
+        value["minValue"], value["maxValue"] = lo, hi
+    else:
+        value["value"] = figures[0]
+    return {"@type": "MonetaryAmount", "currency": currency, "value": value}
+
+
 def json_ld(job) -> dict:
     """schema.org JobPosting for an open listing. Every value here is
-    also visible on the page, which is Google's rule for this markup."""
+    also visible on the page, which is Google's rule for this markup.
+
+    No validThrough: the listings carry no closing date, and Google's
+    own guidance is to leave the field out rather than invent one. A
+    listing that closes is served 410 with the markup gone, which is
+    the signal that matters."""
     posted = _parse(job.get("posted_at")) or _parse(job.get("first_seen"))
     org = {"@type": "Organization", "name": company_label(job)}
     domain = job.get("company_domain") or ""
@@ -178,6 +262,9 @@ def json_ld(job) -> dict:
         data["identifier"] = {"@type": "PropertyValue", "name": job.get("ats") or "ats", "value": str(job["external_id"])}
     if job.get("department"):
         data["occupationalCategory"] = job["department"]
+    salary = base_salary(job)
+    if salary:
+        data["baseSalary"] = salary
     return {k: v for k, v in data.items() if v is not None}
 
 
