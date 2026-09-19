@@ -11649,3 +11649,25 @@ foundationai.com
 gerberchildrenswear.com
 talentwwinc.com
 barriques.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+galimberti.com
+totalstay.de
+beinguser.com
+equalsmoney.com
+pladisfrance.com
+picard.ai
+acmefreight.com
+cedarcourt.com
+cotopaxi.com
+daubertchemical.com
+efficiently.com
+inlandcountieslegalservicesinc.com
+landpoint.io
+lifeworks.com
+overturepromotions.com
+palmbeachcountypublicdefender15thjudical.com
+peaktwentyone.com
+precisionplumbing.com
+targray.com
+wachsman.com
