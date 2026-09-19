@@ -254,7 +254,7 @@ button, input, select {
   padding-bottom: 10px;
 }
 .topbar .container > * { min-width: 0; } /* same min-width:auto issue as everywhere else in this file */
-.status-indicator, .wordmark, .topnav { flex: 0 0 auto; } /* natural width; the ticker is the one flexible element between them */
+.status-indicator, .topnav { flex: 0 0 auto; } /* natural width; the ticker is the one flexible element between them */
 .status-indicator { display: flex; align-items: center; }
 
 /* Topbar ticker: seamless CSS-loop marquee. The item list is duplicated
@@ -308,20 +308,11 @@ button, input, select {
 .ticker-item .ticker-company { color: var(--grey); }
 .ticker-item:hover .ticker-company { color: var(--green-text); }
 
-.wordmark {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-}
-/* The mark (logo-square.png) is a solid-fill rounded square, not a
-   transparent glyph -- same "fixed brand color regardless of the page's
-   own theme toggle" precedent as the favicon (DESIGN.md). Height picked
-   to sit comfortably inside the topbar's ~36px content row
-   (min-height:56px minus its 10px top/bottom padding) without forcing it
-   taller; the source is square, so the width follows. */
-.wordmark-logo { height: 34px; width: auto; }
-
 .topnav {
+  /* Keeps the nav on the right on the pages with nothing else in the
+     bar (account, stats, privacy, 404). The wordmark used to hold the
+     left edge; the bar is empty there now. */
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 28px;
@@ -2655,15 +2646,9 @@ footer {
     text-underline-offset: 4px;
   }
   .ticker-rule, .ticker { display: none; } /* topbar is already tight without a marquee too */
-  /* Dropping the wordmark graphic outright, not just shrinking it
-     further (already tried above) -- reported live (2026-09-08): the
-     topbar was still wrapping to two lines on a phone, and the logo is
-     the one item on this row wide enough to matter. Nav alone fits on
-     one line without it and the status indicator (see below). */
-  .wordmark { display: none; }
   /* LIVE/OFFLINE + dot: real information on desktop, but on a phone's
      topbar it's spending width without earning it -- reported live
-     (2026-09-08), same visit as the wordmark above. */
+     (2026-09-08). */
   .status-indicator { display: none; }
   .topbar .container { flex-wrap: nowrap; }
 

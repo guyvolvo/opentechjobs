@@ -61,9 +61,6 @@ HELP_HTML = """<!doctype html>
 
   <div class="topbar">
     <div class="container">
-      <a class="wordmark" href="/">
-        <img src="/logo-horizontal.png" alt="OpenTechJobs.org" class="wordmark-logo" />
-      </a>
     </div>
   </div>
 

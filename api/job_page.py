@@ -315,9 +315,6 @@ def _head(title, description, job_id, robots=None, ld=None, og_type="article"):
 TOPBAR = """<body class="job-page-body">
   <div class="topbar">
     <div class="container">
-      <a class="wordmark" href="/">
-        <img src="/logo-horizontal.png" alt="OpenTechJobs.org" class="wordmark-logo" />
-      </a>
       <nav class="topbar-nav"><a class="link" href="/board">Browse all jobs</a></nav>
     </div>
   </div>
