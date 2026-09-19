@@ -11893,3 +11893,15 @@ triad.net
 upwell.com
 valley.com
 value-store.net
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+yalochatinc.com
+athenaactuarial.com
+kalibri.org
+sellfire.com
+signalwire.com
+tabz.com
+convosphere.com
+cosmo.com
+covalent.com
+cwcpcn.com
