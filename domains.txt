@@ -11809,3 +11809,19 @@ ywcalubbock.com
 zymochem.com
 allure-aesthetics.net
 bellesa.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+bitwave.io
+bluebearwaste.com
+computer.com
+custommade.com
+freeman.com
+getbridge.com
+harding-academy.org
+groupe.io
+hes-so.ai
+infinet.co
+tau-six.com
+team.com
+tiktak.ai
+togetherhood.org
