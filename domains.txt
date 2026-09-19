@@ -11276,3 +11276,20 @@ terrestris.org
 learntastic.com
 credence.com
 lloydrichards.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+talentmovers.com
+lumc.com
+uvation.com
+insideouthiring.com
+prepnetwork.com
+electrogrup.net
+bergmanclinics.com
+udem.de
+thewealshirellc.com
+cqs.ai
+londiscareers.com
+heytutor.com
+unitedmethodistcommunities.com
+vald.com
+cordx.com
