@@ -11763,3 +11763,12 @@ schaeferadvertising.com
 soulshinefarms.com
 tribecafilm.com
 valorx.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+cosmic.com
+cornerstone.com
+newhouse.fr
+ssg.co
+tuyo.com
+turboden.com
+umai.com
