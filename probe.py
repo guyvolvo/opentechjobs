@@ -3192,7 +3192,13 @@ def _fetch_comeet_pin(sess: requests.Session, uid: str, token: str) -> list[Job]
 #      are tagged confidence='best_effort', never blended into 'verified'.
 
 EMBED_ATS_PATTERNS: list[tuple[str, "re.Pattern[str]"]] = [
-    ("greenhouse", re.compile(r"(?:job-)?boards\.greenhouse\.io/([a-zA-Z0-9_-]+)")),
+    # The embed script names the board in a query parameter:
+    # boards.greenhouse.io/embed/job_board/js?for=tipaltisolutions. The
+    # path form below used to capture "embed" from that URL, fetch a board
+    # called "embed", and stop there, which is how Tipalti, Placer and
+    # Aidoc went unresolved with the token sitting in plain sight.
+    ("greenhouse", re.compile(r"boards\.greenhouse\.io/embed/job_(?:board|app)[^\"'\s]*?[?&]for=([a-zA-Z0-9_-]+)")),
+    ("greenhouse", re.compile(r"(?:job-)?boards\.greenhouse\.io/(?!embed/)([a-zA-Z0-9_-]+)")),
     ("lever", re.compile(r"jobs\.lever\.co/([a-zA-Z0-9_-]+)")),
     ("ashby", re.compile(r"jobs\.ashbyhq\.com/([a-zA-Z0-9_-]+)")),
     ("workable", re.compile(r"apply\.workable\.com/([a-zA-Z0-9_-]+)")),

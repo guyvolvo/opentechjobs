@@ -242,6 +242,24 @@ check("and yes.co.il is one of them",
 check("the North Dakota electrician is blacklisted",
       ("greenhouse", "yes") in probe.KNOWN_FALSE_POSITIVES)
 
+
+def embed_token(snippet):
+    for ats, rx in probe.EMBED_ATS_PATTERNS:
+        m = rx.search(snippet)
+        if m:
+            return ats, m.group(1)
+    return None
+
+
+check("a Greenhouse embed script names its board in for=, and that is what the scraper reads",
+      embed_token('<script src="https://boards.greenhouse.io/embed/job_board/js?for=tipaltisolutions"></script>') == ("greenhouse", "tipaltisolutions")
+      and embed_token('<a href="https://boards.greenhouse.io/embed/job_app?for=aidocmedical&token=1">') == ("greenhouse", "aidocmedical"),
+      repr(embed_token('<script src="https://boards.greenhouse.io/embed/job_board/js?for=tipaltisolutions"></script>')))
+check("a plain board link still reads as its slug, and 'embed' is never a slug",
+      embed_token('<a href="https://boards.greenhouse.io/playtikaltd/jobs/123">') == ("greenhouse", "playtikaltd")
+      and embed_token('<a href="https://job-boards.greenhouse.io/via">') == ("greenhouse", "via")
+      and embed_token('<iframe src="https://boards.greenhouse.io/embed/job_board?b=x">') is None)
+
 print()
 if failures:
     print("%d failed:" % len(failures))
