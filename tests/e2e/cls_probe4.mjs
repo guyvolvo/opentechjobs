@@ -44,7 +44,7 @@ async function run(name, ctxOpts, slow) {
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
   }
   await page.addInitScript(OBSERVE);
-  await page.addInitScript(() => { try { localStorage.setItem("geo-prompt-answered", "1"); } catch {} });
+  await page.addInitScript(() => { try { localStorage.setItem("iljobs_geo_asked", "1"); } catch {} });
   await page.goto(origin + "/board", { waitUntil: "domcontentloaded" });
   // first-frame skeleton heights, before app.js has replaced them
   const first = await page.evaluate(() => {

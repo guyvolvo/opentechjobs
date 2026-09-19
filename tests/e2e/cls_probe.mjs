@@ -27,7 +27,7 @@ async function probe(name, ctxOpts, path) {
   const ctx = await b.newContext({ ...ctxOpts, serviceWorkers: "block" });
   const page = await ctx.newPage();
   await page.addInitScript(OBSERVE);
-  await page.addInitScript(() => { try { localStorage.setItem("geo-prompt-answered", "1"); } catch {} });
+  await page.addInitScript(() => { try { localStorage.setItem("iljobs_geo_asked", "1"); } catch {} });
   await page.goto(origin + path, { waitUntil: "load" });
   await page.waitForTimeout(6000);
   const shifts = await page.evaluate(() => window.__shifts);

@@ -3640,11 +3640,14 @@ async function _loadTicker(seq, signal) {
       track.innerHTML = "";
       return;
     }
+    // Eager, not the lazy every other logo uses: a marquee never holds
+    // still long enough for lazy loading to settle, so marks were
+    // arriving blank mid-scroll.
     const itemsHtml = data.jobs
       .map(
         (j) => `
         <a class="ticker-item" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">
-          <span class="bullet">●</span>${escapeHtml(j.title)}
+          ${companyLogoImg(j.company_domain, 32, "ticker", j.logo_url).replace('loading="lazy"', 'loading="eager"')}${escapeHtml(j.title)}
           <span class="ticker-company">@${escapeHtml(companyLabel(j))}</span>
         </a>`
       )

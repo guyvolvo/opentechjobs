@@ -260,8 +260,6 @@ button, input, select {
 /* Topbar ticker: seamless CSS-loop marquee. The item list is duplicated
    once in the track, animated exactly -50% so the loop has no visible seam. */
 
-.ticker-rule { flex: 0 0 auto; width: var(--rule); height: 22px; background: var(--black); }
-
 .ticker {
   flex: 1 1 auto;
   min-width: 0;
@@ -273,6 +271,10 @@ button, input, select {
   transition: opacity 0.2s ease;
   display: flex;
   align-items: center; /* .ticker-track's height comes from its own text content, not this 20px window; without this it just sits at the top of the clipped box instead of centered in it */
+  /* Items fade in and out at the ends instead of being cut by a rule,
+     the same mask the landing page's ticker wears (.hero-ticker). */
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 7%, black 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, black 7%, black 93%, transparent);
 }
 
 .ticker-track {
@@ -304,7 +306,9 @@ button, input, select {
   border-right: 1px solid var(--grey-line);
 }
 .ticker-item:hover { color: var(--green-text); }
-.ticker-item .bullet { color: var(--green); }
+/* The company's own mark leads each item, at the bar-row's 14px, in
+   place of the green dot that used to. */
+.ticker-item .company-logo { width: 14px; height: 14px; margin-right: 0; flex: 0 0 auto; }
 .ticker-item .ticker-company { color: var(--grey); }
 .ticker-item:hover .ticker-company { color: var(--green-text); }
 
@@ -2645,7 +2649,7 @@ footer {
     text-decoration-thickness: 1px;
     text-underline-offset: 4px;
   }
-  .ticker-rule, .ticker { display: none; } /* topbar is already tight without a marquee too */
+  .ticker { display: none; } /* topbar is already tight without a marquee too */
   /* LIVE/OFFLINE + dot: real information on desktop, but on a phone's
      topbar it's spending width without earning it -- reported live
      (2026-09-08). */
