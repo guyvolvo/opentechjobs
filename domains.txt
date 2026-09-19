@@ -11970,3 +11970,26 @@ https.io
 inovues.com
 kett-tool.com
 kaleidocode.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+kiira.io
+leaddesk.com
+mots-cles.fr
+mae.fr
+sweetfishmedia.com
+synergy-inc.com
+techsmart.ai
+testbox.com
+tezzro.com
+tanzanianchildrensfund.com
+the-chateau.com
+the-commonwealth.co
+texas.com
+the-educator.com
+thevillagechurch.com
+thesummitinstitute.net
+the-story.net
+tie.com
+timeline.com
+turnerstaffing.com
+unlayer.com
