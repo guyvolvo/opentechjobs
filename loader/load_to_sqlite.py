@@ -260,6 +260,7 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
 
     for r in data:
         domain = r["domain"]
+        adopted_from: str | None = None
         ats = r.get("ats")
         token = r.get("token")
 
@@ -323,24 +324,42 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
         # (stability across runs); if neither is resolved yet, the
         # alphabetically-first domain wins -- arbitrary, but
         # deterministic, so which one "wins" doesn't flap run to run.
+        #
+        # One exception, and it outranks both: a domain that is nothing
+        # but the board token with a TLD on it loses to one that is not.
+        # discover_companies.py guesses "{token}.com" when it cannot read
+        # a real domain off the board, and the guess is a legal-entity
+        # suffix as often as a company: tenableinc.com, atbayjobs.com,
+        # tipaltisolutions.com, wix2.com. Those resolved first, so under
+        # the rule above the real domain arriving later (tenable.com, from
+        # a companies.yml pin) was the one demoted, and the board kept
+        # showing a company nobody could look up. The guess-shaped one
+        # yields whenever it meets a real name, whichever came first.
         if ats and token:
             other = conn.execute(
                 "SELECT domain FROM companies WHERE ats = ? AND token = ? AND domain != ?",
                 (ats, token, domain),
             ).fetchone()
             if other:
-                canonical_already_resolved = bool(
-                    conn.execute(
-                        "SELECT 1 FROM companies WHERE domain = ? AND ats IS NOT NULL", (other["domain"],)
-                    ).fetchone()
-                )
-                if canonical_already_resolved or other["domain"] < domain:
+                this_guessed = _is_token_domain(domain, token)
+                other_guessed = _is_token_domain(other["domain"], token)
+                if this_guessed != other_guessed:
+                    other_wins = this_guessed
+                else:
+                    other_wins = bool(
+                        conn.execute(
+                            "SELECT 1 FROM companies WHERE domain = ? AND ats IS NOT NULL", (other["domain"],)
+                        ).fetchone()
+                    ) or other["domain"] < domain
+                if other_wins:
                     _demote_alias(conn, domain, other["domain"], ats, token, ts)
                     continue
-                # This run is the first time both domains show up together
-                # and this one alphabetically precedes the other -- this
-                # domain stays canonical instead, so demote the other one.
+                # This domain is the one to keep, so demote the other one.
+                # Its jobs are the same postings this run is about to
+                # insert under a new id; adopted_from remembers where to
+                # copy their real ages from once they are in.
                 _demote_alias(conn, other["domain"], domain, ats, token, ts)
+                adopted_from = other["domain"]
 
         # Snapshot BEFORE this run's own companies upsert below overwrites
         # it -- a company already resolved to COMEET on a prior run vs.
@@ -461,6 +480,8 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
             if reindex:
                 index_description(conn, jid, desc, prior_desc, rowid_delete)
         seen_ids_by_domain[domain] = ids
+        if adopted_from:
+            _adopt_job_ages(conn, domain, adopted_from)
 
     close_missing_jobs(conn, seen_ids_by_domain, ts)
 
@@ -743,6 +764,48 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
          # duplicate of data we already hold is not worth half the file
          # that every reader has to download inside a request.
          None),
+    )
+
+
+def _is_token_domain(domain: str, token: str) -> bool:
+    """True when `domain` is the board token with a TLD on it and nothing
+    else: wix2.com for the SmartRecruiters token Wix2, tenableinc.com for
+    Greenhouse's tenableinc. That is the shape discover_companies.py's
+    fallback guess produces, and the shape a real company name almost
+    never has. Workday's tenant:wd:site token is guessed from its tenant
+    (deloitte6.com), so that is what a compound token is compared on;
+    comeet's uid:token starts with a uid like 89.005, which no domain
+    stem equals, so those pairs fall through to the ordinary rule.
+    """
+    stem = domain.lower().split(".", 1)[0]
+    return stem == token.split(":", 1)[0].lower()
+
+
+def _adopt_job_ages(conn: sqlite3.Connection, domain: str, old_domain: str) -> None:
+    """`domain` just took a board over from `old_domain`, whose rows were
+    closed by _demote_alias. The postings are the same ones, under new
+    ids (job_id is keyed on the domain), and inserted fresh they would
+    all read as found today: a burst of "new" roles in every alert that
+    matches them, and an age that lies. Copy the age across from the old
+    row with the same external_id. posted_at goes with it only for the
+    ATSes whose first insert is synthetic (see upsert_job's CASE), where
+    the old row's frozen value is the honest one.
+    """
+    conn.execute(
+        """
+        UPDATE jobs SET
+            first_seen = (SELECT MIN(o.first_seen) FROM jobs o
+                          WHERE o.company_domain = ? AND o.ats = jobs.ats AND o.external_id = jobs.external_id),
+            posted_at = CASE WHEN jobs.ats IN ('workday', 'comeet', 'checkpoint')
+                        THEN COALESCE((SELECT MIN(o.posted_at) FROM jobs o
+                                       WHERE o.company_domain = ? AND o.ats = jobs.ats AND o.external_id = jobs.external_id),
+                                      jobs.posted_at)
+                        ELSE jobs.posted_at END
+        WHERE company_domain = ? AND external_id IS NOT NULL
+          AND EXISTS (SELECT 1 FROM jobs o WHERE o.company_domain = ? AND o.ats = jobs.ats
+                      AND o.external_id = jobs.external_id AND o.first_seen < jobs.first_seen)
+        """,
+        (old_domain, old_domain, domain, old_domain),
     )
 
 
