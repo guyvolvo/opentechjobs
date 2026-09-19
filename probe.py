@@ -2763,6 +2763,7 @@ KNOWN_FALSE_POSITIVES: set[tuple[str, str]] = {
     ("recruitee", "meta"),        # meta.com: same shape, one unrelated posting.
     ("workable", "redhat"),       # redhat.com: empty slug; the real board is workday redhat:wd5:jobs
     ("ashby", "verint"),          # verint.com: empty board; the real one is Oracle Recruiting (pinned)
+    ("greenhouse", "clear"),      # clear.ml: the guess lands on CLEAR, the airport identity company (37 roles, none ClearML's)
     ("recruitee", "google"),      # google.com: the one posting is literally titled "Senior Marketer
                                    # (Sample)" -- an unconfigured demo tenant, not the real Google (which
                                    # has no third-party ATS at all; see the workday pins block above for

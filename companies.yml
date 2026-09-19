@@ -186,6 +186,230 @@ comeet:
 # Israel presence (ebay.com, broadcom.com, visa.com, paypal.com) -- an
 # empty facet filter is a no-op, same as not passing one at all, so
 # there's nothing useful to cache for those.
+
+  - domain: riverside.fm
+    uid: "66.009"
+    token: "66926766692CDF00669CD22CDF133B"
+    jobs_seen: 22
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: windward.ai
+    uid: "31.002"
+    token: "1324C84C80AC299072C5FA72C396"
+    jobs_seen: 16
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: chargeafter.com
+    uid: "C5.004"
+    token: "5C41CD433E422980B88285C2E20114C1CD4"
+    jobs_seen: 9
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: cyberpion.com
+    uid: "08.003"
+    token: "8033012200C481B18098030381500"
+    jobs_seen: 6
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: naturalint.com
+    uid: "71.001"
+    token: "1715C47357355C45C4A17CF9CF9735"
+    jobs_seen: 4
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: sundaysky.com
+    uid: "71.000"
+    token: "1705C07307305C04508A02E07302E0"
+    jobs_seen: 3
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: elementor.com
+    uid: "A3.00F"
+    token: "3AF126BB0D161A3AF161A00B0D126B"
+    jobs_seen: 1
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: anyword.com
+    uid: "30.00B"
+    token: "3BB12131D8EC1271D801271D8"
+    jobs_seen: 1
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: exodigo.com
+    uid: "89.005"
+    token: "98542A398504C28391E130A391E391E2614"
+    jobs_seen: 55
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: brightdata.com
+    uid: "88.007"
+    token: "887332A3BB119951995221C199519954438110E"
+    jobs_seen: 51
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: nextsilicon.com
+    uid: "18.007"
+    token: "817308A2873102E1845308A308A40B8308A205C"
+    jobs_seen: 37
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: rapyd.net
+    uid: "73.00E"
+    token: "37E11766FC1F6E11761F6E6FC01BF06FC"
+    jobs_seen: 31
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: xtend.me
+    uid: "85.00A"
+    token: "58A1BB22C50B14213C162858A213C26C61628"
+    jobs_seen: 27
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: flytrex.com
+    uid: "77.003"
+    token: "7732CB216593B987732CB21DCC3B987731DCC"
+    jobs_seen: 20
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: beewise.ag
+    uid: "0B.001"
+    token: "B014D074D07B01370504D07160216023705"
+    jobs_seen: 16
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: empathy.com
+    uid: "F8.007"
+    token: "8F735CA47B835CA3EC111EE1AE535CA11EE8F7"
+    jobs_seen: 14
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: earnix.com
+    uid: "93.00B"
+    token: "39B1207AD1AD1736736120739B193D736"
+    jobs_seen: 13
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: gett.com
+    uid: "A0.002"
+    token: "A2288A232A014432A28814432A"
+    jobs_seen: 12
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: lusha.com
+    uid: "73.00B"
+    token: "37B11676F61F53DEC6F606F61BD8185D"
+    jobs_seen: 9
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: start.io
+    uid: "B2.004"
+    token: "2B4D84056812EC185415A015A015A081C"
+    jobs_seen: 7
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: everc.com
+    uid: "C9.003"
+    token: "9C3445513861D491D49445557DB30CF44551D49"
+    jobs_seen: 6
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: taranis.ag
+    uid: "34.003"
+    token: "43314FF14FF043314FF10CC10CC25CB866"
+    jobs_seen: 5
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: bigabid.com
+    uid: "A4.003"
+    token: "4A3172F172F251829BB172F172F172F0946"
+    jobs_seen: 4
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: bookaway.com
+    uid: "64.006"
+    token: "46615FE15FED321A6446601A64D322796"
+    jobs_seen: 3
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: lumen.me
+    uid: "1A.00E"
+    token: "A1E46D21E5A46D21E5A3CB43CB41E5A01E5A"
+    jobs_seen: 3
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: healthy.io
+    uid: "B4.004"
+    token: "4B417841C3804B420EC02A54E1C4B4"
+    jobs_seen: 2
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: promo.com
+    uid: "73.00F"
+    token: "37F117BA7D00187914FADFC1BF86FE"
+    jobs_seen: 2
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: innoviz.tech
+    uid: "52.004"
+    token: "25495012A0104C012A0104C6FCBA40"
+    jobs_seen: 2
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: imagen-ai.com
+    uid: "78.00F"
+    token: "87F32FA3B7910FE0197D4C77021FC0"
+    jobs_seen: 2
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: cycognito.com
+    uid: "14.00A"
+    token: "41A148210681CB61CB68341CB624EAC4E1482"
+    jobs_seen: 1
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: webz.io
+    uid: "D9.00C"
+    token: "9DC450413B84504450401D9413B827702770"
+    jobs_seen: 1
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: silk.us
+    uid: "F6.00C"
+    token: "6FC29E8DF83EDCDF830E414F429E8DF837E0"
+    jobs_seen: 1
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
 workday:
   # Snyk: its Ashby token "snyk" is a real but empty board, which is what
   # guessing settled on. The live board is Workday's wd103 shard.
@@ -362,6 +586,14 @@ workday:
     israel_facets: {"locationHierarchy1": ["6e1b2a934716103c2adde8e0944f00ee"]}
     jobs_seen: 1
     source: hand-verified
+
+  - domain: digitalturbine.com
+    tenant: digitalturbine
+    wd: wd501
+    site: Digital_Turbine_External_Careers
+    jobs_seen: 37
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
 
 niloosoft:
   # Niloosoft's Hunter, the ATS behind most of Israel's large traditional
@@ -628,12 +860,96 @@ lever:
     jobs_seen: 183
     source: careers-page
 
+  - domain: lendbuzz.com
+    token: "lendbuzz"
+    jobs_seen: 63
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: kariusdx.com
+    token: "kariusdx"
+    jobs_seen: 19
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: visbymedical.com
+    token: "visby"
+    jobs_seen: 3
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: aurora.dev
+    token: "aurora-dev"
+    jobs_seen: 2
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
 ashby:
   # monday.com's board token is its whole domain, dot included, which no
   # guess produces. Read off the careers page's embedded positions.
   - domain: monday.com
     token: "monday.com"
     source: careers-page
+
+  - domain: travelperk.com
+    token: "perk"
+    jobs_seen: 127
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: tremorinternational.com
+    token: "nexxen"
+    jobs_seen: 29
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: redis.com
+    token: "Redis"
+    jobs_seen: 24
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: viz.ai
+    token: "Viz.ai"
+    jobs_seen: 14
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: irregular.com
+    token: "Irregular"
+    jobs_seen: 9
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: humansecurity.com
+    token: "HUMAN"
+    jobs_seen: 6
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: aquant.io
+    token: "Aquant"
+    jobs_seen: 3
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: jiga.io
+    token: "jiga"
+    jobs_seen: 12
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: ledge.co
+    token: "ledge"
+    jobs_seen: 4
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: hellosimply.com
+    token: "simply"
+    jobs_seen: 4
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
 
 greenhouse:
   - domain: playtika.com
@@ -647,3 +963,124 @@ greenhouse:
     token: "tripactions"
     jobs_seen: 216
     source: hand-verified
+
+  - domain: ridewithvia.com
+    token: "via"
+    jobs_seen: 168
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: tenable.com
+    token: "tenableinc"
+    jobs_seen: 43
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: at-bay.com
+    token: "atbayjobs"
+    jobs_seen: 35
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: nextinsurance.com
+    token: "nextinsurance66"
+    jobs_seen: 32
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: meliopayments.com
+    token: "melio"
+    jobs_seen: 26
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: khealth.com
+    token: "khealthcareers"
+    jobs_seen: 25
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: venn.city
+    token: "venncity"
+    jobs_seen: 8
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: bluevine.com
+    token: "bluevineus"
+    jobs_seen: 8
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: nas.io
+    token: "nascompany"
+    jobs_seen: 6
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: getvim.com
+    token: "vim"
+    jobs_seen: 2
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: tulip.co
+    token: "tulip"
+    jobs_seen: 68
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  # Three TechAviv companies whose apply links point at their own careers
+  # page. The page embeds a Greenhouse board under a name no guess produces;
+  # read off the embed script's for= parameter, 2026-09-19.
+  - domain: tipalti.com
+    token: "tipaltisolutions"
+    jobs_seen: 28
+    source: careers-page
+
+  - domain: placer.ai
+    token: "placerlabs"
+    jobs_seen: 15
+    source: careers-page
+    note: the domain guesses workable:placer, a real but empty board.
+
+  - domain: aidoc.com
+    token: "aidocmedical"
+    jobs_seen: 31
+    source: careers-page
+
+smartrecruiters:
+  # Boards whose token is not the domain: SmartRecruiters names Wix's board Wix2.
+  - domain: wix.com
+    token: "Wix2"
+    jobs_seen: 61
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+bamboohr:
+  # BambooHR careers pages, keyed on the subdomain.
+  - domain: glassesusa.com
+    token: "glassesusa"
+    jobs_seen: 10
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: cyabra.com
+    token: "cyabra"
+    jobs_seen: 6
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+jazzhr:
+  # JazzHR boards, keyed on the applytojob.com subdomain.
+  - domain: verbit.ai
+    token: "verbitsoftwareltd"
+    jobs_seen: 3
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
+
+  - domain: linearb.io
+    token: "linearb"
+    jobs_seen: 2
+    source: techaviv-board
+    note: added 2026-09-19 from TechAviv's board (jobs.techaviv.com), the token read off the listing's own apply link and the board fetched live.
