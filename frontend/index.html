@@ -17,6 +17,39 @@
        mid-fetch. -->
   <link rel="canonical" href="https://opentechjobs.org/" />
   <link rel="alternate" type="application/rss+xml" title="OpenTechJobs newest listings" href="https://opentechjobs.org/feed.xml" />
+  <!-- Who this site is, for search engines: the name they should show,
+       the organisation behind it, and that the board is searchable. Without
+       this Google names the site from whatever it finds and cannot offer
+       a search box on the result. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://opentechjobs.org/#website",
+        "url": "https://opentechjobs.org/",
+        "name": "OpenTechJobs",
+        "alternateName": ["OpenTechJobs.org", "Open Tech Jobs"],
+        "description": "Open-source tech job board. Scrapes job listings directly from ATS APIs, and company career pages, tracks them over time, and serves them through a lightweight public API.",
+        "publisher": { "@id": "https://opentechjobs.org/#organization" },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": { "@type": "EntryPoint", "urlTemplate": "https://opentechjobs.org/board?search={search_term_string}" },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://opentechjobs.org/#organization",
+        "name": "OpenTechJobs",
+        "url": "https://opentechjobs.org/",
+        "logo": "https://opentechjobs.org/favicon-512.png",
+        "sameAs": ["https://github.com/guyvolvo/opentechjobs"]
+      }
+    ]
+  }
+  </script>
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://opentechjobs.org/" />
   <meta property="og:title" content="OpenTechJobs.org" />

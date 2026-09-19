@@ -1,6 +1,8 @@
 # <img src="frontend/favicon-180.png" alt="" height="32" valign="middle"> OpenTechJobs
 
-Open-source tech job board. Scrapes job listings directly from ATS APIs, tracks them over time, and serves them through a lightweight public API.
+Open-source tech job board. Scrapes job listings directly from ATS APIs, and company career pages, tracks them over time, and serves them through a lightweight public API.
+
+Live at **[opentechjobs.org](https://opentechjobs.org/)**. The board is at [/board](https://opentechjobs.org/board), the API reference at [/api/help](https://opentechjobs.org/api/help).
 
 ![The job board on a laptop and a phone](frontend/img/readme-cover.webp)
 
