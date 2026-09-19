@@ -11993,3 +11993,10 @@ tie.com
 timeline.com
 turnerstaffing.com
 unlayer.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+upwardsdotcom.com
+urbantz.com
+tokersguide.com
+uniting.com
+trailmix.com
