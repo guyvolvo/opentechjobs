@@ -11869,3 +11869,27 @@ studdardmovinggroup.com
 tallwave.com
 tractioncomplete.com
 valenceintel.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+slatetechnologies.com
+021.ai
+agileone.net
+beyondfs.co
+brilliant.com
+cascade.io
+cool-transports.com
+evolvestudios.com
+growth-marketing-pro.net
+herocoders.com
+haven-health.co
+ifinity.com
+keedian.com
+the-corporate.com
+the-english-school.de
+theegg.ai
+tribegaming.com
+threatscape.com
+triad.net
+upwell.com
+valley.com
+value-store.net
