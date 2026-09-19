@@ -11599,3 +11599,26 @@ missionareahealthassociates.com
 verticalrelevance.com
 transak.com
 turaco.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+charterhouse.net
+m3immobilien.com
+loadingsystems.org
+blythacademy.com
+chameleonintegratedservices.com
+chalicebrands.com
+eaiti.com
+housingalternatives.org
+ircmaine.com
+jerseycityfreepubliclibrary.com
+protechtgroup.com
+zealot.com
+ds2.com
+inorg.com
+incubator.org
+sva.com
+tawk.com
+the-bureau.com
+adapt1solution.com
+crewai.com
+d-one.com
