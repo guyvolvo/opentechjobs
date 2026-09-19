@@ -11671,3 +11671,22 @@ peaktwentyone.com
 precisionplumbing.com
 targray.com
 wachsman.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+citisidepropertymanagement.com
+dimercurio.fr
+gamut.de
+jlm.io
+pizza.ai
+the-clear.com
+uniconcepts.com
+tri-county.org
+value.com
+carmoola-1.com
+enersee.ai
+epicfusion.com
+eoninhouseconsultinggmbh.com
+lookup.ai
+m1.com
+activeminds.com
+ahbl.com
