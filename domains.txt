@@ -11557,3 +11557,20 @@ picamanufacturingsolutions.com
 remarkableai.com
 3.ai
 bulk.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+enseradesign.com
+charlesgaterealtygroup.com
+extanthealthcare.com
+fourpointskelownaairport.com
+sentienthrservicesinc.com
+cardinal-technology.com
+datamap.com
+epilot.de
+bctpartners.com
+boseprofessional.com
+ontariomedicalassociation.com
+tomocredit.com
+truepoint.com
+tonti.net
+cmicareers.com
