@@ -54,17 +54,25 @@ CONTENT_TYPES = {
 
 def make_handler(db_path: Path):
     import db as db_module
+    import threading
+
+    # One connection per thread. The Lambda answers one request at a
+    # time on one connection; this server answers a page's dozen
+    # requests at once, and one connection shared across those threads
+    # hung the whole server within a few page loads.
+    local = threading.local()
 
     def fake_get_connection():
-        if db_module._conn is None:
-            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, check_same_thread=False)
+        conn = getattr(local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
             conn.row_factory = sqlite3.Row
             # The same SQL functions the real connection carries
             # (category_of and friends); every listings query calls them.
             from job_filters import register_functions
             register_functions(conn)
-            db_module._conn = conn
-        return db_module._conn
+            local.conn = conn
+        return conn
 
     db_module.get_connection = fake_get_connection
     import handler as handler_module

@@ -405,12 +405,18 @@ little room, and before that a stacked panel below the entire list,
 which scrolled the reader to the footer. Being out of the flow is the
 point: the page's height never changes, so there is no jump to correct.
 
-The filter row stays a single line above the mobile breakpoint (flex
-`nowrap`, matching the table's own width), shrinking each field rather
-than wrapping to a second row; below 640px it wraps and every field
-takes a full-width row instead. IL-only lives as a pinned first option
-inside the Locations dropdown rather than as its own filter slot,
-keeping the row to one line without dropping a filter.
+The search row is one line above the listings: the search box, a
+Search button, the result count pushed to the right, the sort, and
+Clear all. The refinements (categories, levels, companies, locations,
+workplace, date posted) are the same fields, stacked in a 200px rail
+down the left of the listings with the row's 10px gap between them,
+their dropdowns opening over the list as before. The rail is sticky
+under the topbar.
+Below the board's 760px container width it folds behind a Filters (N)
+button on the search row and opens as a stack above the listings; the
+Search button hides there, since typing already searches. IL-only lives
+as a pinned first option inside the Locations dropdown rather than as
+its own row.
 
 Two dedicated card grids (metrics, market panels) share one motif: white
 cards laid edge-to-edge on a black background with a `2px` (`--rule`)
@@ -602,6 +608,20 @@ The stepped motion voice it belonged to still lives in the load bar's
 own history (see Motion), and the square is gone: a ring reads as a
 status mark where a square read as a decoration that happened to change
 colour.
+
+### Map page
+`/map` is one column like Explore: the section title, a one-line intro
+carrying the placed count and a hint that changes with the zoom, then
+the map itself in an ink rule, as tall as the window leaves. The base
+map is OpenFreeMap's plainest rendering of OpenStreetMap ("positron",
+or "dark" with the theme), drawn by MapLibre; the listings are
+signal-green circles with no stroke, 0.32 to 0.42 opacity so overlaps
+read as density, radius from the square root of the count. Zoomed out,
+one circle per country; from zoom 4.5 in, one per city, and a city's
+click opens a popup with its five newest roles and a button to the
+board filtered to it. The map's controls, hover tips and popups are
+restyled to the system: paper surfaces, ink rules, the 4px field
+radius, no shadows.
 
 ### Statistics column collapse
 A toggle at the top of the Statistics column folds it away to the right

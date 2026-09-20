@@ -3221,19 +3221,24 @@ document.addEventListener("click", () => OPEN_MULTISELECTS.forEach((closeOther) 
 // filter wiring
 
 function wireFilters() {
-  document.getElementById("f-search").addEventListener(
-    "input",
-    debounce((e) => {
-      state.search = e.target.value.trim();
-      // A broadening applies to the search it was asked for, not to the
-      // next one somebody types.
-      state.search_mode = "";
-      followSearchSort();
-      state.offset = 0;
-      loadJobs();
-      loadTicker();
-    }, 300)
-  );
+  // Typing searches on its own after a pause; the Search button and
+  // Enter search now, for whoever expects a search to need one.
+  function applySearch(value) {
+    state.search = value.trim();
+    // A broadening applies to the search it was asked for, not to the
+    // next one somebody types.
+    state.search_mode = "";
+    followSearchSort();
+    state.offset = 0;
+    loadJobs();
+    loadTicker();
+  }
+  const searchBox = document.getElementById("f-search");
+  searchBox.addEventListener("input", debounce((e) => applySearch(e.target.value), 300));
+  searchBox.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); applySearch(searchBox.value); }
+  });
+  document.getElementById("f-go").addEventListener("click", () => applySearch(searchBox.value));
 
   msDepartment = createMultiSelect("ms-department", {
     placeholder: "Categories",

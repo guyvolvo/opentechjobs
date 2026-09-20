@@ -1374,26 +1374,46 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 /* The widest thing in the row: it is the only free-text field now, and
    a search someone typed should stay readable rather than scrolling
    inside a box sized for a dropdown label. */
-#f-search { flex: 3 1 180px; }
-.filters .ms { flex: 1 1 80px; }
-.filters #f-date-posted,
-.filters #f-sort { flex: 1 1 100px; }
-.filters label.toggle,
+#f-search { flex: 1 1 200px; }
+.filters #f-go { flex: 0 0 auto; height: 38px; }
+/* What the search found, beside it rather than under the view switch:
+   the number is the search's own answer, so it sits on the search's
+   row, pushed to the right of the box and read before the order. */
+.filters .result-count { flex: 0 1 auto; margin: 0 0 0 auto; white-space: nowrap; text-align: right; }
+.filters #f-sort { flex: 0 0 130px; }
 .filters #f-reset { flex: 0 0 auto; }
-
-/* A second flex row nested in the first, not a wrapper div that steps
-   out of the layout -- visually just more items in .filters's own row
-   above the @container breakpoint below, real box only needed so the
-   breakpoint has something to collapse. */
-.filters-sub { display: flex; flex: 1 1 auto; flex-wrap: nowrap; gap: 10px; }
 .filters-toggle { display: none; }
+
+/* Under the search row: the rail down the left, the listings beside
+   it. Above the @container breakpoint below the rail is a column of
+   its own; under it, the rail folds behind #filters-toggle and opens
+   as a stack above the listings, which is how the row used to fold. */
+.board-body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gutter);
+}
+.board-main { flex: 1 1 0; min-width: 0; }
+/* The same fields the row held, stacked. Nothing about a field
+   changes, only where it stands; the dropdowns still open over the
+   listings as they always did. */
+.filter-rail {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 68px; /* the topbar, then the same 12px the search row keeps above itself */
+}
+.filter-rail .ms { width: 100%; }
 
 /* Scoped to just the filter bar, per request -- a small radius and a
    1px (not --rule's 2px) border here only, not a system-wide change to
    DESIGN.md's rounded:none. Everything outside .filters (buttons,
    badges, chips, cards, panels) stays sharp-cornered. */
 .filters input[type="text"],
-.filters select {
+.filters select,
+.filter-rail select {
   border: 1.5px solid var(--black);
   border-radius: 4px;
   background: var(--white);
@@ -1402,7 +1422,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   width: 100%;
 }
 .filters input[type="text"]:focus,
-.filters select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+.filters select:focus,
+.filter-rail select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
 
 /* The native select arrow sits right against the border by default --
    reported live as too tight. appearance:none drops it in favor of a
@@ -1414,7 +1435,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
    per theme instead, same hex as --black's two definitions above (a
    data URI can't read a custom property, so these two have to be kept
    in sync with those by hand if that token ever changes). */
-.filters select {
+.filters select,
+.filter-rail select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -1424,7 +1446,8 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
   background-position: right 14px center;
   background-size: 10px 6px;
 }
-:root[data-theme="dark"] .filters select {
+:root[data-theme="dark"] .filters select,
+:root[data-theme="dark"] .filter-rail select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ededec' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
@@ -2584,13 +2607,21 @@ footer {
    shrunk as far as flex-basis/min-width:0 allow) comes out around
    810-860px with the current field count, so 640px left a real overflow
    gap between 640px and ~860px of #board width. */
-@container (max-width: 900px) {
+@container (max-width: 760px) {
   /* The table-matching bleed above is a single-line-row alignment
      trick -- meaningless once .filters wraps to full-width stacked
      rows below, and left uncanceled would bleed every wrapped row
      --gutter past the edge too, an overflow, not an alignment. */
   .filters { flex-wrap: wrap; width: 100%; margin-right: 0; }
-  .filters > * { flex-basis: 100%; } /* #f-search and .filters-toggle each get their own full-width row */
+  /* The box on its own row, the count under it, then the order, Clear
+     all and Filters sharing a row. Typing already searches, so the
+     Search button is not worth a row here. */
+  #f-search, .filters .result-count { flex-basis: 100%; }
+  .filters .result-count { margin-left: 0; text-align: left; }
+  .filters #f-go { display: none; }
+  .filters #f-sort, .filters #f-reset { flex: 1 1 auto; }
+  .board-body { display: block; }
+  .filter-rail { position: static; flex-basis: auto; margin-bottom: 16px; }
 
   /* Reported live ("atrocious" on mobile): every sub-filter wrapping
      onto its own row still left a tall wall of controls between the
@@ -2621,10 +2652,7 @@ footer {
      row-layout rule rather than just adding another lower-specificity
      layer on top of it. */
   .filters-sub.open .ms,
-  .filters-sub.open #f-date-posted,
-  .filters-sub.open #f-sort,
-  .filters-sub.open label.toggle,
-  .filters-sub.open #f-reset {
+  .filters-sub.open #f-date-posted {
     flex: 0 0 auto;
     width: 100%;
   }
@@ -2970,6 +2998,55 @@ footer {
    Monospace is the second scoped use of that voice, after the API
    reference's parameter chips: the SQL editor, column names, and the
    axis numbers a reader lines up by eye. Same family, one exception. */
+
+/* The map page. One column like Explore; the map is the page, so it
+   takes the height the window has left under the heading. MapLibre's
+   own chrome is restyled to the system's shapes: paper surfaces, an
+   ink rule, the 4px radius the filter fields have, no shadows. */
+.map-page { display: block; padding-bottom: 24px; }
+.map-page .section { padding-top: 28px; }
+.map-intro { color: var(--grey); margin: 0 0 14px; max-width: 80ch; line-height: 1.5; font-size: 12.5px; }
+.map-canvas {
+  height: calc(100vh - 220px);
+  min-height: 420px;
+  border: var(--rule) solid var(--black);
+  background: var(--white);
+  isolation: isolate; /* the map's own z-indexes stay inside it, under the sticky topbar */
+}
+.maplibregl-map { font-family: inherit; font-size: 13px; }
+.maplibregl-ctrl-group { background: var(--white); border: 1.5px solid var(--black); border-radius: 4px; box-shadow: none; }
+.maplibregl-ctrl-group button + button { border-top-color: var(--grey-line); }
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: none; }
+:root[data-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+.maplibregl-ctrl-attrib { background: var(--white); color: var(--grey); font-size: 10px; }
+.maplibregl-ctrl-attrib a { color: var(--grey); }
+.maplibregl-popup-content {
+  background: var(--white);
+  color: var(--black);
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  box-shadow: none;
+  padding: 12px 14px;
+  line-height: 1.4;
+  font-family: inherit;
+}
+.map-tip .maplibregl-popup-content { padding: 4px 8px; font-size: 12px; border-width: 1.5px; }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: var(--black); }
+.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--black); }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--black); }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--black); }
+.maplibregl-popup-close-button { color: var(--grey); font-size: 18px; padding: 0 6px; }
+.maplibregl-popup-close-button:hover { background: var(--hover-bg); }
+.map-pop-title { display: block; font-size: 14px; }
+.map-pop-sub { color: var(--grey); font-size: 12px; }
+.map-pop-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 12px; }
+.map-pop-row { display: flex; flex-direction: column; }
+.map-pop-row .link { font-weight: 600; }
+.map-pop-co { color: var(--grey); font-size: 12px; }
+.map-pop-all { display: inline-flex; }
+@media (max-width: 640px) {
+  .map-canvas { height: calc(100vh - 200px); min-height: 360px; }
+}
 
 .explore-page { display: block; padding-bottom: 40px; }
 .explore-page .section { padding-top: 28px; }

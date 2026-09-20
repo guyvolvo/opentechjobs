@@ -130,6 +130,7 @@
         <!-- Populated entirely by app.js's renderAuthState(), same convention as the .ms filter dropdowns below -->
         <div class="auth-area" id="auth-area"></div>
         <button id="theme-toggle" class="theme-toggle" type="button">Dark</button>
+        <a class="link" href="/map">Map</a>
         <a class="link" href="/api/help">API</a>
         <a class="icon-link" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener" aria-label="View source on GitHub" title="View source on GitHub">
           <span class="visually-hidden">GitHub</span>
@@ -147,43 +148,51 @@
       <div class="container">
         <div class="board-split">
           <div class="board-list">
+            <!-- The search row. The search box and what it found, on one
+                 line, with the order and Clear all. The refinements live
+                 in the rail beside the listings below; under a certain
+                 #board width (see style.css's @container rule) the rail
+                 folds behind #filters-toggle here instead. -->
             <div class="filters">
               <input type="text" id="f-search" placeholder="Search" title="Every word must appear somewhere in the listing: title, company, location, category or description. &quot;Quote a phrase&quot; to keep it together." />
-              <!-- Collapsed behind #filters-toggle below a certain #board
-                   width (see style.css's @container rule) -- everything
-                   here is a refinement on top of the search box above,
-                   never the only way to find something. Above that
-                   width .filters-sub is just another flex row, visually
-                   identical to before this existed. -->
+              <button type="button" class="btn" id="f-go">Search</button>
+              <div id="result-count" class="result-count"></div>
+              <select id="f-sort" title="Sort">
+                <option value="">Sort</option>
+                <option value="match:asc" hidden>Best match</option>
+                <!-- Relevance ranks by where the search words appear
+                     (see relevance_score_sql). Newest stays the default:
+                     a job board is read by date first. -->
+                <option value="relevance:asc">Relevance</option>
+                <option value="age:asc">Newest</option>
+                <option value="age:desc">Oldest</option>
+              </select>
+              <button class="btn ghost" id="f-reset">Clear all</button>
               <button type="button" class="btn ghost filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="filters-sub">Filters</button>
-              <div class="filters-sub" id="filters-sub">
-                <div class="ms" id="ms-department"></div>
-                <div class="ms" id="ms-seniority"></div>
-                <div class="ms" id="ms-company"></div>
-                <div class="ms" id="ms-location"></div>
-                <div class="ms" id="ms-workplace"></div>
-                <select id="f-date-posted" title="Date posted">
-                  <option value="">Date posted</option>
-                  <option value="any">Any time</option>
-                  <option value="1">Past 24 hours</option>
-                  <option value="3">Past 3 days</option>
-                  <option value="7">Past 7 days</option>
-                  <option value="14">Past 14 days</option>
-                  <option value="30">Past 30 days</option>
-                </select>
-                <select id="f-sort" title="Sort">
-                  <option value="">Sort</option>
-                  <option value="match:asc" hidden>Best match</option>
-                  <!-- Relevance ranks by where the search words appear
-                       (see relevance_score_sql). Newest stays the default:
-                       a job board is read by date first. -->
-                  <option value="relevance:asc">Relevance</option>
-                  <option value="age:asc">Newest</option>
-                  <option value="age:desc">Oldest</option>
-                </select>
-                <button class="btn ghost" id="f-reset">Reset</button>
-              </div>
             </div>
+
+            <div class="board-body">
+            <!-- The rail: one row per refinement, each opening in place
+                 under its own name. The same multi-selects as before,
+                 laid down the side instead of across the top. -->
+            <aside class="filters-sub filter-rail" id="filters-sub" aria-label="Refine the listings">
+              <div class="ms" id="ms-department"></div>
+              <div class="ms" id="ms-seniority"></div>
+              <div class="ms" id="ms-company"></div>
+              <div class="ms" id="ms-location"></div>
+              <div class="ms" id="ms-workplace"></div>
+              <select id="f-date-posted" title="Date posted">
+                <option value="">Date posted</option>
+                <option value="any">Any time</option>
+                <option value="1">Past 24 hours</option>
+                <option value="3">Past 3 days</option>
+                <option value="7">Past 7 days</option>
+                <option value="14">Past 14 days</option>
+                <option value="30">Past 30 days</option>
+              </select>
+            </aside>
+
+            <div class="board-main">
 
             <!-- Which listings the board shows. Saved used to be a checkbox
                  among the filters, and the CV match a chip that only
@@ -207,7 +216,6 @@
             <!-- What the search did that the result count cannot say:
                  words past the ten-word cap, or an any-word search. -->
             <div id="search-notice" class="search-notice" hidden></div>
-            <div id="result-count" class="result-count"></div>
             <!-- Shown by a background refresh that found new listings while
                  the reader was further down the list (see loadJobs). -->
             <div class="new-listings-anchor">
@@ -291,6 +299,8 @@
               <span id="pagination-info"></span>
               <div class="pages" id="pagination-pages"></div>
             </div>
+            </div><!-- .board-main -->
+            </div><!-- .board-body -->
           </div>
 
           <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail" hidden></aside>
