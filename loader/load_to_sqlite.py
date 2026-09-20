@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from descriptions import description_sha, put_many
+from localtime import israel_local_to_utc
 
 # countries.py is one definition shared by the tagger, the loader and the
 # API, so this file has to find it in two different layouts.
@@ -171,6 +172,23 @@ def _migrate(conn: sqlite3.Connection) -> None:
     for name, coltype in _NEW_COMPANY_COLUMNS.items():
         if name not in existing_companies:
             conn.execute(f"ALTER TABLE companies ADD COLUMN {name} {coltype}")
+    # Data, not schema. RedMatch activation times were stored as they
+    # came, Israel's clock with no offset, until 2026-09-20; the probe
+    # converts them now, but a board whose listings have not changed is
+    # never re-read (the change hash covers ids, titles, places and
+    # urls, not dates), so the rows it already wrote would have kept
+    # sorting three hours ahead of the truth. Cheap on every run: the
+    # query matches nothing once they are converted.
+    bare = conn.execute(
+        "SELECT id, posted_at FROM jobs WHERE ats = 'redmatch' AND posted_at IS NOT NULL"
+        " AND posted_at NOT LIKE '%+%' AND posted_at NOT LIKE '%Z'"
+    ).fetchall()
+    for row in bare:
+        fixed = israel_local_to_utc(row["posted_at"])
+        if fixed != row["posted_at"]:
+            conn.execute("UPDATE jobs SET posted_at = ? WHERE id = ?", (fixed, row["id"]))
+    if bare:
+        print(f"converted {len(bare)} bare RedMatch activation times to UTC", file=sys.stderr)
 
 
 def _fts_supports_rowid_delete(conn: sqlite3.Connection) -> bool:

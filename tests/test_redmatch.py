@@ -85,7 +85,7 @@ check("the apply page is the url",
       j.url == "https://jobs.clalitapps.co.il/clalit/redmatch-apply/redmatch.apply.html?compPositionID=50242", j.url)
 check("activation date is the posting date, read as Israel time and stored in UTC",
       j.posted_at == "2026-09-17T10:57:13+00:00", repr(j.posted_at))
-conv = probe._israel_local_to_utc
+conv = probe.israel_local_to_utc
 check("winter is two hours behind, summer three, and the change falls on Israel's own dates",
       conv("2026-01-10T09:00:00") == "2026-01-10T07:00:00+00:00"
       and conv("2026-03-27T01:59:59") == "2026-03-26T23:59:59+00:00"   # last hour of winter time
@@ -95,6 +95,25 @@ check("winter is two hours behind, summer three, and the change falls on Israel'
       repr([conv(x) for x in ("2026-03-27T01:59:59", "2026-03-27T03:00:00", "2026-10-25T01:00:00", "2026-10-25T03:00:00")]))
 check("a stamp that already has an offset, or is not a date, is left alone",
       conv("2026-09-17T13:57:13+00:00") == "2026-09-17T13:57:13+00:00" and conv("soon") == "soon" and conv("") == "")
+
+# Rows written before the conversion existed are repaired by the loader's
+# migration, which every merge runs. Other platforms' bare stamps are not
+# its business.
+import sqlite3, tempfile  # noqa: E402
+sys.path.insert(0, str(ROOT / "loader"))
+import load_to_sqlite as lts  # noqa: E402
+conn = sqlite3.connect(Path(tempfile.mkdtemp()) / "jobs.db")
+conn.row_factory = sqlite3.Row
+conn.executescript((ROOT / "db" / "schema.sql").read_text(encoding="utf-8"))
+conn.execute("INSERT INTO companies (domain, ats, first_seen, last_checked) VALUES ('clalit.co.il','redmatch','2026-09-18','2026-09-20'), ('other.com','greenhouse','2026-09-18','2026-09-20')")
+conn.execute("INSERT INTO jobs (id, company_domain, ats, title, url, posted_at, first_seen, last_seen, confidence) VALUES"
+             " ('r1','clalit.co.il','redmatch','x','u','2026-09-20T08:56:47.187','2026-09-18','2026-09-20','verified'),"
+             " ('r2','clalit.co.il','redmatch','y','u','2026-09-17T10:57:13+00:00','2026-09-18','2026-09-20','verified'),"
+             " ('g1','other.com','greenhouse','z','u','2026-09-20T08:56:47.187','2026-09-18','2026-09-20','verified')")
+lts._migrate(conn)
+after = {r["id"]: r["posted_at"] for r in conn.execute("SELECT id, posted_at FROM jobs")}
+check("the migration converts bare RedMatch stamps and leaves converted ones and other platforms alone",
+      after == {"r1": "2026-09-20T05:56:47+00:00", "r2": "2026-09-17T10:57:13+00:00", "g1": "2026-09-20T08:56:47.187"}, repr(after))
 check("the professional field is the department", j.department == "אחים ואחיות", repr(j.department))
 check("classified as Israel", all(x.country == "IL" for x in probe._fill_classifications(jobs, "clalit.co.il")))
 check("description is the cleaned text", "יועצת" in (j.description or "") and "<" not in (j.description or ""),

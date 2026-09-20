@@ -78,7 +78,7 @@ jobs:
           mkdir -p fast/loader fast/db
           cp probe.py scrape_handler.py alerts.py sharding.py salary_model.py fast/
           cp api/job_filters.py api/skills.py api/countries.py api/same_company.py fast/
-          cp loader/load_to_sqlite.py loader/descriptions.py loader/deltas.py loader/scrape_state.py fast/loader/
+          cp loader/load_to_sqlite.py loader/localtime.py loader/descriptions.py loader/deltas.py loader/scrape_state.py fast/loader/
           cp db/schema.sql fast/db/
           pip install --target fast requests
           cd fast && zip -r ../scrape-fast.zip . -x "__pycache__/*" && cd ..
@@ -88,7 +88,7 @@ jobs:
           mkdir -p workday/loader workday/db
           cp probe.py scrape_workday_handler.py companies.yml salary_model.py workday/
           cp api/job_filters.py api/skills.py api/countries.py api/same_company.py workday/
-          cp loader/load_to_sqlite.py loader/descriptions.py loader/deltas.py workday/loader/
+          cp loader/load_to_sqlite.py loader/localtime.py loader/descriptions.py loader/deltas.py workday/loader/
           cp db/schema.sql workday/db/
           # pyyaml, not just requests: this is the one deployment package
           # that actually needs probe.py's companies.yml reading to work
@@ -106,7 +106,7 @@ jobs:
         run: |
           mkdir -p maintenance/loader maintenance/db
           cp scrape_maintenance_handler.py sharding.py maintenance/
-          cp loader/load_to_sqlite.py loader/merge_partitions.py loader/bootstrap.py loader/descriptions.py loader/deltas.py loader/precompute.py loader/archive.py loader/rebuild_fts.py loader/build_explore.py loader/sitemap.py maintenance/loader/
+          cp loader/load_to_sqlite.py loader/localtime.py loader/merge_partitions.py loader/bootstrap.py loader/descriptions.py loader/deltas.py loader/precompute.py loader/archive.py loader/rebuild_fts.py loader/build_explore.py loader/sitemap.py maintenance/loader/
           # bootstrap.py builds its WHERE with build_jobs_where and
           # needs category_of(), so its precomputed pages match what
           # /api/jobs would return exactly.
