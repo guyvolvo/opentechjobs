@@ -83,7 +83,18 @@ check("a position with no city falls back to its region",
       jobs[1].location == "דרום, Israel", repr(jobs[1].location))
 check("the apply page is the url",
       j.url == "https://jobs.clalitapps.co.il/clalit/redmatch-apply/redmatch.apply.html?compPositionID=50242", j.url)
-check("activation date is the posting date", (j.posted_at or "").startswith("2026-09-17"), repr(j.posted_at))
+check("activation date is the posting date, read as Israel time and stored in UTC",
+      j.posted_at == "2026-09-17T10:57:13+00:00", repr(j.posted_at))
+conv = probe._israel_local_to_utc
+check("winter is two hours behind, summer three, and the change falls on Israel's own dates",
+      conv("2026-01-10T09:00:00") == "2026-01-10T07:00:00+00:00"
+      and conv("2026-03-27T01:59:59") == "2026-03-26T23:59:59+00:00"   # last hour of winter time
+      and conv("2026-03-27T03:00:00") == "2026-03-27T00:00:00+00:00"   # first hour of summer time
+      and conv("2026-10-25T01:00:00") == "2026-10-24T22:00:00+00:00"   # last hour of summer time
+      and conv("2026-10-25T03:00:00") == "2026-10-25T01:00:00+00:00",  # back on winter time
+      repr([conv(x) for x in ("2026-03-27T01:59:59", "2026-03-27T03:00:00", "2026-10-25T01:00:00", "2026-10-25T03:00:00")]))
+check("a stamp that already has an offset, or is not a date, is left alone",
+      conv("2026-09-17T13:57:13+00:00") == "2026-09-17T13:57:13+00:00" and conv("soon") == "soon" and conv("") == "")
 check("the professional field is the department", j.department == "אחים ואחיות", repr(j.department))
 check("classified as Israel", all(x.country == "IL" for x in probe._fill_classifications(jobs, "clalit.co.il")))
 check("description is the cleaned text", "יועצת" in (j.description or "") and "<" not in (j.description or ""),
