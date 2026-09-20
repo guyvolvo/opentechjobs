@@ -4,7 +4,7 @@ Open-source tech job board. Scrapes job listings directly from ATS APIs, and com
 
 Live at **[opentechjobs.org](https://opentechjobs.org/)**. The board is at [/board](https://opentechjobs.org/board), the API reference at [/api/help](https://opentechjobs.org/api/help).
 
-![The job board on a laptop and a phone](frontend/img/readme-cover.webp)
+![The job board on a laptop, standing in a sunlit field](frontend/img/showcase-desktop.webp)
 
 ## Architecture
 
