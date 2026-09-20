@@ -1,0 +1,9 @@
+{
+  "name": "OpenTechJobs components",
+  "id": "1509582640606214367",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"] }
+}
