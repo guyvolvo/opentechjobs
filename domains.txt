@@ -12031,3 +12031,6 @@ sportschuledefcon.com
 # Common Crawl discovery batch (merge_discovered_batch.py)
 certus.com
 ockto.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+spiral.com
