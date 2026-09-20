@@ -75,11 +75,11 @@ HELP_HTML = """<!doctype html>
         <p><b>Data Format:</b> All responses are JSON (except this documentation page).</p>
         <p><b>Base URL:</b> <code>https://opentechjobs.org/api</code> (HTTPS only).</p>
 
-        <h3>Quick Start</h3>
+        <h3>Quick start</h3>
         <p>Fetch the 10 newest open job listings in the United States:</p>
         <code>curl "https://opentechjobs.org/api/jobs?country=US&amp;limit=10"</code>
 
-        <h3>Standard Response Format</h3>
+        <h3>Standard response format</h3>
         <p>Every response from /api/jobs returns the job records, total matching count, pagination limits, and matched skills:</p>
         <code>{
   "jobs": [ { "id": "0a1b2c3d4e5f6a7b", "title": "Backend Engineer" } ],
@@ -95,14 +95,14 @@ HELP_HTML = """<!doctype html>
         <code>curl -H "Authorization: Bearer &lt;id_token&gt;" https://opentechjobs.org/api/me/saved</code>
         <p>If a token is missing, expired, or invalid, the API Gateway returns a 401 Unauthorized response with no body.</p>
 
-        <h3>Rate Limits &amp; Caching</h3>
+        <h3>Rate limits and caching</h3>
         <p><b>Rate Limit:</b> 20 requests per second across all users (bursts up to 40). Exceeding this limit returns HTTP 429.</p>
         <p><b>Data Export:</b> To download the full dataset, page through /api/jobs?limit=500 sequentially instead of running parallel requests.</p>
         <p><b>Caching:</b> Most GET routes are cached for 60 seconds in the browser and 180 seconds at the edge. Repeated requests within this window return cached data.</p>
         <p><b>Real-time Routes:</b> /api/pipeline-status and /api/geo are never cached.</p>
         <p><b>CORS:</b> GET and OPTIONS requests are allowed from any origin.</p>
 
-        <h3>Status Codes</h3>
+        <h3>Status codes</h3>
         <table class="api-params">
           <tbody>
             <tr><td><b>Code</b></td><td><b>Meaning</b></td></tr>
@@ -209,7 +209,7 @@ HELP_HTML = """<!doctype html>
           <code>curl "https://opentechjobs.org/api/companies/search?name=acme&amp;country=US"</code>
         </div>
 
-        <h3>3. Market Data</h3>
+        <h3>3. Market data</h3>
 
         <div class="api-endpoint">
           <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/stats</span></div>
@@ -222,7 +222,7 @@ HELP_HTML = """<!doctype html>
           <p>Returns filter values (categories, locations, companies) alongside current job counts. Accepts /api/jobs filters to narrow down options dynamically.</p>
         </div>
 
-        <h3>4. User Account (/api/me)</h3>
+        <h3>4. User account (/api/me)</h3>
         <p>Requires a valid Authorization Bearer token.</p>
 
         <div class="api-endpoint">
@@ -257,7 +257,7 @@ HELP_HTML = """<!doctype html>
           <p>Star (PUT) or unstar (DELETE) a job listing. Returns 204 No Content on success.</p>
         </div>
 
-        <h3>5. System Status</h3>
+        <h3>5. System status</h3>
 
         <div class="api-endpoint">
           <div class="api-endpoint-head"><span class="api-method">GET</span><span class="api-path">/api/health</span></div>

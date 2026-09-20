@@ -2007,6 +2007,10 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
   border: 1px solid var(--green-text);
   border-radius: 4px;
   padding: 2px 6px;
+  /* Fixed, because "normal" is 22px in the fallback face and 24px once
+     Source Sans 3 arrives, and the rows under the open panel moved by
+     the difference on every load. */
+  line-height: 18px;
   cursor: pointer;
 }
 .match-skill:hover { background: var(--green-text); color: var(--white); }
@@ -2296,18 +2300,21 @@ footer {
    Lambda itself -- moved off this footer 2026-09-08, see index.html's
    own footer-meta link) reuses .api-endpoint/.api-params/.api-method
    above plus these three, its only page-specific rules. */
-/* Section headings on the API reference. The page used to be one flat
-   run of endpoints, so an h3 only ever had to sit at the very top and
-   needed no space above it. Now it divides the page into what the API
-   is, how to call it, and the routes themselves, so it has to read as a
-   break. Uppercase and tracking rather than a larger size: it stays a
-   label at the same 12px the sidecar already documents. */
+/* Section headings on the API reference. The page divides into what
+   the API is, how to call it, and the routes themselves, so each one
+   has to read as a break. They were 12px uppercase labels, and at that
+   size "Quick start" and "Authentication" vanished into the run of
+   paragraphs and code blocks. Now the display face at the size the
+   Statistics column's title uses (24px, sentence case), under the 34px
+   page title and clearly above the 12px endpoint rows. */
 .api-help h3 {
-  font-size: 12px;
-  margin: 40px 0 14px;
-  padding-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 44px 0 14px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--grey-line);
 }
 .api-help h3:first-of-type { margin-top: 32px; }

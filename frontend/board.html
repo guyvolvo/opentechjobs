@@ -258,6 +258,32 @@
               (function () {
                 var tpl = document.getElementById("skeleton-row"), body = document.getElementById("jobs-body");
                 for (var i = 0; i < 16; i++) body.appendChild(tpl.content.cloneNode(true));
+                // The skills panel, for a reader whose last visit ranked
+                // by CV skills. app.js draws the real one from these same
+                // saved filters, in the same shape, so it lands over this
+                // instead of pushing the rows down when the script runs.
+                try {
+                  var saved = JSON.parse(localStorage.getItem("iljobs_filters") || "{}");
+                  var skills = Array.isArray(saved.skills) ? saved.skills : [];
+                  if (skills.length && !saved.starred_only) {
+                    var open = localStorage.getItem("iljobs_match_skills_open") === "1";
+                    // Buttons where the real panel has buttons: a span in
+                    // their place is 2px shorter and that is a shift too.
+                    var el = function (tag, cls, text) { var n = document.createElement(tag); n.className = cls; if (text) n.textContent = text; if (tag === "button") { n.type = "button"; n.tabIndex = -1; } return n; };
+                    var head = el("div", "match-panel-head");
+                    head.appendChild(el("button", "match-panel-toggle", "My skills " + skills.length));
+                    head.appendChild(el("span", "match-panel-label", "Ranked by relevance"));
+                    head.appendChild(el("span", "link match-panel-edit", "Edit skills"));
+                    var wrap = el("div", "match-skills-wrap" + (open ? " open" : ""));
+                    var list = el("div", "match-skills");
+                    for (var k = 0; k < skills.length; k++) list.appendChild(el("button", "match-skill", skills[k] + " ✕"));
+                    wrap.appendChild(list);
+                    var panel = document.getElementById("match-panel");
+                    panel.appendChild(head);
+                    panel.appendChild(wrap);
+                    panel.hidden = false;
+                  }
+                } catch (e) {}
               })();
             </script>
 

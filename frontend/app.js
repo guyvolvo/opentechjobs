@@ -1666,6 +1666,15 @@ function setCachedJobs(params, data) {
 //   .btn-busy      -> one control the user just clicked
 const SKELETON_ROWS = 16;
 
+// The empty and error boxes stand where the rows were, not above a
+// header row with nothing under it. Hiding the table when one shows
+// also keeps its top where it was: a box appearing above sixteen
+// skeleton rows pushed the whole table down, measured live as a 0.05
+// layout shift, and a box appearing in place of it moves nothing.
+function showJobsTable(on) {
+  document.querySelector("table.jobs").style.display = on ? "" : "none";
+}
+
 function jobsSkeletonHtml(n = SKELETON_ROWS) {
   // The row shape lives in board.html's #skeleton-row template, which
   // the page stamps in before this file has loaded; this reads the same
@@ -1822,7 +1831,7 @@ async function loadJobs({ background = false } = {}) {
     }
   }
 
-  tbody.closest("table").style.display = "";
+  showJobsTable(true);
   if (background) {
     // The screen already shows this view. Drawing the cached copy first
     // could put up rows a previous refresh held back (holdForReader
@@ -1837,6 +1846,7 @@ async function loadJobs({ background = false } = {}) {
   } else {
     // Bones, not "Loading listings…". Same height as the rows about to
     // replace them, so the page doesn't reflow when data lands.
+    showJobsTable(true);
     tbody.innerHTML = jobsSkeletonHtml(skeletonRowCount());
     document.getElementById("jobs-loading").textContent = "Loading listings";
   }
@@ -1863,7 +1873,7 @@ async function loadJobs({ background = false } = {}) {
     // stale rejection belongs to a filter nobody is looking at.
     if (seq !== jobsRequestSeq || err.name === "AbortError") return;
     document.getElementById("jobs-loading").textContent = "";
-    if (!cached) tbody.innerHTML = ""; // bones would otherwise sit there forever behind the error
+    if (!cached) { tbody.innerHTML = ""; showJobsTable(false); } // bones would otherwise sit there forever behind the error
     // A cached render is still on screen and still useful -- don't bury
     // it under an error banner over a transient fetch failure.
     if (!cached) {
@@ -2050,6 +2060,7 @@ async function renderStarredOnly(starred, seq, inFlight) {
     empty.innerHTML = emptyState("You have not saved any listings yet.");
     empty.style.display = "block";
     tbody.innerHTML = "";
+    showJobsTable(false);
     document.getElementById("result-count").innerHTML = "";
     return;
   }
@@ -2066,7 +2077,7 @@ async function renderStarredOnly(starred, seq, inFlight) {
     limit: 200,
   });
 
-  tbody.closest("table").style.display = "";
+  showJobsTable(true);
   tbody.innerHTML = jobsSkeletonHtml(skeletonRowCount());
   document.getElementById("jobs-loading").textContent = "Loading listings";
   document.getElementById("result-count").innerHTML = "";
@@ -2093,6 +2104,7 @@ async function renderStarredOnly(starred, seq, inFlight) {
     if (seq !== jobsRequestSeq || err.name === "AbortError") return;
     document.getElementById("jobs-loading").textContent = "";
     tbody.innerHTML = ""; // bones would otherwise sit there forever behind the error
+    showJobsTable(false);
     const errEl = document.getElementById("jobs-error");
     errEl.textContent = `Could not load your saved listings: ${err.message}`;
     errEl.style.display = "block";
@@ -2126,6 +2138,7 @@ function renderJobs(data, starred) {
       : emptyState("No listings match these filters.");
     document.getElementById("jobs-empty").style.display = "block";
     document.getElementById("jobs-body").innerHTML = "";
+    showJobsTable(false);
     document.getElementById("result-count").innerHTML = "";
     return;
   }
@@ -2340,6 +2353,7 @@ function renderJobRows(jobs, starred) {
   // the star does follow you, and saying otherwise talks people out of
   // using it.
   const starTitle = getAuthTokens() ? "Save to your account" : "Save (this browser only)";
+  showJobsTable(true);
   document.getElementById("jobs-body").innerHTML = jobs
     .map((j) => {
       const age = j.posted_at

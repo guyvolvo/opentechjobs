@@ -77,6 +77,14 @@
   <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png?v=2" />
   <link rel="stylesheet" href="/style.css" />
+  <!-- The product shot is a CSS background, so on its own the browser
+       only finds it after the stylesheet has parsed and then fetches it
+       behind everything else. It is the largest thing in the first
+       screen on a desktop, and the field measured it arriving at 21s on
+       the slowest visits. Named here it downloads alongside the CSS.
+       Desktop widths only: the phone layout paints a different scene
+       and this file is never shown there. -->
+  <link rel="preload" as="image" href="/img/showcase-desktop.webp" media="(min-width: 721px)" fetchpriority="high" />
   <!-- No theme bootstrap here, unlike every other page in this site.
        This one is a landing page rather than a place anyone works. Its
        showcase already paints ink on a photograph with both fixed
