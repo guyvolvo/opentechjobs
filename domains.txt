@@ -12011,3 +12011,6 @@ berkshiregroup.com
 # Common Crawl discovery batch (merge_discovered_batch.py)
 strata.io
 chmedia.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+netsync.io
