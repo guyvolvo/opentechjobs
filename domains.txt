@@ -12000,3 +12000,6 @@ urbantz.com
 tokersguide.com
 uniting.com
 trailmix.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+american-logistics.com
