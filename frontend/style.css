@@ -3035,7 +3035,7 @@ footer {
 .maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--black); }
 .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--black); }
 .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--black); }
-.maplibregl-popup-close-button { color: var(--grey); font-size: 18px; padding: 0 6px; }
+.maplibregl-popup-close-button { color: var(--grey); padding: 0 6px; }
 .maplibregl-popup-close-button:hover { background: var(--hover-bg); }
 .map-pop-title { display: block; font-size: 14px; }
 .map-pop-sub { color: var(--grey); font-size: 12px; }
