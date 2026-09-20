@@ -12023,3 +12023,7 @@ uncle-mike.com
 arkham.com
 nyrahealth.com
 smart-city.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+spotlab.ai
+sportschuledefcon.com
