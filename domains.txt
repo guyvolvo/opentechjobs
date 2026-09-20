@@ -12007,3 +12007,7 @@ american-logistics.com
 # Common Crawl discovery batch (merge_discovered_batch.py)
 cloudlinux.co
 berkshiregroup.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+strata.io
+chmedia.com
