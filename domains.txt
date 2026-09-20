@@ -12018,3 +12018,8 @@ netsync.io
 # Common Crawl discovery batch (merge_discovered_batch.py)
 cesi.com
 uncle-mike.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+arkham.com
+nyrahealth.com
+smart-city.com
