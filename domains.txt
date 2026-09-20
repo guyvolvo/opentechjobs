@@ -12003,3 +12003,7 @@ trailmix.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 american-logistics.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+cloudlinux.co
+berkshiregroup.com
