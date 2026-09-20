@@ -12053,3 +12053,6 @@ kanter.de
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 chargerhelp.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+the-educator.org
