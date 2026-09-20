@@ -12014,3 +12014,7 @@ chmedia.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 netsync.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+cesi.com
+uncle-mike.com
