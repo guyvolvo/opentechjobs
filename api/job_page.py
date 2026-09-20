@@ -34,6 +34,8 @@ import json
 import re
 from datetime import datetime, timedelta, timezone
 
+from countries import label_for
+
 SITE = "https://opentechjobs.org"
 CARD = f"{SITE}/og-hills.jpg"
 EXPIRED_KEEP_DAYS = 30
@@ -258,6 +260,13 @@ def json_ld(job) -> dict:
         data["jobLocation"] = places if len(places) > 1 else places[0]
     if job.get("workplace_type") == "remote":
         data["jobLocationType"] = "TELECOMMUTE"
+        # Google wants a remote listing to say where applicants may be,
+        # and reads one with neither this nor a jobLocation as invalid.
+        # The countries the listing itself names are that answer; a
+        # remote listing that names none is left as it is.
+        wanted = [{"@type": "Country", "name": label_for(c)} for c in (job.get("country") or "").split(",") if c]
+        if wanted:
+            data["applicantLocationRequirements"] = wanted if len(wanted) > 1 else wanted[0]
     if job.get("external_id"):
         data["identifier"] = {"@type": "PropertyValue", "name": job.get("ats") or "ats", "value": str(job["external_id"])}
     if job.get("department"):

@@ -234,7 +234,11 @@ button, input, select {
 
 .topbar {
   font-family: var(--font-display);
-  border-bottom: var(--rule) solid var(--black);
+  /* The same hairline the listing rows are divided by, not the 2px ink
+     rule. The bar is navigation, not a content boundary, and a faint
+     line is enough to hold it off the board; the table header keeps
+     the ink rule because it opens the grid. */
+  border-bottom: 1px solid var(--grey-line);
   position: sticky;
   top: 0;
   background: var(--white);

@@ -332,9 +332,10 @@ def _logo_cell(job: dict) -> str:
     """The company's mark in the site's logo band, the band running the
     full height of the listing so the mark sits centred beside all three
     lines. 44px inside a 52px band; a lettered square of the same size
-    when there is no logo, so every row lines up."""
+    when there is no logo, so every row lines up. No rule around the
+    band: it boxed the mark in, and the tint alone holds it."""
     esc = html.escape
-    band = f"width:52px; background:{_LOGO_BAND}; border:1px solid {_LOGO_RULE}; vertical-align:middle;"
+    band = f"width:52px; background:{_LOGO_BAND}; vertical-align:middle;"
     if job.get("logo_url"):
         return (f'<td width="52" align="center" valign="middle" class="otj-band" style="{band}">'
                 f'<img src="{esc(job["logo_url"])}" width="44" height="44" alt="" '
@@ -428,7 +429,7 @@ def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: da
       .otj-btn {{ background: {_DARK_GREEN} !important; }}
       .otj-btn-text {{ color: {_DARK_BTN_TEXT} !important; }}
       .otj-line {{ border-bottom-color: {_DARK_LINE} !important; }}
-      .otj-band {{ background: {_DARK_BAND} !important; border-color: {_DARK_LINE} !important; }}
+      .otj-band {{ background: {_DARK_BAND} !important; }}
     }}
   </style>
 </head>

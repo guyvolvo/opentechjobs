@@ -82,7 +82,15 @@ check("the preview card is the site card", "og-hills.jpg" in p)
 r = job_page.render(job(location="Remote", country="", city="", workplace_type="remote"), NOW)
 ld = ld_of(r)
 check("a remote job is marked TELECOMMUTE with no invented place",
-      ld.get("jobLocationType") == "TELECOMMUTE" and "jobLocation" not in ld, repr(ld))
+      ld.get("jobLocationType") == "TELECOMMUTE" and "jobLocation" not in ld and "applicantLocationRequirements" not in ld, repr(ld))
+r = job_page.render(job(location="Remote, Israel", country="IL", city="", workplace_type="remote"), NOW)
+ld = ld_of(r)
+check("a remote job that names a country says applicants may be there",
+      ld.get("jobLocationType") == "TELECOMMUTE" and ld.get("applicantLocationRequirements") == {"@type": "Country", "name": "Israel"}, repr(ld.get("applicantLocationRequirements")))
+r = job_page.render(job(location="Remote (US or Canada)", country="US,CA", city="", workplace_type="remote"), NOW)
+ld = ld_of(r)
+check("two countries are a list",
+      [c["name"] for c in ld.get("applicantLocationRequirements", [])] == ["United States", "Canada"], repr(ld.get("applicantLocationRequirements")))
 
 # Several countries: one Place per country, no city guessing.
 m = job_page.json_ld(job(location="Paris, France; Tel Aviv, Israel", country="FR,IL", city="Paris,Tel Aviv"))
