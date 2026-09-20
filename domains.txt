@@ -12039,3 +12039,6 @@ spiral.com
 nvm.io
 o2h.com
 oceansofenergy.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+insure-connect.com
