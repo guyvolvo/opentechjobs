@@ -12027,3 +12027,7 @@ smart-city.com
 # Common Crawl discovery batch (merge_discovered_batch.py)
 spotlab.ai
 sportschuledefcon.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+certus.com
+ockto.com
