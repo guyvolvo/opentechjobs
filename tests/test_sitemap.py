@@ -84,8 +84,9 @@ check("a listing without a source date uses when the board first saw it", mods["
 pages = ET.fromstring(docs["sitemap-pages.xml"][0])
 entries = {e.find("s:loc", ns).text: (e.find("s:lastmod", ns).text if e.find("s:lastmod", ns) is not None else None)
            for e in pages.findall("s:url", ns)}
-check("the five pages, with the board and Explore dated to the snapshot and the rest undated",
+check("the six pages, with the board, the map and Explore dated to the snapshot and the rest undated",
       entries == {"https://opentechjobs.org/": None, "https://opentechjobs.org/board": "2026-09-18T12:00:00Z",
+                  "https://opentechjobs.org/map": "2026-09-18T12:00:00Z",
                   "https://opentechjobs.org/stats": "2026-09-18T12:00:00Z", "https://opentechjobs.org/api/help": None,
                   "https://opentechjobs.org/privacy": None}, repr(entries))
 

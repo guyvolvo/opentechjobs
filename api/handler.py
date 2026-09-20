@@ -30,6 +30,7 @@ from boto3.dynamodb.conditions import Key
 
 from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
                         has_board_filters, search_companies)
+from countries import label_for
 from db import get_connection, status as db_status
 from help_page import HELP_HTML
 import company_page
@@ -269,6 +270,8 @@ def lambda_handler(event, context):
             return _response(200, json.dumps(route_stats(params), default=str), cache_seconds=60)
         if path == "/facets":
             return _response(200, json.dumps(route_facets(params), default=str), cache_seconds=60)
+        if path == "/map":
+            return _response(200, json.dumps(route_map(), default=str), cache_seconds=600)
         if path == "/health":
             return _response(200, json.dumps(route_health(), default=str), cache_seconds=60)
         if path == "/pipeline-status":
@@ -852,6 +855,36 @@ def route_companies(params: dict) -> dict:
 
 
 # /stats
+
+# /map: open listings per city and per country, for the map page. The
+# page joins these with frontend/geo/cities.json, the coordinates
+# loader/geocode_cities.py asked OpenStreetMap for, so a city that has
+# not been placed yet is simply not drawn. A listing that names several
+# cities counts once for each; one that names several countries is left
+# out, since there is no one place to draw it. Ten minutes at the edge:
+# the numbers move by the minute and nobody can tell on a map.
+def route_map() -> dict:
+    conn = get_connection()
+    rows = conn.execute(
+        f"SELECT country, city, COUNT(*) AS n FROM jobs"
+        f" WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}"
+        f" AND country != '' AND country NOT LIKE '%,%' GROUP BY country, city"
+    ).fetchall()
+    cities: dict[tuple[str, str], int] = {}
+    countries: dict[str, int] = {}
+    for r in rows:
+        cc = r["country"]
+        countries[cc] = countries.get(cc, 0) + r["n"]
+        for city in (r["city"] or "").split(","):
+            city = city.strip()
+            if city:
+                cities[(cc, city)] = cities.get((cc, city), 0) + r["n"]
+    return {
+        "cities": [[cc, city, n] for (cc, city), n in sorted(cities.items(), key=lambda x: -x[1])],
+        "countries": [[cc, n] for cc, n in sorted(countries.items(), key=lambda x: -x[1])],
+        "labels": {cc: label_for(cc) for cc in countries},
+    }
+
 
 # /facets: per-option counts for the board's own filter dropdowns
 # (Category, Location, Company), scoped to whatever ELSE is currently

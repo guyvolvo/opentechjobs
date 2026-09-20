@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- Google tag (gtag.js). Google's own instruction is "immediately
+       after <head>"; it sits after the charset instead, because a
+       document's encoding has to be declared inside the first 1024
+       bytes and this snippet is long enough to push it out. async, so
+       it never blocks the theme script below or first paint. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GXP63R1JP1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GXP63R1JP1');
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>OpenTechJobs: Map</title>
+  <meta name="description" content="Every open listing with a place, drawn where it is. Zoom in to a city and click it for its newest roles." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentechjobs.org/map" />
+  <meta property="og:title" content="OpenTechJobs: Map" />
+  <meta property="og:description" content="Every open listing with a place, drawn where it is. Zoom in to a city for its newest roles." />
+  <meta property="og:image" content="https://opentechjobs.org/og-hills.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="OpenTechJobs: Map" />
+  <meta name="twitter:description" content="Every open listing with a place, drawn where it is. Zoom in to a city for its newest roles." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2" />
+  <link rel="icon" href="favicon.ico?v=2" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon-180.png?v=2" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- MapLibre draws the map from OpenFreeMap's vector tiles of
+       OpenStreetMap, in its plainest style: the listings are the
+       picture, the map is the paper. No key, no account. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" crossorigin="" />
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js" crossorigin=""></script>
+  <script>
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="container">
+      <nav class="topnav">
+        <button id="theme-toggle" class="theme-toggle" type="button">Dark</button>
+        <a class="link" href="/board">Job board</a>
+        <a class="link" href="/stats">Explore</a>
+        <a class="link" href="/api/help">API</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="workspace map-page">
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title">Where the jobs are</h2>
+        <p class="map-intro"><span id="map-count">Every open listing with a place, drawn where it is.</span> Bigger means more. <span id="map-hint">Zoom in to see cities, then click one for its newest roles.</span></p>
+        <div id="map" class="map-canvas" role="application" aria-label="Map of open listings"></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="map.js"></script>
+</body>
+</html>
