@@ -12042,3 +12042,8 @@ oceansofenergy.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 insure-connect.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+biximontreal.com
+cfjobs.com
+kanter.de
