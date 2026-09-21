@@ -12495,3 +12495,11 @@ alphax.com
 lindt.ai
 patriotgrowthinsuranceservicesllc.com
 structube1.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+topdesk.com
+xciteauto.com
+krakentech.ai
+pathward.com
+voleon.com
+exiger.com
