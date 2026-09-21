@@ -12540,3 +12540,21 @@ iws.io
 applaudostudios.com
 lockwood.com
 marqeta.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+freenow.com
+townsquareinteractive.com
+ardentis.com
+sitecore.com
+assessment.com
+nycedc.co
+devexperts.com
+bluestone.com
+patientpoint.com
+terrafirma.ai
+bamboohr.com
+truecaller.com
+eneba.com
+uatalents.com
+dkbcodefactory.com
+bumble.com
