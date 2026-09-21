@@ -3430,6 +3430,89 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   line-height: 1.3;
 }
 .hero-bar a { color: inherit; text-decoration: none; }
+/* The name over the repository link, one column at the left. */
+.hero-bar-stack { display: flex; flex-direction: column; gap: 2px; }
+.hero-foot-links { display: inline-flex; gap: 16px; }
+
+/* The account corner. Signed out it is a word; signed in, a button with
+   the reader's initial that opens a menu in the system's own shapes:
+   paper, an ink rule, the 4px field radius, no shadow. */
+.hero-account { position: relative; }
+.hero-account-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px 0 6px;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hero-account-btn:hover { background: var(--hover-bg); }
+.hero-account-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.hero-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--green-text);
+  color: var(--white);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 700;
+}
+.hero-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 240px;
+  padding: 6px;
+  background: var(--white);
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  z-index: 40;
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+.hero-menu[hidden] { display: none; }
+.hero-menu-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--grey-line);
+  font-weight: 700;
+}
+.hero-menu-head .hero-avatar { width: 30px; height: 30px; font-size: 14px; }
+.hero-menu-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero-menu a, .hero-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--black);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.hero-menu a:hover, .hero-menu button:hover { background: var(--hover-bg); color: var(--black); }
+.hero-menu a:focus-visible, .hero-menu button:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+.hero-menu-out { color: var(--red) !important; margin-top: 4px; border-top: 1px solid var(--grey-line) !important; border-radius: 0 !important; }
 .hero-bar a:hover { color: var(--green-text); }
 .hero-bar a:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
 
@@ -3733,6 +3816,66 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-cta-link:hover { text-decoration: underline; text-decoration-thickness: 0.04em; text-underline-offset: 0.12em; }
 .hero-cta-link:focus-visible { outline: 2px solid var(--green); outline-offset: 6px; border-radius: 4px; }
 .hero-foot { padding-bottom: 18px; color: var(--grey); }
+
+/* The contact page: the landing page's own voice, with two columns
+   under the claim. The ways to reach me are the display face on ink
+   rules, the same weight as the feature rows; the form is the board's
+   fields. */
+.contact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: clamp(32px, 6vw, 96px);
+  padding: clamp(40px, 6vw, 88px) var(--edge) clamp(40px, 6vw, 88px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.contact h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(26px, 3vw, 2.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 18px;
+}
+.contact-way {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 18px 0;
+  border-top: var(--rule) solid var(--black);
+  color: var(--black);
+  text-decoration: none;
+}
+.contact-way:last-child { border-bottom: var(--rule) solid var(--black); }
+.contact-way:hover .contact-way-value { color: var(--green-text); }
+.contact-way-name { font-family: var(--font-display); font-size: clamp(20px, 2.2vw, 1.75rem); line-height: 1.1; }
+.contact-way-value { font-family: var(--font-ui); font-size: 14px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.contact-form { display: flex; flex-direction: column; }
+.contact-form label { font-family: var(--font-ui); font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
+.contact-form label:first-of-type { margin-top: 0; }
+.contact-req { font-weight: 400; color: var(--grey); }
+.contact-form input, .contact-form textarea {
+  width: 100%;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 14px;
+}
+.contact-form input { height: 38px; }
+.contact-form textarea { resize: vertical; min-height: 150px; line-height: 1.45; }
+.contact-form input:focus, .contact-form textarea:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+.contact-trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.contact-actions { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
+.contact-status { margin: 0; font-size: 14px; color: var(--grey); }
+@media (max-width: 720px) {
+  .contact { grid-template-columns: 1fr; gap: 40px; }
+  .contact-way { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .contact-way-value { text-align: left; }
+}
 
 /* The one authored motion on the page: each feature row rises and fades in
    once, on an exponential ease-out, as it scrolls into view. Only when the

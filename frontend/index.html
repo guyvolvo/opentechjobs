@@ -97,8 +97,13 @@
 <body class="hero-page">
 
   <header class="hero-bar">
-    <a class="hero-bar-name" href="/">opentechjobs.org</a>
-    <a class="hero-bar-name" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">github</a>
+    <div class="hero-bar-stack">
+      <a class="hero-bar-name" href="/">opentechjobs.org</a>
+      <a class="hero-bar-name" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">github</a>
+    </div>
+    <!-- Sign in, or My Account with its menu: hero_account.js fills it
+         from the same stored tokens the board and account page use. -->
+    <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
   </header>
 
   <main>
@@ -165,8 +170,10 @@
 
   <footer class="hero-bar hero-foot">
     <span>opentechjobs.org</span>
-    <a href="/privacy">privacy</a>
+    <span class="hero-foot-links"><a href="/contact">contact</a><a href="/privacy">privacy</a></span>
   </footer>
+
+  <script src="hero_account.js"></script>
 
   <script>
     // A ticker of live board numbers over a row of the busiest companies'

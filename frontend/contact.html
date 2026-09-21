@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GXP63R1JP1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GXP63R1JP1');
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Contact | OpenTechJobs</title>
+  <meta name="description" content="Write to the person behind OpenTechJobs: a question, a company to add, a bug, or just hello." />
+  <link rel="canonical" href="https://opentechjobs.org/contact" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://opentechjobs.org/contact" />
+  <meta property="og:title" content="Contact | OpenTechJobs" />
+  <meta property="og:description" content="Write to the person behind OpenTechJobs: a question, a company to add, a bug, or just hello." />
+  <meta property="og:image" content="https://opentechjobs.org/og-hills.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Contact | OpenTechJobs" />
+  <meta name="twitter:description" content="Write to the person behind OpenTechJobs: a question, a company to add, a bug, or just hello." />
+  <meta name="twitter:image" content="https://opentechjobs.org/og-hills.jpg" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=2" />
+  <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png?v=2" />
+  <link rel="stylesheet" href="/style.css" />
+  <!-- Light like the landing page, whatever the board's theme: see
+       index.html's note on why the hero pages carry no theme bootstrap. -->
+</head>
+<body class="hero-page">
+
+  <header class="hero-bar">
+    <div class="hero-bar-stack">
+      <a class="hero-bar-name" href="/">opentechjobs.org</a>
+      <a class="hero-bar-name" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">github</a>
+    </div>
+    <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1 class="hero-claim">Say hello.</h1>
+      <p class="hero-lede">A question, a company to add, a bug, a job board of your own. One person reads this, and answers.</p>
+    </section>
+
+    <section class="contact" aria-label="Ways to reach me">
+      <div class="contact-ways">
+        <h2>Find me</h2>
+        <a class="contact-way" href="mailto:guyvoloshin@gmail.com">
+          <span class="contact-way-name">Email</span>
+          <span class="contact-way-value">guyvoloshin@gmail.com</span>
+        </a>
+        <a class="contact-way" href="https://www.linkedin.com/in/guyvoloshin" target="_blank" rel="noopener">
+          <span class="contact-way-name">LinkedIn</span>
+          <span class="contact-way-value">linkedin.com/in/guyvoloshin</span>
+        </a>
+        <a class="contact-way" href="https://github.com/guyvolvo" target="_blank" rel="noopener">
+          <span class="contact-way-name">GitHub</span>
+          <span class="contact-way-value">github.com/guyvolvo</span>
+        </a>
+        <a class="contact-way" href="https://github.com/guyvolvo/opentechjobs/issues" target="_blank" rel="noopener">
+          <span class="contact-way-name">Bugs and ideas</span>
+          <span class="contact-way-value">the repository's issues</span>
+        </a>
+      </div>
+
+      <form class="contact-form" id="contact-form" novalidate>
+        <h2>Or write here</h2>
+        <label for="contact-name">Name</label>
+        <input id="contact-name" name="name" type="text" maxlength="120" autocomplete="name" />
+        <label for="contact-email">Email <span class="contact-req">for the reply</span></label>
+        <input id="contact-email" name="email" type="email" maxlength="254" autocomplete="email" required />
+        <label for="contact-message">Message</label>
+        <textarea id="contact-message" name="message" rows="7" maxlength="5000" required></textarea>
+        <!-- Never shown; a form filler that fills it is not a person. -->
+        <div class="contact-trap" aria-hidden="true"><label for="contact-website">Website</label><input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
+        <div class="contact-actions">
+          <button class="btn hero-primary" id="contact-send" type="submit">Send <svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <p class="contact-status" id="contact-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="hero-bar hero-foot">
+    <span>opentechjobs.org</span>
+    <span class="hero-foot-links"><a href="/contact">contact</a><a href="/privacy">privacy</a></span>
+  </footer>
+
+  <script src="/hero_account.js"></script>
+  <script>
+    // The form posts to /api/contact, which sends it on as one email.
+    (function () {
+      const form = document.getElementById("contact-form");
+      const status = document.getElementById("contact-status");
+      const send = document.getElementById("contact-send");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = form.email.value.trim();
+        const message = form.message.value.trim();
+        if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)) { status.textContent = "An email address is needed for the reply."; form.email.focus(); return; }
+        if (message.length < 10) { status.textContent = "Say a little more than that."; form.message.focus(); return; }
+        send.disabled = true;
+        status.textContent = "Sending…";
+        try {
+          const r = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: form.name.value.trim(), email, message, website: form.website.value }) });
+          const body = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
+          form.reset();
+          status.textContent = "Sent. You'll hear back at that address.";
+        } catch (err) {
+          status.textContent = `Not sent: ${err.message}. The email address above works too.`;
+        } finally {
+          send.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

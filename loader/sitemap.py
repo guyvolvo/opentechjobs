@@ -55,7 +55,7 @@ FEED_ITEMS = 100
 MAX_AGE_S = 3600
 
 # (path, lastmod follows the snapshot?)
-PAGES = [("/", False), ("/board", True), ("/stats", True), ("/api/help", False), ("/privacy", False)]
+PAGES = [("/", False), ("/board", True), ("/stats", True), ("/api/help", False), ("/contact", False), ("/privacy", False)]
 
 _OPEN = f"closed_at IS NULL AND {FRESH_CLAUSE}"
 

@@ -124,11 +124,20 @@ def make_handler(db_path: Path):
             self.end_headers()
             self.wfile.write(body)
 
-        def _serve_api(self, parsed):
+        def do_POST(self):
+            parsed = urlsplit(self.path)
+            if not parsed.path.startswith("/api/"):
+                self.send_error(404)
+                return
+            length = int(self.headers.get("Content-Length") or 0)
+            self._serve_api(parsed, method="POST", body=self.rfile.read(length).decode("utf-8") if length else "")
+
+        def _serve_api(self, parsed, method="GET", body=None):
             event = {
-                "requestContext": {"http": {"method": "GET"}},
+                "requestContext": {"http": {"method": method}},
                 "rawPath": parsed.path,
                 "rawQueryString": parsed.query,
+                "body": body,
             }
             result = handler_module.lambda_handler(event, None)
             self.send_response(result["statusCode"])
