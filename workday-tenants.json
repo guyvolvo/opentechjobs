@@ -25408,5 +25408,215 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "wyandotmemorial.com",
+  "tenant": "wyandotmemorial",
+  "wd": "wd1",
+  "site": "WMH_Careers",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "zealandpharma.com",
+  "tenant": "zealandpharma",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "askbio.com",
+  "tenant": "askbio",
+  "wd": "wd12",
+  "site": "AskBio",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hytt.com",
+  "tenant": "hytt",
+  "wd": "wd5",
+  "site": "Highway_Transport",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ich.org",
+  "tenant": "ich",
+  "wd": "wd1",
+  "site": "ICS_Providers",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "kyriba.com",
+  "tenant": "kyriba",
+  "wd": "wd5",
+  "site": "Kyriba-Careers",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "largo.com",
+  "tenant": "largo",
+  "wd": "wd1",
+  "site": "external",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "material.io",
+  "tenant": "material",
+  "wd": "wd1",
+  "site": "Material_External_Career_Site",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nreca.ai",
+  "tenant": "nreca",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "tennis.com",
+  "tenant": "tennis",
+  "wd": "wd3",
+  "site": "ta_careers",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "westernalliancebank.com",
+  "tenant": "westernalliancebank",
+  "wd": "wd5",
+  "site": "AMH",
+  "jobs_seen": 15,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bcbswy.com",
+  "tenant": "bcbswy",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "city.com",
+  "tenant": "city",
+  "wd": "wd1",
+  "site": "CFM",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "countryfinancial.com",
+  "tenant": "countryfinancial",
+  "wd": "wd5",
+  "site": "IllinoisFarmBureau",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "disa.com",
+  "tenant": "disa",
+  "wd": "wd5",
+  "site": "DISA_External_Career_Site",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "fhcsd.net",
+  "tenant": "fhcsd",
+  "wd": "wd1",
+  "site": "DOC",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "neiu.com",
+  "tenant": "neiu",
+  "wd": "wd1",
+  "site": "NEIU",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "tmnas.com",
+  "tenant": "tmnas",
+  "wd": "wd5",
+  "site": "ExternalCareersTMNAS",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "weber.com",
+  "tenant": "weber",
+  "wd": "wd115",
+  "site": "WB",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "yearup.org",
+  "tenant": "yearup",
+  "wd": "wd503",
+  "site": "YearUp",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "xignux.com",
+  "tenant": "xignux",
+  "wd": "wd108",
+  "site": "Viakable",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]

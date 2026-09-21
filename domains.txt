@@ -12653,3 +12653,24 @@ hedge.io
 level.ai
 options-it.com
 sarjai.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+childstart.org
+repagroup.com
+pelago.com
+soundcloud.com
+propertymanagementassociates.com
+deposco.com
+blocktech.com
+apogee.com
+trustonic.com
+attain.com
+oneimaging.com
+stackline.com
+vay.io
+endra.com
+liqid.com
+sciforium.com
+resolveai.co
+within.ai
+auto-electric.de
