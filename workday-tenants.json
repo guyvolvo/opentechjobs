@@ -21848,5 +21848,265 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "uwaterloo.com",
+  "tenant": "uwaterloo",
+  "wd": "wd3",
+  "site": "uw_careers",
+  "jobs_seen": 80,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bexar.com",
+  "tenant": "bexar",
+  "wd": "wd12",
+  "site": "BexarCountyExternalCareerSite",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "churchdwight.com",
+  "tenant": "churchdwight",
+  "wd": "wd1",
+  "site": "chdcareers",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "usyd.com",
+  "tenant": "usyd",
+  "wd": "wd105",
+  "site": "USYD_EXTERNAL_CAREER_SITE",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wasatchproperty.com",
+  "tenant": "wasatchproperty",
+  "wd": "wd1",
+  "site": "marketstarcareers",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wilhelmsen.com",
+  "tenant": "wilhelmsen",
+  "wd": "wd3",
+  "site": "Wilhelmsen",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wsu.com",
+  "tenant": "wsu",
+  "wd": "wd5",
+  "site": "WSU_Jobs",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mallinckrodt.com",
+  "tenant": "mallinckrodt",
+  "wd": "wd5",
+  "site": "MallinckrodtCareers",
+  "jobs_seen": 78,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nadara.com",
+  "tenant": "nadara",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 78,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vincitgroup.com",
+  "tenant": "vincitgroup",
+  "wd": "wd5",
+  "site": "Vincit_External_1",
+  "jobs_seen": 78,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ksbe.com",
+  "tenant": "ksbe",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 77,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hrhs.net",
+  "tenant": "hrhs",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 76,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "intapp.com",
+  "tenant": "intapp",
+  "wd": "wd1",
+  "site": "Intapp",
+  "jobs_seen": 76,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "verily.com",
+  "tenant": "verily",
+  "wd": "wd1",
+  "site": "Verily_Careers",
+  "jobs_seen": 76,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wiley.com",
+  "tenant": "wiley",
+  "wd": "wd1",
+  "site": "wiley_careers",
+  "jobs_seen": 76,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "kith.com",
+  "tenant": "kith",
+  "wd": "wd1",
+  "site": "Kith_External_Careers",
+  "jobs_seen": 75,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "rgare.com",
+  "tenant": "rgare",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 75,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "web.ai",
+  "tenant": "web",
+  "wd": "wd1",
+  "site": "ExternalCareerSite",
+  "jobs_seen": 75,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wolseleyuk.com",
+  "tenant": "wolseleyuk",
+  "wd": "wd3",
+  "site": "Wolseley",
+  "jobs_seen": 75,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "axcelis.com",
+  "tenant": "axcelis",
+  "wd": "wd1",
+  "site": "Axcelis",
+  "jobs_seen": 74,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mechanicsbank.com",
+  "tenant": "mechanicsbank",
+  "wd": "wd5",
+  "site": "MechanicsBank",
+  "jobs_seen": 74,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "printpack.com",
+  "tenant": "printpack",
+  "wd": "wd1",
+  "site": "printpackcareers",
+  "jobs_seen": 74,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "rsmaus.com",
+  "tenant": "rsmaus",
+  "wd": "wd105",
+  "site": "RSMCareers",
+  "jobs_seen": 74,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cambro.com",
+  "tenant": "cambro",
+  "wd": "wd5",
+  "site": "Cambro_Careers",
+  "jobs_seen": 73,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "saabusa.com",
+  "tenant": "saabusa",
+  "wd": "wd1",
+  "site": "Saab_careers",
+  "jobs_seen": 73,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wework.com",
+  "tenant": "wework",
+  "wd": "wd1",
+  "site": "WeWork",
+  "jobs_seen": 73,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]

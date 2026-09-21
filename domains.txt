@@ -12469,3 +12469,13 @@ ddn.com
 mufginvestorservices.com
 santen.de
 keenfinity.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+ensono.com
+cielo.com
+mirumpharmaceuticals.com
+cranialtechnologies.net
+theoriamedical.com
+uff.co
+themintdispensary.com
+queracomputinginc.com
