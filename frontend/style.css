@@ -3454,6 +3454,23 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .hero-account { position: relative; display: flex; align-items: stretch; align-self: stretch; }
 .hero-account > .hero-bar-name { display: inline-flex; align-items: center; }
 a.hero-account-btn { text-decoration: none; padding: 0 14px; }
+/* The same menu on the topbar, where the bar's own uppercase tracking
+   would otherwise reach into it. */
+.auth-area .hero-account-btn { height: 30px; min-height: 0; }
+.auth-area .hero-menu { text-transform: none; letter-spacing: normal; }
+/* Signed out, the two links the menu carries when signed in. */
+.auth-panel-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--grey-line);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+}
+.auth-panel-links a { color: var(--black); text-decoration: none; }
+.auth-panel-links a:hover { color: var(--green-text); }
 .hero-account-btn {
   display: inline-flex;
   align-items: center;

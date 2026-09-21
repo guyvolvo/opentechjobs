@@ -4200,6 +4200,10 @@ function renderAuthState() {
           <button class="btn" type="submit">Verify</button>
         </form>
         <p class="auth-error" id="auth-error" hidden></p>
+        <div class="auth-panel-links">
+          <a href="/api/help">API reference</a>
+          <a href="/contact">Contact</a>
+        </div>
       </div>`;
     wireAuthTrigger();
     wireAuthPanel();
@@ -4217,12 +4221,20 @@ function renderAuthState() {
   // shows: account.html carries the same alert ids on purpose, so
   // renderAlertsList and wireAlertCreateForm drive both, and it has its
   // own sign-out. Clicking your own account now goes to your account.
+  const initial = escapeHtml((email[0] || "?").toUpperCase());
   area.innerHTML = `
-    <button class="auth-trigger" id="topbar-alert-btn" type="button">+ Alert</button>
-    <a class="auth-trigger auth-account" href="/account"
-       title="${escapeHtml(email)}" aria-label="Account, signed in as ${escapeHtml(email)}">
-      <svg class="account-icon" aria-hidden="true"><use href="#account"></use></svg>
-    </a>
+    <button class="hero-account-btn" id="topbar-account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="topbar-menu">
+      <span class="hero-avatar" aria-hidden="true">${initial}</span>My Account
+    </button>
+    <div class="hero-menu" id="topbar-menu" role="menu" hidden>
+      <div class="hero-menu-head"><span class="hero-avatar" aria-hidden="true">${initial}</span><span class="hero-menu-email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></div>
+      <a role="menuitem" href="/account">${MENU_ICONS.person}My Profile</a>
+      <a role="menuitem" href="/board?starred=1">${MENU_ICONS.bookmark}Saved Jobs</a>
+      <button role="menuitem" type="button" id="topbar-alert-btn">${MENU_ICONS.bell}Alerts</button>
+      <a role="menuitem" href="/api/help">${MENU_ICONS.code}API reference</a>
+      <a role="menuitem" href="/contact">${MENU_ICONS.chat}Contact</a>
+      <button role="menuitem" type="button" class="hero-menu-out" id="auth-signout">${MENU_ICONS.out}Log Out</button>
+    </div>
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
       <div class="alerts-header alerts-header-row">
         <span>My Alerts</span>
@@ -4249,10 +4261,35 @@ function renderAuthState() {
 
       <button class="auth-signout" id="auth-signout" type="button">Sign Out</button>
     </div>`;
+  wireMenu("topbar-account-btn", "topbar-menu");
   wireTopbarAlertButton();
   document.getElementById("auth-signout").addEventListener("click", signOut);
   wireAlertCreateForm();
   loadMyAlerts().then(renderAlertsList);
+}
+
+// The one menu the topbar holds, on the board and on every page that
+// carries the nav. Everything except the theme toggle and the source
+// link lives under it, so the bar is three things wide however many
+// features grow behind it.
+const MENU_ICONS = {
+  person: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 14c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  bookmark: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M4 2h8v12l-4-3-4 3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  bell: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 14a1.5 1.5 0 0 0 3 0" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+  code: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  chat: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2.5 3h11v8h-6l-3 2.5V11h-2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  out: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M6 2.5H3v11h3M10 5l3 3-3 3M13 8H6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+
+// Opens and closes one menu, and closes it on a click outside or Escape.
+function wireMenu(btnId, menuId) {
+  const btn = document.getElementById(btnId);
+  const menu = document.getElementById(menuId);
+  if (!btn || !menu) return;
+  const open = (on) => { menu.hidden = !on; btn.setAttribute("aria-expanded", String(on)); };
+  btn.addEventListener("click", (e) => { e.stopPropagation(); open(menu.hidden); });
+  document.addEventListener("click", (e) => { if (!menu.contains(e.target) && e.target !== btn) open(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") open(false); });
 }
 
 function wireAuthTrigger() {
@@ -4273,10 +4310,18 @@ function wireAuthTrigger() {
 // replaces the whole subtree.
 function wireTopbarAlertButton() {
   const btn = document.getElementById("topbar-alert-btn");
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
     const panel = document.getElementById("auth-panel");
     panel.hidden = !panel.hidden;
     btn.classList.toggle("active", !panel.hidden);
+    // It lives in the account menu now: the menu steps out of the way
+    // of the panel it just opened.
+    const menu = document.getElementById("topbar-menu");
+    if (menu) {
+      menu.hidden = true;
+      document.getElementById("topbar-account-btn").setAttribute("aria-expanded", "false");
+    }
   });
 }
 
