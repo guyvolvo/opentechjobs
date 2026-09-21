@@ -112,9 +112,14 @@ resource "aws_cognito_user_pool_client" "web" {
   # exists (see the conditional count on it); COGNITO stays for the
   # EMAIL_OTP/CUSTOM_AUTH paths, which authenticate against the pool's
   # own user directory, not a federated one.
+  # The provider's own name, not the literal "Google": a literal is just
+  # a string to Terraform, so it saw no dependency between this client
+  # and the provider resource and tried to list Google before creating
+  # it. Cognito answered "the provider Google does not exist for User
+  # Pool" on the first apply after the credentials were set.
   supported_identity_providers = concat(
     ["COGNITO"],
-    var.google_client_id != "" ? ["Google"] : []
+    var.google_client_id != "" ? [aws_cognito_identity_provider.google[0].provider_name] : []
   )
 
   allowed_oauth_flows_user_pool_client = true
