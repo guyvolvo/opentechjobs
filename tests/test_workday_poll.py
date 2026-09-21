@@ -83,6 +83,9 @@ p1 = probe.workday_page1(sess, "acme", "wd1", "External")
 check("page 1 carries the total, the newest twenty and the facet tree",
       p1 and p1["total"] == 45 and len(p1["postings"]) == 20 and p1["facets"][0]["facetParameter"] == "Location_Country")
 check("the Israel count is read off the facets", probe.workday_israel_count(p1["facets"]) == 7)
+check("Beth Israel is a hospital, not the country",
+      probe.workday_israel_count([{"facetParameter": "x", "values": [{"id": "a", "descriptor": "Beth Israel Deaconess - Boston", "count": 900}, {"id": "b", "descriptor": "Tel Aviv, Israel", "count": 3}]}]) == 3
+      and probe._find_israel_facets([{"facetParameter": "x", "values": [{"id": "a", "descriptor": "Beth Israel Lahey"}, {"id": "b", "descriptor": "Israel"}]}]) == {"x": ["b"]})
 fp = probe.workday_fingerprint(p1)
 check("the fingerprint is stable for the same board and moves with the newest posting",
       fp == probe.workday_fingerprint(probe.workday_page1(sess, "acme", "wd1", "External"))

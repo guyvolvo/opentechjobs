@@ -3439,7 +3439,7 @@ def _find_israel_facets(facets: list) -> dict[str, list[str]]:
         # nested groups (no id, just is themselves also facets).
         leaves = [v for v in sub_values if "id" in v]
         if leaves:
-            hits = [v["id"] for v in leaves if "israel" in (v.get("descriptor") or "").lower()]
+            hits = [v["id"] for v in leaves if _is_israel_label(v.get("descriptor"))]
             if hits:
                 matches.setdefault(f["facetParameter"], []).extend(hits)
         elif sub_values:
@@ -3496,14 +3496,22 @@ def workday_fingerprint(page1: dict) -> str:
     return hashlib.sha256(json.dumps([page1["total"], ids]).encode("utf-8")).hexdigest()
 
 
+def _is_israel_label(descriptor: str | None) -> bool:
+    """Israel the country, not Beth Israel the hospital: Beth Israel
+    Lahey Health's tenant filed 2,385 Boston postings under labels with
+    "Israel" in them, and a substring match took every one."""
+    label = (descriptor or "").lower()
+    return "israel" in label and "beth israel" not in label
+
+
 def workday_israel_count(facets: list) -> int:
-    """How many postings the facet tree files under a label that mentions
+    """How many postings the facet tree files under a label that names
     Israel, from page 1 alone. Discovery ranks new tenants by it."""
     n = 0
     for f in facets or []:
         for v in f.get("values") or []:
             if "id" in v:
-                if "israel" in (v.get("descriptor") or "").lower():
+                if _is_israel_label(v.get("descriptor")):
                     n += int(v.get("count") or 0)
             elif v.get("values"):
                 n += workday_israel_count([v])
