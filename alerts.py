@@ -14,7 +14,7 @@ import html
 import os
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -67,9 +67,58 @@ def evaluate_alerts(jobs_db_path: Path) -> dict:
             # every other alert from being checked.
             errors.append(f"{alert['user_id']}/{alert['alert_id']}: {e}")
 
+    watched = _watched_domains(alerts) | _recently_matching_domains(conn, alerts)
     conn.close()
     return {"alerts_checked": len(alerts), "digests_sent": sent, "errors": errors,
-            "watched_domains": sorted(_watched_domains(alerts))}
+            "watched_domains": sorted(watched)}
+
+
+# How far back a match counts as evidence that a board is worth watching.
+#
+# A board that answered somebody's alert in the last two weeks is a board
+# that plausibly answers it again. Shorter and a company that posts
+# monthly falls out of the fast lane between postings, which is the exact
+# case this exists for.
+WATCH_LOOKBACK_DAYS = 14
+
+# Per alert, not in total. A country-wide alert matches tens of thousands
+# of rows and there is no point reading them all: the fast lane is meant
+# to cover the boards a reader actually hears from, and past a couple of
+# hundred companies it stops being a lane and becomes the whole road.
+WATCH_DOMAINS_PER_ALERT = 200
+
+
+def _recently_matching_domains(conn: sqlite3.Connection, alerts: list[dict]) -> set[str]:
+    """Boards that have answered somebody's alert lately.
+
+    Reported live on 2026-09-21: a ScaleOps posting reached its reader 72
+    minutes late, because ScaleOps posts rarely and had backed off to the
+    four-hour ceiling. Naming the company in the alert would have fixed
+    it, except that nobody does. Every active alert on the board that day
+    filtered by keyword or by country, so an alert-follows-a-company rule
+    covered none of them.
+
+    This is the version that covers them. An alert for "DevOps in Israel"
+    does not name a board, but the boards that answered it last fortnight
+    are the boards it will most likely be answered by next, and those are
+    worth polling often. Costs one bounded query per alert against a
+    snapshot that is already open.
+    """
+    out: set[str] = set()
+    since = (datetime.now(timezone.utc) - timedelta(days=WATCH_LOOKBACK_DAYS)).isoformat()
+    for alert in alerts:
+        try:
+            where_sql, args = build_jobs_where(dict(alert.get("filter") or {}),
+                                               has_fts_index(conn), has_places(conn))
+            rows = conn.execute(
+                f"SELECT DISTINCT company_domain FROM jobs WHERE {where_sql} AND first_seen > ? "
+                f"LIMIT {WATCH_DOMAINS_PER_ALERT}", [*args, since]).fetchall()
+            out.update(str(r[0]).lower() for r in rows if r[0])
+        except Exception as e:
+            # One unreadable filter must not cost every other alert its
+            # fast lane. The worst case here is the old schedule.
+            print(f"watch scan failed for {alert.get('alert_id')}: {e!r}")
+    return out
 
 
 def _watched_domains(alerts: list[dict]) -> set[str]:
