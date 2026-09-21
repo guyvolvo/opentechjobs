@@ -12312,3 +12312,20 @@ itselectric.ai
 key.ai
 heattransformers.com
 organization.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+enterfusion.com
+eventellect.com
+finder.com
+full-service.de
+goreel.ai
+grassrootscarbon.com
+healwell.ai
+higher-learning.org
+ide-global.org
+kingsisle.com
+koru.ai
+kilter.de
+kms.ai
+by-appointment.com
+south.io
