@@ -35,7 +35,11 @@ function setAuthErrorSink(fn) { authErrorSink = fn; }
 // (/me/alerts). See infra/cognito.tf and github_auth_handler.py for the
 // backend half of each of these.
 
-const COGNITO_DOMAIN = "iljobs-auth-876913698688.auth.il-central-1.amazoncognito.com";
+// Our own name, not Cognito's free *.auth.<region>.amazoncognito.com
+// one: Google's consent screen shows the reader the host of the
+// redirect URI. Must match infra/cognito.tf's user pool domain, and
+// changing one without the other takes Google and GitHub sign-in down.
+const COGNITO_DOMAIN = "auth.opentechjobs.org";
 const COGNITO_REGION = "il-central-1";
 const COGNITO_CLIENT_ID = "5021pv23cp3udp1uaq34tp38mb";
 // OAuth client IDs aren't secret, safe to ship in frontend JS same as
