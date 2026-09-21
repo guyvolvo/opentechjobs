@@ -3377,7 +3377,9 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   max-width: 420px;
   padding: 28px;
   border: var(--rule) solid var(--black);
-  border-radius: 16px;
+  /* Card / Preview, the same 24px the showcase card on the landing
+     page is rounded to. This is that card's shape, not a new one. */
+  border-radius: 24px;
   background: var(--white);
   /* The display face, not the dense UI one. This is the only dialog on
      the site a reader meets before they have seen anything else, so it
@@ -3396,18 +3398,21 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .signin-dialog .auth-email-form input {
   height: 44px;
   font-size: 14px;
-  /* Half the shell's radius: a square field inside a round box reads as
-     an accident, an equal one as a bullseye. */
-  border-radius: 8px;
+  /* The default 4px, not something between this and the shell's 24px.
+     The showcase card does the same thing: a soft outer card holding
+     hard-cornered controls, and the contrast is the point. */
+  border-radius: 4px;
 }
 .signin-dialog .auth-provider-btn { margin-bottom: 10px; }
-.signin-dialog .auth-email-form .btn { height: 44px; border-radius: 8px; font-size: 13px; padding: 0 16px; }
+.signin-dialog .auth-email-form .btn { height: 44px; border-radius: 4px; font-size: 13px; padding: 0 16px; }
 .signin-dialog .auth-divider { font-size: 13px; margin: 14px 0; }
 .signin-dialog .account-block-title {
   margin: 0;
-  /* The one line that names what the dialog is, so it carries weight
-     rather than sitting at the size of a field label. */
-  font-size: 22px;
+  /* Display / Section Title at its 24px step, the one the Statistics
+     column uses for exactly this reason: a display title sitting beside
+     13px controls, where the full 34px would be the loudest thing on
+     screen. */
+  font-size: 24px;
   font-weight: 400;
   letter-spacing: -0.02em;
 }
@@ -3416,7 +3421,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   border: 0;
   background: none;
   color: var(--grey);
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
   padding: 0 4px;
   cursor: pointer;
