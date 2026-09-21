@@ -12280,3 +12280,17 @@ laravel.com
 hauptstadtfloss.de
 nynconsulting.com
 crowdcow.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+eupry.com
+fme.com
+ferguson-roofingand-exteriors.com
+hampr.com
+gcs.io
+helical.io
+hrw.net
+interpolitan.com
+invygo.com
+kitt.ai
+hausfursicherheit.com
+hatchtech.com
