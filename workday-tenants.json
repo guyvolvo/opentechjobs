@@ -21128,5 +21128,215 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "zentiva.com",
+  "tenant": "zentiva",
+  "wd": "wd3",
+  "site": "Zentiva",
+  "jobs_seen": 111,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "accelleron.com",
+  "tenant": "accelleron",
+  "wd": "wd3",
+  "site": "Accelleron",
+  "jobs_seen": 110,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "steeleurope.de",
+  "tenant": "steeleurope",
+  "wd": "wd3",
+  "site": "Job_Board",
+  "jobs_seen": 110,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "zillow.com",
+  "tenant": "zillow",
+  "wd": "wd5",
+  "site": "Zillow_Group_External",
+  "jobs_seen": 110,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ebnhc.org",
+  "tenant": "ebnhc",
+  "wd": "wd1",
+  "site": "EBNHC",
+  "jobs_seen": 108,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pentair.com",
+  "tenant": "pentair",
+  "wd": "wd5",
+  "site": "Pentair_Careers",
+  "jobs_seen": 108,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "empower.com",
+  "tenant": "empower",
+  "wd": "wd12",
+  "site": "empower",
+  "jobs_seen": 107,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mosscm.com",
+  "tenant": "mosscm",
+  "wd": "wd1",
+  "site": "Moss_Careers",
+  "jobs_seen": 107,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "logicalis.com",
+  "tenant": "logicalis",
+  "wd": "wd3",
+  "site": "LogicalisCareers",
+  "jobs_seen": 105,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "tuckahoeholdings.com",
+  "tenant": "tuckahoeholdings",
+  "wd": "wd12",
+  "site": "NOVO",
+  "jobs_seen": 105,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ameresco.com",
+  "tenant": "ameresco",
+  "wd": "wd5",
+  "site": "Ameresco",
+  "jobs_seen": 100,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "andersonsinc.com",
+  "tenant": "andersonsinc",
+  "wd": "wd1",
+  "site": "TheAndersonsCareers",
+  "jobs_seen": 100,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "biotechne.com",
+  "tenant": "biotechne",
+  "wd": "wd5",
+  "site": "Biotechne",
+  "jobs_seen": 100,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bf.de",
+  "tenant": "bf",
+  "wd": "wd5",
+  "site": "International",
+  "jobs_seen": 98,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mccoys.com",
+  "tenant": "mccoys",
+  "wd": "wd1",
+  "site": "Mccoys_External_Careers",
+  "jobs_seen": 98,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hl.com",
+  "tenant": "hl",
+  "wd": "wd1",
+  "site": "Lateral",
+  "jobs_seen": 97,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wexinc.com",
+  "tenant": "wexinc",
+  "wd": "wd5",
+  "site": "WEXInc",
+  "jobs_seen": 97,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "amynta.net",
+  "tenant": "amynta",
+  "wd": "wd5",
+  "site": "global",
+  "jobs_seen": 96,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "elkay.de",
+  "tenant": "elkay",
+  "wd": "wd1",
+  "site": "Elkay_External",
+  "jobs_seen": 96,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "haemonetics.com",
+  "tenant": "haemonetics",
+  "wd": "wd5",
+  "site": "Hae",
+  "jobs_seen": 96,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "altasciences.com",
+  "tenant": "altasciences",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 95,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
