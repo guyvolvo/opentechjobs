@@ -326,10 +326,57 @@ function paintSaved(jobs) {
   });
 }
 
+// The signed-out half of the page. The board's topbar panel does the
+// same job with the same functions from app.js; this one exists because
+// the account page has no topbar auth slot to paint into (see
+// renderAuthState), and telling a reader to go and sign in somewhere
+// else is not an answer on the page called Account.
+function wireAccountSignIn() {
+  const err = $("acct-error");
+  const fail = (msg) => { err.textContent = msg; err.hidden = false; };
+  const clear = () => { err.hidden = true; };
+  $("acct-google").addEventListener("click", () => { clear(); startGoogleSignIn(); });
+  $("acct-github").addEventListener("click", () => { clear(); startGithubSignIn(); });
+  $("acct-email-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clear();
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    try {
+      await startEmailSignIn($("acct-email-input").value.trim());
+      $("acct-email-form").hidden = true;
+      $("acct-otp-form").hidden = false;
+      $("acct-otp-input").focus();
+    } catch (e2) {
+      fail(e2.message || "Could not send a code. Try again.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  $("acct-otp-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clear();
+    const btn = e.target.querySelector("button");
+    btn.disabled = true;
+    try {
+      await verifyEmailOtp($("acct-otp-input").value.trim());
+      // The page reads its token once, at boot, and every section below
+      // is built from it. Coming back through boot is simpler and more
+      // honest than teaching each one to appear.
+      location.reload();
+    } catch (e2) {
+      fail(e2.message === "CodeMismatchException" ? "Wrong code, try again." : e2.message || "Could not verify that code.");
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 async function bootAccount() {
   const tokens = getAuthTokens();
   if (!tokens?.id_token) {
     $("account-signedout").hidden = false;
+    wireAccountSignIn();
     return;
   }
   $("account-body").hidden = false;

@@ -33,7 +33,7 @@
     const t = tokens();
     const who = t && t.id_token ? email(t.id_token) : "";
     if (!who) {
-      host.innerHTML = '<a class="hero-bar-name" href="/account">Sign in</a>';
+      host.innerHTML = '<a class="hero-account-btn" href="/account">Sign in</a>';
       return;
     }
     const initial = esc(who[0].toUpperCase());

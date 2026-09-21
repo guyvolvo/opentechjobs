@@ -3352,6 +3352,18 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .account-hint { color: var(--grey); font-size: 11.5px; }
 .account-email { margin: 0 0 8px; font-weight: 700; }
+
+/* Signed out, the page is the sign-in the board's topbar panel offers,
+   in a bordered card the width of a form rather than the whole column. */
+.account-signin {
+  max-width: 360px;
+  padding: 20px;
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+}
+.account-signin .account-block-title { margin: 0 0 6px; }
+.account-signin-lede { margin: 0 0 16px; color: var(--grey); font-size: 13px; line-height: 1.5; }
 .account-note { color: var(--grey); font-size: 11.5px; margin: 10px 0 0; max-width: 60ch; line-height: 1.5; }
 .account-fields { display: flex; flex-direction: column; gap: 10px; max-width: 420px; }
 .account-field { display: flex; flex-direction: column; gap: 4px; }
@@ -3441,6 +3453,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    read as one row. */
 .hero-account { position: relative; display: flex; align-items: stretch; align-self: stretch; }
 .hero-account > .hero-bar-name { display: inline-flex; align-items: center; }
+a.hero-account-btn { text-decoration: none; padding: 0 14px; }
 .hero-account-btn {
   display: inline-flex;
   align-items: center;
@@ -3819,7 +3832,8 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .hero-cta-link:hover { text-decoration: underline; text-decoration-thickness: 0.04em; text-underline-offset: 0.12em; }
 .hero-cta-link:focus-visible { outline: 2px solid var(--green); outline-offset: 6px; border-radius: 4px; }
-.hero-foot { padding-bottom: 18px; color: var(--grey); }
+.hero-foot { padding-bottom: 18px; color: var(--grey); font-size: 26px; }
+.hero-foot .hero-foot-links { gap: 28px; }
 
 /* The contact page: the landing page's own voice, with two columns
    under the claim. The ways to reach me are the display face on ink
