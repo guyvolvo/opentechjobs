@@ -12674,3 +12674,23 @@ sciforium.com
 resolveai.co
 within.ai
 auto-electric.de
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+aperiasolutions.fr
+concentric.io
+generallegalllp.com
+flamingo.net
+planetscale.com
+prokidney.com
+syndio.com
+tuesdayhealth.net
+lyceum.ai
+plancraft.com
+revalize.com
+brightcoreenergy.com
+cais.ai
+interwellhealth.com
+peregrinehealth.com
+lumos.com
+skip.com
+thorit.com

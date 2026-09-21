@@ -25618,5 +25618,265 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "aaaie.org",
+  "tenant": "aaaie",
+  "wd": "wd1",
+  "site": "CSAACareers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "algonquincollege.com",
+  "tenant": "algonquincollege",
+  "wd": "wd3",
+  "site": "CareerOpportunities",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "aqa.com",
+  "tenant": "aqa",
+  "wd": "wd3",
+  "site": "AQA",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ascentgl.com",
+  "tenant": "ascentgl",
+  "wd": "wd1",
+  "site": "ASG",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "asuep.org",
+  "tenant": "asuep",
+  "wd": "wd5",
+  "site": "ASUEP",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "backroads.com",
+  "tenant": "backroads",
+  "wd": "wd1",
+  "site": "BR",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "babilou.com",
+  "tenant": "babilou",
+  "wd": "wd3",
+  "site": "Babilou_Family_Singapore",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bluerocktx.com",
+  "tenant": "bluerocktx",
+  "wd": "wd5",
+  "site": "BlueRock_External_Careers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cloudrock.com",
+  "tenant": "cloudrock",
+  "wd": "wd103",
+  "site": "CloudRock-Careers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cityofventura.com",
+  "tenant": "cityofventura",
+  "wd": "wd5",
+  "site": "CityofVentura",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dodgeandcox.com",
+  "tenant": "dodgeandcox",
+  "wd": "wd5",
+  "site": "Dodgecox",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "energynorthwest.com",
+  "tenant": "energynorthwest",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "fph.com",
+  "tenant": "fph",
+  "wd": "wd3",
+  "site": "FGEN_Career",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gafsgi.com",
+  "tenant": "gafsgi",
+  "wd": "wd5",
+  "site": "BMI",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hamiltoncountyindiana.com",
+  "tenant": "hamiltoncountyindiana",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "huntingtonlibrary.org",
+  "tenant": "huntingtonlibrary",
+  "wd": "wd1",
+  "site": "HuntingtonCareers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "idmcompanies.com",
+  "tenant": "idmcompanies",
+  "wd": "wd1",
+  "site": "idmexternalcareersite",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "insitu.com",
+  "tenant": "insitu",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "meridiancity.com",
+  "tenant": "meridiancity",
+  "wd": "wd12",
+  "site": "meridian_city",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "phreesia.com",
+  "tenant": "phreesia",
+  "wd": "wd1",
+  "site": "Phreesia",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "provo.com",
+  "tenant": "provo",
+  "wd": "wd1",
+  "site": "ProvoCityExternalCareerSite",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "taitcommunications.com",
+  "tenant": "taitcommunications",
+  "wd": "wd105",
+  "site": "Tait_External_Career_Site",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wpengine.com",
+  "tenant": "wpengine",
+  "wd": "wd1",
+  "site": "WP_Engine",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "zrg.com",
+  "tenant": "zrg",
+  "wd": "wd3",
+  "site": "teleclinic-jobs",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bcbsla.com",
+  "tenant": "bcbsla",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "birch.co",
+  "tenant": "birch",
+  "wd": "wd1",
+  "site": "FusionCareers",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
