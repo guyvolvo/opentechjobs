@@ -12408,3 +12408,8 @@ bayada.com
 # Common Crawl discovery batch (merge_discovered_batch.py)
 wundermanthompson.io
 langanengineeringandenvironmentalservicesllc.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+american-income-life.com
+curaleaf.com
+roku.com
