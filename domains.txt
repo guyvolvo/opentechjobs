@@ -12530,3 +12530,13 @@ kpn.com
 harleytherapy.com
 externaljobboards.com
 focused.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+kijimea.com
+assogroup.com
+egym.com
+iws.io
+1-resource.net
+applaudostudios.com
+lockwood.com
+marqeta.com

@@ -23738,5 +23738,235 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "inalfa.com",
+  "tenant": "inalfa",
+  "wd": "wd3",
+  "site": "InalfaCareers",
+  "jobs_seen": 40,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "remondis.com",
+  "tenant": "remondis",
+  "wd": "wd105",
+  "site": "Remondis_Career_Site",
+  "jobs_seen": 40,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "usfca.ai",
+  "tenant": "usfca",
+  "wd": "wd5",
+  "site": "USF_Staff",
+  "jobs_seen": 40,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vystarcu.org",
+  "tenant": "vystarcu",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 40,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "moneris.com",
+  "tenant": "moneris",
+  "wd": "wd3",
+  "site": "Moneris",
+  "jobs_seen": 39,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vhaca.com",
+  "tenant": "vhaca",
+  "wd": "wd10",
+  "site": "VHA",
+  "jobs_seen": 39,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vontobel.com",
+  "tenant": "vontobel",
+  "wd": "wd3",
+  "site": "LinkedIn",
+  "jobs_seen": 39,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "waukeshacounty.com",
+  "tenant": "waukeshacounty",
+  "wd": "wd12",
+  "site": "Careers",
+  "jobs_seen": 39,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "woundedwarriorproject.com",
+  "tenant": "woundedwarriorproject",
+  "wd": "wd5",
+  "site": "WWP",
+  "jobs_seen": 39,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "zuehlke.com",
+  "tenant": "zuehlke",
+  "wd": "wd3",
+  "site": "Zuhlke-Careers",
+  "jobs_seen": 39,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "arbella.io",
+  "tenant": "arbella",
+  "wd": "wd5",
+  "site": "Arbella",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "drafthouse.com",
+  "tenant": "drafthouse",
+  "wd": "wd5",
+  "site": "Alamo",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "innisfree.com",
+  "tenant": "innisfree",
+  "wd": "wd5",
+  "site": "Innisfree",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mymoose.com",
+  "tenant": "mymoose",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "swisslife.com",
+  "tenant": "swisslife",
+  "wd": "wd3",
+  "site": "livit-ag-career-stellenboerse",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "thekey.com",
+  "tenant": "thekey",
+  "wd": "wd1",
+  "site": "thekey",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wgl.io",
+  "tenant": "wgl",
+  "wd": "wd5",
+  "site": "AltaGas",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wje.com",
+  "tenant": "wje",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "aeci.com",
+  "tenant": "aeci",
+  "wd": "wd1",
+  "site": "aeci",
+  "jobs_seen": 37,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "icwgroup.com",
+  "tenant": "icwgroup",
+  "wd": "wd5",
+  "site": "icw",
+  "jobs_seen": 37,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nuecesco.com",
+  "tenant": "nuecesco",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 37,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pennant.com",
+  "tenant": "pennant",
+  "wd": "wd1",
+  "site": "PennantServicesCareerSite",
+  "jobs_seen": 37,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vsp.com",
+  "tenant": "vsp",
+  "wd": "wd1",
+  "site": "VSPVisionCareers",
+  "jobs_seen": 37,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
