@@ -25878,5 +25878,175 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "centerlight.com",
+  "tenant": "centerlight",
+  "wd": "wd5",
+  "site": "centerlight",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dedalus.com",
+  "tenant": "dedalus",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ingenovishealth.com",
+  "tenant": "ingenovishealth",
+  "wd": "wd1",
+  "site": "Ingenovishealth",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ih.fr",
+  "tenant": "ih",
+  "wd": "wd1",
+  "site": "IHA_Careers",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "kukio.com",
+  "tenant": "kukio",
+  "wd": "wd115",
+  "site": "Kukio",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "manningnapier.com",
+  "tenant": "manningnapier",
+  "wd": "wd1",
+  "site": "Manning-Napier",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "publicpartnerships.com",
+  "tenant": "publicpartnerships",
+  "wd": "wd1",
+  "site": "ppl",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "risd.net",
+  "tenant": "risd",
+  "wd": "wd5",
+  "site": "RISD",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "areteir.com",
+  "tenant": "areteir",
+  "wd": "wd1",
+  "site": "Arete-Careers",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "calpolycorporation.com",
+  "tenant": "calpolycorporation",
+  "wd": "wd12",
+  "site": "CalPolyPartner_External_Careers",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "lumeris.fr",
+  "tenant": "lumeris",
+  "wd": "wd1",
+  "site": "LC",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "primed.com",
+  "tenant": "primed",
+  "wd": "wd1",
+  "site": "PriMed",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "phcgroup.net",
+  "tenant": "phcgroup",
+  "wd": "wd3",
+  "site": "Epredia_Careers",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "rhodes.com",
+  "tenant": "rhodes",
+  "wd": "wd5",
+  "site": "Rhodes_Careers",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "usertesting.com",
+  "tenant": "usertesting",
+  "wd": "wd12",
+  "site": "UserTesting",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vermilionenergy.com",
+  "tenant": "vermilionenergy",
+  "wd": "wd10",
+  "site": "VEI_EXTERNAL",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wcap.ai",
+  "tenant": "wcap",
+  "wd": "wd10",
+  "site": "Whitecap_Careers",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]

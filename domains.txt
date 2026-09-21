@@ -12694,3 +12694,23 @@ peregrinehealth.com
 lumos.com
 skip.com
 thorit.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+solflare.com
+sentinelgroup.com
+achievementfirstnetworksupportcareers.com
+centerforartificialintelligencesafetyinc.com
+chronograph.com
+integra.com
+nimblegravity.com
+davischicago.net
+formal.ai
+newtonx.com
+rxvantage.com
+siepe.com
+tetrix.io
+threataware.com
+universalagi.com
+auto24.com
+botrista.com
+brocket.org
