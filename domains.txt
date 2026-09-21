@@ -12211,3 +12211,17 @@ highland-spring.com
 kahoot.com
 knorex.com
 languagewire.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+ferryhopper.com
+hero-software.de
+huckberry.com
+insight-network.de
+inthwhitespace.com
+jenzabar.com
+bitfinex.com
+five-star.com
+foundersforum.com
+gtech.co
+huggingface.com
+jandhjanitorial.com
