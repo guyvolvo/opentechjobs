@@ -26188,5 +26188,95 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "altapm.com",
+  "tenant": "altapm",
+  "wd": "wd1",
+  "site": "ALTACareers",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "beemok.com",
+  "tenant": "beemok",
+  "wd": "wd5",
+  "site": "Meeting_Street_Schools_",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "boden.com",
+  "tenant": "boden",
+  "wd": "wd3",
+  "site": "jpboden",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cardlytics.com",
+  "tenant": "cardlytics",
+  "wd": "wd5",
+  "site": "CardlyticsExternalCareerSite",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "comscore.com",
+  "tenant": "comscore",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nutraceutical.com",
+  "tenant": "nutraceutical",
+  "wd": "wd501",
+  "site": "BetterBeingExternalCareerSite",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "transurban.com",
+  "tenant": "transurban",
+  "wd": "wd3",
+  "site": "TU_AU",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "virtualresource.co",
+  "tenant": "virtualresource",
+  "wd": "wd103",
+  "site": "Careers",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "xstar.ai",
+  "tenant": "xstar",
+  "wd": "wd102",
+  "site": "External",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
