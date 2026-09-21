@@ -123,7 +123,7 @@ def _parse(ts):
         return None
 
 
-def load(bucket, s3, dynamo_table=""):
+def load(bucket, s3, dynamo_table="", key=KEY):
     """(state, etag). Empty state on anything unreadable.
 
     dynamo_table is a migration path and nothing more. The first run
@@ -136,7 +136,7 @@ def load(bucket, s3, dynamo_table=""):
     if not bucket:
         return {}, None
     try:
-        obj = s3.get_object(Bucket=bucket, Key=KEY)
+        obj = s3.get_object(Bucket=bucket, Key=key)
         return json.loads(gzip.decompress(obj["Body"].read())), obj["ETag"]
     except Exception:
         pass
@@ -175,7 +175,7 @@ def _seed_from_dynamo(table):
         return {}
 
 
-def save(bucket, s3, state, etag):
+def save(bucket, s3, state, etag, key=KEY):
     """Conditional write. False means another sweep got there first, in
     which case this run's scheduling is lost and the next one recomputes
     it. Never raises: losing this costs full fetches, which is a cost
@@ -186,7 +186,7 @@ def save(bucket, s3, state, etag):
     body = gzip.compress(json.dumps(state, separators=(",", ":")).encode("utf-8"))
     kwargs = {
         "Bucket": bucket,
-        "Key": KEY,
+        "Key": key,
         "Body": body,
         "ContentType": "application/json",
         "ContentEncoding": "gzip",

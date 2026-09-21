@@ -55,6 +55,10 @@ QUEUE_PATH = ROOT / "pending-discovery-candidates.json"
 ATS_LIMITS = {
     "greenhouse": (30, 1800),
     "ashby": (30, 2800),
+    # A domain match over myworkdayjobs.com: five index pages hold the
+    # whole snapshot (64k URLs, 1,609 tenants on 2026-09-21), and each
+    # candidate is one request to verify, so the limit can take them all.
+    "workday": (5, 2000),
     # 4500, not 1800: reading three crawl snapshots instead of one took
     # workable's new-candidate count from a few hundred to 4,146 in the
     # first real run (2026-09-16), and a verify_limit of 1800 silently

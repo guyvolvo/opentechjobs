@@ -47,6 +47,7 @@ already-large redesign.
 
 import json
 import os
+from datetime import datetime, timezone
 import subprocess
 import sys
 from pathlib import Path
@@ -130,6 +131,33 @@ def recent_fast_poll_had_errors(lookback_minutes: int = 40) -> bool | None:
     return len(resp.get("events", [])) > 0
 
 
+TENANTS_PATH = ROOT / "workday-tenants.json"
+
+
+def add_workday_tenants(candidates: list[dict]) -> int:
+    """Append discovered tenants to workday-tenants.json, one entry per
+    tenant and site, skipping what is already there. The domain is
+    discovery's guess; a wrong one is a display problem, not a scrape
+    problem, because the token is what gets fetched."""
+    current = json.loads(TENANTS_PATH.read_text(encoding="utf-8")) if TENANTS_PATH.exists() else []
+    have = {(t["tenant"].lower(), t["site"].lower()) for t in current}
+    have_domains = {t.get("domain") for t in current}
+    added = 0
+    for c in candidates:
+        tenant, wd, site = c["token"].split(":", 2)
+        if (tenant.lower(), site.lower()) in have:
+            continue
+        domain = c.get("domain") or f"{tenant}.myworkdayjobs.com"
+        if domain in have_domains:
+            domain = f"{tenant}.myworkdayjobs.com"
+        current.append({"domain": domain, "tenant": tenant, "wd": wd, "site": site,
+                        "jobs_seen": c.get("job_count", 0), "israel_jobs_seen": c.get("israel_job_count", 0),
+                        "source": "common-crawl", "added": datetime.now(timezone.utc).date().isoformat()})
+        have.add((tenant.lower(), site.lower())); have_domains.add(domain); added += 1
+    TENANTS_PATH.write_text(json.dumps(current, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    return added
+
+
 def main() -> int:
     if not QUEUE_PATH.exists():
         print("no pending-discovery-candidates.json -- nothing to do", file=sys.stderr)
@@ -165,6 +193,15 @@ def main() -> int:
 
     batch = queue[:BATCH_SIZE]
     remaining = queue[BATCH_SIZE:]
+    # Workday tenants go to workday-tenants.json, the hourly Workday
+    # Lambda's own list, never to domains.txt or known.json: the fast
+    # poll cannot read a Workday board (probe.py's SLOW_BOARD_ATS) and
+    # a domain in domains.txt would only ever probe to nothing.
+    workday_pins = [c for c in batch if c.get("ats") == "workday" and c.get("token")]
+    batch = [c for c in batch if c.get("ats") != "workday"]
+    if workday_pins:
+        added = add_workday_tenants(workday_pins)
+        print(f"  {len(workday_pins)} Workday tenants in this batch, {added} new, written to workday-tenants.json", file=sys.stderr)
     domains = [c["domain"] for c in batch]
     # Comeet is the one ATS this step cannot re-resolve by probing a
     # domain, and that is the whole reason companies.yml's first Comeet
