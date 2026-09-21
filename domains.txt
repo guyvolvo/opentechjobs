@@ -12463,3 +12463,9 @@ tvg.ai
 louvrehotelsgroup.com
 boca.com
 ddn.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+84674th44metrea9999.com
+mufginvestorservices.com
+santen.de
+keenfinity.com
