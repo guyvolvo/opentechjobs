@@ -19878,5 +19878,275 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "intactfc.com",
+  "tenant": "intactfc",
+  "wd": "wd3",
+  "site": "intactfc",
+  "jobs_seen": 215,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "worldpay.com",
+  "tenant": "worldpay",
+  "wd": "wd5",
+  "site": "Worldpay_External_Careers_Site",
+  "jobs_seen": 211,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cswg.com",
+  "tenant": "cswg",
+  "wd": "wd1",
+  "site": "CS_Careers",
+  "jobs_seen": 208,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gcu.com",
+  "tenant": "gcu",
+  "wd": "wd1",
+  "site": "GCU",
+  "jobs_seen": 207,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hriproperties.com",
+  "tenant": "hriproperties",
+  "wd": "wd12",
+  "site": "HRI_Hospitality",
+  "jobs_seen": 207,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "rehlko.net",
+  "tenant": "rehlko",
+  "wd": "wd12",
+  "site": "Reh",
+  "jobs_seen": 205,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "livingspaces.fr",
+  "tenant": "livingspaces",
+  "wd": "wd5",
+  "site": "ls",
+  "jobs_seen": 203,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "villeroyboch.com",
+  "tenant": "villeroyboch",
+  "wd": "wd3",
+  "site": "careers",
+  "jobs_seen": 202,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "overlakemedicalcenter.com",
+  "tenant": "overlakemedicalcenter",
+  "wd": "wd5",
+  "site": "Overlake_External_Career_Site",
+  "jobs_seen": 198,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "diptyqueparis.com",
+  "tenant": "diptyqueparis",
+  "wd": "wd103",
+  "site": "DiptyqueCareers",
+  "jobs_seen": 196,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "seatrium.com",
+  "tenant": "seatrium",
+  "wd": "wd3",
+  "site": "SeatriumCareers",
+  "jobs_seen": 196,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gici.fr",
+  "tenant": "gici",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 195,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "aurecongroup.com",
+  "tenant": "aurecongroup",
+  "wd": "wd3",
+  "site": "aurecon",
+  "jobs_seen": 194,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ncsecu.com",
+  "tenant": "ncsecu",
+  "wd": "wd1",
+  "site": "SECU",
+  "jobs_seen": 194,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "treehouse.com",
+  "tenant": "treehouse",
+  "wd": "wd1",
+  "site": "TreeHouseCareers",
+  "jobs_seen": 194,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "danafarber.com",
+  "tenant": "danafarber",
+  "wd": "wd5",
+  "site": "dana-farbernonrecruit",
+  "jobs_seen": 193,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sturdymemorial.com",
+  "tenant": "sturdymemorial",
+  "wd": "wd5",
+  "site": "Sturdy",
+  "jobs_seen": 191,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "arriva.com",
+  "tenant": "arriva",
+  "wd": "wd3",
+  "site": "careers",
+  "jobs_seen": 190,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "kengarff.com",
+  "tenant": "kengarff",
+  "wd": "wd1",
+  "site": "External_Site",
+  "jobs_seen": 190,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "veoliauki.com",
+  "tenant": "veoliauki",
+  "wd": "wd3",
+  "site": "VESCareers",
+  "jobs_seen": 190,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "shawinc.com",
+  "tenant": "shawinc",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 189,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vantagedc.com",
+  "tenant": "vantagedc",
+  "wd": "wd1",
+  "site": "Vantage",
+  "jobs_seen": 189,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "formfactor.com",
+  "tenant": "formfactor",
+  "wd": "wd1",
+  "site": "FFI-Careers",
+  "jobs_seen": 188,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "littelfuse.com",
+  "tenant": "littelfuse",
+  "wd": "wd1",
+  "site": "Littelfuse-Careers",
+  "jobs_seen": 188,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "unitedliving.com",
+  "tenant": "unitedliving",
+  "wd": "wd502",
+  "site": "United-Infrastructure-Careers",
+  "jobs_seen": 188,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "usaa.ai",
+  "tenant": "usaa",
+  "wd": "wd1",
+  "site": "USAAJOBSWD",
+  "jobs_seen": 188,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "lazboy.com",
+  "tenant": "lazboy",
+  "wd": "wd1",
+  "site": "LZBCareers",
+  "jobs_seen": 186,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
