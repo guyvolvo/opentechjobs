@@ -12329,3 +12329,11 @@ kilter.de
 kms.ai
 by-appointment.com
 south.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+2-1-1.net
+duke.com
+eopae.com
+enterprise-properties.com
+enoiagr.com
+evalion-shl.com
