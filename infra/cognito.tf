@@ -95,9 +95,16 @@ resource "aws_cognito_identity_provider" "google" {
     authorize_scopes = "openid email profile"
   }
 
+  # picture and name come from the profile scope above. The frontend
+  # shows the photo in the account menu, so a reader who signed in
+  # with Google sees their own face there instead of a letter.
+  # Cognito rewrites these on every federated sign-in, so a reader who
+  # changes their Google photo gets the new one on their next visit.
   attribute_mapping = {
     email    = "email"
     username = "sub"
+    picture  = "picture"
+    name     = "name"
   }
 }
 

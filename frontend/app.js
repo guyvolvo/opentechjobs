@@ -4014,13 +4014,15 @@ function renderAuthState() {
   // shows: account.html carries the same alert ids on purpose, so
   // renderAlertsList and wireAlertCreateForm drive both, and it has its
   // own sign-out. Clicking your own account now goes to your account.
-  const initial = escapeHtml((email[0] || "?").toUpperCase());
+  // Their Google photo when they signed in that way, the first letter
+  // of the address otherwise. avatarHtml in auth.js decides which.
+  const avatar = avatarHtml(email, tokens.id_token);
   area.innerHTML = `
     <button class="hero-account-btn" id="topbar-account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="topbar-menu">
-      <span class="hero-avatar" aria-hidden="true">${initial}</span>My Account
+      ${avatar}My Account
     </button>
     <div class="hero-menu" id="topbar-menu" role="menu" hidden>
-      <div class="hero-menu-head"><span class="hero-avatar" aria-hidden="true">${initial}</span><span class="hero-menu-email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></div>
+      <div class="hero-menu-head">${avatar}<span class="hero-menu-email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></div>
       <a role="menuitem" href="/account">${MENU_ICONS.person}My Profile</a>
       <a role="menuitem" href="/board?starred=1">${MENU_ICONS.bookmark}Saved Jobs</a>
       <button role="menuitem" type="button" id="topbar-alert-btn">${MENU_ICONS.bell}Alerts</button>

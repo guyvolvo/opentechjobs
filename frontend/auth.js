@@ -96,6 +96,34 @@ function decodeJwtEmail(idToken) {
   }
 }
 
+// The reader's Google photo. Cognito maps Google's picture claim onto
+// the user (infra/cognito.tf), so it rides along in the id_token. Email
+// and GitHub sign-ins carry no picture claim at all.
+function decodeJwtPicture(idToken) {
+  try {
+    const payload = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const url = String(payload.picture || "");
+    // Nothing here verified the signature, so the claim is treated as
+    // hostile input: an https URL or nothing, never a javascript: one.
+    return url.startsWith("https://") ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+// The round mark in the account menu, used by the board, the landing
+// page and the contact page alike. The letter is always in the markup
+// and the photo sits on top of it, so a photo that 404s later removes
+// itself and the letter underneath shows through with no second render.
+function avatarHtml(email, idToken) {
+  const letter = String((email || "?").charAt(0) || "?").toUpperCase().replace(/[&<>"']/g, "");
+  const url = idToken ? decodeJwtPicture(idToken) : null;
+  const img = url
+    ? `<img class="hero-avatar-img" src="${url.replace(/[&<>"']/g, encodeURIComponent)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()" />`
+    : "";
+  return `<span class="hero-avatar" aria-hidden="true">${letter}${img}</span>`;
+}
+
 async function base64UrlDigest(input) {
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", bytes);

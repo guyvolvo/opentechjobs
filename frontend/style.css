@@ -3543,6 +3543,9 @@ a.hero-account-btn { text-decoration: none; }
 .hero-account-btn:hover { color: var(--green-text); }
 .hero-account-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .hero-avatar {
+  position: relative;
+  overflow: hidden;
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3579,6 +3582,16 @@ a.hero-account-btn { text-decoration: none; }
   font-weight: 700;
 }
 .hero-menu-head .hero-avatar { width: 30px; height: 30px; font-size: 14px; }
+/* Over the letter, not instead of it: an image that fails removes
+   itself and the letter is already there underneath. */
+.hero-avatar-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
 .hero-menu-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hero-menu a, .hero-menu button {
   display: flex;

@@ -37,13 +37,15 @@
       document.getElementById("hero-signin").addEventListener("click", openSignIn);
       return;
     }
-    const initial = esc(who[0].toUpperCase());
+    // Their Google photo when they signed in that way, the first letter
+    // of the address otherwise. avatarHtml in auth.js decides which.
+    const avatar = avatarHtml(who, t.id_token);
     host.innerHTML = `
       <button type="button" class="hero-account-btn" id="hero-account-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="hero-menu">
-        <span class="hero-avatar" aria-hidden="true">${initial}</span>My Account
+        ${avatar}My Account
       </button>
       <div class="hero-menu" id="hero-menu" role="menu" hidden>
-        <div class="hero-menu-head"><span class="hero-avatar" aria-hidden="true">${initial}</span><span class="hero-menu-email" title="${esc(who)}">${esc(who)}</span></div>
+        <div class="hero-menu-head">${avatar}<span class="hero-menu-email" title="${esc(who)}">${esc(who)}</span></div>
         <a role="menuitem" href="/account">${icons.person}My Profile</a>
         <a role="menuitem" href="/board?starred=1">${icons.bookmark}Saved Jobs</a>
         <a role="menuitem" href="/account#alerts">${icons.bell}Alerts</a>
