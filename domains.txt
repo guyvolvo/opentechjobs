@@ -12093,3 +12093,21 @@ jacuzzi.com
 imitheamg.com
 hascoinvest.com
 geo-technology.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+helprise.net
+ikh.net
+labelyourdata.com
+hardrockdigital.com
+greenearth.ai
+john.de
+freedomfinanceeu.com
+humanintelligence.com
+excellent.ai
+hi.com
+hireframe.com
+segal.co
+hayward.com
+first-circle.com
+futureplc.com
+granite-state.com
