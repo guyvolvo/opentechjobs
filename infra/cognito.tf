@@ -63,16 +63,21 @@ resource "aws_cognito_user_pool" "main" {
   }
 }
 
-# Classic prefix domain (*.auth.<region>.amazoncognito.com), not a custom
-# domain: a custom Cognito domain needs its own ACM cert (us-east-1,
-# separate from the one in acm.tf, which is CloudFront's) plus another
-# manual DNS step. The prefix domain is free, is all Google's OAuth
-# redirect actually needs, and the sign-in UI itself is custom-built in
-# the frontend regardless -- this domain is invisible to a user, it only
-# ever appears mid-redirect.
+# A custom domain on our own name, after a year on the free prefix one
+# (*.auth.<region>.amazoncognito.com). That comment used to say the
+# prefix domain was "invisible to a user, it only ever appears
+# mid-redirect", and that was wrong: Google's consent screen names the
+# redirect URI's host, so a reader signing in was asked to continue to
+# "iljobs-auth-876913698688.auth.il-central-1.amazoncognito.com".
+#
+# Costs a certificate (acm.tf's aws_acm_certificate.auth, which must be
+# in us-east-1 whatever region the pool is in) and a CNAME in Cloudflare
+# pointing at cloudfront_distribution_arn below, DNS-only. AWS refuses
+# to create this unless the parent domain already resolves.
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = "${var.project_name}-auth-876913698688"
-  user_pool_id = aws_cognito_user_pool.main.id
+  domain          = var.auth_domain_name
+  certificate_arn = aws_acm_certificate_validation.auth.certificate_arn
+  user_pool_id    = aws_cognito_user_pool.main.id
 }
 
 # Conditional on google_client_id being set (see variables.tf) so the

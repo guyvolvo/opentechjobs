@@ -25,6 +25,11 @@ output "auth_acm_validation_record" {
   }
 }
 
+output "auth_domain_cname_target" {
+  description = "CNAME target for the sign-in domain in Cloudflare (DNS-only / grey-cloud): proxying it breaks the TLS handshake."
+  value       = aws_cognito_user_pool_domain.main.cloudfront_distribution_arn
+}
+
 output "api_gateway_invoke_url" {
   value       = aws_apigatewayv2_stage.api.invoke_url
   description = "Direct API Gateway URL, bypassing CloudFront. Useful for debugging cache issues"
@@ -99,7 +104,7 @@ output "ses_dns_records" {
 
 output "cognito_domain" {
   value       = aws_cognito_user_pool_domain.main.domain
-  description = "Cognito's own auth domain (<domain>.auth.<region>.amazoncognito.com), for the frontend's Google sign-in redirect. Not user-facing directly."
+  description = "The hosted sign-in domain, which auth.js hardcodes as COGNITO_DOMAIN and Google's consent screen shows the reader. Change it here and the frontend moves with it, in the same hour, or Google sign-in breaks."
 }
 
 output "cloudfront_distribution_id" {
