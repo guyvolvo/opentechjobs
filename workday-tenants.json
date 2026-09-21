@@ -24318,5 +24318,335 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "alegeus.com",
+  "tenant": "alegeus",
+  "wd": "wd1",
+  "site": "Alegeus_External_Careers",
+  "jobs_seen": 29,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "drinkpak.com",
+  "tenant": "drinkpak",
+  "wd": "wd503",
+  "site": "DrinkPAK",
+  "jobs_seen": 29,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hoopp.com",
+  "tenant": "hoopp",
+  "wd": "wd10",
+  "site": "HOOPP",
+  "jobs_seen": 29,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "schumacher.co",
+  "tenant": "schumacher",
+  "wd": "wd1",
+  "site": "corporate-careers",
+  "jobs_seen": 29,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "suncor.net",
+  "tenant": "suncor",
+  "wd": "wd1",
+  "site": "Suncor_External",
+  "jobs_seen": 29,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "xavier.com",
+  "tenant": "xavier",
+  "wd": "wd108",
+  "site": "XavierCareers",
+  "jobs_seen": 29,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "carleton.com",
+  "tenant": "carleton",
+  "wd": "wd1",
+  "site": "CarletonCareers",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "furman.com",
+  "tenant": "furman",
+  "wd": "wd115",
+  "site": "Furman_Careers",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gtt.com",
+  "tenant": "gtt",
+  "wd": "wd3",
+  "site": "external",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "intuitive.com",
+  "tenant": "intuitive",
+  "wd": "wd1",
+  "site": "irtc_careers",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "orthofix.com",
+  "tenant": "orthofix",
+  "wd": "wd1",
+  "site": "External_Careers",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "perpetual.com",
+  "tenant": "perpetual",
+  "wd": "wd3",
+  "site": "external",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "superiorconstruction.com",
+  "tenant": "superiorconstruction",
+  "wd": "wd5",
+  "site": "supconstr",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ucumberlands.com",
+  "tenant": "ucumberlands",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "uni.com",
+  "tenant": "uni",
+  "wd": "wd5",
+  "site": "UNI",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bcbsms.com",
+  "tenant": "bcbsms",
+  "wd": "wd5",
+  "site": "BCBSMS",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "chghealthcare.com",
+  "tenant": "chghealthcare",
+  "wd": "wd1",
+  "site": "external",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gallaudet.de",
+  "tenant": "gallaudet",
+  "wd": "wd1",
+  "site": "GUCareers",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "jackson.com",
+  "tenant": "jackson",
+  "wd": "wd1",
+  "site": "Jackson_Careers",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "martin.com",
+  "tenant": "martin",
+  "wd": "wd1",
+  "site": "mphc",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "quilter.com",
+  "tenant": "quilter",
+  "wd": "wd3",
+  "site": "External-Career-Site",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "velera.net",
+  "tenant": "velera",
+  "wd": "wd5",
+  "site": "VeleraCareers",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "westpacnz.com",
+  "tenant": "westpacnz",
+  "wd": "wd105",
+  "site": "Westpac_Careers",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "zieglercat.com",
+  "tenant": "zieglercat",
+  "wd": "wd1",
+  "site": "zieglercat",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "duckcreek.com",
+  "tenant": "duckcreek",
+  "wd": "wd1",
+  "site": "duckcreekcareers",
+  "jobs_seen": 26,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gcaa.net",
+  "tenant": "gcaa",
+  "wd": "wd3",
+  "site": "GCAA_Careers",
+  "jobs_seen": 26,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ntc.com",
+  "tenant": "ntc",
+  "wd": "wd1",
+  "site": "NTC",
+  "jobs_seen": 26,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "rehabhospital.org",
+  "tenant": "rehabhospital",
+  "wd": "wd1",
+  "site": "rehab",
+  "jobs_seen": 26,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "regis.org",
+  "tenant": "regis",
+  "wd": "wd501",
+  "site": "RegisUniversity",
+  "jobs_seen": 26,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wesleyan.io",
+  "tenant": "wesleyan",
+  "wd": "wd5",
+  "site": "careers",
+  "jobs_seen": 26,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bestfriends.org",
+  "tenant": "bestfriends",
+  "wd": "wd1",
+  "site": "bestfriendscareers",
+  "jobs_seen": 25,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "evolent.com",
+  "tenant": "evolent",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 25,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hcso.org",
+  "tenant": "hcso",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 25,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]

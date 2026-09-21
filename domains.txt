@@ -12558,3 +12558,25 @@ eneba.com
 uatalents.com
 dkbcodefactory.com
 bumble.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+eyt.de
+munich.org
+rainmaker.com
+rivet.com
+alu.com
+comfrt.com
+coherentsolutions.com
+nabis.com
+revelrobotics.com
+rivermont.com
+coderoad.com
+ondofinance.com
+xntltd.com
+josys.com
+perryweather.com
+wearebeyondsports.com
+kairospower.com
+tubitv.com
+xpengmotors.com
+droyd.com
