@@ -36,16 +36,6 @@ import re
 from job_filters import classify_category
 
 TECH_CATEGORIES = frozenset({"Software Engineering", "Infrastructure", "Data & AI", "Security", "QA", "Product & Design"})
-# A company is a tech company when at least this share of its decided
-# open roles is technical work by title and skills (the promotion below
-# is left out of the count, so it cannot feed itself). Three in ten,
-# not half: a software company hires more sales, support and finance
-# than engineers once it is past a certain size. Measured on the
-# 2026-09-21 snapshot, Wix sat at 46% and eToro at 33%, and both are
-# tech companies by any reading; GenScript, a biotech contract lab,
-# sat at 20% and is not.
-TECH_COMPANY_SHARE = 0.3
-ADJACENT_CATEGORIES = frozenset({"Sales & Marketing", "Operations & Business", "Customer Success"})
 
 
 def _rx(needles):
@@ -53,6 +43,35 @@ def _rx(needles):
     # ("merchandis" takes "merchandiser"); a needle that must end at a
     # word boundary says so itself with \b.
     return re.compile(r"(?<![a-z֐-׿])(?:" + "|".join(needles) + r")", re.IGNORECASE)
+
+
+# A company is a tech company when at least this share of its decided
+# open roles carries a software title (SOFTWARE_TITLE below), and at
+# least two do. Software titles, not the wider tech family: a biotech
+# contract lab has automation engineers, quality assurance managers
+# and technical account reps, and by the wider family GenScript read
+# 22% technical against eToro's 25%, no bar between them. By software
+# titles GenScript is near 0% and eToro is 25%, Wix about 40%. The
+# promotion is left out of the count, so a company cannot become tech
+# by its own promotions.
+TECH_COMPANY_SHARE = 0.15
+TECH_COMPANY_MIN_SOFTWARE_ROLES = 2
+
+# The titles that make a company a software company: people who write,
+# run or secure software, and the product and data roles beside them.
+SOFTWARE_TITLE = _rx([
+    r"software", r"developer", r"programmer", r"entwickler", r"développeur", r"desarrollador", r"מפתח",
+    r"devops", r"\bsre\b", r"site reliability", r"platform engineer", r"cloud engineer", r"infrastructure engineer", r"systems? engineer",
+    r"backend", r"back-end", r"frontend", r"front-end", r"full[ -]?stack", r"mobile engineer", r"ios engineer", r"android engineer", r"web engineer",
+    r"data (?:engineer|scientist|platform)", r"machine learning", r"\bml engineer", r"ai engineer", r"ai scientist", r"applied scientist", r"research engineer",
+    r"security engineer", r"security researcher", r"application security", r"cloud security", r"penetration", r"\bsoc analyst", r"dfir",
+    r"qa engineer", r"qa automation", r"test automation", r"automation qa", r"\bsdet\b", r"quality engineer(?!ing)",
+    r"product manager", r"product owner", r"product designer", r"\bux\b", r"it (?:service|support|systems?|help|admin|specialist|engineer)", r"service ?desk", r"help ?desk",
+    r"engineering manager", r"director of engineering", r"vp of engineering", r"head of engineering", r"\bcto\b", r"tech lead", r"team lead.*(?:r&d|engineering|backend|frontend)",
+    r"embedded", r"firmware", r"\bfpga\b", r"\basic\b", r"chip design", r"hardware engineer", r"electrical engineer", r"solutions? (?:engineer|architect)", r"sales engineer",
+])
+ADJACENT_CATEGORIES = frozenset({"Sales & Marketing", "Operations & Business", "Customer Success"})
+
 
 
 # Technical work. The category rules stop at "engineer"; these are the
@@ -258,13 +277,16 @@ def classify_role(title, department=None, skills=None, company_tech_share=None):
         score += bump
         evidence.append("skills:" + ",".join(sorted(hard)[:4]))
 
+    if SOFTWARE_TITLE.search(title):
+        evidence.append("software")  # what the company's share is counted from
+
     if company_tech_share is not None:
         # Pulls toward the company's own mix, a little: enough to decide
         # a bare "Project Manager", never enough to overturn a title.
-        score += (company_tech_share - 0.5) * 0.3
-        evidence.append(f"company:{company_tech_share:.2f}")
+        score += (company_tech_share - 0.15) * 0.3
+        evidence.append(f"company2:{company_tech_share:.2f}")
     else:
-        evidence.append("company:na")
+        evidence.append("company2:na")
 
     score = max(-1.0, min(1.0, score))
     if t_non and not t_strong and not (t_tech and score >= 0.5):

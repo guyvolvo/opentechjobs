@@ -344,7 +344,13 @@ def _poll_workday(sess, entry: dict, state_row: dict | None, known_ids: set[str]
 def lambda_handler(event, context):
     s3 = boto3.client("s3")
     entries = _workday_entries()
-    big_tech = [(ats, domain, pin) for ats in BIG_TECH_ATS for domain, pin in probe.PINS.get(ats, {}).items()]
+    # {"workday_only": true}: a run invoked by hand between the hourly
+    # ones, to seed a long tenant list faster. It skips the big-tech
+    # reads (the hourly run keeps them) and reserves only what the load
+    # needs, so nearly the whole 15 minutes goes to tenants.
+    workday_only = bool((event or {}).get("workday_only"))
+    reserve_ms = 180_000 if workday_only else WORKDAY_TIME_RESERVE_MS
+    big_tech = [] if workday_only else [(ats, domain, pin) for ats in BIG_TECH_ATS for domain, pin in probe.PINS.get(ats, {}).items()]
     if not entries and not big_tech:
         print("no workday tenants or big-tech pins, skipping")
         return {"skipped": True}
@@ -371,7 +377,7 @@ def lambda_handler(event, context):
             # A window of a few in flight, so stopping at the deadline
             # leaves only what is already running, not a backlog.
             while len(pending) < TENANT_WORKERS:
-                if context is not None and context.get_remaining_time_in_millis() < WORKDAY_TIME_RESERVE_MS:
+                if context is not None and context.get_remaining_time_in_millis() < reserve_ms:
                     break
                 entry = next(queue, None)
                 if entry is None:

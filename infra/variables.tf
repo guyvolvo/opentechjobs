@@ -149,6 +149,12 @@ variable "github_oauth_client_secret" {
   default     = ""
 }
 
+variable "contact_to_email" {
+  type        = string
+  description = "Where the contact page's form is delivered (api/handler.py's /contact)."
+  default     = "guyvoloshin@gmail.com"
+}
+
 variable "alerts_from_email" {
   type        = string
   description = "SES sender address for alert digests. Must be on a domain verified in alerts_ses.tf (DNS records added manually in Cloudflare, same pattern as acm.tf)."

@@ -12304,3 +12304,11 @@ farmacy.com
 fitmate.ai
 fp1.com
 getvocal.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+headworks.com
+kantox.com
+itselectric.ai
+key.ai
+heattransformers.com
+organization.ai

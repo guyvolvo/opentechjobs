@@ -52,7 +52,7 @@ for _candidate in (_LOADER_DIR.parent / "api", _LOADER_DIR.parent, _LOADER_DIR):
         sys.path.insert(0, str(_candidate))
         break
 from countries import city_string, country_string  # noqa: E402
-from role_class import classify_role  # noqa: E402
+from role_class import TECH_COMPANY_MIN_SOFTWARE_ROLES, classify_role  # noqa: E402
 from same_company import SAME_COMPANY  # noqa: E402
 
 SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
@@ -904,14 +904,18 @@ def classify_roles(conn: sqlite3.Connection) -> int:
             break
         total += len(rows)
         _classify_slice(conn, rows)
-    # Rows decided before the company rule existed, or before their
-    # company had enough decided roles: read once more with the
-    # company's mix. "company:" in the evidence marks a row that has had
-    # its turn, so this is a one-off per row, not every merge.
+    # Rows decided before the company rule took its current shape, or
+    # before their company had enough decided roles: read once more
+    # with the company's mix. "company2:" in the evidence marks a row
+    # that has had its turn under this shape of the rule, so this is a
+    # one-off per row, not every merge. A row promoted by an earlier
+    # shape ("company-tech") is read again too, in case it no longer
+    # qualifies.
     while True:
         rows = conn.execute(
             "SELECT id, company_domain, title, department, skills FROM jobs"
-            " WHERE role_class IN ('adjacent', 'unknown') AND (role_evidence IS NULL OR role_evidence NOT LIKE '%company%') LIMIT 20000"
+            " WHERE (role_class IN ('adjacent', 'unknown') OR role_evidence LIKE '%company-tech%')"
+            " AND (role_evidence IS NULL OR role_evidence NOT LIKE '%company2:%') LIMIT 20000"
         ).fetchall()
         if not rows:
             break
@@ -932,18 +936,17 @@ def _classify_slice(conn: sqlite3.Connection, rows: list) -> None:
 
 
 def _company_tech_share(conn: sqlite3.Connection) -> dict[str, float]:
-    """Per company, the share of its decided open roles that is technical
-    work by title and skills. Roles promoted by the company rule carry
-    "company-tech" in their evidence and are left out of the numerator,
-    so a company cannot become a tech company by its own promotions."""
+    """Per company, the share of its decided open roles that carries a
+    software title (role_class.SOFTWARE_TITLE, tagged "software" in the
+    evidence), among companies with at least two such roles. What the
+    company rule promotes is not a software title, so it never counts."""
     return {
-        domain: tech / decided
-        for domain, tech, decided in conn.execute(
-            "SELECT company_domain,"
-            " SUM(role_class = 'tech' AND (role_evidence IS NULL OR role_evidence NOT LIKE '%company-tech%')), COUNT(*)"
+        domain: software / decided
+        for domain, software, decided in conn.execute(
+            "SELECT company_domain, SUM(role_evidence LIKE '%software%'), COUNT(*)"
             " FROM jobs WHERE closed_at IS NULL AND role_class IN ('tech', 'adjacent', 'non-tech')"
-            " GROUP BY company_domain HAVING COUNT(*) >= 3"
-        )
+            " GROUP BY company_domain HAVING COUNT(*) >= 3 AND SUM(role_evidence LIKE '%software%') >= ?"
+        , (TECH_COMPANY_MIN_SOFTWARE_ROLES,))
     }
 
 
