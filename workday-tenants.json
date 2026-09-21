@@ -18878,5 +18878,295 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "loganhealth.org",
+  "tenant": "loganhealth",
+  "wd": "wd1",
+  "site": "Logan_Careers",
+  "jobs_seen": 454,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bronsonhg.com",
+  "tenant": "bronsonhg",
+  "wd": "wd1",
+  "site": "newhires",
+  "jobs_seen": 440,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wk.com",
+  "tenant": "wk",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 437,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "allstate.myworkdayjobs.com",
+  "tenant": "allstate",
+  "wd": "wd5",
+  "site": "Agent",
+  "jobs_seen": 427,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dentalcorp.com",
+  "tenant": "dentalcorp",
+  "wd": "wd3",
+  "site": "dentalcorp",
+  "jobs_seen": 423,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vanguard.com",
+  "tenant": "vanguard",
+  "wd": "wd5",
+  "site": "vanguard_external",
+  "jobs_seen": 422,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nuffieldhealth.com",
+  "tenant": "nuffieldhealth",
+  "wd": "wd3",
+  "site": "NH_Careers",
+  "jobs_seen": 421,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "uoflhealth.com",
+  "tenant": "uoflhealth",
+  "wd": "wd1",
+  "site": "UofLHealthCareers",
+  "jobs_seen": 415,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "healthcare.com",
+  "tenant": "healthcare",
+  "wd": "wd1",
+  "site": "Search",
+  "jobs_seen": 411,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "oumedicine.com",
+  "tenant": "oumedicine",
+  "wd": "wd5",
+  "site": "OUHealthCareers",
+  "jobs_seen": 410,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mysrhs.com",
+  "tenant": "mysrhs",
+  "wd": "wd108",
+  "site": "SRHS",
+  "jobs_seen": 394,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nghs.com",
+  "tenant": "nghs",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 389,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dabella.com",
+  "tenant": "dabella",
+  "wd": "wd108",
+  "site": "DaBella_Exteriors_Careers",
+  "jobs_seen": 385,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "crhc.com",
+  "tenant": "crhc",
+  "wd": "wd1",
+  "site": "Concord_Careers",
+  "jobs_seen": 373,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "viatris.com",
+  "tenant": "viatris",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 369,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hdsupply.com",
+  "tenant": "hdsupply",
+  "wd": "wd1",
+  "site": "external",
+  "jobs_seen": 364,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wisconsin.com",
+  "tenant": "wisconsin",
+  "wd": "wd1",
+  "site": "UW_Madison",
+  "jobs_seen": 360,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "oxford.myworkdayjobs.com",
+  "tenant": "oxford",
+  "wd": "wd5",
+  "site": "TommyBahamaUS",
+  "jobs_seen": 355,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bobsdf.com",
+  "tenant": "bobsdf",
+  "wd": "wd1",
+  "site": "Bobs_Careers",
+  "jobs_seen": 351,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "aampower.org",
+  "tenant": "aampower",
+  "wd": "wd1",
+  "site": "AAM-Career-Site",
+  "jobs_seen": 349,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "fortrea.com",
+  "tenant": "fortrea",
+  "wd": "wd1",
+  "site": "Fortrea",
+  "jobs_seen": 349,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "curtisswright.com",
+  "tenant": "curtisswright",
+  "wd": "wd1",
+  "site": "CW_External_Career_Site",
+  "jobs_seen": 346,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mchapusa.com",
+  "tenant": "mchapusa",
+  "wd": "wd5",
+  "site": "MCHAP_External",
+  "jobs_seen": 342,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ssctech.com",
+  "tenant": "ssctech",
+  "wd": "wd1",
+  "site": "ssctechnologies",
+  "jobs_seen": 342,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "worldvision.com",
+  "tenant": "worldvision",
+  "wd": "wd1",
+  "site": "WorldVisionInternational",
+  "jobs_seen": 341,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "parexel.com",
+  "tenant": "parexel",
+  "wd": "wd1",
+  "site": "parexel_external_careers",
+  "jobs_seen": 334,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "taymax.de",
+  "tenant": "taymax",
+  "wd": "wd5",
+  "site": "External_Careers",
+  "jobs_seen": 334,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "warnerbros.com",
+  "tenant": "warnerbros",
+  "wd": "wd5",
+  "site": "global",
+  "jobs_seen": 333,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "faithtechnologies.com",
+  "tenant": "faithtechnologies",
+  "wd": "wd1",
+  "site": "FTI",
+  "jobs_seen": 332,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
