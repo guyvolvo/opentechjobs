@@ -326,9 +326,10 @@ grotesque-sans display face, never the reverse.
 - **Title/Metric** (800, 30px, tabular-nums): the large number on a
   metric tile, the one place body copy gets genuinely large.
 - **Subtitle** (700, 17px): the job-detail panel's title
-  (`.job-detail-title`) and the account control on the hero bar
-  (`.hero-account-btn`), which has to hold its own beside 26px words
-  without becoming a third display size,
+  (`.job-detail-title`) and the two controls on the hero bar, the
+  account (`.hero-account-btn`) and the theme (`.hero-theme`), which
+  have to hold their own beside 26px words without becoming a third
+  display size,
   needs to read as more prominent than table-row body text without
   competing with the two genuine display-face headings above it.
 - **Row Title** (600, 15px): a job listing's title in the board table
