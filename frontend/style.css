@@ -3381,7 +3381,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   border: 0;
   background: none;
   color: var(--grey);
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
   padding: 0 4px;
   cursor: pointer;
