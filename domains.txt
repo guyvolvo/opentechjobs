@@ -12270,3 +12270,13 @@ elasticstage.com
 fme-us.com
 freebird.com
 getellipsis.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+getresponse.com
+homes.ai
+human-intelligence.org
+innocence.com
+laravel.com
+hauptstadtfloss.de
+nynconsulting.com
+crowdcow.com
