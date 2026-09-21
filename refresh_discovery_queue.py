@@ -55,10 +55,20 @@ QUEUE_PATH = ROOT / "pending-discovery-candidates.json"
 ATS_LIMITS = {
     "greenhouse": (30, 1800),
     "ashby": (30, 2800),
-    # A domain match over myworkdayjobs.com: five index pages hold the
-    # whole snapshot (64k URLs, 1,609 tenants on 2026-09-21), and each
-    # candidate is one request to verify, so the limit can take them all.
-    "workday": (5, 2000),
+    # A domain match over myworkdayjobs.com, now across ten crawl
+    # snapshots rather than three (see CC_INDEXES_WORKDAY in
+    # discover_companies.py for the measurements behind that).
+    #
+    # 8 pages, not 5. Five held one snapshot when this only read the
+    # newest three, and CDX answers 400 past the last page, so a
+    # generous limit costs one wasted request per snapshot rather than
+    # three more. The older snapshots page differently and 5 would clip
+    # them silently, which is the shape of missing data nobody notices.
+    #
+    # 3000, not 2000: the deeper sweep found 495 tenants the list did not
+    # have, and a verify limit below the pool size drops the overflow
+    # without saying so. Same lesson workable learned below.
+    "workday": (8, 3000),
     # 4500, not 1800: reading three crawl snapshots instead of one took
     # workable's new-candidate count from a few hundred to 4,146 in the
     # first real run (2026-09-16), and a verify_limit of 1800 silently
