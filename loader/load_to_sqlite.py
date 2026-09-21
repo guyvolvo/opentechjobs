@@ -890,11 +890,23 @@ def classify_roles(conn: sqlite3.Connection) -> int:
     roles that are tech. Returns how many rows were read this run. A
     backfill of the whole snapshot is the same call, the first time the
     column exists; measured at 33us a row."""
-    rows = conn.execute(
-        "SELECT id, company_domain, title, department, skills FROM jobs WHERE role_class IS NULL"
-    ).fetchall()
-    if not rows:
-        return 0
+    # In slices, because the first run over a whole snapshot is 370k
+    # rows and the merge Lambda already peaks near its 2 GB with the
+    # database in hand; a slice at a time keeps the backfill a few
+    # megabytes. Every row leaves the NULL set once read, unknown
+    # included, so the loop ends.
+    total = 0
+    while True:
+        rows = conn.execute(
+            "SELECT id, company_domain, title, department, skills FROM jobs WHERE role_class IS NULL LIMIT 20000"
+        ).fetchall()
+        if not rows:
+            return total
+        total += len(rows)
+        _classify_slice(conn, rows)
+
+
+def _classify_slice(conn: sqlite3.Connection, rows: list) -> None:
     first = []
     for jid, domain, title, department, skills in rows:
         verdict, score, evidence = classify_role(title, department, skills)
@@ -918,7 +930,6 @@ def classify_roles(conn: sqlite3.Connection) -> int:
                 second.append((*classify_role(title, department, skills, share[domain]), jid))
         if second:
             conn.executemany("UPDATE jobs SET role_class = ?, role_score = ?, role_evidence = ? WHERE id = ?", second)
-    return len(rows)
 
 
 def prune_stale_companies(conn: sqlite3.Connection, current_domains: set[str], ts: str) -> int:
