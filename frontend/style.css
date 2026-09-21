@@ -3482,12 +3482,12 @@ body.signin-open .workspace > .section { border-bottom: 0; }
    read as one row. */
 .hero-account { position: relative; display: flex; align-items: stretch; align-self: stretch; }
 .hero-account > .hero-bar-name { display: inline-flex; align-items: center; }
-a.hero-account-btn { text-decoration: none; padding: 0 14px; }
+a.hero-account-btn { text-decoration: none; }
 /* The same menu on the topbar, where the bar's own uppercase tracking
    would otherwise reach into it. */
 /* The board's topbar keeps its own smaller copy: that bar is dense and
    full of controls, where the landing page's is two words and a door. */
-.auth-area .hero-account-btn { height: 30px; min-height: 0; font-size: 13px; }
+.auth-area .hero-account-btn { height: 30px; min-height: 0; font-size: 13px; padding: 0; }
 .auth-area .hero-avatar { width: 22px; height: 22px; font-size: 12px; }
 .auth-area .hero-menu { text-transform: none; letter-spacing: normal; }
 /* Signed out, the two links the menu carries when signed in. */
@@ -3509,10 +3509,12 @@ a.hero-account-btn { text-decoration: none; padding: 0 14px; }
   gap: 8px;
   min-height: 38px;
   align-self: stretch;
-  padding: 0 16px 0 10px;
-  border: 1.5px solid var(--black);
-  border-radius: 4px;
-  background: var(--white);
+  /* No box: the bar's two ends are words, and a bordered control on one
+     of them read as the only button on a page that has none. The mark
+     and the word carry it; hover colours them. */
+  padding: 0 4px;
+  border: 0;
+  background: none;
   color: var(--black);
   font: inherit;
   font-family: var(--font-ui);
@@ -3520,7 +3522,7 @@ a.hero-account-btn { text-decoration: none; padding: 0 14px; }
   font-weight: 700;
   cursor: pointer;
 }
-.hero-account-btn:hover { background: var(--hover-bg); }
+.hero-account-btn:hover { color: var(--green-text); }
 .hero-account-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .hero-avatar {
   display: inline-flex;
