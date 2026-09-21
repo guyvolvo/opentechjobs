@@ -12174,3 +12174,24 @@ ki-insurance.com
 laundryheap.com
 dreamscape.ai
 flexxon.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+fulkers-bailey-russell.com
+helloaoa.com
+jbpro.com
+jagex.com
+lafosse.com
+deep-end.co
+dvi.com
+fe-fundinfo.com
+gatekeeper.com
+dentopedia.fr
+emerchantpay.com
+fenergocareers.com
+insidersecurity.co
+halbersbacherhospitalitygroup.com
+norbert.de
+drug-hunter.com
+donna.de
+fusionhitjobs.com
+john-brooks.com
