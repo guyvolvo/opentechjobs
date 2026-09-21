@@ -3509,6 +3509,10 @@ body.signin-open .workspace > .section { border-bottom: 0; }
      that ends in full voice. */
   font-size: 26px;
   line-height: 1.3;
+  /* One line of this bar. Written out rather than as 1.3em, because a
+     custom property holding em resolves against whoever uses it, and
+     the theme button next door is 17px. */
+  --bar-line: calc(26px * 1.3);
 }
 .hero-bar a { color: inherit; text-decoration: none; }
 /* The name over the repository link, one column at the left. */
@@ -3518,9 +3522,14 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 /* The account corner. Signed out it is a word; signed in, a button with
    the reader's initial that opens a menu in the system's own shapes:
    paper, an ink rule, the 4px field radius, no shadow. */
-/* As tall as the two stacked links beside it, so the bar's two ends
-   read as one row. */
-.hero-bar-right { display: flex; align-items: stretch; align-self: stretch; gap: 20px; }
+/* Level with the first line on the other side, not centred against the
+   whole two-line stack. Centring put the account a half-line lower than
+   the site's own name and the bar read as two rows that missed each
+   other. 1.3em is the bar's line-height, so one line here is exactly one
+   line there. */
+.hero-bar-right { display: flex; align-items: flex-start; gap: 20px; }
+.hero-bar-right > * { min-height: var(--bar-line); }
+.hero-theme { display: inline-flex; align-items: center; }
 .hero-theme {
   border: 0;
   background: none;
@@ -3533,7 +3542,7 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 }
 .hero-theme:hover { color: var(--green-text); }
 .hero-theme:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
-.hero-account { position: relative; display: flex; align-items: stretch; align-self: stretch; }
+.hero-account { position: relative; display: flex; align-items: flex-start; }
 .hero-account > .hero-bar-name { display: inline-flex; align-items: center; }
 a.hero-account-btn { text-decoration: none; }
 /* The same menu on the topbar, where the bar's own uppercase tracking
@@ -3560,8 +3569,9 @@ a.hero-account-btn { text-decoration: none; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
-  align-self: stretch;
+  /* One line of the bar, so the word sits level with the site's name
+     across the way. */
+  min-height: var(--bar-line);
   /* No box: the bar's two ends are words, and a bordered control on one
      of them read as the only button on a page that has none. The mark
      and the word carry it; hover colours them. */
