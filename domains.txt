@@ -12079,3 +12079,17 @@ freedom-leisure.com
 hokali.com
 freedup.io
 ibmcid.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+gearup2success-1.com
+firetrol.com
+goglobal.com
+fundingsocieties.com
+faulkner.com
+golftec.com
+innovaccer.com
+nwsgmbh.de
+jacuzzi.com
+imitheamg.com
+hascoinvest.com
+geo-technology.com
