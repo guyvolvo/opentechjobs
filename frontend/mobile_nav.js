@@ -79,16 +79,21 @@
   // margin, and a panel one level up would be indented past it.
   host.appendChild(panel);
 
+  // The board itself, not merely a page that borrows the board's bar.
+  // The first version asked whether this page had that bar, which is
+  // true of the account, stats and privacy pages too, so the one link
+  // most of them needed was the one they did not get.
+  const onBoard = () => !!document.getElementById("jobs-body");
+
   function build() {
     const who = email();
-    const onBoard = !!topbar;
     const rows = [];
     if (who) {
       rows.push(`<div class="hero-nav-who"><span class="hero-avatar" aria-hidden="true">${esc(who[0].toUpperCase())}</span><span class="hero-nav-email">${esc(who)}</span></div>`);
     } else {
       rows.push(`<button type="button" class="hero-nav-item hero-nav-signin" data-act="signin">${icons.person}Sign in</button>`);
     }
-    if (!onBoard) rows.push(`<a class="hero-nav-item" href="/board">${icons.board}Open the board</a>`);
+    if (!onBoard()) rows.push(`<a class="hero-nav-item" href="/board">${icons.board}Jobs</a>`);
     if (who) {
       rows.push(`<a class="hero-nav-item" href="/account">${icons.person}My profile</a>`);
       rows.push(`<a class="hero-nav-item" href="/board?starred=1">${icons.bookmark}Saved jobs</a>`);
