@@ -12419,3 +12419,6 @@ accelschools.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 axiomtalentplatform.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+atwellgroup.com
