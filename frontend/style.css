@@ -3464,12 +3464,15 @@ body.signin-open .workspace > .section { border-bottom: 0; }
   gap: 16px;
   padding: 14px var(--edge) 0;
   font-family: var(--font-display);
-  font-size: 13px;
+  /* The footer's size, because they are the same bar: the header was
+     13px against the footer's 26px and read as a caption above a page
+     that ends in full voice. */
+  font-size: 26px;
   line-height: 1.3;
 }
 .hero-bar a { color: inherit; text-decoration: none; }
 /* The name over the repository link, one column at the left. */
-.hero-bar-stack { display: flex; flex-direction: column; gap: 2px; }
+.hero-bar-stack { display: flex; flex-direction: column; gap: 4px; }
 .hero-foot-links { display: inline-flex; gap: 16px; }
 
 /* The account corner. Signed out it is a word; signed in, a button with
@@ -3482,7 +3485,10 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 a.hero-account-btn { text-decoration: none; padding: 0 14px; }
 /* The same menu on the topbar, where the bar's own uppercase tracking
    would otherwise reach into it. */
-.auth-area .hero-account-btn { height: 30px; min-height: 0; }
+/* The board's topbar keeps its own smaller copy: that bar is dense and
+   full of controls, where the landing page's is two words and a door. */
+.auth-area .hero-account-btn { height: 30px; min-height: 0; font-size: 13px; }
+.auth-area .hero-avatar { width: 22px; height: 22px; font-size: 12px; }
 .auth-area .hero-menu { text-transform: none; letter-spacing: normal; }
 /* Signed out, the two links the menu carries when signed in. */
 .auth-panel-links {
@@ -3503,14 +3509,14 @@ a.hero-account-btn { text-decoration: none; padding: 0 14px; }
   gap: 8px;
   min-height: 38px;
   align-self: stretch;
-  padding: 0 14px 0 8px;
+  padding: 0 16px 0 10px;
   border: 1.5px solid var(--black);
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
   font: inherit;
   font-family: var(--font-ui);
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -3520,13 +3526,13 @@ a.hero-account-btn { text-decoration: none; padding: 0 14px; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--green-text);
   color: var(--white);
   font-family: var(--font-ui);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 700;
 }
 .hero-menu {
@@ -3875,7 +3881,7 @@ a.hero-account-btn { text-decoration: none; padding: 0 14px; }
 }
 .hero-cta-link:hover { text-decoration: underline; text-decoration-thickness: 0.04em; text-underline-offset: 0.12em; }
 .hero-cta-link:focus-visible { outline: 2px solid var(--green); outline-offset: 6px; border-radius: 4px; }
-.hero-foot { padding-bottom: 18px; color: var(--grey); font-size: 26px; }
+.hero-foot { padding-bottom: 18px; color: var(--grey); }
 .hero-foot .hero-foot-links { gap: 28px; }
 
 /* The contact page: the landing page's own voice, with two columns
