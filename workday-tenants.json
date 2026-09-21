@@ -24648,5 +24648,305 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "stageentertainment.com",
+  "tenant": "stageentertainment",
+  "wd": "wd3",
+  "site": "StageEntertainment",
+  "jobs_seen": 25,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "utahcounty.com",
+  "tenant": "utahcounty",
+  "wd": "wd1",
+  "site": "Utah_County_Careers",
+  "jobs_seen": 25,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "weg.ai",
+  "tenant": "weg",
+  "wd": "wd501",
+  "site": "Careers",
+  "jobs_seen": 25,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "abrdn.co",
+  "tenant": "abrdn",
+  "wd": "wd3",
+  "site": "abrdn",
+  "jobs_seen": 24,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "avid.com",
+  "tenant": "avid",
+  "wd": "wd5",
+  "site": "AVID",
+  "jobs_seen": 24,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bucknell.ai",
+  "tenant": "bucknell",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 24,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "penncolor.com",
+  "tenant": "penncolor",
+  "wd": "wd5",
+  "site": "Penn-Environmental-Remediation",
+  "jobs_seen": 24,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "rangersmlb.com",
+  "tenant": "rangersmlb",
+  "wd": "wd5",
+  "site": "Rangers",
+  "jobs_seen": 24,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sumitomoheavyindustries.com",
+  "tenant": "sumitomoheavyindustries",
+  "wd": "wd103",
+  "site": "External",
+  "jobs_seen": 24,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "thgrp.com",
+  "tenant": "thgrp",
+  "wd": "wd12",
+  "site": "HeritageConstructionMaterials",
+  "jobs_seen": 24,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "trinity.com",
+  "tenant": "trinity",
+  "wd": "wd1",
+  "site": "Trinity_University",
+  "jobs_seen": 24,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "407etr.com",
+  "tenant": "407etr",
+  "wd": "wd3",
+  "site": "407_ETR_Careers",
+  "jobs_seen": 23,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "adams.io",
+  "tenant": "adams",
+  "wd": "wd1",
+  "site": "ASU",
+  "jobs_seen": 23,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "canopygrowth.com",
+  "tenant": "canopygrowth",
+  "wd": "wd3",
+  "site": "Canopy_Growth_External_Career_Site",
+  "jobs_seen": 23,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dtn.com",
+  "tenant": "dtn",
+  "wd": "wd1",
+  "site": "DTN_Careers",
+  "jobs_seen": 23,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "jefferson.com",
+  "tenant": "jefferson",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 23,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "macombgov.org",
+  "tenant": "macombgov",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 23,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "olatheks.com",
+  "tenant": "olatheks",
+  "wd": "wd1",
+  "site": "OlatheKS",
+  "jobs_seen": 23,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "8x8inc.com",
+  "tenant": "8x8inc",
+  "wd": "wd5",
+  "site": "8x8_External_Careers",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "corpartners.com",
+  "tenant": "corpartners",
+  "wd": "wd5",
+  "site": "DBIConsultants",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "endicott.com",
+  "tenant": "endicott",
+  "wd": "wd1",
+  "site": "Endicott",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "fenwick.com",
+  "tenant": "fenwick",
+  "wd": "wd1",
+  "site": "Fenwick_External_Careers",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "oldrepublic.com",
+  "tenant": "oldrepublic",
+  "wd": "wd1",
+  "site": "oldrepublictitle",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "originbank.com",
+  "tenant": "originbank",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pjm.com",
+  "tenant": "pjm",
+  "wd": "wd5",
+  "site": "pjmcareers",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "us.com",
+  "tenant": "us",
+  "wd": "wd103",
+  "site": "tobii_dynavox",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vai.com",
+  "tenant": "vai",
+  "wd": "wd1",
+  "site": "VAICareers",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "weforum.de",
+  "tenant": "weforum",
+  "wd": "wd3",
+  "site": "Forum_Careers",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "amor.io",
+  "tenant": "amor",
+  "wd": "wd103",
+  "site": "Amor_Careers",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bernco.com",
+  "tenant": "bernco",
+  "wd": "wd1",
+  "site": "berncocareers",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
