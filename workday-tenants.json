@@ -18728,5 +18728,155 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "worldmarket.com",
+  "tenant": "worldmarket",
+  "wd": "wd5",
+  "site": "cost_plus_world_market_jobs",
+  "jobs_seen": 596,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "asml.com",
+  "tenant": "asml",
+  "wd": "wd3",
+  "site": "asmlext1",
+  "jobs_seen": 584,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wegmans.com",
+  "tenant": "wegmans",
+  "wd": "wd1",
+  "site": "wegmans",
+  "jobs_seen": 577,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "shakeshack.com",
+  "tenant": "shakeshack",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 566,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "revera.com",
+  "tenant": "revera",
+  "wd": "wd3",
+  "site": "talemetry_external",
+  "jobs_seen": 550,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "xylem.com",
+  "tenant": "xylem",
+  "wd": "wd5",
+  "site": "xylem-careers",
+  "jobs_seen": 540,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "capitalhealth.com",
+  "tenant": "capitalhealth",
+  "wd": "wd1",
+  "site": "CapitalHealthCareers",
+  "jobs_seen": 537,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dover.com",
+  "tenant": "dover",
+  "wd": "wd103",
+  "site": "Dover",
+  "jobs_seen": 523,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "methodisthealth.com",
+  "tenant": "methodisthealth",
+  "wd": "wd5",
+  "site": "MLH",
+  "jobs_seen": 520,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cdfh.net",
+  "tenant": "cdfh",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 503,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "goodwillaz.org",
+  "tenant": "goodwillaz",
+  "wd": "wd1",
+  "site": "GoodwillAZ",
+  "jobs_seen": 495,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "terminix.com",
+  "tenant": "terminix",
+  "wd": "wd1",
+  "site": "terminix",
+  "jobs_seen": 478,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gohealthuc.com",
+  "tenant": "gohealthuc",
+  "wd": "wd12",
+  "site": "External",
+  "jobs_seen": 476,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "upenn.com",
+  "tenant": "upenn",
+  "wd": "wd1",
+  "site": "careers-at-penn",
+  "jobs_seen": 471,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ryder.com",
+  "tenant": "ryder",
+  "wd": "wd5",
+  "site": "RyderCareers",
+  "jobs_seen": 468,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
