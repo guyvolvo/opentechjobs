@@ -7,6 +7,14 @@
 // Loaded before app.js, whose own helpers of the same names were moved
 // here whole.
 
+// The API's own prefix. Its own name, not app.js's API_BASE: both files
+// are plain scripts sharing one global scope, and two `const API_BASE`
+// at top level is a redeclaration error that would take the whole page
+// down. Reported live: the landing page's sign-in said "API_BASE is not
+// defined", because that constant was only ever declared in app.js,
+// which that page does not load.
+const AUTH_API_BASE = "/api";
+
 // A query string from an object, the same one app.js keeps for the API.
 function authQs(params) {
   const p = new URLSearchParams();
@@ -58,9 +66,16 @@ function setAuthTokens(tokens) {
   localStorage.setItem(AUTH_TOKENS_KEY, JSON.stringify(tokens));
 }
 
+// What a page redraws once the tokens change. app.js sets its topbar's
+// own renderer; the landing and contact pages set theirs. Without one
+// the tokens still clear, which is the part that must not depend on a
+// page having registered anything.
+let authRenderSink = () => {};
+function setAuthRenderSink(fn) { authRenderSink = fn; }
+
 function signOut() {
   localStorage.removeItem(AUTH_TOKENS_KEY);
-  renderAuthState();
+  authRenderSink();
 }
 
 // No verification -- this is display-only (the signed-in email in the
@@ -152,7 +167,7 @@ async function startEmailSignIn(email) {
   // Ensures the Cognito account row exists first -- required because
   // allow_admin_create_user_only=true also blocks Cognito's own public
   // SignUp API, see github_auth_handler.py's module docstring.
-  const res = await fetch(`${API_BASE}/auth/email/start`, {
+  const res = await fetch(`${AUTH_API_BASE}/auth/email/start`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),

@@ -141,5 +141,6 @@
     document.getElementById("hero-email-input").focus();
   }
 
+  setAuthRenderSink(render);
   render();
 })();

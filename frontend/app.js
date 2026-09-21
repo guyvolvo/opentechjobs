@@ -3947,6 +3947,7 @@ async function refreshPipelineStatus() {
 // and contact pages can offer sign-in too. This page says where a
 // problem is shown.
 setAuthErrorSink((msg) => showAuthError(msg));
+setAuthRenderSink(() => renderAuthState());
 
 function showAuthError(msg) {
   const el = document.getElementById("auth-error");
