@@ -106,6 +106,13 @@ jobs = probe.f_workday(sess, "acme", "wd1", "External", page1=p1, known_external
 check("a page 1 already in hand is not fetched again, and known jobs skip the detail fetch",
       [c[2] for c in sess.calls if c[0] == "POST"] == [20, 40] and not [c for c in sess.calls if c[0] == "GET"], repr(sess.calls))
 
+sess = Sess(postings)
+jobs = probe.f_workday(sess, "acme", "wd1", "External", known_external_ids={"R0000", "R0001"}, describe_budget=10)
+described = [j for j in jobs if j.description]
+check("a description budget describes that many of the not-yet-described jobs and leaves the rest for next time",
+      len(described) == 10 and len([c for c in sess.calls if c[0] == "GET"]) == 10
+      and not any(j.external_id in ("R0000", "R0001") for j in described) and len(jobs) == 45, (len(described), len(sess.calls)))
+
 sess = Sess(postings, total=45)
 jobs = probe.f_workday(sess, "acme", "wd1", "External", israel_facets={"Location_Country": ["il1"]}, known_external_ids=set(), max_jobs=20)
 il_calls = [c for c in sess.calls if c[0] == "POST" and c[3]]

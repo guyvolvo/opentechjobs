@@ -132,9 +132,18 @@ WORKDAY_STATE_KEY = "workday-poll-state.json.gz"
 # pages plus 4 for details).
 TENANT_WORKERS = 6
 # Stop taking on tenants when this much time is left: the big-tech reads
-# and the partition load still have to run. Whatever was not reached
-# stays due and goes first next run (scrape_state.due orders by overdue).
-WORKDAY_TIME_RESERVE_MS = BIG_TECH_TIME_RESERVE_MS + 150_000
+# and the partition load still have to run, and the tenants already in
+# flight finish first. Whatever was not reached stays due and goes first
+# next run (scrape_state.due orders by overdue). Measured 2026-09-21:
+# the first run stopped taking tenants at 450s left and still timed out
+# at 900s, because twelve first-time tenants were in flight and PwC's
+# 4,049 descriptions alone were minutes.
+WORKDAY_TIME_RESERVE_MS = BIG_TECH_TIME_RESERVE_MS + 240_000
+# New descriptions per tenant per run. A tenant's first read describes
+# this many and leaves the rest for later runs; the gate is the set of
+# jobs already described (from the partition), not merely seen, so an
+# undescribed job is described on its next turn, not never.
+WORKDAY_DESCRIBE_PER_TENANT = 300
 
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
@@ -322,7 +331,7 @@ def _poll_workday(sess, entry: dict, state_row: dict | None, known_ids: set[str]
                     "tried": 1, "error": None, "retryable": False, "unchanged": True,
                     "content_hash": fingerprint, "jobs": []}
         jobs = probe.f_workday(sess, tenant, wd, site, israel_facets=entry.get("israel_facets"),
-                               known_external_ids=known_ids, page1=page1)
+                               known_external_ids=known_ids, page1=page1, describe_budget=WORKDAY_DESCRIBE_PER_TENANT)
     except Exception as e:
         return {**miss, "error": repr(e)}
     if jobs is None:
@@ -361,13 +370,13 @@ def lambda_handler(event, context):
         while True:
             # A window of a few in flight, so stopping at the deadline
             # leaves only what is already running, not a backlog.
-            while len(pending) < TENANT_WORKERS * 2:
+            while len(pending) < TENANT_WORKERS:
                 if context is not None and context.get_remaining_time_in_millis() < WORKDAY_TIME_RESERVE_MS:
                     break
                 entry = next(queue, None)
                 if entry is None:
                     break
-                pending.add(pool.submit(_poll_workday, sess, entry, state.get(entry["domain"]), known_ids.get(entry["domain"])))
+                pending.add(pool.submit(_poll_workday, sess, entry, state.get(entry["domain"]), described.get(entry["domain"], set()) if entry["domain"] in known_ids else None))
                 reached += 1
             if not pending:
                 break

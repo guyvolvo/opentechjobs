@@ -3382,7 +3382,7 @@ WORKDAY_PAGE_WORKERS = 8
 
 def _workday_build_job(
     sess: requests.Session, api_base: str, base: str, tenant: str, wd: str, site: str, j: dict,
-    known_external_ids: set[str] | None = None,
+    known_external_ids: set[str] | None = None, describe_ids: set[str] | None = None,
 ) -> Job:
     bullets = j.get("bulletFields") or []
     external_path = _txt(j.get("externalPath"))
@@ -3393,7 +3393,12 @@ def _workday_build_job(
     # skips the description half of this fetch. Location/exact-date needs
     # still apply regardless -- those are cheap, narrow conditions, not
     # the cost driver this exists to cut.
-    wants_description = known_external_ids is None or external_id not in known_external_ids
+    # describe_ids, when given, is the allow-list f_workday cut to its
+    # budget; otherwise every job not already known gets described.
+    if describe_ids is not None:
+        wants_description = external_id in describe_ids
+    else:
+        wants_description = known_external_ids is None or external_id not in known_external_ids
     location, description, exact_posted_at = _workday_job_detail(
         sess, api_base, external_path, _txt(j.get("locationsText")), posted_on, wants_description=wants_description
     )
@@ -3552,6 +3557,7 @@ def _workday_list(
 def f_workday(
     sess: requests.Session, tenant: str, wd: str, site: str, israel_facets: dict[str, list[str]] | None = None,
     known_external_ids: set[str] | None = None, page1: dict | None = None, max_jobs: int | None = None,
+    describe_budget: int | None = None,
 ) -> list[Job] | None:
     """Every posting on the tenant's site, up to max_jobs (WORKDAY_MAX_JOBS
     by default), pages after the first fetched together.
@@ -3572,6 +3578,13 @@ def f_workday(
 
     page1, when given, is the first page a poll already fetched to see
     whether the board moved (workday_page1), so it is not fetched twice.
+
+    describe_budget caps how many not-yet-described jobs get their detail
+    fetched this call; the rest come back without a description and are
+    picked up next time, as long as the caller's known_external_ids is
+    the set of jobs already described rather than merely seen. The first
+    read of a 4,000-posting tenant is otherwise 4,000 requests in one
+    run, which is what timed the hourly Lambda out on 2026-09-21.
     """
     max_jobs = max_jobs or WORKDAY_MAX_JOBS
     api_base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
@@ -3591,9 +3604,14 @@ def f_workday(
     # they run in a pool. Eight fits session()'s 16 per host because the
     # pages above are done by the time these start; measured live, a
     # 677-posting first read went from 75s at four to about half.
+    describe_ids = None
+    if describe_budget is not None:
+        wanted = [_workday_posting_id(j) for j in postings
+                  if known_external_ids is None or _workday_posting_id(j) not in known_external_ids]
+        describe_ids = set(wanted[:max(0, describe_budget)])
     with ThreadPoolExecutor(max_workers=WORKDAY_PAGE_WORKERS) as pool:
         return list(pool.map(
-            lambda j: _workday_build_job(sess, api_base, base, tenant, wd, site, j, known_external_ids), postings
+            lambda j: _workday_build_job(sess, api_base, base, tenant, wd, site, j, known_external_ids, describe_ids), postings
         ))
 
 
