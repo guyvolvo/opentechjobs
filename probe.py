@@ -3368,7 +3368,16 @@ def _workday_job_detail(
 # alone is 421. Measured across all 13 pins at 500: 2,229 rows in 198s
 # from a home connection, 716 of them Israeli against 269 before.
 WORKDAY_PAGE_SIZE = 20
-WORKDAY_MAX_JOBS = 500
+# 3,000, from 500. The cap existed because every page came one after the
+# other and every poll fetched every page; now the pages after the first
+# arrive together (WORKDAY_PAGE_WORKERS) and an unchanged board costs one
+# request (see workday_page1), so a 1,600-posting tenant is 80 requests
+# in a few seconds once in a while rather than a wall every cycle.
+WORKDAY_MAX_JOBS = 3000
+# Measured live on 3M's board (2026-09-21): 16 pages at once all 200 in
+# 1.4s, 8 detail fetches at once in 0.7s, no 429 anywhere. Eight keeps
+# headroom under that and under session()'s per-host pool.
+WORKDAY_PAGE_WORKERS = 8
 
 
 def _workday_build_job(
@@ -3454,73 +3463,130 @@ def discover_workday_israel_facets(sess: requests.Session, tenant: str, wd: str,
     return _find_israel_facets(d["facets"])
 
 
+def workday_page1(
+    sess: requests.Session, tenant: str, wd: str, site: str, facets: dict[str, list[str]] | None = None,
+) -> dict | None:
+    """The first page of a tenant's listing: the total, the twenty newest
+    postings and the facet tree, in one request. That is everything a
+    poll needs to decide whether the board moved: Workday lists newest
+    first (confirmed live on 3M's 677 postings, postedOn climbs with the
+    offset), so a board whose total and newest twenty are what they were
+    last time has nothing new, and a total that fell says something
+    closed. The total only comes on this page; later pages answer 0.
+    None when the tenant or site does not answer at all."""
+    api_base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
+    d = get_json_post(
+        sess, f"{api_base}/jobs",
+        {"appliedFacets": facets or {}, "limit": WORKDAY_PAGE_SIZE, "offset": 0, "searchText": ""},
+    )
+    if not isinstance(d, dict) or "jobPostings" not in d:
+        return None
+    return {"total": int(d.get("total") or 0), "postings": d["jobPostings"], "facets": d.get("facets") or []}
+
+
+def _workday_posting_id(j: dict) -> str:
+    bullets = j.get("bulletFields") or []
+    return _txt(bullets[0] if bullets else j.get("externalPath"))
+
+
+def workday_fingerprint(page1: dict) -> str:
+    """What a poll compares between runs: the total and the newest twenty
+    ids. Stands in for the ETag Workday's endpoint never sends."""
+    ids = [_workday_posting_id(j) for j in page1["postings"]]
+    return hashlib.sha256(json.dumps([page1["total"], ids]).encode("utf-8")).hexdigest()
+
+
+def workday_israel_count(facets: list) -> int:
+    """How many postings the facet tree files under a label that mentions
+    Israel, from page 1 alone. Discovery ranks new tenants by it."""
+    n = 0
+    for f in facets or []:
+        for v in f.get("values") or []:
+            if "id" in v:
+                if "israel" in (v.get("descriptor") or "").lower():
+                    n += int(v.get("count") or 0)
+            elif v.get("values"):
+                n += workday_israel_count([v])
+    return n
+
+
+def _workday_list(
+    sess: requests.Session, tenant: str, wd: str, site: str, facets: dict[str, list[str]] | None,
+    max_jobs: int, page1: dict | None = None,
+) -> tuple[int | None, list[dict]]:
+    """Every posting up to max_jobs. Page 1 gives the total, so the rest
+    of the offsets are known up front and fetched together. (None, [])
+    when page 1 fails; a later page that fails just leaves a gap, and
+    what did come back is kept."""
+    if page1 is None:
+        page1 = workday_page1(sess, tenant, wd, site, facets)
+    if page1 is None:
+        return None, []
+    api_base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
+    total = page1["total"]
+    postings = list(page1["postings"])
+    offsets = list(range(WORKDAY_PAGE_SIZE, min(total, max_jobs), WORKDAY_PAGE_SIZE))
+
+    def fetch(offset: int) -> list[dict]:
+        d = get_json_post(
+            sess, f"{api_base}/jobs",
+            {"appliedFacets": facets or {}, "limit": WORKDAY_PAGE_SIZE, "offset": offset, "searchText": ""},
+        )
+        return (d.get("jobPostings") or []) if isinstance(d, dict) else []
+
+    if offsets:
+        with ThreadPoolExecutor(max_workers=min(WORKDAY_PAGE_WORKERS, len(offsets))) as pool:
+            for page in pool.map(fetch, offsets):
+                postings.extend(page)
+    return total, postings
+
+
 def f_workday(
     sess: requests.Session, tenant: str, wd: str, site: str, israel_facets: dict[str, list[str]] | None = None,
-    known_external_ids: set[str] | None = None,
+    known_external_ids: set[str] | None = None, page1: dict | None = None, max_jobs: int | None = None,
 ) -> list[Job] | None:
-    """known_external_ids, when given, is this company's own set of
+    """Every posting on the tenant's site, up to max_jobs (WORKDAY_MAX_JOBS
+    by default), pages after the first fetched together.
+
+    israel_facets used to scope the whole fetch to the tenant's Israel
+    postings, because the cap was 500 and the global list was fetched a
+    page at a time. The board is global and the cap is 3,000 now, so the
+    global list is what gets fetched; the facets still matter for a
+    tenant past the cap, whose Israel postings are fetched on their own
+    on top so none of them fall past the end.
+
+    known_external_ids, when given, is this company's own set of
     currently-open job ids from our last-known state (see
     scrape_workday_handler.py's own docstring for where that comes from).
     A job whose id is already in that set skips the description half of
-    its detail fetch -- see _workday_build_job/_workday_job_detail. None
-    (the default) means "no known state, describe everything," the same
-    unconditional behavior this had before known_external_ids existed --
-    every other caller (the generic resolve()/re-poll path, which doesn't
-    track per-company known state the way the dedicated Lambda now does)
-    is unaffected.
+    its detail fetch, see _workday_build_job/_workday_job_detail. None
+    (the default) means "no known state, describe everything".
+
+    page1, when given, is the first page a poll already fetched to see
+    whether the board moved (workday_page1), so it is not fetched twice.
     """
+    max_jobs = max_jobs or WORKDAY_MAX_JOBS
     api_base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
     # externalPath ("/job/<location>/<title>_<reqid>") omits the site slug,
     # even though the browsable URL requires it. Without /{site}, the
     # link silently bounces to a generic error page instead of 404ing.
     base = f"https://{tenant}.{wd}.myworkdayjobs.com/{site}"
-    out = []
-    offset = 0
-    total = None
-    # When a pin has a cached israel_facets (see companies.yml and
-    # discover_workday_israel_facets above), every page of this fetch is
-    # pre-scoped to just that company's Israel-labeled postings instead
-    # of its full global list -- the same WORKDAY_MAX_JOBS budget below
-    # then covers up to that many *relevant* jobs instead of up to that
-    # many jobs in whatever order Workday's unfiltered default happens to
-    # return, which is exactly how a real Israel posting (NVIDIA's
-    # JR2016510) went missing before this existed. Falls back to the
-    # original unfiltered fetch for any pin that hasn't been through
-    # discovery yet.
-    applied_facets = israel_facets or {}
-    # Per-job detail fetches (see _workday_job_detail -- multi-location
-    # postings need a second request) dominate the real cost here, not
-    # the page fetches themselves. A small pool per page (this project's
-    # Session is already built for concurrent use -- see session()'s
-    # pool_connections/pool_maxsize) turns that latency-bound instead of
-    # request-count-bound. 4, not 8: this function's own caller
-    # (run_and_report) already runs up to 8 companies concurrently, each
-    # of which might be a Workday company opening its own pool here --
-    # see WORKDAY_MAX_JOBS's comment above for the outage this
-    # nested-concurrency math actually caused at 8/8.
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        while True:
-            d = get_json_post(
-                sess, f"{api_base}/jobs",
-                {"appliedFacets": applied_facets, "limit": WORKDAY_PAGE_SIZE, "offset": offset, "searchText": ""},
-            )
-            if not isinstance(d, dict) or "jobPostings" not in d:
-                # A failure on page 1 means no valid board at all (existing
-                # MISS signal); a failure on a later page just means stop
-                # paginating, keep whatever already came back real.
-                return out if offset else None
-            if total is None:
-                total = d.get("total") or 0
-            postings = d["jobPostings"]
-            if not postings:
-                break
-            out.extend(pool.map(
-                lambda j: _workday_build_job(sess, api_base, base, tenant, wd, site, j, known_external_ids), postings
-            ))
-            offset += WORKDAY_PAGE_SIZE
-            if offset >= total or offset >= WORKDAY_MAX_JOBS:
-                break
-    return out
+    total, postings = _workday_list(sess, tenant, wd, site, None, max_jobs, page1)
+    if total is None:
+        return None
+    if israel_facets and total > max_jobs:
+        _, il_postings = _workday_list(sess, tenant, wd, site, israel_facets, WORKDAY_MAX_JOBS)
+        seen = {p.get("externalPath") for p in postings}
+        postings.extend(p for p in il_postings if p.get("externalPath") not in seen)
+    # Per-job detail fetches (see _workday_job_detail: multi-location
+    # postings and new ones need a second request) are the real cost, so
+    # they run in a pool. Eight fits session()'s 16 per host because the
+    # pages above are done by the time these start; measured live, a
+    # 677-posting first read went from 75s at four to about half.
+    with ThreadPoolExecutor(max_workers=WORKDAY_PAGE_WORKERS) as pool:
+        return list(pool.map(
+            lambda j: _workday_build_job(sess, api_base, base, tenant, wd, site, j, known_external_ids), postings
+        ))
 
 
 JSONLD_JOBPOSTING_RE = re.compile(

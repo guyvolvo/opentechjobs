@@ -177,7 +177,10 @@ comeet:
 # instead of its full global list, so the existing WORKDAY_MAX_JOBS cap
 # covers up to that many *relevant* jobs instead of whatever Workday's
 # unfiltered default ordering happens to return -- reported live, that
-# gap is exactly how a real NVIDIA Israel posting went missing. Verified
+# gap is exactly how a real NVIDIA Israel posting went missing. Since
+# 2026-09-21 the global list is fetched in full up to a 3,000 cap and the
+# facets only top up a tenant past it, so no Israel posting falls past
+# the end either way. Verified
 # against a real query (not just "a facet with 'israel' in it exists")
 # before being added: appliedmaterials.com's own "locations" facet
 # looked like a match but returned an incomplete, wrong result --

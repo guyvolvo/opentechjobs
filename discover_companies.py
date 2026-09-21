@@ -71,7 +71,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent / "api"))
-from probe import EMBED_ATS_PATTERNS, FETCHERS, KNOWN_FALSE_POSITIVES, UA
+from probe import EMBED_ATS_PATTERNS, FETCHERS, KNOWN_FALSE_POSITIVES, UA, workday_israel_count, workday_page1
 from job_filters import IL_KEYWORDS
 
 # Common Crawl publishes a snapshot roughly monthly, and a board only
@@ -108,6 +108,12 @@ CC_URL_PATTERNS = {
     "ashby": "jobs.ashbyhq.com/*",
     "workable": "apply.workable.com/*",
     "smartrecruiters": "jobs.smartrecruiters.com/*",
+    # A domain match, like the three below: every tenant is its own host
+    # ({tenant}.{wd}.myworkdayjobs.com) and the site slug is the first
+    # path segment. Measured 2026-09-21: 1,609 distinct tenants in one
+    # snapshot against 26 pinned by hand. Read by extract_tokens's own
+    # workday branch into "tenant:wd:site", the token f_workday takes.
+    "workday": "myworkdayjobs.com",
     # Subdomain-shaped, queried with matchType=domain. Measured
     # 2026-09-16 against CC-MAIN-2026-34, each capped at 3,000 records so
     # these are floors: recruitee 230 companies, jazzhr 213, breezy 192.
@@ -149,7 +155,12 @@ CC_URL_PATTERNS = {
 # Queried with matchType=domain rather than a URL prefix, because the
 # company's token is the subdomain. CDX returns every URL under the host
 # for these, so extract_tokens does the narrowing.
-CC_DOMAIN_MATCH = frozenset({"recruitee", "breezy", "jazzhr"})
+CC_DOMAIN_MATCH = frozenset({"recruitee", "breezy", "jazzhr", "workday"})
+WORKDAY_URL_RE = re.compile(
+    r"https?://([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Za-z]{2}/)?([A-Za-z0-9_-]+)(?:/|\?|$)", re.I)
+# Path segments that are not a site: a job page's own prefix, the login
+# page, and Workday's own API root.
+_WORKDAY_NOT_A_SITE = frozenset({"job", "jobs", "login", "wday", "static", "assets"})
 
 # Worth another go: CDX sheds load with these rather than saying anything
 # about the query. Everything else non-200 is an answer, and the one that
@@ -278,6 +289,18 @@ def extract_tokens(ats: str, urls: list[str]) -> set[str]:
             if m:
                 out.add(f"{m.group(2)}:{m.group(1)}")
         return out
+    if ats == "workday":
+        # One site per tenant: the one most of its crawled URLs sit
+        # under. A tenant with two public sites (internal/external
+        # careers) gets the busier one; the other is still one pin away.
+        sites: dict[tuple[str, str], dict[str, int]] = {}
+        for url in urls:
+            m = WORKDAY_URL_RE.match(url)
+            if not m or m.group(3).lower() in _WORKDAY_NOT_A_SITE:
+                continue
+            per = sites.setdefault((m.group(1).lower(), m.group(2).lower()), {})
+            per[m.group(3)] = per.get(m.group(3), 0) + 1
+        return {f"{tenant}:{wd}:{max(per, key=per.get)}" for (tenant, wd), per in sites.items()}
     pattern = _TOKEN_PATTERNS[ats]
     tokens = set()
     for url in urls:
@@ -587,6 +610,26 @@ def verify_candidate(sess: requests.Session, ats: str, token: str,
         # FETCHERS (probe.py says why), so the loop below has nothing to
         # call for it.
         return _verify_comeet(sess, token)
+    if ats == "workday":
+        # One request, page 1: the total says the board is real, the
+        # facet tree says how much of it is in Israel, and the twenty
+        # newest give the sample. The full walk waits for the hourly
+        # poll (scrape_workday_handler.py), which is where 1,600 tenants
+        # at hundreds of pages each belongs.
+        tenant, wd, site = token.split(":", 2)
+        page1 = workday_page1(sess, tenant, wd, site)
+        if not page1 or not page1["total"]:
+            return None
+        guessed_domain, domain_verified = _guess_domain(tenant, sess)
+        return {
+            "ats": ats,
+            "token": token,
+            "job_count": page1["total"],
+            "israel_job_count": workday_israel_count(page1["facets"]),
+            "guessed_domain": guessed_domain,
+            "domain_verified": domain_verified,
+            "sample_titles": [str(j.get("title") or "") for j in page1["postings"][:3]],
+        }
     tokens = [token] + list((known or {}).get("fallbacks") or [])
     jobs = None
     for candidate in tokens:

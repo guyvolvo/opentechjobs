@@ -86,9 +86,9 @@ jobs:
       - name: Build scrape-workday package
         run: |
           mkdir -p workday/loader workday/db
-          cp probe.py scrape_workday_handler.py companies.yml salary_model.py workday/
+          cp probe.py scrape_workday_handler.py companies.yml workday-tenants.json salary_model.py workday/
           cp api/job_filters.py api/skills.py api/countries.py api/same_company.py workday/
-          cp loader/load_to_sqlite.py loader/localtime.py loader/descriptions.py loader/deltas.py workday/loader/
+          cp loader/load_to_sqlite.py loader/localtime.py loader/descriptions.py loader/deltas.py loader/scrape_state.py workday/loader/
           cp db/schema.sql workday/db/
           # pyyaml, not just requests: this is the one deployment package
           # that actually needs probe.py's companies.yml reading to work
