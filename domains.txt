@@ -12202,3 +12202,12 @@ grant-thornton.com
 highbridgecareers.com
 houston.com
 oakbrother.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+dreamix.ai
+gathern.co
+hammer.com
+highland-spring.com
+kahoot.com
+knorex.com
+languagewire.com
