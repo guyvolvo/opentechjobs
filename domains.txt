@@ -12370,3 +12370,34 @@ heinemannaustriagmbh.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 texas-campaign-for-the-environment.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+airoboticsdrones.com
+majesticlabs.com
+eitanmedical.com
+fullpath.com
+brandlight.io
+almalasers.com
+helfy.co
+mami.ai
+jobs.888.com
+uppro.io
+mindspace.me
+vectoriousmedtech.com
+factify.com
+oriient.com
+beyondtrust.de
+chargeflow.com
+abra-it.com
+crazylabs.com
+topgummiceuticals.com
+rylo.com
+bgtechs.com
+jobs.mwdn.com
+chalk.com
+imagry.co
+spacial.com
+youappi.com
+hyro.ai
+ownera.io
+allied.com

@@ -18068,5 +18068,65 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "vishay.com",
+  "tenant": "vishay",
+  "wd": "wd3",
+  "site": "VishayCareers",
+  "jobs_seen": 529,
+  "israel_jobs_seen": 22,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "workday.com",
+  "tenant": "workday",
+  "wd": "wd5",
+  "site": "Workday",
+  "jobs_seen": 364,
+  "israel_jobs_seen": 12,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "unitytech.ai",
+  "tenant": "unitytech",
+  "wd": "wd1",
+  "site": "Unity",
+  "jobs_seen": 122,
+  "israel_jobs_seen": 6,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "forcepoint.com",
+  "tenant": "forcepoint",
+  "wd": "wd1",
+  "site": "external-careers",
+  "jobs_seen": 39,
+  "israel_jobs_seen": 3,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sartorius.com",
+  "tenant": "sartorius",
+  "wd": "wd3",
+  "site": "sartoriuscareers",
+  "jobs_seen": 223,
+  "israel_jobs_seen": 2,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "oreillyauto.de",
+  "tenant": "oreillyauto",
+  "wd": "wd1",
+  "site": "oreilly",
+  "jobs_seen": 18778,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
