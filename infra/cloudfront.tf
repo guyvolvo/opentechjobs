@@ -95,7 +95,7 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       };
     }
 
-    var PAGES = { "/account": true, "/stats": true, "/privacy": true, "/board": true };
+    var PAGES = { "/account": true, "/stats": true, "/privacy": true, "/board": true, "/contact": true };
 
     // The board used to live at /, so every link anyone shared or
     // bookmarked before the move reads /?country=IL or /?job=... A
