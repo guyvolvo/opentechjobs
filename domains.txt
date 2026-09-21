@@ -12244,3 +12244,21 @@ interactive.com
 koothjobs.com
 cf2i.com
 heim.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+ammortal.com
+aoc.com
+enjins.com
+evisit.com
+fernandez.com
+findevcanada.com
+focusrite.com
+garyswine.com
+gadge.org
+govx.com
+headquarters.com
+iav.com
+hamiltonian.ai
+inventura.co
+ivyhill.co
+hausmeisterkrause.com
