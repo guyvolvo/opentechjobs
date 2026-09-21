@@ -12401,3 +12401,6 @@ youappi.com
 hyro.ai
 ownera.io
 allied.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+bayada.com

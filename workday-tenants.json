@@ -18128,5 +18128,225 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "mvh.myworkdayjobs.com",
+  "tenant": "mvh",
+  "wd": "wd115",
+  "site": "bfcareers",
+  "jobs_seen": 2942,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "communicarehealth.com",
+  "tenant": "communicarehealth",
+  "wd": "wd1",
+  "site": "CHSExternalCareerSite",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "knitwellgroup.com",
+  "tenant": "knitwellgroup",
+  "wd": "wd1",
+  "site": "US_Retail_Jobs",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "maurices.com",
+  "tenant": "maurices",
+  "wd": "wd5",
+  "site": "us_retail_jobs",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "musc.co",
+  "tenant": "musc",
+  "wd": "wd1",
+  "site": "MUSC",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sanford.io",
+  "tenant": "sanford",
+  "wd": "wd5",
+  "site": "SanfordHealth",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sysco.com",
+  "tenant": "sysco",
+  "wd": "wd5",
+  "site": "syscocareers",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "walmart.com",
+  "tenant": "walmart",
+  "wd": "wd504",
+  "site": "WalmartExternal",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wvumedicine.com",
+  "tenant": "wvumedicine",
+  "wd": "wd1",
+  "site": "WVUH",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "aspendental.com",
+  "tenant": "aspendental",
+  "wd": "wd1",
+  "site": "Careers_Aspen_Dental",
+  "jobs_seen": 1772,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "jdgroupnam.com",
+  "tenant": "jdgroupnam",
+  "wd": "wd1",
+  "site": "JDFL_Store_Careers",
+  "jobs_seen": 1744,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wf.com",
+  "tenant": "wf",
+  "wd": "wd1",
+  "site": "wellsfargojobs",
+  "jobs_seen": 1734,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wawa.com",
+  "tenant": "wawa",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 1570,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "richemont.com",
+  "tenant": "richemont",
+  "wd": "wd3",
+  "site": "Richemont",
+  "jobs_seen": 1427,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vfc.com",
+  "tenant": "vfc",
+  "wd": "wd5",
+  "site": "vfc_careers",
+  "jobs_seen": 1424,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "calibercollision.com",
+  "tenant": "calibercollision",
+  "wd": "wd1",
+  "site": "Caliber",
+  "jobs_seen": 1398,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ur.com",
+  "tenant": "ur",
+  "wd": "wd1",
+  "site": "URcareers",
+  "jobs_seen": 1353,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "danaher.com",
+  "tenant": "danaher",
+  "wd": "wd1",
+  "site": "DanaherJobs",
+  "jobs_seen": 1336,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "usbank.com",
+  "tenant": "usbank",
+  "wd": "wd1",
+  "site": "US_Bank_Careers",
+  "jobs_seen": 1315,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "multicare.com",
+  "tenant": "multicare",
+  "wd": "wd1",
+  "site": "multicare",
+  "jobs_seen": 1302,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "benchmark.com",
+  "tenant": "benchmark",
+  "wd": "wd1",
+  "site": "PGH_Careers",
+  "jobs_seen": 1300,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "childrensplace.com",
+  "tenant": "childrensplace",
+  "wd": "wd1",
+  "site": "TCP02",
+  "jobs_seen": 1299,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
