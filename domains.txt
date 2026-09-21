@@ -12512,3 +12512,8 @@ belle.ai
 decimainternational.com
 appnovation.com
 phoenixocp.fr
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+exadel.com
+arvida.org
+phdata.io

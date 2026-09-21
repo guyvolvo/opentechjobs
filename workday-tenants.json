@@ -23228,5 +23228,285 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "mcbride.io",
+  "tenant": "mcbride",
+  "wd": "wd3",
+  "site": "McBride_Careers",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pacificsource.com",
+  "tenant": "pacificsource",
+  "wd": "wd5",
+  "site": "broadbean_external",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "svb.com",
+  "tenant": "svb",
+  "wd": "wd5",
+  "site": "firstcitizensindia",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dsvgruppe.com",
+  "tenant": "dsvgruppe",
+  "wd": "wd103",
+  "site": "DSV",
+  "jobs_seen": 47,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "evergreenix.com",
+  "tenant": "evergreenix",
+  "wd": "wd1",
+  "site": "external-careers2",
+  "jobs_seen": 47,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "garrigues.com",
+  "tenant": "garrigues",
+  "wd": "wd103",
+  "site": "Garrigues_Talento",
+  "jobs_seen": 47,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hhmi.com",
+  "tenant": "hhmi",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 47,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "njm.com",
+  "tenant": "njm",
+  "wd": "wd1",
+  "site": "njm",
+  "jobs_seen": 47,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "point32health.com",
+  "tenant": "point32health",
+  "wd": "wd5",
+  "site": "THP",
+  "jobs_seen": 47,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "austalusa.com",
+  "tenant": "austalusa",
+  "wd": "wd1",
+  "site": "austal",
+  "jobs_seen": 46,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "interfacesystems.com",
+  "tenant": "interfacesystems",
+  "wd": "wd5",
+  "site": "InterfaceSystemsCareers",
+  "jobs_seen": 46,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "medimpact.com",
+  "tenant": "medimpact",
+  "wd": "wd5",
+  "site": "medimpact",
+  "jobs_seen": 46,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "optiv.com",
+  "tenant": "optiv",
+  "wd": "wd5",
+  "site": "Optiv_Careers",
+  "jobs_seen": 46,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pointloma.org",
+  "tenant": "pointloma",
+  "wd": "wd1",
+  "site": "PLNUCareers",
+  "jobs_seen": 46,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "topcon.com",
+  "tenant": "topcon",
+  "wd": "wd1",
+  "site": "TopconPositioningCareers",
+  "jobs_seen": 46,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "crossagency.net",
+  "tenant": "crossagency",
+  "wd": "wd1",
+  "site": "CrossFinancialCareers",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "edsi.com",
+  "tenant": "edsi",
+  "wd": "wd108",
+  "site": "EDSI",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "moelis.com",
+  "tenant": "moelis",
+  "wd": "wd1",
+  "site": "Experienced-Hires",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "morningstar.myworkdayjobs.com",
+  "tenant": "morningstar",
+  "wd": "wd5",
+  "site": "Americas",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pillsburylaw.com",
+  "tenant": "pillsburylaw",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "plains.com",
+  "tenant": "plains",
+  "wd": "wd1",
+  "site": "plains",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "primerica.com",
+  "tenant": "primerica",
+  "wd": "wd1",
+  "site": "PRI",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "waynestatephysicians.com",
+  "tenant": "waynestatephysicians",
+  "wd": "wd1",
+  "site": "WayneStatePhysiciansCareers",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "waverlyhealthcenter.com",
+  "tenant": "waverlyhealthcenter",
+  "wd": "wd12",
+  "site": "WHC",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wmeimg.com",
+  "tenant": "wmeimg",
+  "wd": "wd1",
+  "site": "WME",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bcbsaz.com",
+  "tenant": "bcbsaz",
+  "wd": "wd1",
+  "site": "BCBSAZCareers",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "chfs.com",
+  "tenant": "chfs",
+  "wd": "wd12",
+  "site": "CHFS",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nextgen.com",
+  "tenant": "nextgen",
+  "wd": "wd5",
+  "site": "NextGen_Careers",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
