@@ -22368,5 +22368,315 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "rwlasvegas.com",
+  "tenant": "rwlasvegas",
+  "wd": "wd501",
+  "site": "RWLV_External_Careers",
+  "jobs_seen": 66,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wfu.com",
+  "tenant": "wfu",
+  "wd": "wd1",
+  "site": "Staff_Career_Website_live",
+  "jobs_seen": 66,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mfs.com",
+  "tenant": "mfs",
+  "wd": "wd1",
+  "site": "MFS-Careers",
+  "jobs_seen": 65,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "careabout.com",
+  "tenant": "careabout",
+  "wd": "wd5",
+  "site": "consensus_careers",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "corelab.com",
+  "tenant": "corelab",
+  "wd": "wd12",
+  "site": "CLB",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "corespecialtyinsurance.com",
+  "tenant": "corespecialtyinsurance",
+  "wd": "wd1",
+  "site": "core_specialty",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "deluxe.io",
+  "tenant": "deluxe",
+  "wd": "wd5",
+  "site": "USA_CAN",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "greenheckgroup.com",
+  "tenant": "greenheckgroup",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gresearch.com",
+  "tenant": "gresearch",
+  "wd": "wd103",
+  "site": "G-Research",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "jacksongov.myworkdayjobs.com",
+  "tenant": "jacksongov",
+  "wd": "wd5",
+  "site": "Court",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "omers.com",
+  "tenant": "omers",
+  "wd": "wd3",
+  "site": "OMERS_External",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "skookum.com",
+  "tenant": "skookum",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "uq.io",
+  "tenant": "uq",
+  "wd": "wd3",
+  "site": "uqcareers",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "waystar.com",
+  "tenant": "waystar",
+  "wd": "wd1",
+  "site": "Waystar",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ashland.io",
+  "tenant": "ashland",
+  "wd": "wd12",
+  "site": "AshlandCareers1",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cambria.com",
+  "tenant": "cambria",
+  "wd": "wd1",
+  "site": "cambria_careers",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "catalight.org",
+  "tenant": "catalight",
+  "wd": "wd1",
+  "site": "catalight",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cityoforlando.net",
+  "tenant": "cityoforlando",
+  "wd": "wd5",
+  "site": "CityofOrlandoCareers",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hedgeserv.com",
+  "tenant": "hedgeserv",
+  "wd": "wd1",
+  "site": "HedgeServ",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "leecompany.com",
+  "tenant": "leecompany",
+  "wd": "wd1",
+  "site": "TalentPromoter",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "regionalfinance.com",
+  "tenant": "regionalfinance",
+  "wd": "wd1",
+  "site": "RMC",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "welocalize.com",
+  "tenant": "welocalize",
+  "wd": "wd1",
+  "site": "Welocalize",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "amarillo.com",
+  "tenant": "amarillo",
+  "wd": "wd5",
+  "site": "Amarillo_External_Career_Site",
+  "jobs_seen": 62,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vermeer.com",
+  "tenant": "vermeer",
+  "wd": "wd5",
+  "site": "externalcareersite",
+  "jobs_seen": 62,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "amerilife.com",
+  "tenant": "amerilife",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "chagee.com",
+  "tenant": "chagee",
+  "wd": "wd102",
+  "site": "External",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "ineos.com",
+  "tenant": "ineos",
+  "wd": "wd503",
+  "site": "INEOScareers",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "laticrete.com",
+  "tenant": "laticrete",
+  "wd": "wd1",
+  "site": "laticreteinternational",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "otppb.com",
+  "tenant": "otppb",
+  "wd": "wd3",
+  "site": "OntarioTeachers_Careers",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "urw.com",
+  "tenant": "urw",
+  "wd": "wd3",
+  "site": "urw_career_site",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "acuityinternational.com",
+  "tenant": "acuityinternational",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 60,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]

@@ -12489,3 +12489,9 @@ technicatome.com
 safefleet.net
 acommerce.com
 blackcanyonconsulting.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+alphax.com
+lindt.ai
+patriotgrowthinsuranceservicesllc.com
+structube1.com
