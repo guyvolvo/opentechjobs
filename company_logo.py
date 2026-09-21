@@ -96,7 +96,44 @@ PLACEHOLDER_ICONS = {
     "c8cdaf2f2680ecd3": "Vercel default (3)",
     "21699edc740c476f": "shared placeholder, loop (3)",
     "2245fb06a5d8654d": "Salesforce parked domain (3)",
+    # Found 2026-09-21 by hashing all 3,843 site-sourced logos at once
+    # rather than one at a time. 264 of them were an image some other
+    # company was also using. These are the ones that are demonstrably
+    # nobody's logo, biggest first; the count is how many companies were
+    # wearing each.
+    #
+    # Two of the clusters are NOT here on purpose. A six-domain and a
+    # five-domain group turned out to be real logos, belonging to
+    # outfits that run several sites, and a shared logo is the correct
+    # answer for those.
+    "ec607eb417e0a18a": "GoDaddy site builder default, house (54)",
+    "970c2da77af56554": "Spaceship parked domain, triangle (46)",
+    "292d9aeb457ab7fe": "blank white 16x16 (16)",
+    "ae3e0f8e856e05a6": "parked domain, orange D, large variant (13)",
+    "c3532d39f298c863": "WordPress default, grey (9)",
+    "f9b98389969798b6": "DomainMarket parked domain (7)",
+    "bd298981e6d8d7e4": "Sedo parked domain (7)",
+    "d73d2f6d74ec6cdc": "WordPress default, blue (5)",
+    "b0c679def36e3ccb": "parked domain, orange b (5)",
+    "bddfab731b076fe0": "hosting default, teal shield (5)",
 }
+
+# The same placeholders, recognised by where they are served from.
+#
+# A fingerprint only catches the exact bytes it was taught. There were
+# already a GoDaddy icon, an orange D and a WordPress default in the set
+# above, and all three turned up again as different sizes of the same
+# picture, wearing hashes nobody had seen. A parking service hands out
+# whatever size the page asks for, so hashes alone lose that race
+# forever.
+#
+# These are paths that cannot belong to a company: a domain-sale
+# landing page's own branding, or a site builder's stock logo shipped
+# with an empty template.
+PLACEHOLDER_URL_RE = re.compile(
+    r"(sedoparking\.com|cdn\.domainmarket\.com|forsale\.spaceship-cdn\.com"
+    r"|parkingcrew\.net|afternic\.com|bodis\.com|wsimg\.com/.*logo-default)",
+    re.I)
 
 
 def icon_fingerprint(body: bytes) -> str:
@@ -132,6 +169,11 @@ def check_image(sess, url: str) -> bool:
     if _png_size(r.content) == GOOGLE_PLACEHOLDER and "s2/favicons" in url:
         return False
     if icon_fingerprint(r.content) in PLACEHOLDER_ICONS:
+        return False
+    # Checked against the URL that actually served the bytes, not the one
+    # we asked for: a parked domain's own favicon.ico is a redirect to
+    # the parking service, and the redirect is where the tell is.
+    if PLACEHOLDER_URL_RE.search(r.url or url):
         return False
     return True
 

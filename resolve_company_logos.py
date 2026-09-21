@@ -52,12 +52,22 @@ MAX_RETRIES_PER_RUN = 400
 LOGOS_KEY = "company-logos.json"
 
 # Bumped when a change to company_logo.py can reject a logo it used to
-# accept. Every Google-tier logo stamped with an older version is checked
-# again, once. Version 2 added PLACEHOLDER_ICONS: Google had been handing
-# back GoDaddy's logo, and other parking and hosting icons, for parked
+# accept. Every logo stamped with an older version is checked again,
+# once. Version 2 added PLACEHOLDER_ICONS: Google had been handing back
+# GoDaddy's logo, and other parking and hosting icons, for parked
 # domains, and those were stored as found and never looked at again,
 # because a company that has a logo is otherwise settled.
-LOGO_CHECK_VERSION = 2
+#
+# Version 3, 2026-09-21, is the same lesson with the scope corrected.
+# Version 2 only rechecked Google-tier logos, on the reasoning that
+# nothing about the new checks changed what the site tier returns. That
+# was wrong: a site favicon goes through exactly the same
+# PLACEHOLDER_ICONS gate, so every site logo stored before a fingerprint
+# was added kept it forever. Hashing all 3,843 site logos at once found
+# 264 companies wearing an image that belonged to somebody else, two
+# clusters of them the WordPress default, which version 2 already
+# thought it had dealt with.
+LOGO_CHECK_VERSION = 3
 
 # See referral_boards.py. referralsuseonly.com is not a website, so every
 # logo path that starts from the domain is looking somewhere that does
@@ -90,16 +100,25 @@ def needs_recheck(domain: str, entry: dict) -> bool:
 
     Two ways. An alias was added after the logo was stored, so it was
     looked up at the wrong domain (entries from before looked_at existed
-    were looked up at the domain itself). Or it came from Google before
-    the current checks existed, which is where the parked-domain icons
-    were hiding. ATS and site logos are not rechecked: nothing about the
-    new checks changes what those tiers return.
+    were looked up at the domain itself). Or it was accepted before the
+    current checks existed, which is where the parked-domain and site
+    builder icons were hiding.
+
+    Site logos are rechecked as well as Google ones, which is the fix in
+    version 3. They run through the same placeholder gate, so leaving
+    them out meant a fingerprint added today never reached the thousands
+    of favicons stored yesterday.
+
+    ATS logos are still left alone. Those come from the company's own
+    account on its own hiring system, which is the one tier that cannot
+    hand back somebody else's picture.
     """
     if not entry.get("url"):
         return False
     if entry.get("looked_at", domain) != logo_domain(domain):
         return True
-    return entry.get("source") == "google" and entry.get("check", 1) < LOGO_CHECK_VERSION
+    return (entry.get("source") in ("google", "site")
+            and entry.get("check", 1) < LOGO_CHECK_VERSION)
 
 
 def merge_entry(logos: dict, domain: str, entry: dict) -> None:

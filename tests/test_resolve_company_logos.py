@@ -38,10 +38,19 @@ check("an old Google-tier logo is rechecked",
       rcl.needs_recheck("acme.com", {"url": GOOGLE.format("acme.com"), "source": "google"}))
 check("but not once it has passed the current checks",
       not rcl.needs_recheck("acme.com", {"url": GOOGLE.format("acme.com"), "source": "google", "check": V}))
-check("an ATS logo is left alone",
+check("an ATS logo is left alone: it comes from the company's own account",
       not rcl.needs_recheck("acme.com", {"url": "https://cdn/x.png", "source": "ats"}))
-check("a site logo is left alone",
-      not rcl.needs_recheck("acme.com", {"url": "https://acme.com/icon.png", "source": "site"}))
+# This said "a site logo is left alone" until 2026-09-21, on the
+# reasoning that the new checks only changed what Google returns. That
+# was wrong. A site favicon runs through the same placeholder gate, so
+# every one stored before a fingerprint was added kept it forever, and
+# 264 companies were found wearing an image that belonged to somebody
+# else. Two clusters of them were the WordPress default, which the
+# blocklist already thought it had dealt with.
+check("a site logo from before the current checks is looked at again",
+      rcl.needs_recheck("acme.com", {"url": "https://acme.com/icon.png", "source": "site"}))
+check("but not once it has passed them",
+      not rcl.needs_recheck("acme.com", {"url": "https://acme.com/icon.png", "source": "site", "check": V}))
 check("a miss is not a recheck (the miss retry handles those)",
       not rcl.needs_recheck("acme.com", {"url": None, "source": "none"}))
 # wix2.com is aliased to wix.com. A logo stored before the alias existed
