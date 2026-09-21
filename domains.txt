@@ -12422,3 +12422,8 @@ axiomtalentplatform.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 atwellgroup.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+digitalocean.com
+fairsteadescllc.com
+sondermind.com

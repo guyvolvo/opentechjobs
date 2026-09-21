@@ -20538,5 +20538,295 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "cna.org",
+  "tenant": "cna",
+  "wd": "wd1",
+  "site": "cna_careers",
+  "jobs_seen": 154,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hbfuller.com",
+  "tenant": "hbfuller",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 154,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "calistacorp.com",
+  "tenant": "calistacorp",
+  "wd": "wd1",
+  "site": "Yulista",
+  "jobs_seen": 153,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bdouk.com",
+  "tenant": "bdouk",
+  "wd": "wd3",
+  "site": "bdo_careers",
+  "jobs_seen": 152,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "centific.com",
+  "tenant": "centific",
+  "wd": "wd1",
+  "site": "Centific_Global",
+  "jobs_seen": 149,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "solvenergy.com",
+  "tenant": "solvenergy",
+  "wd": "wd1",
+  "site": "SOLV_External_Career",
+  "jobs_seen": 147,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "enovis.com",
+  "tenant": "enovis",
+  "wd": "wd5",
+  "site": "enovis",
+  "jobs_seen": 146,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sralab.com",
+  "tenant": "sralab",
+  "wd": "wd1",
+  "site": "sralabCareers",
+  "jobs_seen": 146,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "binus.org",
+  "tenant": "binus",
+  "wd": "wd3",
+  "site": "lifeatbinus",
+  "jobs_seen": 144,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "inizio.com",
+  "tenant": "inizio",
+  "wd": "wd3",
+  "site": "CSO",
+  "jobs_seen": 144,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cumminggroup.org",
+  "tenant": "cumminggroup",
+  "wd": "wd1",
+  "site": "CGC",
+  "jobs_seen": 142,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "viavisolutions.com",
+  "tenant": "viavisolutions",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 142,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hcsc.com",
+  "tenant": "hcsc",
+  "wd": "wd1",
+  "site": "HCSC_External",
+  "jobs_seen": 141,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "abinbev.com",
+  "tenant": "abinbev",
+  "wd": "wd1",
+  "site": "USA",
+  "jobs_seen": 139,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "associatedbank.com",
+  "tenant": "associatedbank",
+  "wd": "wd1",
+  "site": "external_careers",
+  "jobs_seen": 139,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "chemours.com",
+  "tenant": "chemours",
+  "wd": "wd103",
+  "site": "chemours",
+  "jobs_seen": 139,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "jm.com",
+  "tenant": "jm",
+  "wd": "wd103",
+  "site": "External",
+  "jobs_seen": 137,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "braunintertec.com",
+  "tenant": "braunintertec",
+  "wd": "wd5",
+  "site": "BraunIntertecCareers",
+  "jobs_seen": 136,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "flsmidth.com",
+  "tenant": "flsmidth",
+  "wd": "wd3",
+  "site": "FLS_Global",
+  "jobs_seen": 136,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "chrobinson.com",
+  "tenant": "chrobinson",
+  "wd": "wd5",
+  "site": "CHRobinson",
+  "jobs_seen": 135,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "condenast.de",
+  "tenant": "condenast",
+  "wd": "wd115",
+  "site": "CondeCareers",
+  "jobs_seen": 134,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "stars.net",
+  "tenant": "stars",
+  "wd": "wd1",
+  "site": "Search",
+  "jobs_seen": 132,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "umchealthsystem.com",
+  "tenant": "umchealthsystem",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 132,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "jas.com",
+  "tenant": "jas",
+  "wd": "wd1",
+  "site": "jascareers",
+  "jobs_seen": 131,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "djeholdings.myworkdayjobs.com",
+  "tenant": "djeholdings",
+  "wd": "wd5",
+  "site": "edelman-careers-E200",
+  "jobs_seen": 130,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "barr.com",
+  "tenant": "barr",
+  "wd": "wd1",
+  "site": "BarrCareers",
+  "jobs_seen": 129,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "matthey.com",
+  "tenant": "matthey",
+  "wd": "wd3",
+  "site": "Ext_Career_Site",
+  "jobs_seen": 129,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "smucker.net",
+  "tenant": "smucker",
+  "wd": "wd5",
+  "site": "US_External_Careers",
+  "jobs_seen": 128,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "comfortsystemsusa.myworkdayjobs.com",
+  "tenant": "comfortsystemsusa",
+  "wd": "wd1",
+  "site": "EAScareers",
+  "jobs_seen": 127,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
