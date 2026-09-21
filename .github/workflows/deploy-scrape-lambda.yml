@@ -28,6 +28,7 @@ on:
       - "db/schema.sql"
       - "scrape_handler.py"
       - "scrape_workday_handler.py"
+      - "workday-tenants.json"
       - "scrape_maintenance_handler.py"
       - "sharding.py"
       - "alerts.py"

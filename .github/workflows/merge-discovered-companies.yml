@@ -80,7 +80,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add domains.txt pending-discovery-candidates.json
+          git add domains.txt pending-discovery-candidates.json workday-tenants.json
           git diff --cached --quiet && echo "nothing changed this run" && exit 0
           git commit -m "Merge one batch of discovered companies"
           # Rebase before pushing, and retry. This step ran a bare push and
