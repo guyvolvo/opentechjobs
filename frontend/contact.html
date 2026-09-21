@@ -30,8 +30,11 @@
   <link rel="icon" href="/favicon.ico?v=2" sizes="any" />
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png?v=2" />
   <link rel="stylesheet" href="/style.css" />
-  <!-- Light like the landing page, whatever the board's theme: see
-       index.html's note on why the hero pages carry no theme bootstrap. -->
+  <script>
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
 </head>
 <body class="hero-page">
 
@@ -40,7 +43,10 @@
       <a class="hero-bar-name" href="/">opentechjobs.org</a>
       <a class="hero-bar-name" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">github</a>
     </div>
-    <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
+    <div class="hero-bar-right">
+      <button type="button" class="hero-theme" id="hero-theme">Dark</button>
+      <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
+    </div>
   </header>
 
   <main>

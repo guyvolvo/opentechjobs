@@ -141,6 +141,22 @@
     document.getElementById("hero-email-input").focus();
   }
 
+  // The theme, on the bar beside the account control. The same key the
+  // board's own toggle writes, so the choice follows a reader between
+  // the two pages.
+  const themeBtn = document.getElementById("hero-theme");
+  if (themeBtn) {
+    const dark = () => document.documentElement.getAttribute("data-theme") === "dark";
+    const paint = () => { themeBtn.textContent = dark() ? "Light" : "Dark"; };
+    themeBtn.addEventListener("click", () => {
+      if (dark()) document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.setAttribute("data-theme", "dark");
+      try { localStorage.setItem("iljobs_theme", dark() ? "dark" : "light"); } catch {}
+      paint();
+    });
+    paint();
+  }
+
   setAuthRenderSink(render);
   render();
 })();

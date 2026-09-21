@@ -136,7 +136,12 @@
      every red message and the red Reset were faint in dark mode. 6.4:1. */
   --red: #ff6b5e;
   --scrim: rgba(0, 0, 0, 0.58);
-  color-scheme: dark;
+  color-scheme: dark;
+  /* The landing page honours the theme now, and a light band across it
+     read as a stripe of daylight. The marks keep their own light square
+     on the board, where each is 44px; here the row is the page's. */
+  --logo-band: #1b1c21;
+  --logo-band-rule: #2b2c31;
 }
 
 * { box-sizing: border-box; }
@@ -3480,6 +3485,19 @@ body.signin-open .workspace > .section { border-bottom: 0; }
    paper, an ink rule, the 4px field radius, no shadow. */
 /* As tall as the two stacked links beside it, so the bar's two ends
    read as one row. */
+.hero-bar-right { display: flex; align-items: stretch; align-self: stretch; gap: 20px; }
+.hero-theme {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-family: var(--font-ui);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hero-theme:hover { color: var(--green-text); }
+.hero-theme:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
 .hero-account { position: relative; display: flex; align-items: stretch; align-self: stretch; }
 .hero-account > .hero-bar-name { display: inline-flex; align-items: center; }
 a.hero-account-btn { text-decoration: none; }

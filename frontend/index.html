@@ -85,14 +85,16 @@
        Desktop widths only: the phone layout paints a different scene
        and this file is never shown there. -->
   <link rel="preload" as="image" href="/img/showcase-desktop.webp" media="(min-width: 721px)" fetchpriority="high" />
-  <!-- No theme bootstrap here, unlike every other page in this site.
-       This one is a landing page rather than a place anyone works. Its
-       showcase already paints ink on a photograph with both fixed
-       whatever the theme is, and its own bar carries no toggle, so
-       somebody who switched to dark on the board arrived here dark with
-       nothing on the page to switch it back. It reads on the light
-       tokens now, whatever iljobs_theme holds. The board keeps honouring
-       it: that page has the toggle, and it is where the reading happens. -->
+  <!-- This page ignored the theme for a while, because it had no toggle
+       and somebody who switched to dark on the board arrived here with
+       nothing to switch it back. The bar carries one now, so the choice
+       is honoured here as everywhere else. The showcase photograph stays
+       as it is in both: it is a picture, not a surface. -->
+  <script>
+    if (localStorage.getItem("iljobs_theme") === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  </script>
 </head>
 <body class="hero-page">
 
@@ -103,7 +105,10 @@
     </div>
     <!-- Sign in, or My Account with its menu: hero_account.js fills it
          from the same stored tokens the board and account page use. -->
-    <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
+    <div class="hero-bar-right">
+      <button type="button" class="hero-theme" id="hero-theme">Dark</button>
+      <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
+    </div>
   </header>
 
   <main>
