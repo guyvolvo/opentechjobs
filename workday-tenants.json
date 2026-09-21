@@ -26048,5 +26048,145 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "americanglobal.com",
+  "tenant": "americanglobal",
+  "wd": "wd108",
+  "site": "American_Global_Careers",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bridgeigp.com",
+  "tenant": "bridgeigp",
+  "wd": "wd1",
+  "site": "BIGC",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bristow.myworkdayjobs.com",
+  "tenant": "bristow",
+  "wd": "wd1",
+  "site": "AIRNORTH",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "canarywharf.com",
+  "tenant": "canarywharf",
+  "wd": "wd103",
+  "site": "CanaryWharf",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "elemica.com",
+  "tenant": "elemica",
+  "wd": "wd501",
+  "site": "Elemica_Careers",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "flpoly.org",
+  "tenant": "flpoly",
+  "wd": "wd1",
+  "site": "External-Staff",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "fsra.co",
+  "tenant": "fsra",
+  "wd": "wd3",
+  "site": "FSRA_Careers",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "lytx.com",
+  "tenant": "lytx",
+  "wd": "wd1",
+  "site": "Lytx",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "msfoca.com",
+  "tenant": "msfoca",
+  "wd": "wd103",
+  "site": "artsen_zonder_grenzen",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "newcastle.ai",
+  "tenant": "newcastle",
+  "wd": "wd3",
+  "site": "NBSCareers",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "samyang.org",
+  "tenant": "samyang",
+  "wd": "wd3",
+  "site": "Samyang",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sarasotagov.com",
+  "tenant": "sarasotagov",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "shutterstock.com",
+  "tenant": "shutterstock",
+  "wd": "wd1",
+  "site": "ShutterstockCareers",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "willamette.com",
+  "tenant": "willamette",
+  "wd": "wd501",
+  "site": "WillametteUniversityJobs",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
