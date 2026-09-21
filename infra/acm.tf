@@ -24,3 +24,27 @@ resource "aws_acm_certificate_validation" "site" {
 
   certificate_arn = aws_acm_certificate.site.arn
 }
+
+# A second certificate, for the hosted sign-in domain. Separate from the
+# site's rather than another name on it: adding one there revalidates
+# the certificate CloudFront is currently serving, and there is no
+# reason to touch a working distribution to move a user pool.
+#
+# us-east-1 like the other, and for a different reason: Cognito requires
+# a custom domain's certificate there whatever region the pool is in.
+resource "aws_acm_certificate" "auth" {
+  provider = aws.us_east_1
+
+  domain_name       = var.auth_domain_name
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_acm_certificate_validation" "auth" {
+  provider = aws.us_east_1
+
+  certificate_arn = aws_acm_certificate.auth.arn
+}

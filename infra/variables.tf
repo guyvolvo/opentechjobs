@@ -119,6 +119,12 @@ variable "legacy_domain_name" {
 # in cognito.tf is conditional on this being set, so the pool applies fine
 # without it and Google sign-in can be wired in later without disrupting
 # anything already live.
+variable "auth_domain_name" {
+  type        = string
+  description = "Hosted sign-in domain for the Cognito user pool. On our own domain rather than the free *.auth.<region>.amazoncognito.com one because Google's consent screen names the redirect URI's host: on the prefix domain it read \"to continue to iljobs-auth-876913698688.auth.il-central-1.amazoncognito.com\"."
+  default     = "auth.opentechjobs.org"
+}
+
 variable "google_client_id" {
   type        = string
   description = "OAuth client ID from Google Cloud Console (APIs & Services > Credentials), once the Cognito domain below exists to give it a redirect URI."

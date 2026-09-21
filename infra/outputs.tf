@@ -14,6 +14,17 @@ output "acm_validation_records" {
   }
 }
 
+output "auth_acm_validation_record" {
+  description = "CNAME to add in Cloudflare (DNS-only / grey-cloud) to validate the sign-in domain's certificate. Leave it in place permanently, ACM re-checks it for renewals."
+  value = {
+    for dvo in aws_acm_certificate.auth.domain_validation_options : dvo.domain_name => {
+      name  = dvo.resource_record_name
+      type  = dvo.resource_record_type
+      value = dvo.resource_record_value
+    }
+  }
+}
+
 output "api_gateway_invoke_url" {
   value       = aws_apigatewayv2_stage.api.invoke_url
   description = "Direct API Gateway URL, bypassing CloudFront. Useful for debugging cache issues"
