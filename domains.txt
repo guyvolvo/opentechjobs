@@ -12195,3 +12195,10 @@ drug-hunter.com
 donna.de
 fusionhitjobs.com
 john-brooks.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+galois.com
+grant-thornton.com
+highbridgecareers.com
+houston.com
+oakbrother.com
