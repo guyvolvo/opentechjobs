@@ -3421,7 +3421,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 
 .hero-bar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 16px;
   padding: 14px var(--edge) 0;
@@ -3437,13 +3437,17 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 /* The account corner. Signed out it is a word; signed in, a button with
    the reader's initial that opens a menu in the system's own shapes:
    paper, an ink rule, the 4px field radius, no shadow. */
-.hero-account { position: relative; }
+/* As tall as the two stacked links beside it, so the bar's two ends
+   read as one row. */
+.hero-account { position: relative; display: flex; align-items: stretch; align-self: stretch; }
+.hero-account > .hero-bar-name { display: inline-flex; align-items: center; }
 .hero-account-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
-  padding: 0 12px 0 6px;
+  min-height: 38px;
+  align-self: stretch;
+  padding: 0 14px 0 8px;
   border: 1.5px solid var(--black);
   border-radius: 4px;
   background: var(--white);
@@ -3460,8 +3464,8 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--green-text);
   color: var(--white);
@@ -3849,7 +3853,11 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .contact-way:last-child { border-bottom: var(--rule) solid var(--black); }
 .contact-way:hover .contact-way-value { color: var(--green-text); }
-.contact-way-name { font-family: var(--font-display); font-size: clamp(24px, 2.2vw, 1.75rem); line-height: 1.1; }
+.contact-way-name { display: inline-flex; align-items: center; }
+/* The platform's own mark, in ink rather than its brand colour, so the
+   row reads as one voice; the name stays for screen readers. */
+.contact-icon { width: 28px; height: 28px; color: var(--black); }
+.contact-way:hover .contact-icon { color: var(--green-text); }
 .contact-way-value { font-family: var(--font-ui); font-size: 14px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 .contact-form { display: flex; flex-direction: column; }
 .contact-form label { font-family: var(--font-ui); font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
