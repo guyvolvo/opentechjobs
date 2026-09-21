@@ -12503,3 +12503,12 @@ krakentech.ai
 pathward.com
 voleon.com
 exiger.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+torcrobotics.com
+cdr-companies.com
+jyskbaltics.com
+belle.ai
+decimainternational.com
+appnovation.com
+phoenixocp.fr

@@ -22958,5 +22958,275 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "berklee.de",
+  "tenant": "berklee",
+  "wd": "wd1",
+  "site": "BerkleeCareers",
+  "jobs_seen": 53,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dowjones.myworkdayjobs.com",
+  "tenant": "dowjones",
+  "wd": "wd1",
+  "site": "News_Corp_Australia_Careers",
+  "jobs_seen": 53,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "porch.com",
+  "tenant": "porch",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 53,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "swa.de",
+  "tenant": "swa",
+  "wd": "wd1",
+  "site": "external",
+  "jobs_seen": 53,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wmg.com",
+  "tenant": "wmg",
+  "wd": "wd1",
+  "site": "WMGUS",
+  "jobs_seen": 53,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "albemarle.com",
+  "tenant": "albemarle",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 52,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "lvhn.net",
+  "tenant": "lvhn",
+  "wd": "wd1",
+  "site": "HNL",
+  "jobs_seen": 52,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "samuelmerritt.com",
+  "tenant": "samuelmerritt",
+  "wd": "wd1",
+  "site": "SMUCareers",
+  "jobs_seen": 52,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wts.co",
+  "tenant": "wts",
+  "wd": "wd3",
+  "site": "wts",
+  "jobs_seen": 52,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bucks.co",
+  "tenant": "bucks",
+  "wd": "wd1",
+  "site": "BCCC",
+  "jobs_seen": 51,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "tbkbank.com",
+  "tenant": "tbkbank",
+  "wd": "wd1",
+  "site": "tfin",
+  "jobs_seen": 51,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cubic.com",
+  "tenant": "cubic",
+  "wd": "wd1",
+  "site": "cubic_USA_careers",
+  "jobs_seen": 50,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "shift4payments.com",
+  "tenant": "shift4payments",
+  "wd": "wd108",
+  "site": "shift4_external_careersite",
+  "jobs_seen": 50,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "tdwilliamson.com",
+  "tenant": "tdwilliamson",
+  "wd": "wd1",
+  "site": "TDWCareers",
+  "jobs_seen": 50,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "uakron.net",
+  "tenant": "uakron",
+  "wd": "wd1",
+  "site": "UACareers",
+  "jobs_seen": 50,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "amherstgroup.com",
+  "tenant": "amherstgroup",
+  "wd": "wd1",
+  "site": "Amherst_Holdings_Careers",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cmu.com",
+  "tenant": "cmu",
+  "wd": "wd115",
+  "site": "SEI",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "fhiworks.com",
+  "tenant": "fhiworks",
+  "wd": "wd1",
+  "site": "fhi",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "kean.io",
+  "tenant": "kean",
+  "wd": "wd503",
+  "site": "Kean",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "lynn.io",
+  "tenant": "lynn",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "monarchcasino.myworkdayjobs.com",
+  "tenant": "monarchcasino",
+  "wd": "wd501",
+  "site": "Monarch_Casinos",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "morganlewis.com",
+  "tenant": "morganlewis",
+  "wd": "wd5",
+  "site": "morganlewis",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "rehmann.com",
+  "tenant": "rehmann",
+  "wd": "wd108",
+  "site": "Rehmann_External_Career_Site",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "calvin.com",
+  "tenant": "calvin",
+  "wd": "wd5",
+  "site": "CalvinUniversityCareers",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "icc.com",
+  "tenant": "icc",
+  "wd": "wd12",
+  "site": "External",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "huntelec.com",
+  "tenant": "huntelec",
+  "wd": "wd501",
+  "site": "HuntElectric_Careers",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "igsenergy.com",
+  "tenant": "igsenergy",
+  "wd": "wd1",
+  "site": "IGS",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
