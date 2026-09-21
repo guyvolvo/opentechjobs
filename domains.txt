@@ -12056,3 +12056,26 @@ chargerhelp.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 the-educator.org
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+kiavets.com
+job-bridge.de
+lapoflovejobs.com
+intellecthq.com
+intetics.com
+keywords.io
+guess.com
+domes.com
+european-dynamics.com
+healthcarerecruiter.org
+fioneer.com
+meron.ai
+eva.io
+innovativ-pharma.com
+experts-plus.com
+small-potato.net
+g.co
+freedom-leisure.com
+hokali.com
+freedup.io
+ibmcid.com
