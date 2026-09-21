@@ -2970,6 +2970,31 @@ footer {
    reference's parameter chips: the SQL editor, column names, and the
    axis numbers a reader lines up by eye. Same family, one exception. */
 
+/* Roles posted per day: one question above the SQL workspace, in the
+   same bordered panel voice, with the page's own line chart. */
+.trend-panel { margin-bottom: 20px; }
+.trend-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.trend-head .account-block-title { margin: 0; }
+.trend-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.trend-form select {
+  height: 30px;
+  padding: 0 8px;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+.trend-form select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+.trend-toggle { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-ui); font-size: 13px; }
+.trend-toggle input { accent-color: var(--green); }
+.trend-summary { margin: 0 0 14px; font-size: 13px; line-height: 1.5; color: var(--grey); }
+.trend-summary b { color: var(--black); }
+.trend-note { color: var(--grey); }
+/* The tail the counts have not caught up with yet. */
+.xline-settling { stroke-dasharray: 4 3; opacity: 0.55; }
+
 .explore-page { display: block; padding-bottom: 40px; }
 .explore-page .section { padding-top: 28px; }
 .explore-intro { color: var(--grey); margin: 0 0 16px; max-width: 72ch; line-height: 1.5; font-size: 12.5px; }

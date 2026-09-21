@@ -63,6 +63,31 @@
              is in the file and why. -->
         <p class="explore-intro">Here you can query information about the current and past job market statistics, in both no code and SQL formats</p>
 
+        <!-- Posting trend. One question, asked with two controls and
+             answered from /api/trend, ahead of the SQL workspace below
+             for the reader who wants the shape rather than the rows. -->
+        <div class="panel trend-panel">
+          <div class="trend-head">
+            <h3 class="account-block-title">Roles posted per day</h3>
+            <form class="trend-form" id="trend-form">
+              <label class="visually-hidden" for="trend-country">Country</label>
+              <select id="trend-country">
+                <option value="">Everywhere</option>
+              </select>
+              <label class="visually-hidden" for="trend-days">Days</label>
+              <select id="trend-days">
+                <option value="14">Last 14 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="180">Last 180 days</option>
+              </select>
+              <label class="trend-toggle"><input type="checkbox" id="trend-tech" checked /> Tech roles only</label>
+            </form>
+          </div>
+          <p class="trend-summary" id="trend-summary">Loading…</p>
+          <div id="trend-chart"></div>
+        </div>
+
         <div class="explore-layout">
           <!-- Sidebar. Schema first, the starter questions under it, both
                as panels in the same bordered voice as the workspace. -->
@@ -177,5 +202,6 @@
   <script src="vendor/httpvfs/index.js"></script>
   <script src="qb.js"></script>
   <script src="stats.js"></script>
+  <script src="trend.js"></script>
 </body>
 </html>
