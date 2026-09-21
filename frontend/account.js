@@ -376,6 +376,9 @@ async function bootAccount() {
   const tokens = getAuthTokens();
   if (!tokens?.id_token) {
     $("account-signedout").hidden = false;
+    // The page behind it has nothing to show without a token, so it
+    // gives up its own rule and heading while the dialog is up.
+    document.body.classList.add("signin-open");
     wireAccountSignIn();
     return;
   }

@@ -1,0 +1,10 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const page = await b.newPage({ viewport: { width: 1440, height: 300 } });
+await page.addInitScript(() => { try { localStorage.setItem("iljobs_geo_asked", "1"); } catch {} });
+await page.goto("http://127.0.0.1:8000/board", { waitUntil: "load" });
+await page.waitForFunction(() => document.querySelectorAll(".ticker-item").length > 2, null, { timeout: 40000 });
+await page.waitForTimeout(700);
+console.log("border-right:", await page.evaluate(() => getComputedStyle(document.querySelector(".ticker-item")).borderRightWidth));
+await page.screenshot({ path: "tests/e2e/ticker-no-rules.png", clip: { x: 150, y: 0, width: 800, height: 60 } });
+await b.close();

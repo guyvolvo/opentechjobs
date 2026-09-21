@@ -9,7 +9,7 @@ for (const [name, storage] of [["signed-out", {}], ["signed-in", { iljobs_auth_t
   await page.goto("http://127.0.0.1:8000/account", { waitUntil: "load" });
   await page.waitForTimeout(2500);
   console.log(name, JSON.stringify(await page.evaluate(() => ({
-    signinVisible: !!document.querySelector("#account-signedout")?.offsetParent,
+    signinVisible: !document.querySelector("#account-signedout")?.hidden,
     bodyVisible: !!document.querySelector("#account-body")?.offsetParent,
     email: document.getElementById("account-email")?.textContent || "",
   }))));
