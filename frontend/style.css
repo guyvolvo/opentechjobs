@@ -3909,7 +3909,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .contact h2 {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(26px, 3vw, 2.4rem);
+  font-size: clamp(24px, 3vw, 2.4rem);
   line-height: 1.05;
   letter-spacing: -0.02em;
   margin: 0 0 18px;
@@ -3926,7 +3926,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .contact-way:last-child { border-bottom: var(--rule) solid var(--black); }
 .contact-way:hover .contact-way-value { color: var(--green-text); }
-.contact-way-name { font-family: var(--font-display); font-size: clamp(20px, 2.2vw, 1.75rem); line-height: 1.1; }
+.contact-way-name { font-family: var(--font-display); font-size: clamp(24px, 2.2vw, 1.75rem); line-height: 1.1; }
 .contact-way-value { font-family: var(--font-ui); font-size: 14px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 .contact-form { display: flex; flex-direction: column; }
 .contact-form label { font-family: var(--font-ui); font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
