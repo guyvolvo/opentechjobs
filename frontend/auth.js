@@ -44,13 +44,15 @@ const COGNITO_CLIENT_ID = "5021pv23cp3udp1uaq34tp38mb";
 // var.github_oauth_client_secret (infra/github_auth_lambda.tf), because
 // only the server side of the code exchange is allowed to hold it.
 const GITHUB_OAUTH_CLIENT_ID = "Ov23lii8kIqDUL9aLhxh";
-// Flips to true once infra/cognito.tf's aws_cognito_identity_provider.google
-// actually exists (real Google Cloud Console credentials set). Until then,
-// redirecting to Cognito's /oauth2/authorize?identity_provider=Google lands
-// on Cognito's own generic "Login option is not available" hosted-UI error
-// page instead -- confusing, and a full navigation away from this app's own
-// error display. Guarded the same way GitHub is instead.
-const GOOGLE_CONFIGURED = false;
+// True since 2026-09-21: infra/cognito.tf's aws_cognito_identity_provider
+// .google exists on the pool and the web client lists it. It was false for
+// as long as it did not, because redirecting to Cognito's
+// /oauth2/authorize?identity_provider=Google without a provider behind it
+// lands on Cognito's own generic "Login option is not available" hosted-UI
+// page: confusing, and a full navigation away from this app's own error
+// display. If Google is ever removed from the pool, this goes back to
+// false rather than the button being left to fail in the open.
+const GOOGLE_CONFIGURED = true;
 const AUTH_TOKENS_KEY = "iljobs_auth_tokens";
 const PKCE_VERIFIER_KEY = "iljobs_pkce_verifier"; // sessionStorage: only needs to survive the redirect round-trip
 
