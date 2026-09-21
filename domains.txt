@@ -12479,3 +12479,13 @@ theoriamedical.com
 uff.co
 themintdispensary.com
 queracomputinginc.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+nakedfarmer.org
+arrive.com
+decathlontechnology.com
+leovegasgroup.com
+technicatome.com
+safefleet.net
+acommerce.com
+blackcanyonconsulting.com
