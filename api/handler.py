@@ -273,6 +273,11 @@ def lambda_handler(event, context):
             return _response(200, json.dumps(route_facets(params), default=str), cache_seconds=60)
         if path == "/health":
             return _response(200, json.dumps(route_health(), default=str), cache_seconds=60)
+        if path == "/contact":
+            if method != "POST":
+                return _response(405, json.dumps({"error": "method not allowed"}))
+            status, body = route_contact(json.loads(event.get("body") or "{}"))
+            return _response(status, json.dumps(body))
         if path == "/pipeline-status":
             return _response(200, json.dumps(route_pipeline_status(), default=str))
         if path == "/geo":
@@ -854,6 +859,48 @@ def route_companies(params: dict) -> dict:
 
 
 # /stats
+
+# /contact: the contact page's form, sent on as one email. No account
+# needed, so it is throttled by shape rather than identity: a hidden
+# field a person never fills, hard length caps, and a message that has
+# to say something. The reply address is the sender's, so answering is
+# one click; the mail itself comes from the alerts sender, the one
+# address SES is verified for.
+CONTACT_TO = os.environ.get("CONTACT_TO", "guyvoloshin@gmail.com")
+CONTACT_FROM = os.environ.get("ALERTS_FROM_EMAIL", "alerts@guyvoloshin.com")
+_EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,255}\.[a-z]{2,}$", re.I)
+_ses_client = None
+
+
+def route_contact(body: dict) -> tuple[int, dict]:
+    if body.get("website"):  # the honeypot; a browser never fills it
+        return 200, {"ok": True}
+    name = str(body.get("name") or "").strip()[:120]
+    email = str(body.get("email") or "").strip()[:254]
+    message = str(body.get("message") or "").strip()
+    if not _EMAIL_RE.match(email):
+        return 400, {"error": "a valid email address is needed for a reply"}
+    if len(message) < 10:
+        return 400, {"error": "the message is too short"}
+    if len(message) > 5000:
+        return 400, {"error": "the message is too long (5,000 characters at most)"}
+    global _ses_client
+    if _ses_client is None:
+        _ses_client = boto3.client("sesv2")
+    text = f"From: {name or '(no name)'} <{email}>\n\n{message}\n"
+    try:
+        _ses_client.send_email(
+            FromEmailAddress=CONTACT_FROM,
+            Destination={"ToAddresses": [CONTACT_TO]},
+            ReplyToAddresses=[email],
+            Content={"Simple": {"Subject": {"Data": f"opentechjobs.org contact: {name or email}"[:200]},
+                                "Body": {"Text": {"Data": text}}}},
+        )
+    except Exception as e:
+        print(f"contact mail failed: {e!r}")
+        return 502, {"error": "the message could not be sent right now"}
+    return 200, {"ok": True}
+
 
 # /facets: per-option counts for the board's own filter dropdowns
 # (Category, Location, Company), scoped to whatever ELSE is currently

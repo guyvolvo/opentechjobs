@@ -74,6 +74,14 @@ resource "aws_iam_role_policy" "api_lambda" {
         Resource = aws_dynamodb_table.alerts.arn
       },
       {
+        # /contact: the contact page's form, sent on as one email from
+        # the alerts sender to the address in CONTACT_TO.
+        Sid      = "SendContactMail"
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail"]
+        Resource = "*"
+      },
+      {
         Sid      = "Logs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
@@ -126,9 +134,11 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      DATA_BUCKET  = aws_s3_bucket.data.bucket
-      DATA_KEY     = "jobs-read.db"
-      ALERTS_TABLE = aws_dynamodb_table.alerts.name
+      DATA_BUCKET       = aws_s3_bucket.data.bucket
+      DATA_KEY          = "jobs-read.db"
+      ALERTS_TABLE      = aws_dynamodb_table.alerts.name
+      ALERTS_FROM_EMAIL = var.alerts_from_email
+      CONTACT_TO        = var.contact_to_email
     }
   }
 
