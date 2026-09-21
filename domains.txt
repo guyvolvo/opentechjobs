@@ -12136,3 +12136,20 @@ huble.com
 jcc.com
 kooku.ai
 headfirst.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+forgotten-empires.com
+fraport-greece.com
+futurex.com
+fullmind.net
+hamelin.io
+everyday.io
+karohealthcare.com
+kueckerpulseintegration.com
+fpmarkets.com
+halo-industries.com
+fusiontek.com
+fvi.com
+itrs.com
+knok.com
+facetwealth.com
