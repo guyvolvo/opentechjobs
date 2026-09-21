@@ -12262,3 +12262,11 @@ hamiltonian.ai
 inventura.co
 ivyhill.co
 hausmeisterkrause.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+value.io
+desilva.de
+elasticstage.com
+fme-us.com
+freebird.com
+getellipsis.com
