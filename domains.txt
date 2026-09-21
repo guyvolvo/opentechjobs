@@ -12427,3 +12427,10 @@ atwellgroup.com
 digitalocean.com
 fairsteadescllc.com
 sondermind.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+hims.net
+judihealth.com
+allenintegratedsolutions.com
+five9.com
+tekion.com

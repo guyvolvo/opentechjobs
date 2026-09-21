@@ -20828,5 +20828,305 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "acelero.com",
+  "tenant": "acelero",
+  "wd": "wd1",
+  "site": "AceleroLearningCareers",
+  "jobs_seen": 124,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "airasia.com",
+  "tenant": "airasia",
+  "wd": "wd3",
+  "site": "Careers",
+  "jobs_seen": 124,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "goodwillmiddletn.com",
+  "tenant": "goodwillmiddletn",
+  "wd": "wd5",
+  "site": "goodwill",
+  "jobs_seen": 124,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "keystonehumanservices.com",
+  "tenant": "keystonehumanservices",
+  "wd": "wd5",
+  "site": "KHS_Careers",
+  "jobs_seen": 124,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "guidewire.com",
+  "tenant": "guidewire",
+  "wd": "wd5",
+  "site": "external",
+  "jobs_seen": 123,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mercyagedcare.com",
+  "tenant": "mercyagedcare",
+  "wd": "wd105",
+  "site": "External",
+  "jobs_seen": 123,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "papedawson.com",
+  "tenant": "papedawson",
+  "wd": "wd12",
+  "site": "PDE",
+  "jobs_seen": 123,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "revvity.com",
+  "tenant": "revvity",
+  "wd": "wd103",
+  "site": "External",
+  "jobs_seen": 123,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bankatfirst.com",
+  "tenant": "bankatfirst",
+  "wd": "wd1",
+  "site": "ffb",
+  "jobs_seen": 121,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "uhyus.com",
+  "tenant": "uhyus",
+  "wd": "wd12",
+  "site": "uhy",
+  "jobs_seen": 121,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "corteva.com",
+  "tenant": "corteva",
+  "wd": "wd5",
+  "site": "corteva",
+  "jobs_seen": 120,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "driscoll.ai",
+  "tenant": "driscoll",
+  "wd": "wd1",
+  "site": "DHS",
+  "jobs_seen": 120,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "harrods.io",
+  "tenant": "harrods",
+  "wd": "wd3",
+  "site": "Harrods_External1",
+  "jobs_seen": 120,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "zoetis.com",
+  "tenant": "zoetis",
+  "wd": "wd5",
+  "site": "zoetis",
+  "jobs_seen": 120,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nrpgroup.com",
+  "tenant": "nrpgroup",
+  "wd": "wd1",
+  "site": "NRP",
+  "jobs_seen": 118,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "owens.com",
+  "tenant": "owens",
+  "wd": "wd1",
+  "site": "OCC",
+  "jobs_seen": 118,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "crossroadstreatmentcenters.com",
+  "tenant": "crossroadstreatmentcenters",
+  "wd": "wd1",
+  "site": "Crossroads",
+  "jobs_seen": 117,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "omnissa.com",
+  "tenant": "omnissa",
+  "wd": "wd501",
+  "site": "Omnissa_External_Career_Site",
+  "jobs_seen": 117,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "velux.com",
+  "tenant": "velux",
+  "wd": "wd3",
+  "site": "Velux_Residential",
+  "jobs_seen": 117,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "apog.com",
+  "tenant": "apog",
+  "wd": "wd1",
+  "site": "Apogee",
+  "jobs_seen": 116,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "horizonmedia.com",
+  "tenant": "horizonmedia",
+  "wd": "wd1",
+  "site": "CareerOpportunities",
+  "jobs_seen": 116,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "workiva.com",
+  "tenant": "workiva",
+  "wd": "wd503",
+  "site": "careers",
+  "jobs_seen": 116,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "transformingage.com",
+  "tenant": "transformingage",
+  "wd": "wd108",
+  "site": "JoinUs",
+  "jobs_seen": 113,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "zendesk.com",
+  "tenant": "zendesk",
+  "wd": "wd1",
+  "site": "zendesk",
+  "jobs_seen": 113,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "asurion.com",
+  "tenant": "asurion",
+  "wd": "wd5",
+  "site": "AsurionCareers_US",
+  "jobs_seen": 112,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "arianegroup.com",
+  "tenant": "arianegroup",
+  "wd": "wd3",
+  "site": "EXTERNALALL",
+  "jobs_seen": 112,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pacificlife.com",
+  "tenant": "pacificlife",
+  "wd": "wd1",
+  "site": "PacificLifeCareers",
+  "jobs_seen": 112,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "quantiphi.com",
+  "tenant": "quantiphi",
+  "wd": "wd1",
+  "site": "Careers_at_Quantiphi",
+  "jobs_seen": 111,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "univision.com",
+  "tenant": "univision",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 111,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "williammary.ai",
+  "tenant": "williammary",
+  "wd": "wd12",
+  "site": "WM",
+  "jobs_seen": 111,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
