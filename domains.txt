@@ -12225,3 +12225,22 @@ foundersforum.com
 gtech.co
 huggingface.com
 jandhjanitorial.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+farohealth.com
+finartix.com
+flexcarcareers.com
+funnel.io
+fleetpartners.com
+gosourcing.io
+hiregroundtalent.com
+immediate.de
+intellishift.com
+instacar.io
+ischool.com
+jasmax.com
+justpark.com
+interactive.com
+koothjobs.com
+cf2i.com
+heim.com
