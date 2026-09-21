@@ -30,7 +30,6 @@ from boto3.dynamodb.conditions import Key
 
 from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
                         has_board_filters, search_companies)
-from countries import ALPHA2
 from db import get_connection, status as db_status
 from help_page import HELP_HTML
 import company_page
@@ -274,8 +273,6 @@ def lambda_handler(event, context):
             return _response(200, json.dumps(route_facets(params), default=str), cache_seconds=60)
         if path == "/health":
             return _response(200, json.dumps(route_health(), default=str), cache_seconds=60)
-        if path == "/trend":
-            return _response(200, json.dumps(route_trend(params), default=str), cache_seconds=600)
         if path == "/contact":
             if method != "POST":
                 return _response(405, json.dumps({"error": "method not allowed"}))
@@ -862,56 +859,6 @@ def route_companies(params: dict) -> dict:
 
 
 # /stats
-
-# /trend: how many roles were posted per day, for a country and a window.
-# The date is the employer's own posting date, not when we first saw the
-# listing, which is the honest answer to "when was this posted" and the
-# reason the last day or two always read low: boards that report a coarse
-# "posted this week" resolve to a date days later, and a tenant we have
-# not re-read yet has not told us about today at all. The response says
-# how many days at its tail are still filling in, so a chart can mark
-# them rather than draw a cliff.
-TREND_MAX_DAYS = 365
-TREND_SETTLING_DAYS = 3
-
-
-def route_trend(params: dict) -> dict:
-    try:
-        days = min(TREND_MAX_DAYS, max(1, int(params.get("days") or 30)))
-    except ValueError:
-        days = 30
-    country = (params.get("country") or "").strip().upper()
-    where = ["closed_at IS NULL", "posted_at IS NOT NULL",
-             "date(posted_at) > date('now', ?)", "date(posted_at) <= date('now')"]
-    args: list = [f"-{days} day"]
-    if country:
-        if country not in ALPHA2:
-            return {"error": f"no country with the code {country}"}
-        # country is a comma-joined list when a listing names several.
-        where.append("(country = ? OR country LIKE ? OR country LIKE ? OR country LIKE ?)")
-        args += [country, f"{country},%", f"%,{country}", f"%,{country},%"]
-    if (params.get("roles") or "").lower() == "tech" and has_role_class(get_connection()):
-        where.append("role_class = 'tech'")
-    rows = get_connection().execute(
-        f"SELECT date(posted_at) AS d, COUNT(*) AS n FROM jobs WHERE {' AND '.join(where)} GROUP BY d ORDER BY d",
-        args,
-    ).fetchall()
-    by_day = {r["d"]: r["n"] for r in rows}
-    today = datetime.now(timezone.utc).date()
-    # Every day in the window, including the ones nothing was posted on:
-    # a gap in a line chart is a different claim from a zero.
-    series = []
-    for i in range(days - 1, -1, -1):
-        d = (today - timedelta(days=i)).isoformat()
-        series.append({"date": d, "n": by_day.get(d, 0)})
-    return {
-        "country": country or None,
-        "days": days,
-        "settling_days": TREND_SETTLING_DAYS,
-        "total": sum(p["n"] for p in series),
-        "series": series,
-    }
-
 
 # /contact: the contact page's form, sent on as one email. No account
 # needed, so it is throttled by shape rather than identity: a hidden
