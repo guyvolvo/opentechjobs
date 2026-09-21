@@ -98,14 +98,16 @@
 </head>
 <body class="hero-page">
 
-  <header class="hero-bar">
+  <header class="hero-bar hero-bar-head">
     <div class="hero-bar-stack">
       <a class="hero-bar-name" href="/">opentechjobs.org</a>
       <a class="hero-bar-name" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">github</a>
     </div>
     <!-- Sign in, or My Account with its menu: hero_account.js fills it
-         from the same stored tokens the board and account page use. -->
-    <div class="hero-bar-right">
+         from the same stored tokens the board and account page use.
+         Hidden on a phone, where mobile_nav.js rebuilds all of this as
+         one vertical list instead. -->
+    <div class="hero-bar-right" id="hero-bar-right">
       <button type="button" class="hero-theme" id="hero-theme">Dark</button>
       <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
     </div>
@@ -350,5 +352,6 @@
       }
     })();
   </script>
+  <script src="mobile_nav.js"></script>
 </body>
 </html>

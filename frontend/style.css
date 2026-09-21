@@ -136,7 +136,7 @@
      every red message and the red Reset were faint in dark mode. 6.4:1. */
   --red: #ff6b5e;
   --scrim: rgba(0, 0, 0, 0.58);
-  color-scheme: dark;
+  color-scheme: dark;
   /* The landing page honours the theme now, and a light band across it
      read as a stripe of daylight. The marks keep their own light square
      on the board, where each is 44px; here the row is the page's. */
@@ -3530,6 +3530,118 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 .hero-bar-right { display: flex; align-items: flex-start; gap: 20px; }
 .hero-bar-right > * { min-height: var(--bar-line); }
 .hero-theme { display: inline-flex; align-items: center; }
+
+/* The phone menu, on every page.
+   
+   The bar was four or five controls in a row, and on the board a status
+   light and a ticker besides. At 390px that is a wall before a reader
+   has seen a word of the page. So on a phone the bar is three stepped
+   rules at the left edge and everything else opens downward from them.
+   
+   mobile_nav.js builds the list. Nothing in it owns any behaviour: the
+   theme row forwards a click to the page's own theme button, and
+   sign-in opens the same dialog the bar always opened. */
+.hero-nav-toggle {
+  display: none;
+  align-items: center;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.hero-nav-toggle:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; border-radius: 4px; }
+.hero-nav-bars { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+/* Stepped, longest on top, all flush left, which is what puts the short
+   rule over the page's own left margin rather than floating in the
+   middle of a square. Three equal rules is every other site's menu; the
+   step is the one place this bar gets a voice. */
+.hero-nav-bars i {
+  display: block;
+  width: 26px;
+  height: 2px;
+  background: currentColor;
+  /* Scaled rather than resized. All three rules are the same 26px and
+     the short ones are squeezed, so the step animates on the compositor
+     instead of asking the browser to lay the bar out again on every
+     frame of a 240ms transition. */
+  transform-origin: left center;
+  transition: transform 0.24s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.hero-nav-bars i:nth-child(2) { transform: scaleX(0.73); }
+.hero-nav-bars i:nth-child(3) { transform: scaleX(0.46); }
+/* Open, the step evens out. It says "everything is showing" without
+   turning into an X, which would be a different idea in a different
+   visual language. */
+.nav-open .hero-nav-bars i { transform: scaleX(1); }
+
+.hero-nav-panel {
+  display: none;
+  flex-direction: column;
+  /* No side padding: it sits inside a bar that already pads itself
+     to the page margin, so the list lines up under the icon rather
+     than stepping in from it. */
+  padding: 8px 0 16px;
+  font-family: var(--font-ui);
+  font-size: 16px;
+}
+.hero-nav-panel[hidden] { display: none; }
+.hero-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--grey-line);
+  background: none;
+  color: var(--black);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.hero-nav-item:last-child { border-bottom: 0; }
+.hero-nav-item:active { color: var(--green-text); }
+.hero-nav-item svg { flex: none; }
+.hero-nav-out { color: var(--red); }
+.hero-nav-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px 14px;
+  border-bottom: 1px solid var(--grey-line);
+  font-family: var(--font-ui);
+  font-weight: 700;
+}
+.hero-nav-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .hero-nav-toggle { display: inline-flex; }
+  .hero-nav-panel { display: flex; }
+  /* Everything the menu now carries, taken out of the bar itself. */
+  .hero-bar-head .hero-bar-stack,
+  .hero-bar-head .hero-bar-right,
+  .topbar .topnav { display: none; }
+  /* The panel is a child of the bar, and the bar is a flex row, so
+     without this it lands beside the icon instead of under it. */
+  .hero-bar-head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-top: 12px;
+    padding-bottom: 4px;
+  }
+  .hero-nav-panel { flex: 1 0 100%; }
+  /* The board's bar is the same shape one level down, and it keeps
+     its status light and ticker: only the controls move out. */
+  .topbar > .container { flex-wrap: wrap; align-items: center; gap: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-nav-bars i { transition: none; }
+}
+}
 .hero-theme {
   border: 0;
   background: none;

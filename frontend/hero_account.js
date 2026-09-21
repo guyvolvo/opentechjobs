@@ -159,6 +159,11 @@
     paint();
   }
 
+  // mobile_nav.js offers the same sign-in from the phone menu, and it
+  // is a separate file, so the dialog has to be reachable from outside
+  // this closure. One implementation, two ways in.
+  window.openSignIn = openSignIn;
+
   setAuthRenderSink(render);
   render();
 })();
