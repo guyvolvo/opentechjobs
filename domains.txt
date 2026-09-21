@@ -12153,3 +12153,24 @@ fvi.com
 itrs.com
 knok.com
 facetwealth.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+geoprobe.com
+kpmg.com
+foundations.com
+hindmanagement.com
+itecor.com
+indiana.co
+keycafe.com
+healthie.com
+disa.com
+evolv.org
+fullstackacademy.com
+fundcraft.com
+joom.com
+domain-tools.net
+everwest.com
+ki-insurance.com
+laundryheap.com
+dreamscape.ai
+flexxon.com
