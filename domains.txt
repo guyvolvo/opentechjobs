@@ -12367,3 +12367,6 @@ kuno.io
 celumgmbh.com
 happeo.com
 heinemannaustriagmbh.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+texas-campaign-for-the-environment.com
