@@ -12607,3 +12607,23 @@ aptura.io
 manychat.fr
 surveymonkey.com
 trustly.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+firy.com
+outpostspace.com
+revecore.com
+adzuna-2.com
+advancedspace.com
+bettinghero.com
+cadencehealth.com
+hawkeye.net
+sixgen.com
+star-catcher.com
+amber.ai
+universe.com
+xdof.ai
+amazehealth.com
+errg.com
+gravitics.com
+quantifind.com
+airbound.com

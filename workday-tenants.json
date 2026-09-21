@@ -24948,5 +24948,255 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "digikey.com",
+  "tenant": "digikey",
+  "wd": "wd5",
+  "site": "digi-key",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vertexinc.com",
+  "tenant": "vertexinc",
+  "wd": "wd1",
+  "site": "VertexInc",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "walkerdunlop.com",
+  "tenant": "walkerdunlop",
+  "wd": "wd1",
+  "site": "WD",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "weil.com",
+  "tenant": "weil",
+  "wd": "wd1",
+  "site": "work_at_weil",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "xboxgaming.com",
+  "tenant": "xboxgaming",
+  "wd": "wd1",
+  "site": "King_External_Careers",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "imtt.com",
+  "tenant": "imtt",
+  "wd": "wd5",
+  "site": "IMTT",
+  "jobs_seen": 20,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mhgi.com",
+  "tenant": "mhgi",
+  "wd": "wd1",
+  "site": "MeritageCareers",
+  "jobs_seen": 20,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "msh.net",
+  "tenant": "msh",
+  "wd": "wd503",
+  "site": "External",
+  "jobs_seen": 20,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pensacolachristian.com",
+  "tenant": "pensacolachristian",
+  "wd": "wd1",
+  "site": "ABS",
+  "jobs_seen": 20,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sparke.ai",
+  "tenant": "sparke",
+  "wd": "wd3",
+  "site": "SHL",
+  "jobs_seen": 20,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wellesley.com",
+  "tenant": "wellesley",
+  "wd": "wd1",
+  "site": "wellesley-staff",
+  "jobs_seen": 20,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "woodbineentertainment.com",
+  "tenant": "woodbineentertainment",
+  "wd": "wd10",
+  "site": "EXT",
+  "jobs_seen": 20,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bentley.com",
+  "tenant": "bentley",
+  "wd": "wd503",
+  "site": "staff",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cityofgainesville.org",
+  "tenant": "cityofgainesville",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "csiweb.com",
+  "tenant": "csiweb",
+  "wd": "wd1",
+  "site": "CSI_Careers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "doterra.com",
+  "tenant": "doterra",
+  "wd": "wd1",
+  "site": "doTERRACareers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "dreamscaperio.com",
+  "tenant": "dreamscaperio",
+  "wd": "wd5",
+  "site": "Rio_Careers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hindscountyms.com",
+  "tenant": "hindscountyms",
+  "wd": "wd1",
+  "site": "HindsCareers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "nycsca.com",
+  "tenant": "nycsca",
+  "wd": "wd1",
+  "site": "External_Career_Site",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "pressganey.com",
+  "tenant": "pressganey",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "southerncross.com",
+  "tenant": "southerncross",
+  "wd": "wd105",
+  "site": "SCHS",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "speedcast.com",
+  "tenant": "speedcast",
+  "wd": "wd1",
+  "site": "speedcastcareers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wacounty.com",
+  "tenant": "wacounty",
+  "wd": "wd12",
+  "site": "Careers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "withum.com",
+  "tenant": "withum",
+  "wd": "wd108",
+  "site": "CR_Career_Site",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "zepinc.com",
+  "tenant": "zepinc",
+  "wd": "wd503",
+  "site": "zepinccareers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
