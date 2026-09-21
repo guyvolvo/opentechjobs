@@ -22,6 +22,10 @@ on:
   push:
     branches: [main]
     paths: ["infra/**"]
+  # By hand as well: some of this config reads repository secrets rather
+  # than files (the Google and GitHub OAuth credentials), so adding one
+  # has to be appliable without an infra/ file changing to carry it.
+  workflow_dispatch:
 
 permissions:
   id-token: write
