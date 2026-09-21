@@ -25198,5 +25198,215 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "babson.com",
+  "tenant": "babson",
+  "wd": "wd1",
+  "site": "Temporary_Seasonal",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "enhsa.net",
+  "tenant": "enhsa",
+  "wd": "wd115",
+  "site": "Duet1",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gatecitybank.com",
+  "tenant": "gatecitybank",
+  "wd": "wd5",
+  "site": "gatecitybankcareers",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "orix.com",
+  "tenant": "orix",
+  "wd": "wd5",
+  "site": "External_ORIX",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "sjindustries.com",
+  "tenant": "sjindustries",
+  "wd": "wd1",
+  "site": "SJI",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wwecorp.org",
+  "tenant": "wwecorp",
+  "wd": "wd5",
+  "site": "wwecorp",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "aett.co",
+  "tenant": "aett",
+  "wd": "wd3",
+  "site": "Versent",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "anokacounty.com",
+  "tenant": "anokacounty",
+  "wd": "wd1",
+  "site": "Anoka_County_Career_Opportunities",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "calwatergroup.com",
+  "tenant": "calwatergroup",
+  "wd": "wd5",
+  "site": "CWSG",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cnoinc.com",
+  "tenant": "cnoinc",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "highridgemedical.com",
+  "tenant": "highridgemedical",
+  "wd": "wd503",
+  "site": "HRMCareers",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "movement.com",
+  "tenant": "movement",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "orionadvisor.com",
+  "tenant": "orionadvisor",
+  "wd": "wd1",
+  "site": "Orion_Careers",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "peckham.com",
+  "tenant": "peckham",
+  "wd": "wd503",
+  "site": "team-member",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vibrant.com",
+  "tenant": "vibrant",
+  "wd": "wd5",
+  "site": "VEH_EXTERNAL_CAREER_SITE",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "weleda.com",
+  "tenant": "weleda",
+  "wd": "wd3",
+  "site": "weleda_jobs",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wonderbox.com",
+  "tenant": "wonderbox",
+  "wd": "wd3",
+  "site": "WONDERBOX_GROUP_CAREERS",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "agl.org",
+  "tenant": "agl",
+  "wd": "wd3",
+  "site": "AGL_Recruitment",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bankeasy.com",
+  "tenant": "bankeasy",
+  "wd": "wd5",
+  "site": "bank-easy-job-openings",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cleco.fr",
+  "tenant": "cleco",
+  "wd": "wd5",
+  "site": "ClecoJobs",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "truliantfcu.com",
+  "tenant": "truliantfcu",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
