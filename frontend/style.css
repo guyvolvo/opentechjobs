@@ -2970,11 +2970,32 @@ footer {
    reference's parameter chips: the SQL editor, column names, and the
    axis numbers a reader lines up by eye. Same family, one exception. */
 
-/* Roles posted per day: one question above the SQL workspace, in the
-   same bordered panel voice, with the page's own line chart. */
-.trend-panel { margin-bottom: 20px; }
-.trend-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-.trend-head .account-block-title { margin: 0; }
+/* Roles posted per day. On the landing page it is a section in that
+   page's own voice, under the product shot: a display heading on an ink
+   rule with the controls at its right, then the line. */
+.hero-trend {
+  padding: clamp(40px, 6vw, 88px) var(--edge) 0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.hero-trend-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: var(--rule) solid var(--black);
+}
+.hero-trend h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.hero-trend .trend-summary { margin: 16px 0 18px; font-size: 14px; }
 .trend-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .trend-form select {
   height: 30px;
