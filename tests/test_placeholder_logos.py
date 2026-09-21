@@ -89,6 +89,31 @@ for u in REAL_URLS:
           company_logo.PLACEHOLDER_URL_RE.search(u) is None,
           repr(u))
 
+# The shape check, which is the part that ends the game rather than
+# playing another round of it. Rejecting the WordPress default from a
+# company's own site just moved those companies onto Google's favicon
+# service, which served the identical mark at a third size from a host
+# nobody can block. Measured that day: the three variants are within one
+# bit of each other, every placeholder family is at least 15 bits from
+# every other, and the nearest real logo was 18 away.
+WP_VARIANTS = [0xe7a5a51452cbc1e7, 0xe7a5a51452dbc1e7]  # grey 80px, blue 180px
+for h in WP_VARIANTS:
+    near = any(bin(h ^ k).count("1") <= company_logo.SHAPE_DISTANCE
+               for k in company_logo.PLACEHOLDER_SHAPES)
+    check(f"a WordPress default is recognised at any size ({h:#x})", near)
+
+families = list(company_logo.PLACEHOLDER_SHAPES)
+closest = min(bin(x ^ y).count("1")
+              for i, x in enumerate(families) for y in families[i + 1:])
+check("the families stay far enough apart to tell apart",
+      closest > company_logo.SHAPE_DISTANCE * 2, f"closest pair is {closest} bits")
+check("and the threshold is not wide enough to swallow a real logo",
+      company_logo.SHAPE_DISTANCE <= 8, repr(company_logo.SHAPE_DISTANCE))
+check("something that is not an image is judged by the byte rules, not rejected",
+      company_logo.looks_like_placeholder(b"not an image at all") is None)
+check("an empty body is not mistaken for a placeholder",
+      company_logo.looks_like_placeholder(b"") is None)
+
 # Rechecking. Version 2 only revisited Google-tier logos, which is why
 # thousands of site favicons kept a placeholder the blocklist already
 # knew about.

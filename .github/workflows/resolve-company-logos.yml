@@ -61,7 +61,12 @@ jobs:
         with:
           python-version: "3.13"
 
-      - run: pip install requests boto3
+      # pillow is for company_logo.py's shape check, which is what
+      # catches a placeholder served at a size its fingerprint has never
+      # seen. It is installed here and nowhere else: probe.py imports the
+      # same module into the scrape Lambda, where an image library would
+      # be tens of megabytes carried for a check that never runs there.
+      - run: pip install requests boto3 pillow
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:

@@ -135,6 +135,87 @@ PLACEHOLDER_URL_RE = re.compile(
     r"|parkingcrew\.net|afternic\.com|bodis\.com|wsimg\.com/.*logo-default)",
     re.I)
 
+# The same placeholders again, recognised by what they look like.
+#
+# Neither of the two rules above was enough on its own. The hashes only
+# know the exact bytes they were taught, and the URL rule cannot help
+# when the picture arrives from somewhere legitimate. Google's favicon
+# service is the case that proved it: rejecting the WordPress default
+# from a company's own site just moved every one of those companies onto
+# the Google tier, which served the same mark at a third size, from a
+# host that obviously cannot be blocked.
+#
+# So this compares the picture. Each value is an average hash: the image
+# in greyscale at 8x8, one bit per pixel for brighter or darker than its
+# own mean. Resizing and recompressing barely move it. The three
+# WordPress variants that got through, at 80px, 180px and Google's
+# 128px, sit within one bit of each other.
+#
+# The threshold is where it is because the measurements leave room for
+# it. Every family below is at least 15 bits from every other, and the
+# nearest real logo in the set that prompted this was 18 away.
+PLACEHOLDER_SHAPES = {
+    0xe7a5a51452cbc1e7: "WordPress default",
+    0x003c7e66663c1800: "GoDaddy site builder default, a house",
+    0xff008181c3c3e7ff: "Spaceship parked domain",
+    0xc183831d1d8383c1: "parked domain, orange D",
+    0xc1819f83c1f981c7: "Sedo parked domain",
+    0xc7911646723c99c3: "parked domain, orange b",
+    0xe7c3819db18181e7: "hosting default, teal shield",
+}
+SHAPE_DISTANCE = 6
+
+
+def shape_fingerprint(body: bytes):
+    """An 8x8 average hash, or None when this cannot be worked out.
+
+    Pillow is imported here rather than at the top because probe.py
+    imports this module and probe.py is bundled into the scrape Lambda,
+    where an image library would be tens of megabytes to carry for a
+    check the Lambda never performs. The resolver installs it; anything
+    that does not simply falls back to the two exact rules above, which
+    is how this behaved before shapes existed.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    try:
+        import io
+        im = Image.open(io.BytesIO(body))
+        if im.mode in ("RGBA", "LA", "P"):
+            # Over white, because that is what the board puts it on. A
+            # white mark on transparency would otherwise read as blank.
+            im = im.convert("RGBA")
+            flat = Image.new("RGBA", im.size, (255, 255, 255, 255))
+            flat.alpha_composite(im)
+            im = flat
+        im = im.convert("L").resize((8, 8), Image.LANCZOS)
+        px = list(im.getdata())
+        if len(px) != 64:
+            return None
+        avg = sum(px) / 64
+        bits = 0
+        for i, value in enumerate(px):
+            if value > avg:
+                bits |= 1 << i
+        return bits
+    except Exception:
+        # A malformed or unsupported image is not a placeholder, it is
+        # just one this cannot judge. The byte rules still apply.
+        return None
+
+
+def looks_like_placeholder(body: bytes):
+    """Which placeholder this image is a version of, or None."""
+    shape = shape_fingerprint(body)
+    if shape is None:
+        return None
+    for known, label in PLACEHOLDER_SHAPES.items():
+        if bin(shape ^ known).count("1") <= SHAPE_DISTANCE:
+            return label
+    return None
+
 
 def icon_fingerprint(body: bytes) -> str:
     return hashlib.sha1(body).hexdigest()[:16]
@@ -174,6 +255,8 @@ def check_image(sess, url: str) -> bool:
     # we asked for: a parked domain's own favicon.ico is a redirect to
     # the parking service, and the redirect is where the tell is.
     if PLACEHOLDER_URL_RE.search(r.url or url):
+        return False
+    if looks_like_placeholder(r.content):
         return False
     return True
 

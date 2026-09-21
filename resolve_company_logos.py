@@ -67,7 +67,14 @@ LOGOS_KEY = "company-logos.json"
 # 264 companies wearing an image that belonged to somebody else, two
 # clusters of them the WordPress default, which version 2 already
 # thought it had dealt with.
-LOGO_CHECK_VERSION = 3
+#
+# Version 4, the same day, because version 3 was not the end of it.
+# Rejecting the WordPress default from a company's own site moved all
+# of those companies onto Google's favicon service, which served the
+# identical mark at a size no fingerprint had seen. company_logo.py now
+# compares what the picture looks like rather than only its bytes, and
+# everything accepted under 3 has to be looked at through that.
+LOGO_CHECK_VERSION = 4
 
 # See referral_boards.py. referralsuseonly.com is not a website, so every
 # logo path that starts from the domain is looking somewhere that does
