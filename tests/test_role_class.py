@@ -77,9 +77,15 @@ for title, team, skills, want in cases:
     v, score, evidence = classify_role(title, team, skills)
     check(f"{title[:48]!r} is {want}", v == want, f"got {v} ({score:+.2f}; {evidence})")
 
-# The company's own mix decides what the title cannot.
-bare = classify_role("Project Manager", "", "")
-check("a bare project manager is adjacent, and stays so at a tech company", bare[0] == "adjacent" and classify_role("Project Manager", "", "", 0.9)[0] in ("adjacent", "unknown"))
+# The company's own mix: a role at a tech company is a tech role, and a
+# title that names a trade is still what it says.
+check("a bare project manager is adjacent with no company to go on", classify_role("Project Manager", "", "")[0] == "adjacent")
+check("the same project manager at a tech company is tech, with the company as evidence",
+      classify_role("Project Manager", "", "", 0.9)[0] == "tech" and "company-tech" in classify_role("Project Manager", "", "", 0.9)[2])
+check("a sales account manager at a biotech company stays adjacent", classify_role("Sales Account Manager, Israel", "Commercial", "", 0.1)[0] == "adjacent")
+check("a sales account manager at a fintech company is tech", classify_role("Sales Account Manager, Israel", "Commercial", "", 0.7)[0] == "tech")
+check("a nurse at a health-tech company is still a nurse", classify_role("Nurse Practitioner", "Clinical", "", 0.9)[0] == "non-tech")
+check("IT Service Specialist is IT work", classify_role("IT Service Specialist -Student Position", "Solutions Group", "")[0] == "tech")
 check("evidence names what decided it", "title:tech" in classify_role("Backend Engineer", "R&D", "Go")[2] and "skills:go" in classify_role("Backend Engineer", "R&D", "Go")[2])
 check("an empty title is unknown, not a verdict", classify_role("", "", "")[0] == "unknown")
 

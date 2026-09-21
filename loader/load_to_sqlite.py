@@ -901,9 +901,23 @@ def classify_roles(conn: sqlite3.Connection) -> int:
             "SELECT id, company_domain, title, department, skills FROM jobs WHERE role_class IS NULL LIMIT 20000"
         ).fetchall()
         if not rows:
-            return total
+            break
         total += len(rows)
         _classify_slice(conn, rows)
+    # Rows decided before the company rule existed, or before their
+    # company had enough decided roles: read once more with the
+    # company's mix. "company:" in the evidence marks a row that has had
+    # its turn, so this is a one-off per row, not every merge.
+    while True:
+        rows = conn.execute(
+            "SELECT id, company_domain, title, department, skills FROM jobs"
+            " WHERE role_class IN ('adjacent', 'unknown') AND (role_evidence IS NULL OR role_evidence NOT LIKE '%company%') LIMIT 20000"
+        ).fetchall()
+        if not rows:
+            break
+        total += len(rows)
+        _classify_with_company(conn, rows)
+    return total
 
 
 def _classify_slice(conn: sqlite3.Connection, rows: list) -> None:
@@ -912,24 +926,32 @@ def _classify_slice(conn: sqlite3.Connection, rows: list) -> None:
         verdict, score, evidence = classify_role(title, department, skills)
         first.append((verdict, score, evidence, jid))
     conn.executemany("UPDATE jobs SET role_class = ?, role_score = ?, role_evidence = ? WHERE id = ?", first)
-    unknown = [r for r in first if r[0] == "unknown"]
-    if unknown:
-        share = {
-            domain: tech / decided
-            for domain, tech, decided in conn.execute(
-                "SELECT company_domain, SUM(role_class = 'tech'), COUNT(*) FROM jobs"
-                " WHERE closed_at IS NULL AND role_class IN ('tech', 'adjacent', 'non-tech')"
-                " GROUP BY company_domain HAVING COUNT(*) >= 3"
-            )
-        }
-        by_id = {row[0]: row for row in rows}
-        second = []
-        for _, _, _, jid in unknown:
-            _, domain, title, department, skills = by_id[jid]
-            if domain in share:
-                second.append((*classify_role(title, department, skills, share[domain]), jid))
-        if second:
-            conn.executemany("UPDATE jobs SET role_class = ?, role_score = ?, role_evidence = ? WHERE id = ?", second)
+    again = [row for row, r in zip(rows, first) if r[0] in ("unknown", "adjacent")]
+    if again:
+        _classify_with_company(conn, again)
+
+
+def _company_tech_share(conn: sqlite3.Connection) -> dict[str, float]:
+    """Per company, the share of its decided open roles that is technical
+    work by title and skills. Roles promoted by the company rule carry
+    "company-tech" in their evidence and are left out of the numerator,
+    so a company cannot become a tech company by its own promotions."""
+    return {
+        domain: tech / decided
+        for domain, tech, decided in conn.execute(
+            "SELECT company_domain,"
+            " SUM(role_class = 'tech' AND (role_evidence IS NULL OR role_evidence NOT LIKE '%company-tech%')), COUNT(*)"
+            " FROM jobs WHERE closed_at IS NULL AND role_class IN ('tech', 'adjacent', 'non-tech')"
+            " GROUP BY company_domain HAVING COUNT(*) >= 3"
+        )
+    }
+
+
+def _classify_with_company(conn: sqlite3.Connection, rows: list) -> None:
+    share = _company_tech_share(conn)
+    second = [(*classify_role(title, department, skills, share.get(domain)), jid)
+              for jid, domain, title, department, skills in rows]
+    conn.executemany("UPDATE jobs SET role_class = ?, role_score = ?, role_evidence = ? WHERE id = ?", second)
 
 
 def prune_stale_companies(conn: sqlite3.Connection, current_domains: set[str], ts: str) -> int:

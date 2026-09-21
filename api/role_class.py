@@ -36,6 +36,15 @@ import re
 from job_filters import classify_category
 
 TECH_CATEGORIES = frozenset({"Software Engineering", "Infrastructure", "Data & AI", "Security", "QA", "Product & Design"})
+# A company is a tech company when at least this share of its decided
+# open roles is technical work by title and skills (the promotion below
+# is left out of the count, so it cannot feed itself). Three in ten,
+# not half: a software company hires more sales, support and finance
+# than engineers once it is past a certain size. Measured on the
+# 2026-09-21 snapshot, Wix sat at 46% and eToro at 33%, and both are
+# tech companies by any reading; GenScript, a biotech contract lab,
+# sat at 20% and is not.
+TECH_COMPANY_SHARE = 0.3
 ADJACENT_CATEGORIES = frozenset({"Sales & Marketing", "Operations & Business", "Customer Success"})
 
 
@@ -54,7 +63,7 @@ TECH_TITLE = _rx([
     r"data (?:scientist|analyst|engineer|steward|platform|architect)", r"machine learning", r"\bml\b", r"\bai\b", r"deep learning", r"computer vision", r"\bnlp\b",
     r"applied scientist", r"research scientist", r"computer scientist", r"member of technical staff", r"\bmts\b", r"researcher", r"quantitative",
     r"devops", r"\bsre\b", r"site reliability", r"cloud", r"platform", r"infra\b", r"infrastructure", r"systems? (?:administrator|engineer|analyst|integrat)",
-    r"it (?:support|service desk|helpdesk|help desk|administrator|technician|specialist|analyst|manager|operations)", r"service ?desk", r"help ?desk", r"data cent(?:er|re)",
+    r"it (?:support|service|systems?|help|admin|technician|specialist|analyst|manager|operations|infrastructure)", r"service ?desk", r"help ?desk", r"data cent(?:er|re)",
     r"security(?! (?:guard|officer|and loss|& loss))", r"cyber", r"dfir", r"forensic", r"malware", r"penetration", r"soc analyst", r"information system", r"\bgrc\b",
     r"\bqa\b", r"quality assurance", r"test(?:er|ing)? (?:engineer|automation|lead)", r"automation",
     r"product (?:manager|owner|lead|designer|design|engineer|specialist)", r"\bux\b", r"\bui\b", r"user (?:experience|research)", r"design engineer", r"designer",
@@ -254,6 +263,8 @@ def classify_role(title, department=None, skills=None, company_tech_share=None):
         # a bare "Project Manager", never enough to overturn a title.
         score += (company_tech_share - 0.5) * 0.3
         evidence.append(f"company:{company_tech_share:.2f}")
+    else:
+        evidence.append("company:na")
 
     score = max(-1.0, min(1.0, score))
     if t_non and not t_strong and not (t_tech and score >= 0.5):
@@ -266,4 +277,11 @@ def classify_role(title, department=None, skills=None, company_tech_share=None):
         verdict = "non-tech"
     else:
         verdict = "unknown"
+    # A role at a tech company is a tech role: the sales, marketing,
+    # people and finance work of a company whose open roles are mostly
+    # technical belongs on the board with them. A title that names a
+    # trade or a ward (nurse, driver, cashier) is still what it says.
+    if verdict == "adjacent" and company_tech_share is not None and company_tech_share >= TECH_COMPANY_SHARE:
+        verdict = "tech"
+        evidence.append("company-tech")
     return verdict, round(score, 3), ";".join(evidence)
