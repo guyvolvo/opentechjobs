@@ -489,9 +489,11 @@ actually follow the curve.
   pill (e.g. the active company filter). Hover inverts to ink.
 
 ### View switch and match explanation
-Show all, Best matches and Saved are one segmented control above the
-result count, the same `.seg` control as the Explore page. Filters apply
-in every view. Best matches narrows what they leave to listings that share
+Tech roles, All roles, Best matches and Saved are one segmented control
+above the listings, the same `.seg` control as the Explore page. Tech
+roles is the default: only listings the classifier (api/role_class.py)
+judged technical work, with the count saying "tech roles". All roles is
+everything. Filters apply in every view. Best matches narrows what they leave to listings that share
 at least one CV skill, and the count says how many that is. The count
 names the view it counts: "Showing 1–50 of 177,539 roles" with nothing
 applied, "matching roles" once any filter or search is on, and "roles

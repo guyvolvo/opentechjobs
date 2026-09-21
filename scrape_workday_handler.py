@@ -30,6 +30,19 @@ partition as pinned, not shard-numbered: every row here is trusted as-is,
 no reassignment concept applies to a hand-maintained company list -- see
 loader/merge_partitions.py's own docstring.
 
+Tenants and change detection (2026-09-21): the tenant list is
+companies.yml's pins plus workday-tenants.json, which discovery fills
+from Common Crawl (1,609 tenants in one snapshot against 26 pins). Each
+tenant is polled on its own schedule, kept in workday-poll-state.json.gz
+with loader/scrape_state.py, the fast poll's own module: one request for
+page 1, whose total and newest twenty ids are the board's fingerprint,
+and only a board whose fingerprint moved is walked, with its pages
+fetched together. Measured live on 3M's 677: 1.4s unchanged, 12.7s
+walked with ids known, 75s the first time with every description.
+every_hours no longer applies to Workday tenants; the state's own
+backoff does (5 minutes to 4 hours, reset on change), under this
+Lambda's hourly schedule.
+
 Known-state-gated descriptions (2026-09-08, same day, once partitioning
 made this cadence affordable to shrink): Workday's own search endpoint
 sends Cache-Control: no-store, no-cache and no ETag at all (confirmed
@@ -52,6 +65,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -62,6 +76,7 @@ import probe
 
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / "loader"))
+import scrape_state  # noqa: E402
 from deltas import put_fragment  # noqa: E402
 from load_to_sqlite import s3_pull  # noqa: E402
 
@@ -104,6 +119,31 @@ DETAIL_CALLS_PER_RUN = 300
 CHECKPOINT_DESCRIPTIONS_PER_RUN = 100
 # Left for the load and the fragments once polling is done.
 BIG_TECH_TIME_RESERVE_MS = 300_000
+# Discovery's Workday tenants (merge_discovered_batch.py writes it, the
+# deploy bundles it), read beside companies.yml's hand-verified pins.
+TENANTS_PATH = ROOT / "workday-tenants.json"
+# This Lambda's own poll state, the same shape and module as the fast
+# poll's (loader/scrape_state.py) under its own key: per tenant, when it
+# is next due and the fingerprint of its board when last read.
+WORKDAY_STATE_KEY = "workday-poll-state.json.gz"
+# Tenants read at once. Each is its own host, so Workday's limits do not
+# add up across them; the ceiling is this process's own connections
+# (probe.session() keeps 16 per host, and a tenant uses up to 8 for
+# pages plus 4 for details).
+TENANT_WORKERS = 6
+# Stop taking on tenants when this much time is left: the big-tech reads
+# and the partition load still have to run, and the tenants already in
+# flight finish first. Whatever was not reached stays due and goes first
+# next run (scrape_state.due orders by overdue). Measured 2026-09-21:
+# the first run stopped taking tenants at 450s left and still timed out
+# at 900s, because twelve first-time tenants were in flight and PwC's
+# 4,049 descriptions alone were minutes.
+WORKDAY_TIME_RESERVE_MS = BIG_TECH_TIME_RESERVE_MS + 240_000
+# New descriptions per tenant per run. A tenant's first read describes
+# this many and leaves the rest for later runs; the gate is the set of
+# jobs already described (from the partition), not merely seen, so an
+# undescribed job is described on its next turn, not never.
+WORKDAY_DESCRIBE_PER_TENANT = 300
 
 TMP = Path("/tmp")
 BUCKET = os.environ["DATA_BUCKET"]
@@ -247,53 +287,110 @@ def _poll_big_tech(sess, ats: str, domain: str, pin: dict, described: set[str],
             "error": None, "retryable": False, "jobs": rows}
 
 
+def _workday_entries() -> list[dict]:
+    """companies.yml's pins first, then workday-tenants.json, one entry
+    per tenant and site; a pin wins over a discovered copy of itself."""
+    entries = []
+    seen = set()
+    for domain, pin in probe.PINS.get("workday", {}).items():
+        seen.add((pin["tenant"].lower(), pin["site"].lower()))
+        entries.append({"domain": domain, **pin})
+    if TENANTS_PATH.exists():
+        domains = {e["domain"] for e in entries}
+        for t in json.loads(TENANTS_PATH.read_text(encoding="utf-8")):
+            key = (t["tenant"].lower(), t["site"].lower())
+            if key in seen or t.get("domain") in domains:
+                continue
+            seen.add(key)
+            domains.add(t["domain"])
+            entries.append(t)
+    return entries
+
+
+def _poll_workday(sess, entry: dict, state_row: dict | None, known_ids: set[str] | None) -> dict:
+    """One tenant: page 1 always, the rest only when the board moved.
+
+    The fingerprint (probe.workday_fingerprint: the total and the twenty
+    newest ids) stands in for the ETag Workday never sends. Equal to the
+    one saved last time, with our own open set on hand to keep, the
+    board is reported unchanged: one request, and load_to_sqlite leaves
+    its rows alone. Different, or nothing known yet, and every page is
+    fetched; the first one is handed over so it is not fetched twice.
+    """
+    tenant, wd, site = entry["tenant"], entry["wd"], entry["site"]
+    token = f"{tenant}:{wd}:{site}"
+    miss = {"domain": entry["domain"], "ats": None, "token": None, "job_count": 0,
+            "tried": 1, "error": "no valid board on re-poll", "retryable": True, "jobs": []}
+    try:
+        page1 = probe.workday_page1(sess, tenant, wd, site)
+        if page1 is None:
+            return miss
+        fingerprint = probe.workday_fingerprint(page1)
+        if state_row and state_row.get("content_hash") == fingerprint and known_ids is not None:
+            return {"domain": entry["domain"], "ats": "workday", "token": token, "job_count": len(known_ids),
+                    "tried": 1, "error": None, "retryable": False, "unchanged": True,
+                    "content_hash": fingerprint, "jobs": []}
+        jobs = probe.f_workday(sess, tenant, wd, site, israel_facets=entry.get("israel_facets"),
+                               known_external_ids=known_ids, page1=page1, describe_budget=WORKDAY_DESCRIBE_PER_TENANT)
+    except Exception as e:
+        return {**miss, "error": repr(e)}
+    if jobs is None:
+        return miss
+    return {"domain": entry["domain"], "ats": "workday", "token": token, "job_count": len(jobs),
+            "tried": 1, "error": None, "retryable": False, "content_hash": fingerprint,
+            "jobs": [asdict(j) for j in probe._fill_classifications(jobs)]}
+
+
 def lambda_handler(event, context):
     s3 = boto3.client("s3")
-    pins = probe.PINS.get("workday", {})
+    entries = _workday_entries()
     big_tech = [(ats, domain, pin) for ats in BIG_TECH_ATS for domain, pin in probe.PINS.get(ats, {}).items()]
-    if not pins and not big_tech:
-        print("no workday or big-tech pins in companies.yml, skipping")
+    if not entries and not big_tech:
+        print("no workday tenants or big-tech pins, skipping")
         return {"skipped": True}
 
     known_ids, described, polled = _known_state_by_domain()
-    not_due = [d for d, pin in pins.items() if not _due(pin, polled.get(d))]
-    not_due += [d for _, d, pin in big_tech if not _due(pin, polled.get(d))]
+    not_due = [d for _, d, pin in big_tech if not _due(pin, polled.get(d))]
     if not_due:
         print(f"not due this run (every_hours): {', '.join(sorted(not_due))}")
     print(f"known state: {sum(len(v) for v in known_ids.values())} open jobs across "
           f"{len(known_ids)} companies from the last partition")
 
-    _write_status(s3, "scraping", f"re-checking {len(pins)} Workday and {len(big_tech)} big-tech companies")
+    state, state_etag = scrape_state.load(BUCKET, s3, key=WORKDAY_STATE_KEY)
+    due = scrape_state.due(state, entries)
+    print(f"{len(due)} of {len(entries)} Workday tenants due")
+    _write_status(s3, "scraping", f"re-checking {len(due)} Workday tenants and {len(big_tech)} big-tech companies")
 
     sess = probe.session()
     results = []
-    for domain, pin in pins.items():
-        if domain in not_due:
-            continue
-        try:
-            jobs = probe.f_workday(sess, pin["tenant"], pin["wd"], pin["site"], israel_facets=pin.get("israel_facets"),
-                                    known_external_ids=known_ids.get(domain))
-        except Exception as e:
-            jobs, err = None, repr(e)
-        else:
-            err = None
-        if jobs is None:
-            # Same shape/reasoning as refetch_known()'s own MISS handling
-            # (probe.py): a single re-poll failing on an already-trusted
-            # board is transient, not a confident correction -- retryable
-            # so load_resolved() leaves this domain's existing ats/token
-            # alone rather than demoting it.
-            results.append({
-                "domain": domain, "ats": None, "token": None, "job_count": 0,
-                "tried": 1, "error": err or "no valid board on re-poll", "retryable": True, "jobs": [],
-            })
-            continue
-        token = f"{pin['tenant']}:{pin['wd']}:{pin['site']}"
-        results.append({
-            "domain": domain, "ats": "workday", "token": token,
-            "job_count": len(jobs), "tried": 1, "error": None, "retryable": False,
-            "jobs": [asdict(j) for j in probe._fill_classifications(jobs)],
-        })
+    reached = 0
+    with ThreadPoolExecutor(max_workers=TENANT_WORKERS) as pool:
+        pending = set()
+        queue = iter(due)
+        while True:
+            # A window of a few in flight, so stopping at the deadline
+            # leaves only what is already running, not a backlog.
+            while len(pending) < TENANT_WORKERS:
+                if context is not None and context.get_remaining_time_in_millis() < WORKDAY_TIME_RESERVE_MS:
+                    break
+                entry = next(queue, None)
+                if entry is None:
+                    break
+                pending.add(pool.submit(_poll_workday, sess, entry, state.get(entry["domain"]), described.get(entry["domain"], set()) if entry["domain"] in known_ids else None))
+                reached += 1
+            if not pending:
+                break
+            done = next(as_completed(pending))
+            pending.discard(done)
+            results.append(done.result())
+    changed = sum(1 for r in results if r["ats"] and not r.get("unchanged"))
+    unchanged = sum(1 for r in results if r.get("unchanged"))
+    failed = sum(1 for r in results if not r["ats"])
+    print(f"workday: {reached}/{len(due)} due tenants reached, {changed} changed, {unchanged} unchanged, {failed} failed"
+          + (f", {len(due) - reached} left for next run" if reached < len(due) else ""))
+    counts = scrape_state.record(state, results)
+    saved = scrape_state.save(BUCKET, s3, state, state_etag, key=WORKDAY_STATE_KEY)
+    print(f"poll state {'saved' if saved else 'NOT saved'}: {counts}")
 
     for ats, domain, pin in big_tech:
         if domain in not_due:

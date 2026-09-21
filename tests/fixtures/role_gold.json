@@ -1,0 +1,4002 @@
+[
+ {
+  "id": "3e1472aa088f61a6",
+  "title": "Creative Manager / Creative Director",
+  "department": null,
+  "company_domain": "fuku.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "594edc655d2ddfb1",
+  "title": "Account Executive",
+  "department": "Merchant Sales and Activa",
+  "company_domain": "xplor.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "30074ef24ce63379",
+  "title": "Agente Stone - Executivo(a) de Contas Externo | Vila Santa Catarina/SP",
+  "department": "Comercial",
+  "company_domain": "stone.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "c7c0199e23dc6ad9",
+  "title": "Senior Commodity Manager - (Electrical & Electronics)",
+  "department": "Supply Chain",
+  "company_domain": "gomotive.com",
+  "skills": "Product Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "2b3f2afb9356380f",
+  "title": "Vendeuse / Vendeur - F/H",
+  "department": "Retail",
+  "company_domain": "courir.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "b65fc7397b2b14ba",
+  "title": "Founding Account Executive, KSA",
+  "department": "Sales",
+  "company_domain": "telnyx.com",
+  "skills": "SOC,Machine Learning,Salesforce,VoIP",
+  "label": "adjacent"
+ },
+ {
+  "id": "57fcdcb96ab055e3",
+  "title": "R&D Chemist - Digital Ink",
+  "department": "R&D",
+  "company_domain": "inxinternationalinkco.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "779bf5c8fef20fb3",
+  "title": "Transportation Ops Manager, Amazon Transportation Services",
+  "department": "Fulfillment & Operations Management",
+  "company_domain": "amazon.com",
+  "skills": "Incident Response",
+  "label": "non-tech"
+ },
+ {
+  "id": "29c077c7eb5e0a33",
+  "title": "Project Manager, Total Rewards",
+  "department": "6532 Benefits",
+  "company_domain": "stripe.com",
+  "skills": "Project Management,Stakeholder Management,Stripe,Asana,Jira,PMP,Lean Six Sigma",
+  "label": "adjacent"
+ },
+ {
+  "id": "4f0ba3ddcc8b0a6e",
+  "title": "Warehouse Associate",
+  "department": "Field",
+  "company_domain": "renuity.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "bd2d4284b800fb62",
+  "title": "Skilled Auto Mechanic, Military Veterans Welcome",
+  "department": "Automotive",
+  "company_domain": "blue-united-sourcing.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "031c55b426c7a845",
+  "title": "Senior Account Executive (AI & Strategic Acquisitions) - Australia",
+  "department": "Direct Field Sales",
+  "company_domain": "neo4j.com",
+  "skills": "Neo4j,Machine Learning,AWS,GCP,Azure,ETL,Generative AI,Agile,Recommender Systems,CRM,Salesforce,Networking,Cisco",
+  "label": "adjacent"
+ },
+ {
+  "id": "b09c666a1acdb23f",
+  "title": "IT Service Desk Analyst",
+  "department": "Corporate",
+  "company_domain": "realchemistry.com",
+  "skills": "IT Support,Windows,iOS,Android,Azure,Microsoft 365,Intune,Freshdesk,CompTIA,Jamf,macOS",
+  "label": "tech"
+ },
+ {
+  "id": "3d2b758f7a169778",
+  "title": "Junior Operator",
+  "department": "Operations & Services",
+  "company_domain": "ennatuurlijkbv.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "576f9be4a0dfa4cc",
+  "title": "Sales Development Representative",
+  "department": null,
+  "company_domain": "netx.net",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "aea89225d43bd62a",
+  "title": "Sr. Staff People Partner",
+  "department": "General and Administrative",
+  "company_domain": "openloophealth.com",
+  "skills": "C,IT Support",
+  "label": "adjacent"
+ },
+ {
+  "id": "852f611fc0a857b4",
+  "title": "Business Development Representative - MEA",
+  "department": "Sales",
+  "company_domain": "hubspotjobs.com",
+  "skills": "HubSpot",
+  "label": "adjacent"
+ },
+ {
+  "id": "68d1e79e5dee6405",
+  "title": "Sales Manager, Commercial (SMB)",
+  "department": "Sales",
+  "company_domain": "scribe.com",
+  "skills": "LLM,AI Agents",
+  "label": "adjacent"
+ },
+ {
+  "id": "e8038e747d38b301",
+  "title": "庫存管理專員Instock Management Specialist - Andon focus",
+  "department": "Instock",
+  "company_domain": "coupang.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "2af93297165a70fc",
+  "title": "DFIR Analyst",
+  "department": "13100 DFIR",
+  "company_domain": "sentinellabs.io",
+  "skills": "Incident Response,EDR,Digital Forensics,Threat Intelligence,Incident Management,Windows,SIEM,Linux,macOS,AWS,Azure,GCP,Malware Analysis",
+  "label": "tech"
+ },
+ {
+  "id": "49e0eb53e067f7d2",
+  "title": "UI Full Stack Engineer",
+  "department": "Software and Services",
+  "company_domain": "apple.com",
+  "skills": "React,TypeScript,JavaScript,REST API,GraphQL,Redux,Zustand,CI/CD,Cypress,Playwright,Design Systems,Next.js,Vite,Webpack",
+  "label": "tech"
+ },
+ {
+  "id": "d4bff6467dd01405",
+  "title": "Director, Solutions Architect",
+  "department": "Solution Architects",
+  "company_domain": "vercel.com",
+  "skills": "Vercel,LLM,AI Agents,React,Next.js,JavaScript,OpenAI,Node.js,CI/CD,DevOps",
+  "label": "tech"
+ },
+ {
+  "id": "45e1d3c4dcda7647",
+  "title": "Empfangsmitarbeiter:in – Patient Care & Front Desk (m/w/d)",
+  "department": null,
+  "company_domain": "caelisticgroup.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "fc8d9f67b752e422",
+  "title": "מנהל/ת רפואי/ת",
+  "department": "רפואה",
+  "company_domain": "clalit.co.il",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "96da67ca0ad63935",
+  "title": "Senior Machine Learning Engineer",
+  "department": "Product & Tech",
+  "company_domain": "eatclub.com",
+  "skills": "Machine Learning",
+  "label": "tech"
+ },
+ {
+  "id": "9c9862e5000758cb",
+  "title": "Full Stack Software Engineer, API Experience ",
+  "department": "Core Product & Platform",
+  "company_domain": "openai.com",
+  "skills": "LLM,OpenAI,TypeScript,React,Python,Go,Rust,Machine Learning",
+  "label": "tech"
+ },
+ {
+  "id": "eff06561f769c5e0",
+  "title": "Senior Procurement Specialist",
+  "department": "Finance",
+  "company_domain": "deepl.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "6b0dc14194c014df",
+  "title": "Nurse Practitioner",
+  "department": null,
+  "company_domain": "easyhealth.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "fb37749088087d91",
+  "title": "Retail Sales Merchandiser",
+  "department": "Retail",
+  "company_domain": "dckgroup.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "68c62d383ffa6537",
+  "title": "Teamleider OK",
+  "department": "Management & staf",
+  "company_domain": "antonivanleeuwenhoek.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "3556db1076a710e6",
+  "title": "Sr. Technical Account Manager, Okta Strategic Customers",
+  "department": "Technical Account Management-812",
+  "company_domain": "okta.com",
+  "skills": "IAM,Okta,LLM,AI Agents,SSO,MFA,Privileged Access Management,CISSP,SAML,OAuth,Active Directory,Microsoft 365,Salesforce,Workday,Machine Learning",
+  "label": "tech"
+ },
+ {
+  "id": "9991c16d5d2274ee",
+  "title": "PV | Executiva de Vendas Externas Pleno - Santos Antônio De Jesus/BA - Vaga Afirmativa para Mulheres",
+  "department": "Sales & Business Development",
+  "company_domain": "experian.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "1a2c8200917d5343",
+  "title": "Ausbildung Fachlagerist m/w/d, Agrarhandel, ab 01.08.2027",
+  "department": "Lager, Transport, Logistik, Disposition",
+  "company_domain": "baywaag.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "53c19caf7b26b56d",
+  "title": "Sales Development Representative",
+  "department": "Sales",
+  "company_domain": "huzzle.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "2739c44b38d6f8aa",
+  "title": "Senior Cloud Security Engineer - Cloud Foundation",
+  "department": "Information & Security",
+  "company_domain": "yotpo.com",
+  "skills": "Cloud Security,Incident Response,DevOps,AWS,Kubernetes,CI/CD,Vulnerability Management,IAM,IDS/IPS,Load Balancing,Serverless,Python,Bash,Infrastructure as Code,Terraform",
+  "label": "tech"
+ },
+ {
+  "id": "47e861e07ac8dd9a",
+  "title": "Business Tutor",
+  "department": "Learning Delivery",
+  "company_domain": "studygroupuk.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "cd568a5449f91ac4",
+  "title": "Charlotte Tilbury Freelance - Part - Time",
+  "department": "North America",
+  "company_domain": "charlotte-tilbury.fr",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "769d2bd6566a0434",
+  "title": "Senior Structures Engineer",
+  "department": "Spacecraft Engineering",
+  "company_domain": "vardaspace.com",
+  "skills": "Python,MATLAB,Maven",
+  "label": "tech"
+ },
+ {
+  "id": "478eaa74efcce060",
+  "title": "Seller Support Specialist - eBay Japan",
+  "department": null,
+  "company_domain": "ebay.com",
+  "skills": "Accessibility",
+  "label": "adjacent"
+ },
+ {
+  "id": "a20168c73c1e48fb",
+  "title": "Associate Director - Account Management",
+  "department": "Account Management",
+  "company_domain": "sigmoid.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "3ba7be5189267a79",
+  "title": "Helix AI Engineer, Pretraining",
+  "department": "AI - Helix Team",
+  "company_domain": "figureai.org",
+  "skills": "Robotics,Generative AI,LLM,Machine Learning,Deep Learning,Python,PyTorch,Anthropic,OpenAI,NLP",
+  "label": "tech"
+ },
+ {
+  "id": "a9ebd312d3fb2b4a",
+  "title": "Clinical Nursing Instructor",
+  "department": null,
+  "company_domain": "bluecliffcollege.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8c6e45e1661de424",
+  "title": "Licensed Funeral Director",
+  "department": "Funeral Directors",
+  "company_domain": "vertin.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "180ce6a662e31594",
+  "title": "Deposit Operations Analyst",
+  "department": "Operations",
+  "company_domain": "oaknorth.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "18a51261cb830941",
+  "title": "Synthesis/Computational Design Engineer",
+  "department": "Software",
+  "company_domain": "molg.com",
+  "skills": "Python",
+  "label": "tech"
+ },
+ {
+  "id": "c7651f08ef57b370",
+  "title": "Special Projects Coordinator",
+  "department": "School-Based Operations",
+  "company_domain": "uncommonschools.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8820a89eb3c2303e",
+  "title": "Sovereign Engineering Platform SRE - T Cloud Public (REF5740Q)",
+  "department": "T Cloud Public",
+  "company_domain": "deutschetelekomitsolutions.com",
+  "skills": "SRE",
+  "label": "tech"
+ },
+ {
+  "id": "0117506aef7056fd",
+  "title": "Werkstudent - Publiekrecht (Staats- en bestuursrecht)",
+  "department": null,
+  "company_domain": "debrauwblackstonewestbroek1.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "394815a249584eff",
+  "title": "Intern Researcher - Embodied AI",
+  "department": "Noah's Ark Laboratory",
+  "company_domain": "huaweicanada.com",
+  "skills": "Generative AI,LLM,Machine Learning,NLP,Computer Vision,AI Agents,Deep Learning",
+  "label": "tech"
+ },
+ {
+  "id": "47affee469816ef2",
+  "title": "Senior Site Reliability Engineer",
+  "department": "CES",
+  "company_domain": "preciselyinternationaljobs.com",
+  "skills": "SRE,AWS,Observability,Infrastructure as Code,Terraform,Ansible,Datadog,Disaster Recovery,Incident Management,Platform Engineering,Linux,SQL,Oracle,IAM,Python",
+  "label": "tech"
+ },
+ {
+  "id": "93586d3e11e105d9",
+  "title": "Bilingual Customer Success Account Manager, SMB (German, French, or Spanish)",
+  "department": "Sales - Customer Success",
+  "company_domain": "hiya.com",
+  "skills": "CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "bb95c2626f1ab70e",
+  "title": "Manager, Business Development",
+  "department": "Growth",
+  "company_domain": "sustainment.com",
+  "skills": "CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "e43273e2d3509bdd",
+  "title": "Culinary Aide - Avamere Hillsboro",
+  "department": "Avamere Rehab of Hillsboro",
+  "company_domain": "avamere-skilled-advisors-llc.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "00969268020118a4",
+  "title": "Automation Engineering Lead",
+  "department": "Data Science / AI / ML",
+  "company_domain": "onhires.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "252a27ab3b8124fa",
+  "title": "Legal Internship Program 2026",
+  "department": "Legal",
+  "company_domain": "k-id.com",
+  "skills": "LLM",
+  "label": "adjacent"
+ },
+ {
+  "id": "96e626876a5dc8b9",
+  "title": "Deep Learning Manipulation Engineer",
+  "department": "Engineering",
+  "company_domain": "skildai-careers.com",
+  "skills": "Machine Learning,Deep Learning,Algorithms,Robotics,Python,PyTorch,TensorFlow,JAX,Reinforcement Learning",
+  "label": "tech"
+ },
+ {
+  "id": "ba080cb45dc6e692",
+  "title": "Leadership Advisory Services, Executive Search",
+  "department": "US Recruitment",
+  "company_domain": "ezrecruiting.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "5c9fba594623db62",
+  "title": "Elektriker:in (w/m/d)",
+  "department": "Installation PV",
+  "company_domain": "enpal.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "105621e3a4514f95",
+  "title": "Hardware Systems Signal Integrity Engineer - iPhone",
+  "department": "Hardware",
+  "company_domain": "apple.com",
+  "skills": "System Design,BERT,NLP,Active Directory,Python,Perl",
+  "label": "tech"
+ },
+ {
+  "id": "4281dfccb461c2bc",
+  "title": "Software Development Engineer, Alexa Endpoint Experiences",
+  "department": "Software Development",
+  "company_domain": "amazon.com",
+  "skills": "Agile,Scrum,Generative AI,LLM,Design Patterns,C#,C++,Java,Perl,OOP",
+  "label": "tech"
+ },
+ {
+  "id": "070920daeed210fa",
+  "title": "Lead Product Manager",
+  "department": "Product",
+  "company_domain": "eucalyptus.com",
+  "skills": "Networking,Juniper,Product Management",
+  "label": "tech"
+ },
+ {
+  "id": "6a7627f71a7d4d26",
+  "title": "Associate Principal Product Manager - Networks",
+  "department": "Product",
+  "company_domain": "celonis.com",
+  "skills": "LLM,AI Agents,Product Management,ETL,Spark,Databricks,Snowflake,ERP",
+  "label": "tech"
+ },
+ {
+  "id": "86f6c7b4305eee28",
+  "title": "Infra Delivery Install Technician",
+  "department": "Operations, IT, & Support Engineering",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Networking,Cisco,CompTIA",
+  "label": "tech"
+ },
+ {
+  "id": "9192a601c604ff2f",
+  "title": "Implementation Specialist, Single",
+  "department": "Onboarding",
+  "company_domain": "weave.ai",
+  "skills": "Project Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "451017962acee395",
+  "title": "Technical Support Engineering Intern - Spring 2027",
+  "department": "Technical Support Engineering",
+  "company_domain": "verkada.com",
+  "skills": "IT Support,LLM,AI Agents,IoT,System Design,Linux,Networking,Cisco,CompTIA,Incident Management",
+  "label": "tech"
+ },
+ {
+  "id": "a56695ef31fb8176",
+  "title": "Intermediate Accountant",
+  "department": "Accounting and Finance",
+  "company_domain": "loccitaneenprovence.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "2b75b6eaa6b0dc9a",
+  "title": "International Care Advocate (UK)",
+  "department": "Care Delivery",
+  "company_domain": "mavenclinic.com",
+  "skills": "Maven,CRM,Zendesk",
+  "label": "non-tech"
+ },
+ {
+  "id": "27a5bff6014ebd20",
+  "title": "Data Center Technician ",
+  "department": "Operations, IT, & Support Engineering",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Incident Management,Linux,Unix,Networking",
+  "label": "tech"
+ },
+ {
+  "id": "425af7d829e657c6",
+  "title": "ML Infrastructure Engineer",
+  "department": "Engineering",
+  "company_domain": "xai.com",
+  "skills": "Machine Learning,Distributed Systems,Deep Learning,Python,C++,Rust,JAX,PyTorch,CUDA,Linux,Puppet,Ansible",
+  "label": "tech"
+ },
+ {
+  "id": "97089999efdb2ba5",
+  "title": "Floral Merchandiser-North Bay",
+  "department": "Floral Merchandiser/ Marchandiseur de fleurs",
+  "company_domain": "brandmomentum.de",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "5507625ee36e5ca4",
+  "title": "Igbo - AI Product Evaluator",
+  "department": "Developmental Projects",
+  "company_domain": "productiveplayhouse.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "7fca2daf7ad69aff",
+  "title": "Acrylic Bath Installer",
+  "department": null,
+  "company_domain": "bathplanet.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "10fdcafe029ac93a",
+  "title": "Manager, Controls Integration, OneMHS",
+  "department": "Systems, Quality, & Security Engineering",
+  "company_domain": "amazon.com",
+  "skills": "PLC,Linux,IT Support,Networking,VLAN,Agile,System Design,CI/CD,Kanban,AWS,Design Patterns",
+  "label": "tech"
+ },
+ {
+  "id": "825eab8f6a464c1f",
+  "title": "Conducteur de machines (H/F)",
+  "department": null,
+  "company_domain": "groupementmousquetaires3.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "1f99dfe55fa74a89",
+  "title": "Telehealth Mental Health Provider (Massachusetts)",
+  "department": "Medical Operations (Providers)",
+  "company_domain": "medvidi.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "51895ccd15ef9c9d",
+  "title": "Input Device Product Design Intern",
+  "department": "Hardware",
+  "company_domain": "apple.com",
+  "skills": "Statistics",
+  "label": "tech"
+ },
+ {
+  "id": "2466afb718968e9e",
+  "title": "Data Scientist",
+  "department": null,
+  "company_domain": "slatetechnologies.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "6a3197c95b837bbf",
+  "title": "Telehealth Nurse Practitioner | W2 FT ",
+  "department": "Clinical",
+  "company_domain": "allarahealth.com",
+  "skills": "AWS,EMR",
+  "label": "non-tech"
+ },
+ {
+  "id": "9ff5ed56c31959a5",
+  "title": "Builder - Customer Support Specialist",
+  "department": "Customer Success",
+  "company_domain": "reevo.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "c3e16198d9566458",
+  "title": "Primary Care LPN",
+  "department": null,
+  "company_domain": "msaphy.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8eda66c6f661cc97",
+  "title": "CNC-Dreher/ Fräser (m/w/d) - bis zu 19,00 €/ Std.",
+  "department": "Berlin",
+  "company_domain": "tabelpersonal.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a35542778b8f2273",
+  "title": "Senior Retail Media Account Manager - Poland (They/She/He)",
+  "department": null,
+  "company_domain": "deliveryhero.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "ee0ef8d0fc50c46c",
+  "title": "Junior Sales Manager (m/w/d) – B2B-Vertrieb SAP & Intralogistik",
+  "department": null,
+  "company_domain": "statuscag.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "075f31eed449b84e",
+  "title": "Director, Product Management (Discovery, Search, Personalization)",
+  "department": "Product Mgmt",
+  "company_domain": "epicgames.io",
+  "skills": "Product Management,Machine Learning,Recommender Systems,Unreal Engine",
+  "label": "tech"
+ },
+ {
+  "id": "9898e5047ccd8bc5",
+  "title": "Software Development Engineer, ElastiCache",
+  "department": "Software Development",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Distributed Systems,Java,C,C++,Redis,Memcached,REST API,Event-Driven Architecture,Disaster Recovery,Observability,IoT,Incident Management,Design Patterns,C#",
+  "label": "tech"
+ },
+ {
+  "id": "dfa6da09337ab4b6",
+  "title": "Credentialing Manager",
+  "department": "Operations",
+  "company_domain": "finni-health.com",
+  "skills": "Project Management,CRM,AWS,EMR",
+  "label": "adjacent"
+ },
+ {
+  "id": "062170651f2a52a5",
+  "title": "תומכ/ת אפליקטיבי/ת",
+  "department": "תמיכה",
+  "company_domain": "ness-tech.co.il",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "0445aaf94a794bb4",
+  "title": "Senior Backend Engineer US Fintech",
+  "department": null,
+  "company_domain": "fuku.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "07e7f9952e1014e4",
+  "title": "Services Programs Commodity Manager (Onsite)",
+  "department": "1004 SCM - Supply Chain - Procurement",
+  "company_domain": "axon.com",
+  "skills": "Excel,Power BI",
+  "label": "adjacent"
+ },
+ {
+  "id": "d1599af1011e65c1",
+  "title": "Support Engineer",
+  "department": "Aktos",
+  "company_domain": "applytoaktos.com",
+  "skills": "Python,Django,PostgreSQL,SQL,Git",
+  "label": "tech"
+ },
+ {
+  "id": "ce2fe72abd87f431",
+  "title": "Operations Associate (Night Shift)",
+  "department": "Operations",
+  "company_domain": "triumph-arcade.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "84d039d32cbd97a2",
+  "title": "[8NW] Senior Full-Stack Engineer (Backend Focused)",
+  "department": "Software Development",
+  "company_domain": "softwaremind.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "41c23da35dcdb2c9",
+  "title": "Designer",
+  "department": "Design",
+  "company_domain": "doji.com",
+  "skills": "Shopify,LLM,OpenAI,Product Management,iOS,Swift,SwiftUI,UIKit",
+  "label": "tech"
+ },
+ {
+  "id": "d0047837d706d243",
+  "title": "עובד/ת סוציאלי/ת",
+  "department": "עבודה סוציאלית",
+  "company_domain": "clalit.co.il",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a332b2a74db60b69",
+  "title": "Community Director - Ellison Lake Julian",
+  "department": null,
+  "company_domain": "galleryresidential.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "527f4a9df07a621e",
+  "title": "Remote Clinical Psychologist – Older Adults | PhD / PsyD | Oregon | Telehealth",
+  "department": "Clinical",
+  "company_domain": "sailorhealth.com",
+  "skills": "Incident Management",
+  "label": "non-tech"
+ },
+ {
+  "id": "ce82eff80911004d",
+  "title": "Copy of Optical Technician / Optician",
+  "department": "Optometry Medical Office Team",
+  "company_domain": "ecpcareers.com",
+  "skills": "Excel",
+  "label": "non-tech"
+ },
+ {
+  "id": "7cfa90d352525ddc",
+  "title": "Technology M&A Analyst - Paris - January or March 2027 (Internship)",
+  "department": "Paris",
+  "company_domain": "clipperton.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "ab15c997489bfb21",
+  "title": "Senior Manager, Organic Social",
+  "department": "Marketing",
+  "company_domain": "zocdoc.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "a8fa7af0bcbc5171",
+  "title": "Retail Lead Associate (Reduced-Time), Customer Experience Operations",
+  "department": "Fulfillment & Operations Management",
+  "company_domain": "amazon.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "017b75d05511f39c",
+  "title": "Chief Architect / VP of Architecture",
+  "department": "Engineering",
+  "company_domain": "showpad.com",
+  "skills": "Observability,Distributed Systems,Microservices,AWS,GCP,Azure,Generative AI,LLM,RAG,Vector Databases,AI Agents,Infrastructure as Code,CI/CD,SOC 2",
+  "label": "tech"
+ },
+ {
+  "id": "d368ba9efa1bf90c",
+  "title": "Accounting Specialist",
+  "department": "EMPLOYMENT OPPORTUNITIES - STAFF",
+  "company_domain": "macphailcenterformusic.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d9a169dcdfbab88e",
+  "title": "Gruppenleiter Warehouse (m/w/d)",
+  "department": null,
+  "company_domain": "kanadeviainova.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a8dbb5ab7b0887bc",
+  "title": "Barmedewerker (3-32 uur)",
+  "department": "Restaurant",
+  "company_domain": "hotelgilze.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "30a1389417220916",
+  "title": "Temp Associate Director, Project Management",
+  "department": "Temporary Workers - Marketing Services",
+  "company_domain": "monks.com",
+  "skills": "Project Management,Localization",
+  "label": "adjacent"
+ },
+ {
+  "id": "0a1d61251d9b6a93",
+  "title": "Social Media Manager",
+  "department": "Marketing",
+  "company_domain": "airapps.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "d8b6a767dc9d3210",
+  "title": "Mental Health Therapist - Telehealth (Unrestricted LCSW, LMFT, LPC- Pennsylvania)",
+  "department": "Lyra Care Therapy",
+  "company_domain": "lyrahealth.com",
+  "skills": "GDPR",
+  "label": "non-tech"
+ },
+ {
+  "id": "c55e5ed2afe8cc48",
+  "title": "Senior Associate, Strategic Finance",
+  "department": "Finance",
+  "company_domain": "ramp.com",
+  "skills": "Financial Modeling,Looker,SQL,Python,Active Directory",
+  "label": "adjacent"
+ },
+ {
+  "id": "1ef45bf30fdc8339",
+  "title": "Executive Assistant (Social Science’s Dean’s Office)",
+  "department": "Social Science Division",
+  "company_domain": "harvarduniversity.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "0993004d1e62b93e",
+  "title": "Accountant 2, Corporate Accounting ",
+  "department": "Client Services",
+  "company_domain": "iqeq.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "e463fd7adea4b906",
+  "title": "Medical Director - Nourish Medical",
+  "department": "Clinical Quality",
+  "company_domain": "usenourish.com",
+  "skills": "LLM,AI Agents",
+  "label": "non-tech"
+ },
+ {
+  "id": "859db418d014a68b",
+  "title": "Graduate Python Software Developer | 2027 Intake ",
+  "department": "IT - Rapid Application Development",
+  "company_domain": "eclipsetrading.com",
+  "skills": "Python",
+  "label": "tech"
+ },
+ {
+  "id": "57a0cac6e8a7060d",
+  "title": "Course Development and Vendor Management",
+  "department": null,
+  "company_domain": "learntastic.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "1d06706285d1da9a",
+  "title": "Area Sales Manager",
+  "department": null,
+  "company_domain": "drreddyslaboratorieslimited.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "c10b3addad8da0ab",
+  "title": "US-Senior Manager",
+  "department": "Apple Retail",
+  "company_domain": "apple.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "3cdfc9195bf43991",
+  "title": "Opérateur(trice) Machine de Production",
+  "department": "Production",
+  "company_domain": "techo-bloc.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "7383e2bd72fb8188",
+  "title": "People Operations Coordinator",
+  "department": "People",
+  "company_domain": "flexport.com",
+  "skills": "GDPR",
+  "label": "adjacent"
+ },
+ {
+  "id": "e91d12d60bef5d7f",
+  "title": "Senior Program Manager",
+  "department": "Mission Operations",
+  "company_domain": "scoutai.com",
+  "skills": "Project Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "3ec40f7c8ab4213b",
+  "title": "Malware Researcher",
+  "department": "Security",
+  "company_domain": "alice.io",
+  "skills": "Android,Malware Analysis,Threat Intelligence,Windows,Linux,Java,Python,JavaScript,C,C++,Dart,Flutter,React,React Native,Unity",
+  "label": "tech"
+ },
+ {
+  "id": "2c8644a7c0f9c2fd",
+  "title": "Direct Support Professional",
+  "department": null,
+  "company_domain": "dungarvin.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "e1de380bc260dd1b",
+  "title": "Lifetime Software Consultant",
+  "department": "Life & Pension",
+  "company_domain": "keylane.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "ede261eaf61cdf38",
+  "title": "Senior Controller  (m/w/d)",
+  "department": "Kaufmännische Abteilung",
+  "company_domain": "schaefergmbh.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "e2d20a6bec1b646a",
+  "title": "Physician Assistant Partner - Primary Care / Local Clinic",
+  "department": null,
+  "company_domain": "triadcompletehealthcare.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "231dca6d8e30c003",
+  "title": "Product Lead - AI Stockbroking",
+  "department": "Product",
+  "company_domain": "bjakcareer.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "aafc5af6b72338db",
+  "title": "Commercial Account Executive - Southeast",
+  "department": "Sales",
+  "company_domain": "cyera.com",
+  "skills": "AWS,Azure,GCP,Cloud Security",
+  "label": "adjacent"
+ },
+ {
+  "id": "cbff0276f385fef4",
+  "title": "Senior Software Engineer, Platform",
+  "department": "Engineering & Product",
+  "company_domain": "timely.com",
+  "skills": "CI/CD,Observability,Incident Management,Platform Engineering,AWS,Terraform,MongoDB,Python,GitHub Actions,Git,Agile,Jest,pytest",
+  "label": "tech"
+ },
+ {
+  "id": "5c03f52e4d3b887e",
+  "title": "Un(e) réceptionniste (temps partiel ou temps plein)",
+  "department": "Front office",
+  "company_domain": "vandervalkluxembourg.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "5656c690e6e9d81f",
+  "title": "Formateur testeur Levage/CACES (H/F)",
+  "department": null,
+  "company_domain": "socotec.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8734316e45a706bc",
+  "title": "Vice President, Associate General Counsel, Commercial Legal",
+  "department": "Legal-170",
+  "company_domain": "okta.com",
+  "skills": "IAM,Okta,LLM,AI Agents,Machine Learning",
+  "label": "adjacent"
+ },
+ {
+  "id": "598d29e94b632437",
+  "title": "DFx Engineer, Mechanical & Fluid Systems",
+  "department": "Manufacturing : Manufacturing ",
+  "company_domain": "andurilindustries.com",
+  "skills": "Machine Learning,Computer Vision,Active Directory,CATIA,SolidWorks",
+  "label": "tech"
+ },
+ {
+  "id": "cd5fc1cb9bcfa6e4",
+  "title": "Business Development Representative (BDR)",
+  "department": "Sales",
+  "company_domain": "rehire.io",
+  "skills": "CRM,HubSpot",
+  "label": "adjacent"
+ },
+ {
+  "id": "1383028115b07352",
+  "title": "Customer Success Manager - Landwirtschaft",
+  "department": "Account Management",
+  "company_domain": "rootglobal.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "bf77a38a7df67d8a",
+  "title": "Principal GSI & SI Partnerships",
+  "department": "Sales",
+  "company_domain": "docker.com",
+  "skills": "Docker,LLM,AI Agents,Product Management,Generative AI",
+  "label": "adjacent"
+ },
+ {
+  "id": "671d87e194862a36",
+  "title": "Manager, Professional Services Consultant",
+  "department": "Professional Services",
+  "company_domain": "walkme.com",
+  "skills": "UX Design,Project Management,Agile",
+  "label": "adjacent"
+ },
+ {
+  "id": "911ead79d376913d",
+  "title": "Regional Vice President - Federal",
+  "department": "Sales Direct - Staff",
+  "company_domain": "appian.com",
+  "skills": "CRM,Salesforce,ServiceNow",
+  "label": "adjacent"
+ },
+ {
+  "id": "c08299137a922b79",
+  "title": "Senior DevOps Engineer",
+  "department": "Engineering",
+  "company_domain": "fundraiseup.com",
+  "skills": "DevOps,Node.js,JavaScript,Koa,TypeScript,NestJS,MongoDB,Webpack,Vue,React,Kafka,Redis,ClickHouse,Elasticsearch,CI/CD",
+  "label": "tech"
+ },
+ {
+  "id": "1c98f1a291ff5b58",
+  "title": "Senior EMEA Sales Planning Analyst",
+  "department": null,
+  "company_domain": "google.com",
+  "skills": "GCP,Project Management,SQL,Salesforce,Stakeholder Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "6ffc59bcb55cf082",
+  "title": "Join our Talent Network",
+  "department": "Corporate Overhead",
+  "company_domain": "hippo.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "e76b0a2dab0ae9fa",
+  "title": "Senior Product Specialist - Implementation/Onboarding",
+  "department": "Professional Services",
+  "company_domain": "zenoti.com",
+  "skills": "CRM,HTML,JavaScript,Jira",
+  "label": "adjacent"
+ },
+ {
+  "id": "9c56dfbbba4b4354",
+  "title": "Other Positions",
+  "department": null,
+  "company_domain": "generalproximity.com",
+  "skills": "OKRs",
+  "label": "adjacent"
+ },
+ {
+  "id": "6d30129f0c8f1a1a",
+  "title": "Fuel and EV Account Manager",
+  "department": "Sales & Account Management",
+  "company_domain": "radiuslimited.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "4f31693da8cadb2e",
+  "title": "Reliability Maintenance Engineering Technician, BHX8-RME",
+  "department": "Facilities, Maintenance, & Real Estate",
+  "company_domain": "amazon.com",
+  "skills": "Robotics",
+  "label": "non-tech"
+ },
+ {
+  "id": "8d4cc5c73ca6cfcd",
+  "title": "Become a Luxury Brand Evaluator in Illinois, US",
+  "department": "Evaluator",
+  "company_domain": "cxg.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "4cd21bd655dea4a7",
+  "title": "Senior Software Engineer",
+  "department": "Engineering",
+  "company_domain": "elicit.com",
+  "skills": "Python,JavaScript,TypeScript,Kubernetes,GraphQL",
+  "label": "tech"
+ },
+ {
+  "id": "f740b9ffe415b4ae",
+  "title": "Cyber Architecture Team Lead",
+  "department": "Delivery",
+  "company_domain": "solvo.cloud",
+  "skills": "Penetration Testing",
+  "label": "tech"
+ },
+ {
+  "id": "a47e753043df67d6",
+  "title": "Team Lead – Caring Transitions of Ellicott City (Part-Time)",
+  "department": null,
+  "company_domain": "caringtransitionscareers.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "08e18253d94c6ba4",
+  "title": "(T&T) Operations & Customer Service Representative",
+  "department": "Logistics (Support)",
+  "company_domain": "zelh.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "f79635bc2925d46e",
+  "title": "Core Java Developer",
+  "department": null,
+  "company_domain": "squircleitconsultingservicespvtltd.com",
+  "skills": "Java",
+  "label": "tech"
+ },
+ {
+  "id": "103d7fef2994cdff",
+  "title": "Certified or Registered Pharmacy Technician - 1st Shift, No weekends, Closed-door pharmacy",
+  "department": "Ophthalmology Medical Office Team",
+  "company_domain": "ecpcareers.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "32ffff66f7a1da2f",
+  "title": "Growth Strategy Director",
+  "department": "Media Strategy",
+  "company_domain": "dept.io",
+  "skills": "CRM,LLM,OpenAI,Canva,Stakeholder Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "788b0058b3dc1f5f",
+  "title": "Senior Software Developer",
+  "department": null,
+  "company_domain": "nvidia.com",
+  "skills": "C++,C,Python,Linux,Networking,TCP/IP,CUDA,Machine Learning,Generative AI,LLM,Concurrency",
+  "label": "tech"
+ },
+ {
+  "id": "7213bcd4b086f342",
+  "title": "Customer Support Specialist",
+  "department": "Engineering",
+  "company_domain": "albi.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "44ade4ebbe0d27fd",
+  "title": "Marketing & Events Coordinator",
+  "department": "Marketing",
+  "company_domain": "vald.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "9e8d6bdc696b615a",
+  "title": "Hearing Instrument Specialist/ Audiologist",
+  "department": "Hearing",
+  "company_domain": "nationsbenefits.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a69cdd195ebe4316",
+  "title": "Start Up Lead",
+  "department": "Clinical Solutions",
+  "company_domain": "precisionmedicinegroup.com",
+  "skills": "CSS,Project Management",
+  "label": "non-tech"
+ },
+ {
+  "id": "0959545ff1107a77",
+  "title": "Logistics Coordinator",
+  "department": "Supply Chain",
+  "company_domain": "shipveho.com",
+  "skills": "Excel,Google Sheets",
+  "label": "non-tech"
+ },
+ {
+  "id": "74ef1755df4e6de8",
+  "title": "Investment Analyst",
+  "department": null,
+  "company_domain": "valnetconcept.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "af54490edf792f52",
+  "title": "Machine Learning Engineer - Multimodal Modeling",
+  "department": "Science & Engineering",
+  "company_domain": "standinsurance.com",
+  "skills": "Machine Learning,LLM,AI Agents,Generative AI,Robotics,Deep Learning",
+  "label": "tech"
+ },
+ {
+  "id": "ab8c347eadee1bbd",
+  "title": "فني كهرباء",
+  "department": "Production",
+  "company_domain": "lesaffre.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "b177610dd961e101",
+  "title": "Senior Consultant ",
+  "department": "COE - Transformation (ISO APAC)",
+  "company_domain": "monks.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "6549fae632b65427",
+  "title": "Senior Solution Architect / Facharchitekt*",
+  "department": null,
+  "company_domain": "accso.com",
+  "skills": "Generative AI,LLM,Machine Learning,IoT",
+  "label": "tech"
+ },
+ {
+  "id": "f5cdc28fbad5a266",
+  "title": "Sr. Analyst, Strategic Finance",
+  "department": "Finance & Acctg",
+  "company_domain": "sunbit.com",
+  "skills": "Financial Modeling,Excel",
+  "label": "adjacent"
+ },
+ {
+  "id": "c83f93599b95c31c",
+  "title": "Senior Talent Acquisition Manager, RMS",
+  "department": "People : Talent Acquisition : HWP Eng Recruiting",
+  "company_domain": "andurilindustries.com",
+  "skills": "Machine Learning,Computer Vision",
+  "label": "adjacent"
+ },
+ {
+  "id": "ca621d167198b879",
+  "title": "Area Manager",
+  "department": "Fulfillment & Operations Management",
+  "company_domain": "amazon.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "5afc7402d6c4e279",
+  "title": "Regulatory Reporting Maanager",
+  "department": "Risk",
+  "company_domain": "bidvestbank.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "206de81de579e17a",
+  "title": "Implementation Engineer",
+  "department": "Engineering",
+  "company_domain": "recidiviz.com",
+  "skills": "SQL,GCP,Python,SEM,HIPAA,ETL,REST API,OAuth,React,TypeScript",
+  "label": "tech"
+ },
+ {
+  "id": "906ce4f93478f25b",
+  "title": "Member Experience Manager - Boston",
+  "department": "Unit Ops",
+  "company_domain": "industrious.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8971008eb4fc3be4",
+  "title": "Finance Manager, Reverse Logistics Finance",
+  "department": "Finance & Accounting",
+  "company_domain": "amazon.com",
+  "skills": "Statistics,SQL,ETL,Oracle,SAP",
+  "label": "adjacent"
+ },
+ {
+  "id": "bcf73f95a44e8363",
+  "title": "AI-Builder Product Manager, HealthTech",
+  "department": "Product",
+  "company_domain": "adoreal.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "6018f55478decc34",
+  "title": "CORPORATE EXECUTIVE MANAGER | Uberlândia, MG ",
+  "department": "INTER - CORPORATE II MG",
+  "company_domain": "inter.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "904bfe3418c240e2",
+  "title": "Open sollicitatie verkoopmedewerker regio Zeeland",
+  "department": "Winkel Nederland",
+  "company_domain": "boekenvoordeel.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "261790e4d318d782",
+  "title": "Emergency Veterinarian (Full-Time) - New Dorp/Staten Island, NY - (SIGNING BONUS UP TO $10K)",
+  "department": "DVM",
+  "company_domain": "veterinaryemergencygroupst.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "7c5fbf1fbfd892a5",
+  "title": "Enterprise Account Executive-Mumbai",
+  "department": "Go-To-Market",
+  "company_domain": "clickhouse.com",
+  "skills": "ClickHouse,Serverless,Salesforce",
+  "label": "adjacent"
+ },
+ {
+  "id": "3c42b1d9331abd74",
+  "title": "Applied Scientist - Computer Vision, Amazon Robotics ",
+  "department": "Machine Learning Science",
+  "company_domain": "amazon.com",
+  "skills": "Machine Learning,Computer Vision,Robotics,Deep Learning,Algorithms,Project Management,C,Java,C++,Python,Statistics",
+  "label": "tech"
+ },
+ {
+  "id": "60ed07b3615d1e24",
+  "title": "Front Desk Associate",
+  "department": "Lakeland",
+  "company_domain": "crunchfitness.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "76658f602c6de52d",
+  "title": "Bilingual Marketing Campaigns Manager (Mandarin, English)",
+  "department": "Marketing",
+  "company_domain": "chowbus.com",
+  "skills": "Salesforce,Meta Ads,HubSpot,CRM,A/B Testing",
+  "label": "adjacent"
+ },
+ {
+  "id": "1f0ed0ba13f579d0",
+  "title": "AI Engineer",
+  "department": "Enterprise Applications",
+  "company_domain": "gitlab.com",
+  "skills": "Git,DevOps,Generative AI,LLM,Python,JavaScript,TypeScript,REST API,GraphQL,AI Agents,Anthropic,OpenAI,CRM,Salesforce,Marketo",
+  "label": "tech"
+ },
+ {
+  "id": "485bee38dd0f5395",
+  "title": "Sr. Technical Recruiter – Professional Services and Consulting",
+  "department": "3030 - Human Resources",
+  "company_domain": "esri.com",
+  "skills": "GDPR",
+  "label": "adjacent"
+ },
+ {
+  "id": "67fd007097e7fd1f",
+  "title": "Senior DevOps Engineer",
+  "department": "Engineering",
+  "company_domain": "skimmer.com",
+  "skills": "DevOps,CI/CD,Azure,SQL,PostgreSQL,Infrastructure as Code,Pulumi,Observability,Node.js,JavaScript,Sentry,New Relic,Datadog",
+  "label": "tech"
+ },
+ {
+  "id": "5f5f4b7187ef4437",
+  "title": "Emergency Credentialed Veterinary Technician (Relief) - Madison, WI",
+  "department": "Veterinary Nurse",
+  "company_domain": "veterinaryemergencygroupst.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "20cb116ddb6246b3",
+  "title": "Mechatronics Engineer Intern",
+  "department": "Internship",
+  "company_domain": "beex.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "636577af06f7e295",
+  "title": "Creative Project Coordinator VA",
+  "department": "Clients",
+  "company_domain": "hirehangar.com",
+  "skills": "Project Management,Asana,Canva,Google Workspace,ClickUp,Trello,Figma",
+  "label": "adjacent"
+ },
+ {
+  "id": "8a9858275866d0b4",
+  "title": "Business Data Analyst",
+  "department": "Marketing",
+  "company_domain": "staubligroup.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "d8991c5c683ca1e7",
+  "title": "Security and Loss Prevention Specialist, NA",
+  "department": "Investigation & Loss Prevention",
+  "company_domain": "amazon.com",
+  "skills": "Excel",
+  "label": "non-tech"
+ },
+ {
+  "id": "1a2f30e66031575d",
+  "title": "Staff iOS Engineer, Media Foundation",
+  "department": "Growth",
+  "company_domain": "reddit.com",
+  "skills": "iOS,CDN,System Design,Swift",
+  "label": "tech"
+ },
+ {
+  "id": "e68a4b1099785ab8",
+  "title": "Supervisor Control de Calidad - QUELLÓN",
+  "department": "Control de Calidad",
+  "company_domain": "salmonjobs.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "98a252d96c96241c",
+  "title": "Sales Director, Large Enterprise/FIs - LatAm",
+  "department": "Sales",
+  "company_domain": "ripple.com",
+  "skills": "CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "d20efc0841bd656b",
+  "title": "Math Curriculum Designer, Grades 6-12",
+  "department": "Curriculum Design",
+  "company_domain": "ixllearning.com",
+  "skills": "Statistics",
+  "label": "adjacent"
+ },
+ {
+  "id": "aa6e16412ef9bb5e",
+  "title": "Founding Sales Development Representative / Founding SDR (m/w/d)",
+  "department": "Go-to-Market",
+  "company_domain": "praxipal.com",
+  "skills": "CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "91ef03ff7633e4df",
+  "title": "Forward Deployed Engineer - Software Engineer - Spain",
+  "department": "Engineering & Product",
+  "company_domain": "elevenlabs.io",
+  "skills": "Python,System Design",
+  "label": "tech"
+ },
+ {
+  "id": "a26b71bae35430d0",
+  "title": "Projektassistenz (w/m/d) Controlling",
+  "department": null,
+  "company_domain": "dreessommerse.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8108a2dce6959228",
+  "title": "Applied Scientist, International Machine Learning",
+  "department": "Applied Science",
+  "company_domain": "amazon.com",
+  "skills": "Machine Learning,Recommender Systems,Algorithms,Java,C++,Python,SQL,Oracle,Data Warehousing",
+  "label": "tech"
+ },
+ {
+  "id": "1922f44cd78c1aa2",
+  "title": "Federales Nashville - Door/Security",
+  "department": "Federales Nashville",
+  "company_domain": "fourcornerstaverngroup.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a63f8466f9bdda41",
+  "title": "Scientist II, Antibody Discovery (Phage Display)",
+  "department": "Drug Discovery & Development",
+  "company_domain": "xairatherapeutics.com",
+  "skills": "Generative AI,Machine Learning,Python,R",
+  "label": "non-tech"
+ },
+ {
+  "id": "ad80db2c53548dcf",
+  "title": "Inside Sales - Technical Sales Specialist | EAG Laboratories",
+  "department": "Testing & Laboratory",
+  "company_domain": "eurofins.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "e46b237366d826e1",
+  "title": "Embedded Software Manager, Mobile Robotics",
+  "department": "Software Development",
+  "company_domain": "amazon.com",
+  "skills": "Embedded,Robotics,Microcontrollers,Project Management",
+  "label": "tech"
+ },
+ {
+  "id": "61084c7d54d4aaf9",
+  "title": "Open Application",
+  "department": "Open Application",
+  "company_domain": "artefact.com",
+  "skills": "Agile",
+  "label": "adjacent"
+ },
+ {
+  "id": "c3bcdac03902f0ff",
+  "title": "Marketing Business Analyst & Operations Coordinator",
+  "department": "Go To Market",
+  "company_domain": "safelease.com",
+  "skills": "HubSpot,Salesforce,CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "59401e29916780fc",
+  "title": "Regionalleiter Immobilienverwaltung (m/w/d)",
+  "department": "Buena Hausverwaltung",
+  "company_domain": "buena.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "9125c906f237f5b7",
+  "title": "Area Lead - Water and Wastewater",
+  "department": "Water Resources",
+  "company_domain": "bkfengineers.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "68f11d289e097b94",
+  "title": "Accounts Payable / Account Manager",
+  "department": null,
+  "company_domain": "avanceon.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "ca32a1b71ab76690",
+  "title": "Senior Product Manager - Product Led Growth- Nantes (x/f/m)",
+  "department": "Product",
+  "company_domain": "doctolib.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "cf856499158702f0",
+  "title": "Engineer Draftsperson - Remote (AUS Company)",
+  "department": null,
+  "company_domain": "anypear.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "df2ddc179118b0b3",
+  "title": "Senior Associate/Digital Forensics (Forensic Services practice)",
+  "department": "Forensic Services",
+  "company_domain": "charlesriverassociates.com",
+  "skills": "Digital Forensics,macOS,iOS,Android,Windows,Linux,Incident Response,Networking,TCP/IP",
+  "label": "tech"
+ },
+ {
+  "id": "a5e07e1e64644bd7",
+  "title": "Operations Manager – Singapore (VAR Services)",
+  "department": "Hawk-Eye Innovations",
+  "company_domain": "hawkeyeinnovations.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "84e01ba6f3c41272",
+  "title": "Senior data platform engineer",
+  "department": "R&D",
+  "company_domain": "lusha.com",
+  "skills": "DevOps,Spark,Databricks,Unity,Kafka,Airflow,Elasticsearch,AWS,Kubernetes,Generative AI,LLM,Observability,Delta Lake,Python,SQL",
+  "label": "tech"
+ },
+ {
+  "id": "7919855b3c9416b5",
+  "title": "Account Executive, Inbound, SME & Growth",
+  "department": "SME & Growth Business",
+  "company_domain": "airwallex.com",
+  "skills": "Salesforce",
+  "label": "adjacent"
+ },
+ {
+  "id": "8edf3c3e99680832",
+  "title": "Autobody Repair Technician",
+  "department": "CSN Shops CANADA",
+  "company_domain": "csncollision.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "855f35668cddded0",
+  "title": "Software Architect - iOS Devices",
+  "department": "Hardware",
+  "company_domain": "apple.com",
+  "skills": "iOS,Algorithms,System Design,macOS,Concurrency,Swift,OOP,REST API,Distributed Systems",
+  "label": "tech"
+ },
+ {
+  "id": "971567f6413ae17f",
+  "title": "Remote Registered Dietitian or CNS - Flexible Hours, Work from Anywhere",
+  "department": "Clinical",
+  "company_domain": "berry-street.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "dd6ae77852d218c6",
+  "title": "Auto Body Repair Technician",
+  "department": "Reconditioning",
+  "company_domain": "carvana.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "2892954c61a5b46a",
+  "title": "National Litigation & Claims Management Attorney",
+  "department": "Of Counsel",
+  "company_domain": "wilsonelserattorneys.com",
+  "skills": "Agile",
+  "label": "non-tech"
+ },
+ {
+  "id": "8524d38c1575ca5b",
+  "title": "Enterprise Architect",
+  "department": null,
+  "company_domain": "t-systemsictindiapvtltd1.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "7d2fee151b83097f",
+  "title": "AIML - Sr Machine Learning Engineer, Evaluation",
+  "department": "Machine Learning and AI",
+  "company_domain": "apple.com",
+  "skills": "Machine Learning,Generative AI,LLM,AI Agents,Distributed Systems,Python,Deep Learning,PyTorch",
+  "label": "tech"
+ },
+ {
+  "id": "db981f4b9d7a987b",
+  "title": "Senior Team Manager, Enterprise Sales",
+  "department": "Sales AEs",
+  "company_domain": "boxinc.de",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "9607f14e61b816bb",
+  "title": "Marketing Specialist",
+  "department": "Operations",
+  "company_domain": "araic.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "47cfdcc28bcbb882",
+  "title": "Staff Open Architecture Systems Engineer, Mission Systems",
+  "department": "Air Dominance & Strike : Mission Engineering : Systems Engineering",
+  "company_domain": "andurilindustries.com",
+  "skills": "Machine Learning,Computer Vision,System Design,BDD,Python",
+  "label": "tech"
+ },
+ {
+  "id": "6d14f3622a2a2804",
+  "title": "Lead Cybersecurity Engineer",
+  "department": null,
+  "company_domain": "visa.com",
+  "skills": "Cloud Security,Python,Generative AI,Threat Intelligence,SIEM,IAM,Network Security,Incident Response,LLM,AI Agents,Azure,AWS,Infrastructure as Code,Terraform,GitOps",
+  "label": "tech"
+ },
+ {
+  "id": "59e586a5ff096198",
+  "title": "Director, Program Management, Business Operations - Horizon",
+  "department": "Global Marketing Go To Market",
+  "company_domain": "2k.com",
+  "skills": "Project Management,Localization,Stakeholder Management,Miro,Confluence",
+  "label": "adjacent"
+ },
+ {
+  "id": "dffbb581a8ff29c4",
+  "title": "Åpen søknad",
+  "department": null,
+  "company_domain": "kantega.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "8c9b2aac459ec3d0",
+  "title": "Field Geotechnical Technician",
+  "department": null,
+  "company_domain": "tweinc.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8a7fc8dd7cc4a38d",
+  "title": "Physical Therapist Assistant ",
+  "department": "Region 98",
+  "company_domain": "urpt.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "0d4f9fc4b3e43d5b",
+  "title": "Controls Design Engineer (EPMS), CDE",
+  "department": "Operations, IT, & Support Engineering",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Project Management,SCADA",
+  "label": "tech"
+ },
+ {
+  "id": "548b949a487caeec",
+  "title": "Director, Scams Prevention Framework Legal",
+  "department": "Scams EDR Project",
+  "company_domain": "afca.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "89fc0fceb3cc4b10",
+  "title": "Croatian Linguistic Lead Tester in Cupertino, CA",
+  "department": "Production",
+  "company_domain": "weloglobal.com",
+  "skills": "Localization,LLM,AI Agents",
+  "label": "adjacent"
+ },
+ {
+  "id": "59d48254e0687005",
+  "title": "Creative Director, Motion and Video",
+  "department": "Communications - COMRSC",
+  "company_domain": "nationalpublicradioinc.com",
+  "skills": "Design Systems,UX Design,Accessibility,Premiere Pro,After Effects,Figma",
+  "label": "non-tech"
+ },
+ {
+  "id": "872fa3d7045ac4ca",
+  "title": "RF Passive Design Engineer",
+  "department": "Hardware",
+  "company_domain": "apple.com",
+  "skills": "RF",
+  "label": "tech"
+ },
+ {
+  "id": "cb6b3e3ac88b2f61",
+  "title": "Independent Contractor - Janitorial Services",
+  "department": "Locations",
+  "company_domain": "citywide.io",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "2dbf78a92d550c0e",
+  "title": "Corporate Lawyer (Legal Counsel Expert)",
+  "department": "Corporate and General Administration",
+  "company_domain": "ecovadis.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "6a7e468818dfb820",
+  "title": "Senior Microsoft Purview Consultant / Architect",
+  "department": "Business Processes",
+  "company_domain": "devoteam.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "4d1c5924de4d7f98",
+  "title": "Executive Director",
+  "department": "Avamere at Bethany",
+  "company_domain": "avamere-skilled-advisors-llc.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d085cffd1c89a7bf",
+  "title": "Head of People",
+  "department": "Operations",
+  "company_domain": "picogrid.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "b2b72fe17143be2c",
+  "title": "Digital Marketing Manager",
+  "department": "Marketing",
+  "company_domain": "bullfinch.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "5f718c5abfa4c2ac",
+  "title": "Administrative Assistant, Intelligent System Experience",
+  "department": "Corporate Functions",
+  "company_domain": "apple.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "561b4732cc99dc83",
+  "title": "Veterinary Technician",
+  "department": "Technicians",
+  "company_domain": "veterinarypracticepartners.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a76b1c7e3e0196da",
+  "title": "Senior Low Observables Engineer, RCS",
+  "department": "Air Dominance & Strike : Air Dominance & Strike Hardware : Low Observables / Survivability",
+  "company_domain": "andurilindustries.com",
+  "skills": "Machine Learning,Computer Vision,CATIA,MATLAB,Python,C++",
+  "label": "tech"
+ },
+ {
+  "id": "8be68eb00261c937",
+  "title": "Business Analyst II - AMZ26512.2",
+  "department": "Corporate Operations",
+  "company_domain": "amazon.com",
+  "skills": "SQL,ETL,Oracle,Statistics,R,SAS,SPSS,Elasticsearch,Kibana,Excel,Erlang",
+  "label": "adjacent"
+ },
+ {
+  "id": "cfb3e936aee81cd0",
+  "title": " Autista Bisarca patente C E",
+  "department": "Logistics",
+  "company_domain": "auto1.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "138e4ccec3c72db2",
+  "title": "Bartender",
+  "department": null,
+  "company_domain": "topviewsightseeing.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "0ec1271571b713bc",
+  "title": "Vertriebsgebietsleiter (m/w/d) - München/Stuttgart",
+  "department": "Sales",
+  "company_domain": "umdaschgroup.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "288680463ff8ae34",
+  "title": "Engineering Manager",
+  "department": "Engineering",
+  "company_domain": "bjakcareer.com",
+  "skills": "System Design,Observability,Distributed Systems",
+  "label": "tech"
+ },
+ {
+  "id": "9d66408ebeec7eec",
+  "title": "Senior or Lead Data Analyst, Product Analytics",
+  "department": "Data & Analytics",
+  "company_domain": "shopmy.com",
+  "skills": "SQL,A/B Testing,Data Warehousing,Amplitude,Mixpanel,Python,JavaScript,R",
+  "label": "tech"
+ },
+ {
+  "id": "8939f3862a769916",
+  "title": "AI Technical Architect",
+  "department": "Tech & Engineering",
+  "company_domain": "capco.com",
+  "skills": "Generative AI,LLM,AI Agents,Machine Learning,MLOps,System Design,Python,AWS,Azure,GCP,RAG,Vector Databases,Distributed Systems,Kubernetes",
+  "label": "tech"
+ },
+ {
+  "id": "51eac5baf671b705",
+  "title": "Regional Sales Manager, Northern Europe",
+  "department": "Sales",
+  "company_domain": "wekatest.de",
+  "skills": "LLM,AI Agents",
+  "label": "adjacent"
+ },
+ {
+  "id": "85e37aa000521e0b",
+  "title": "Sr. Forward Deployed Engineer (FDE) - Manufacturing",
+  "department": "Professional Services Operations",
+  "company_domain": "databricks.com",
+  "skills": "Spark,Databricks,Machine Learning,Product Management,Python,Scala,JavaScript,TypeScript,AWS,Azure,GCP,Distributed Systems,CI/CD,MLOps,Data Lake",
+  "label": "tech"
+ },
+ {
+  "id": "2c2ed1175702029d",
+  "title": "Program Coordinator, AUTA",
+  "department": "Human Resources",
+  "company_domain": "amazon.com",
+  "skills": "Excel,Microsoft 365,SharePoint",
+  "label": "adjacent"
+ },
+ {
+  "id": "600642bb6b1d58d1",
+  "title": "Pre-Sales Solutions Architect, Billing",
+  "department": "1150 Solutions Architecture",
+  "company_domain": "stripe.com",
+  "skills": "Product Management,Stripe,ERP,NetSuite,Workday,SAP,REST API,CRM",
+  "label": "tech"
+ },
+ {
+  "id": "590d1bad3b8d40ab",
+  "title": "Canvassing Manager",
+  "department": null,
+  "company_domain": "bathplanet.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "f217b21a27af9475",
+  "title": "Traditional Chinese (Taiwan) Content Reviewer",
+  "department": "AI Service General Application",
+  "company_domain": "weloglobal.com",
+  "skills": "Localization,Machine Learning,NLP",
+  "label": "adjacent"
+ },
+ {
+  "id": "869b3c781bb70652",
+  "title": "Senior Frontend Engineer",
+  "department": "Rocket Growth Tech",
+  "company_domain": "coupang.com",
+  "skills": "React,JavaScript,Vue,Design Systems,Node.js",
+  "label": "tech"
+ },
+ {
+  "id": "60c09438b69aa7e7",
+  "title": "Liaison man - Onshore Oil Drilling Experienced",
+  "department": "SA",
+  "company_domain": "eramtalent.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "0effb7317ae2427a",
+  "title": "Client Success Manager",
+  "department": "Client Success",
+  "company_domain": "absorblms.com",
+  "skills": "Project Management,C,Salesforce,Jira,Zendesk",
+  "label": "adjacent"
+ },
+ {
+  "id": "cadc19304fbc6415",
+  "title": "Sr. Product Manager, IN Payments",
+  "department": "Project/Program/Product Management--Non-Tech",
+  "company_domain": "amazon.com",
+  "skills": "Product Management,Stakeholder Management,Project Management",
+  "label": "tech"
+ },
+ {
+  "id": "dc0a46f730bf61c6",
+  "title": "MTS - Design Engineer",
+  "department": "Technical Staff",
+  "company_domain": "attention.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "cbb39af9ef8e5342",
+  "title": "Reverse Mortgage Inside Sales Loan Officer",
+  "department": "Mutual of Omaha Reverse Mortgage",
+  "company_domain": "mutualmortgage.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "dce5cafdc0d7d566",
+  "title": "Account Executive, SME & Growth",
+  "department": "SME & Growth Business",
+  "company_domain": "airwallex.com",
+  "skills": "Salesforce,CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "1e9ba66636b2ac40",
+  "title": "Software Senior Engineer",
+  "department": null,
+  "company_domain": "dell.com",
+  "skills": "IT Support",
+  "label": "tech"
+ },
+ {
+  "id": "dc44fd0718587ce2",
+  "title": "Recruiting Coordinator, Europe",
+  "department": "Operations",
+  "company_domain": "sierra.ai",
+  "skills": "LLM,AI Agents,OpenAI,Salesforce,Google Workspace",
+  "label": "adjacent"
+ },
+ {
+  "id": "69137c382f97b4b1",
+  "title": "מתמחה למחלקת הביקורת - מחזור 2027",
+  "department": null,
+  "company_domain": "pwc.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "32459969f59de381",
+  "title": "Account Executive (B2B SaaS) - East Coast",
+  "department": null,
+  "company_domain": "fabstation.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "a57168cd5a0f5cae",
+  "title": "(Senior) Product Designer (all genders)",
+  "department": "Product",
+  "company_domain": "avelios-medical.com",
+  "skills": "User Research,UX Design,Design Systems,Storybook,Figma",
+  "label": "tech"
+ },
+ {
+  "id": "b56e1527d2af5058",
+  "title": "Enterprise Account Executive ",
+  "department": "Enterprise & Commercial Sales",
+  "company_domain": "coveoen.com",
+  "skills": "Generative AI",
+  "label": "adjacent"
+ },
+ {
+  "id": "39a145496c967422",
+  "title": "Strategic Partnerships Development Manager - Telco Partnerships ",
+  "department": "Partnerships/BD (PPL)",
+  "company_domain": "waymo.com",
+  "skills": "Product Management,IoT,5G,LTE",
+  "label": "adjacent"
+ },
+ {
+  "id": "a41ea5ff3c55c55e",
+  "title": "Account Executive, SMB (Hunter)",
+  "department": "1651 Velocity - Account Executives (NA)",
+  "company_domain": "stripe.com",
+  "skills": "Stripe",
+  "label": "adjacent"
+ },
+ {
+  "id": "c69d519927ffb173",
+  "title": "Senior Staff Software Engineer, Guest & Host",
+  "department": "Software Engineering",
+  "company_domain": "airbnb.com",
+  "skills": "Machine Learning",
+  "label": "tech"
+ },
+ {
+  "id": "94e4cf5364e11647",
+  "title": "Senior Forward Deployed Software Engineer",
+  "department": "Delivery",
+  "company_domain": "physicsx.io",
+  "skills": "Machine Learning,REST API,Python,FastAPI,Microservices,Kubernetes,Helm,Terraform,AWS,Azure",
+  "label": "tech"
+ },
+ {
+  "id": "23bc1050c319ae52",
+  "title": "Consultant AMOA SI  Achat  - Recette (H/F)",
+  "department": null,
+  "company_domain": "asifr.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "5cfc21234d7c64a3",
+  "title": "Senior AI Architect (m/f/d)",
+  "department": "Other",
+  "company_domain": "beumergroup1.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "240ffbcbbaa2e1e4",
+  "title": "Query Infra Team Lead ",
+  "department": "R&D",
+  "company_domain": "zafran-security.com",
+  "skills": "LLM,AI Agents,DevOps,Data Modeling,ClickHouse,Elasticsearch,GCP,BigQuery,Snowflake,AWS,Redshift,Design Systems,Incident Response,Event-Driven Architecture,Kafka",
+  "label": "tech"
+ },
+ {
+  "id": "b627ae91a07144fa",
+  "title": "Partner Marketing Manager",
+  "department": "Marketing",
+  "company_domain": "imprint.ai",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "0bdf803d9b06f01c",
+  "title": "Korean Bilingual - Logistic/SCM Account Coordinator",
+  "department": "US Team",
+  "company_domain": "cesna-group-2.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "ed94b86863cba565",
+  "title": "1099 Process Server ",
+  "department": "Marketplace Supply - Process Servers",
+  "company_domain": "proof.com",
+  "skills": "Android",
+  "label": "non-tech"
+ },
+ {
+  "id": "8deb94130f974b17",
+  "title": "NICE CXone Engineer",
+  "department": "FS-ABL",
+  "company_domain": "capgemini-insurance.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "d73732390329fb1c",
+  "title": "Lead Dental Nurse",
+  "department": "Practices - South",
+  "company_domain": "portmandentex.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "6fde771906ce6ef4",
+  "title": "Assoc Dir Global Category Manager Devices",
+  "department": "Procurement",
+  "company_domain": "tevapharm.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "76b1d48224f70865",
+  "title": "Social Media Manager ",
+  "department": "Brand ",
+  "company_domain": "glossier.com",
+  "skills": "SEO,Figma,Photoshop,Canva",
+  "label": "non-tech"
+ },
+ {
+  "id": "d266eb674177074e",
+  "title": "Data Steward, Re:Cycle Reverse Logistics",
+  "department": "Data Science",
+  "company_domain": "aws.amazon.com",
+  "skills": "Application Security,SQL,AWS,Oracle,Hive,Scala,Data Warehousing,Data Modeling,ETL,Algorithms,Tableau",
+  "label": "tech"
+ },
+ {
+  "id": "6940c19b029aaeb6",
+  "title": "Data Center Infrastructure Engineer, HKG - DCO",
+  "department": "Operations, IT, & Support Engineering",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Incident Management",
+  "label": "tech"
+ },
+ {
+  "id": "8e984ca0ebda40b6",
+  "title": " Product Design Intern",
+  "department": "  PR-Product ",
+  "company_domain": "sezzle.com",
+  "skills": "UX Design,Design Systems,Figma,User Research,Generative AI,LLM,HTML,CSS,React,After Effects",
+  "label": "tech"
+ },
+ {
+  "id": "842c025ed76e46cd",
+  "title": "Heavy Equipment Shop Technician (Mechanic)",
+  "department": "Maintenance",
+  "company_domain": "equipmentsharecom.com",
+  "skills": "Incident Management",
+  "label": "non-tech"
+ },
+ {
+  "id": "4f98a63225baa77e",
+  "title": "Betriebselektriker:in / Elektroniker:in (a) 100 %",
+  "department": "Druck Produktion / Technik / Zustellung",
+  "company_domain": "chmedia.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a0f107ffeb97dc69",
+  "title": "ESPECIALISTA DE AUTOMATIZACIÓN | BPM • RPA • IA",
+  "department": "ReKluti",
+  "company_domain": "easyapplyrekluti.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "d99f3531ecb4892e",
+  "title": "Affordability Partnerships Manager, Devices and Services",
+  "department": null,
+  "company_domain": "google.com",
+  "skills": "Project Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "b69a2d9c39388790",
+  "title": "Technical Program Manager",
+  "department": "Professional Services Operations",
+  "company_domain": "databricks.com",
+  "skills": "Spark,Databricks,Machine Learning,Project Management,Agile,Data Lake,Unity",
+  "label": "tech"
+ },
+ {
+  "id": "40fbb9e1a3eb3219",
+  "title": "Sr Specialist Solution Architect, Analytics",
+  "department": "Data Science",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Product Management,Data Warehousing,Data Lake,ETL,Algorithms,Data Modeling,Redshift,Athena,EMR,Kinesis",
+  "label": "tech"
+ },
+ {
+  "id": "053e09943a1f8ddf",
+  "title": "Technical Program Manager - Hardware",
+  "department": "Operations",
+  "company_domain": "mindrobotics.com",
+  "skills": "Embedded,Project Management,Robotics",
+  "label": "tech"
+ },
+ {
+  "id": "d56f260e9a753764",
+  "title": "Director, Demand Generation",
+  "department": "Sales & Marketing",
+  "company_domain": "itsolutions.org",
+  "skills": "CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "45774eae6595f17a",
+  "title": "Child and Adolescent Therapist",
+  "department": "Allentown, PA ",
+  "company_domain": "blackbirdhealth.com",
+  "skills": "AWS,EMR",
+  "label": "non-tech"
+ },
+ {
+  "id": "c05335e36dba3c8b",
+  "title": "Senior Staff Software Engineer (EPM)",
+  "department": null,
+  "company_domain": "paloaltonetworks.com",
+  "skills": "Firewalls,Palo Alto Networks,Java,Spring Boot,Angular,Agile,Docker,Kubernetes,OpenShift,JavaScript,HTML,CSS,Sass,SAS,AWS",
+  "label": "tech"
+ },
+ {
+  "id": "f5b3d21502edab1b",
+  "title": "Senior Product Manager (Rocket Growth)",
+  "department": "Rocket Growth Tech",
+  "company_domain": "coupang.com",
+  "skills": "OKRs,OpenAPI,Product Management,A/B Testing,UX Design",
+  "label": "tech"
+ },
+ {
+  "id": "3a7244d7bfced140",
+  "title": "Sales Development Representative (SDR) (f/m/x)",
+  "department": "Sales",
+  "company_domain": "doinstruct.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "3dc596c1babff5ba",
+  "title": "Internal Sales & Estimation - Full Time Permanent",
+  "department": "New Zealand",
+  "company_domain": "vulcan.io",
+  "skills": null,
+  "label": "non-tech"
+ },
+ {
+  "id": "a3591a461c32e3a5",
+  "title": "Clinical Account Manager/Senior Clinical Account Manager - PITTSBURGH, PA",
+  "department": null,
+  "company_domain": "sobi.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8abebadb52b9f2ba",
+  "title": "Manager, Account Executive",
+  "department": null,
+  "company_domain": "visa.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "c91b155c8435859f",
+  "title": "Initiativbewerbung - Deutschland",
+  "department": "Candidature spontanée",
+  "company_domain": "pennylane.com",
+  "skills": "Stripe",
+  "label": "adjacent"
+ },
+ {
+  "id": "ff34a1352e84053c",
+  "title": "Director of Technical Solutions, Americas",
+  "department": "Sales",
+  "company_domain": "boseprofessional.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "4ea6953fba6cc629",
+  "title": "Quality Technician",
+  "department": "Operations",
+  "company_domain": "enviva.com",
+  "skills": "Project Management,Statistics",
+  "label": "non-tech"
+ },
+ {
+  "id": "e0f72fd48b858004",
+  "title": "Middle Automation QA Engineer",
+  "department": "Technology",
+  "company_domain": "b2spin.com",
+  "skills": "System Design,Test Automation,Java,Playwright,LLM,AI Agents,CI/CD,REST Assured,Android,Retrofit,SQL,OpenAPI,HTML,CSS,Selenium",
+  "label": "tech"
+ },
+ {
+  "id": "2ef672905b298ad6",
+  "title": "Senior HR Business Partner",
+  "department": "All Cost Centers",
+  "company_domain": "headway.com",
+  "skills": "Spark",
+  "label": "adjacent"
+ },
+ {
+  "id": "42a04cd04140e924",
+  "title": "Onboarding Officer - Home Care",
+  "department": "HCA Corporate",
+  "company_domain": "healthcareaustralia1.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "849604e10b88c516",
+  "title": "Senior Defense Litigation Attorney - General Liability",
+  "department": "Of Counsel",
+  "company_domain": "wilsonelserattorneys.com",
+  "skills": "Project Management",
+  "label": "non-tech"
+ },
+ {
+  "id": "a35b1ee180b97b82",
+  "title": "Veterinary Technician",
+  "department": "Technicians",
+  "company_domain": "veterinarypracticepartners.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "aeb80b8724cd7ece",
+  "title": "Carbon Analyst",
+  "department": "Ratings",
+  "company_domain": "sylvera.com",
+  "skills": "SQL,Python",
+  "label": "adjacent"
+ },
+ {
+  "id": "052ea7a9589b9c93",
+  "title": "Director, Discovery Program Management",
+  "department": "Discovery Science",
+  "company_domain": "parabilismed.com",
+  "skills": "Project Management",
+  "label": "non-tech"
+ },
+ {
+  "id": "285b7f41eb0d549a",
+  "title": "Group Fitness Instructor (m/w/d)",
+  "department": "Live Group Fitness",
+  "company_domain": "puregymswiss.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "c9ab9730d51ad3b9",
+  "title": "Member of Technical Staff",
+  "department": "Engineering",
+  "company_domain": "mithrl.com",
+  "skills": "System Design,Machine Learning,Observability,Python,React,Django,GraphQL,Data Modeling,AWS,GCP,Azure",
+  "label": "tech"
+ },
+ {
+  "id": "8361bda6eb33375b",
+  "title": "Cryptologic Computer Scientist (2026-0184)",
+  "department": "DHSD",
+  "company_domain": "acclaimtechnicalservices.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "be8227b1ad7396b6",
+  "title": "Sales Manager_Chinese Vertical",
+  "department": "Sales-Sales-POS ",
+  "company_domain": "chowbus.com",
+  "skills": "CRM,Salesforce,Active Directory",
+  "label": "adjacent"
+ },
+ {
+  "id": "4d7ed07065c978e6",
+  "title": "HGV Driver Class 2",
+  "department": "Supply Chain and Operations (Drivers and Operatives)",
+  "company_domain": "syscogb.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d41c167fe086930c",
+  "title": "Forward Deployed Software Engineer, Internship - US Government",
+  "department": "Delta",
+  "company_domain": "palantir.com",
+  "skills": "Algorithms,Python,Java,C++,TypeScript,JavaScript",
+  "label": "tech"
+ },
+ {
+  "id": "e34a56450102bbb4",
+  "title": "Construction Manager High Voltage",
+  "department": "Construction",
+  "company_domain": "roiagency.com",
+  "skills": "Excel",
+  "label": "non-tech"
+ },
+ {
+  "id": "2bd1f00a5a72ecdd",
+  "title": "Team Lead - Data Engineering",
+  "department": "3100 NZ-IT",
+  "company_domain": "rocketlab.ai",
+  "skills": "Agile,Python,REST API,Git,Spark,pandas,NumPy,ETL,Scrum,Kubernetes,C#,Go,TypeScript",
+  "label": "tech"
+ },
+ {
+  "id": "7751fe5390036517",
+  "title": "Staff Software Engineer - Python",
+  "department": null,
+  "company_domain": "paypal.com",
+  "skills": "Python,Distributed Systems,Microservices,Serverless,Django,Flask,High Availability,Disaster Recovery,Cryptography,Agile,Scrum,System Design,AWS,GCP,Azure",
+  "label": "tech"
+ },
+ {
+  "id": "8ab1c16ad1fc6b19",
+  "title": "Responsable de Magasin - F/H",
+  "department": "Retail",
+  "company_domain": "courir.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "1fc8fca28ef8da25",
+  "title": "NPO Operations Program Manager - iPad & Accessories",
+  "department": "Operations and Supply Chain",
+  "company_domain": "apple.com",
+  "skills": "Project Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "8330903503d36119",
+  "title": "Account Executive  - Korea ",
+  "department": "Revenue",
+  "company_domain": "elevenlabs.io",
+  "skills": "Generative AI,LLM,Agile",
+  "label": "adjacent"
+ },
+ {
+  "id": "8bcd326889e1148a",
+  "title": "Senior Localization Program Manager",
+  "department": "Scaling Operations",
+  "company_domain": "duolingo.com",
+  "skills": "Localization",
+  "label": "adjacent"
+ },
+ {
+  "id": "d93ad6f3f6b41f3f",
+  "title": "Regional Sales Director - Automotive",
+  "department": "Sales",
+  "company_domain": "ServiceNow.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "e13a2a376b6c380c",
+  "title": "Mental Health Group Specialist",
+  "department": "Group Clinical",
+  "company_domain": "charliehealth.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "90c8b9de4a32e391",
+  "title": "Care Professionals URGENTLY NEEDED Drivers or Non Drivers",
+  "department": null,
+  "company_domain": "homeinsteadcare.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "2a4f5cc6611ce077",
+  "title": "Developer Relations - Go to Market",
+  "department": "Developer Experience",
+  "company_domain": "chromatic.com",
+  "skills": "Storybook,JavaScript,TypeScript,React",
+  "label": "tech"
+ },
+ {
+  "id": "fdb7548c6f504239",
+  "title": "Audio Visual Commissioning Engineer",
+  "department": "Operations",
+  "company_domain": "eositsolutions.com",
+  "skills": "IT Support,DSP",
+  "label": "tech"
+ },
+ {
+  "id": "37e4ceec80fea3a4",
+  "title": "Senior Design Engineer",
+  "department": "Emerging Technology and Incubation",
+  "company_domain": "cloudflare.com",
+  "skills": "Cloudflare,Figma,TypeScript,React,Distributed Systems,Networking,DNS",
+  "label": "tech"
+ },
+ {
+  "id": "001e112f09e48e79",
+  "title": "Proposal Lead ",
+  "department": "Growth",
+  "company_domain": "poseidonaero.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "b912d145ef04498e",
+  "title": "Junior Engineer Tailings",
+  "department": "Infrastructure Services",
+  "company_domain": "rosebelgoldmines.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "1e7462eea35d1270",
+  "title": "Connect with Us",
+  "department": null,
+  "company_domain": "flagshippioneering.com",
+  "skills": "GDPR",
+  "label": "adjacent"
+ },
+ {
+  "id": "dc486aae71b9c155",
+  "title": "Senior Negotiator, Video Partnerships",
+  "department": "Mediabrands - United States",
+  "company_domain": "mediabrands.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "523a833e01faaa0c",
+  "title": "Senior Data Analyst, Business Insights",
+  "department": "Product",
+  "company_domain": "garnerhealth.com",
+  "skills": "LLM,AI Agents,Looker,Tableau,Power BI,Snowflake,SQL,dbt",
+  "label": "tech"
+ },
+ {
+  "id": "ae62df92f1ca6988",
+  "title": "Sales Associate",
+  "department": "Garnet Captive Services, LLC",
+  "company_domain": "strategicrisksolutions.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "78f35aff8bf5057f",
+  "title": "Primary Care Provider, Nurse Practitioner / Physician Assistant",
+  "department": "600 - Medical Practice",
+  "company_domain": "welbehealth.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "bbb196dda66d2aef",
+  "title": "Software Engineer - Securities Operations",
+  "department": "Service Operations",
+  "company_domain": "avaloq1.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "10f3a46ae081257d",
+  "title": "Senior Consultant",
+  "department": "Customer Success - Delivery",
+  "company_domain": "appian.com",
+  "skills": "SOAP,Data Modeling,SQL,Agile,OOP,AWS,GCP,TDD,Machine Learning",
+  "label": "tech"
+ },
+ {
+  "id": "96d4d13266479aa9",
+  "title": "Manufacturing Engineer, Automation & Tooling, Space",
+  "department": "Manufacturing : Manufacturing Engineering : Manufacturing Engineering",
+  "company_domain": "andurilindustries.com",
+  "skills": "Machine Learning,Computer Vision,Performance Testing,SolidWorks,Python,MATLAB",
+  "label": "tech"
+ },
+ {
+  "id": "e222d7a870922bbe",
+  "title": "Caterlink - Catering Assistant",
+  "department": "Pluckley CofE Primary School",
+  "company_domain": "wshgroup.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "81f1b183509b3293",
+  "title": "Senior Solutions Architect, AWS National Security Solutions Architecture Team",
+  "department": "Solutions Architect",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Platform Engineering,CompTIA,Cloud Security",
+  "label": "tech"
+ },
+ {
+  "id": "1d5b7d2cebe62cdb",
+  "title": "Restructuring and Turnaround Services - Associate Director",
+  "department": "Client Service",
+  "company_domain": "riveron.com",
+  "skills": "Excel",
+  "label": "non-tech"
+ },
+ {
+  "id": "23730b2515e3a6ba",
+  "title": "Delivery Consultant - Security",
+  "department": "Systems, Quality, & Security Engineering",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Generative AI,Distributed Systems,Machine Learning,Serverless,HIPAA,GDPR,SIEM",
+  "label": "tech"
+ },
+ {
+  "id": "b73b1352577ce78d",
+  "title": "Charity Fundraiser - Cats Protection",
+  "department": "South Region",
+  "company_domain": "charity-link.org",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "8ea3ccb322913dc7",
+  "title": "DEVELOPER",
+  "department": null,
+  "company_domain": "alphatechnologiesincusa1.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "ed7852df5f511555",
+  "title": "Senior Software Engineer, Embedded Systems, Pixel Memory",
+  "department": null,
+  "company_domain": "google.com",
+  "skills": "Embedded,Distributed Systems,System Design,Machine Learning,NLP,UX Design,Device Drivers,FPGA,C,C++",
+  "label": "tech"
+ },
+ {
+  "id": "14ea84ab0716804d",
+  "title": "Pregnancy & Birth Doula (Fontana, CA)",
+  "department": "Loula Providers",
+  "company_domain": "loula.de",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "25a3f19becc2d6ea",
+  "title": "Java Developer (medior - senior) | FinTech | Spring",
+  "department": "Tech & Engineering",
+  "company_domain": "capco.com",
+  "skills": "Java,Spring Boot,Unit Testing,REST API,Microservices,Maven,OpenAPI,Hibernate,OAuth,Design Patterns,Algorithms,Kafka,Agile,Scrum,Angular",
+  "label": "tech"
+ },
+ {
+  "id": "36cc66746b410cca",
+  "title": "Senior Finance Manager - HK Finance Operations",
+  "department": "Finance Department",
+  "company_domain": "okx.com",
+  "skills": "Blockchain,Stakeholder Management,Excel,SQL,Oracle,ERP",
+  "label": "adjacent"
+ },
+ {
+  "id": "bb6d478593642138",
+  "title": "Manager, Software Development",
+  "department": "Engineering",
+  "company_domain": "h2oai.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "54c93e4477d223d9",
+  "title": "Digital Marketing Specialist - Real Estate",
+  "department": null,
+  "company_domain": "eramtalent.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "1505ce37b1611dc1",
+  "title": "Εξωτερικός Πωλητής ΔΕΗ Fiber | από 1.100€, bonus, αυτοκίνητο|CMP",
+  "department": "DIRECT SALES",
+  "company_domain": "cqs.ai",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "135236a620dfb8aa",
+  "title": "Receptionist / Dental Assistant | Lumino Seddon Street | Part Time ",
+  "department": "Admin Support",
+  "company_domain": "abanohealthcare.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d9611a50569245e2",
+  "title": "Product Manager",
+  "department": "Product",
+  "company_domain": "niural.com",
+  "skills": "Product Management,Generative AI,LLM,Jira,Figma,Notion",
+  "label": "tech"
+ },
+ {
+  "id": "54b69487f82aa1d3",
+  "title": "Senior Software Engineer - Data Infrastructure",
+  "department": "Data and Compute Platform",
+  "company_domain": "applied.co",
+  "skills": "Spark,Kafka,Python,C++,Go,Scala,Kubernetes",
+  "label": "tech"
+ },
+ {
+  "id": "2e0b7ffd9d1db506",
+  "title": "Senior Software Engineer",
+  "department": "Engineering",
+  "company_domain": "metriport.com",
+  "skills": "Distributed Systems,Observability,Incident Management,Machine Learning,CI/CD,AWS,EMR,Node.js,JavaScript,TypeScript,Python,SQS,SNS,Infrastructure as Code,SQL",
+  "label": "tech"
+ },
+ {
+  "id": "8b4ecb04dc0cf9ff",
+  "title": "Warehouse supervisor",
+  "department": null,
+  "company_domain": "intuitive.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a1bf4515bd3243f0",
+  "title": "Senior Demand Generation Manager",
+  "department": "Marketing",
+  "company_domain": "builder-prime.com",
+  "skills": "CRM,SQL,HubSpot,Python",
+  "label": "adjacent"
+ },
+ {
+  "id": "6ee6b1a78257997c",
+  "title": "Principal Product Manager, Data Science & Market Research",
+  "department": "Product Management",
+  "company_domain": "microsoft.com",
+  "skills": "LLM,AI Agents,Windows,macOS,Linux,Project Management,Product Management,Power BI,Azure,C#,.NET",
+  "label": "tech"
+ },
+ {
+  "id": "d8d64d80f774db99",
+  "title": "Mitarbeiter*in Vertriebsinnendienst in einer Agentur in der Region Aldenhoven",
+  "department": "24_Vertriebsdirektion Köln",
+  "company_domain": "barmeniagothaerag.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "f907dfa650b01db5",
+  "title": "Client Experience Associate",
+  "department": "AnywhereWorks US",
+  "company_domain": "anywhereworks.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "ba6d727b1c019080",
+  "title": "SAP Materials Management (MM) Consultant",
+  "department": "53969672 - AFS SAP SCM",
+  "company_domain": "accenturefederalservices.com",
+  "skills": "SAP",
+  "label": "tech"
+ },
+ {
+  "id": "9ef706b4ba3ad818",
+  "title": "Senior Scala Engineer",
+  "department": "Product & Technology",
+  "company_domain": "lefebvresdu.com",
+  "skills": "Scala",
+  "label": "tech"
+ },
+ {
+  "id": "0fbd5b5ce3125373",
+  "title": "Scientist/Sr. Scientist, Chemical Biology",
+  "department": "Chemistry Team",
+  "company_domain": "generalproximity.com",
+  "skills": "OKRs",
+  "label": "non-tech"
+ },
+ {
+  "id": "53bae9415ce9a5f7",
+  "title": "Software Engineer",
+  "department": "Software Engineering",
+  "company_domain": "janestreet.com",
+  "skills": "Functional Programming,OCaml,Python,Machine Learning",
+  "label": "tech"
+ },
+ {
+  "id": "0ed41faf82a09c5a",
+  "title": "Optical Technician / Optician",
+  "department": "Optometry Medical Office Team",
+  "company_domain": "ecpcareers.com",
+  "skills": "Excel",
+  "label": "non-tech"
+ },
+ {
+  "id": "e8343acbf151f472",
+  "title": "Servicedesk Consultant",
+  "department": "Qobee",
+  "company_domain": "anchr.io",
+  "skills": "ERP",
+  "label": "tech"
+ },
+ {
+  "id": "c689cf86a1d71c1b",
+  "title": "Selbstständige*r Versicherungsvermittler*in als Agenturleitung in der Region Jülich",
+  "department": "24_Vertriebsdirektion Köln",
+  "company_domain": "barmeniagothaerag.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "464496f630d63a09",
+  "title": "Strategy Lead",
+  "department": "Strategy",
+  "company_domain": "luminai.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "4f3f7bbc2e437e9b",
+  "title": "Software Engineering Intern (Summer 2027)",
+  "department": "Engineering",
+  "company_domain": "ctgt.com",
+  "skills": "Generative AI,LLM,Python,JavaScript,Git,AWS,GCP",
+  "label": "tech"
+ },
+ {
+  "id": "2fe9af4c16967c11",
+  "title": "Analyst / Consultant / Sr. Consultant - Fullstack Developer (INDA)",
+  "department": "Digital Application Development",
+  "company_domain": "blue-altair.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "e2b4e126e51c960d",
+  "title": "Telehealth Mental Health Provider (Texas)",
+  "department": "Medical Operations (Providers)",
+  "company_domain": "medvidi.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "2ee9341b7c0dae7c",
+  "title": "Afterschool Group Supervisor",
+  "department": "Manchester Youth Development Center (MYDC)",
+  "company_domain": "compassbusinesssolutions.net",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "96639d9234a3f1fc",
+  "title": "Technicien/ne Sécurité au Travail, WHS",
+  "department": "Medical, Health, & Safety",
+  "company_domain": "amazon.com",
+  "skills": "Excel",
+  "label": "non-tech"
+ },
+ {
+  "id": "cc8316e18d6132e4",
+  "title": "Ice Cream Server - Willis Tower",
+  "department": "Retail - Hourly",
+  "company_domain": "vanleeuwenicecream.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "a5e9ce87ff5b5ff4",
+  "title": "Licensed Clinical Social Worker - Remote",
+  "department": "Provider Growth",
+  "company_domain": "betterhelp.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "ccd4990036a7cc34",
+  "title": "Employee Experience Specialist",
+  "department": "People",
+  "company_domain": "pariveda.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "ecd07669d569d589",
+  "title": "Fleet Operations Manager",
+  "department": "Logistiek & Transport",
+  "company_domain": "basgroup.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "9b253d2bbf7c8b5d",
+  "title": "Business Development Manager",
+  "department": "Sales Region Amsterdam",
+  "company_domain": "feverup.com",
+  "skills": "CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "a7a246106a4e16ca",
+  "title": "System Integration Engineer",
+  "department": null,
+  "company_domain": "appliedmaterials.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "f145063101cd85cc",
+  "title": "Controls Integration Engineer, One MHS | Systems Integration and Flow",
+  "department": "Systems, Quality, & Security Engineering",
+  "company_domain": "amazon.com",
+  "skills": "PLC,Linux,IT Support,Networking,VLAN,System Design,Load Balancing,C++,C#,Java,Python,Go,PowerShell,Ruby,OOP",
+  "label": "tech"
+ },
+ {
+  "id": "9973895866480845",
+  "title": "Member of Technical Staff - Imagine Model",
+  "department": "Model",
+  "company_domain": "xai.com",
+  "skills": "LLM,AI Agents,Algorithms,Machine Learning,Deep Learning,Python,JAX,PyTorch,Rust,C++,Spark,Ray,IT Support",
+  "label": "tech"
+ },
+ {
+  "id": "927859165b319fc9",
+  "title": "Manufacturing Development Engineer",
+  "department": null,
+  "company_domain": "dell.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "77ca3ff79138612f",
+  "title": "Senior Software Engineer ",
+  "department": "Engineering",
+  "company_domain": "redwoodsoftware.com",
+  "skills": "ERP,C++,Java,REST API,JavaScript,jQuery,Integration Testing,System Design,DevOps,AWS,Azure,Agile,Scrum,OOP,SQL",
+  "label": "tech"
+ },
+ {
+  "id": "48a793dbc753236e",
+  "title": "Reliability Engineer, Energy Storage",
+  "department": "Engineering & Technology",
+  "company_domain": "redwoodmaterials.co",
+  "skills": "C,SEM,Statistics,Python",
+  "label": "tech"
+ },
+ {
+  "id": "cc0da81be17d20fa",
+  "title": "Professional Services Consultant, Brisbane",
+  "department": "Services/Support",
+  "company_domain": "checkpoint.com",
+  "skills": "Networking,Firewalls,Windows,Active Directory,Microsoft 365,Exchange,Linux,Unix,Check Point,TCP/IP",
+  "label": "tech"
+ },
+ {
+  "id": "9a54489c3d88c146",
+  "title": "Senior Quality and Process Manager",
+  "department": "Operations",
+  "company_domain": "genesis.com",
+  "skills": "Robotics,Lean Six Sigma,SQL,Python",
+  "label": "adjacent"
+ },
+ {
+  "id": "d7b0620a54b64383",
+  "title": "Senior Growth Content Marketing Manager",
+  "department": "Marketing",
+  "company_domain": "lumen.me",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "4dc78bb7767c90b6",
+  "title": "Senior Power Electronics Engineer",
+  "department": "Engineering",
+  "company_domain": "delta-q.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "8b621cf36a17fbef",
+  "title": "Director of Engineering, Flex Compute",
+  "department": "Cloud Engineering",
+  "company_domain": "crusoe.com",
+  "skills": "Kubernetes",
+  "label": "tech"
+ },
+ {
+  "id": "edae8c1c86ea1c3e",
+  "title": "Teamassistenz Organisationsbetreuung (m/w/d) – befristete Elternzeitvertretung",
+  "department": null,
+  "company_domain": "atlas4.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "47e83e8b1447ace1",
+  "title": "Applied Scientist, Prime Video Commerce Insights ",
+  "department": "Applied Science",
+  "company_domain": "amazon.com",
+  "skills": "Machine Learning,LLM,AI Agents,Generative AI,Reinforcement Learning,Recommender Systems,Java,C++,Python,Algorithms,Distributed Systems,C,Unix,Linux",
+  "label": "tech"
+ },
+ {
+  "id": "59ab25aecb0627f9",
+  "title": "Software Development Engineer II, AWS Supply Chain, AWS, Infra Supply Chain Automation",
+  "department": "Software Development",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Algorithms,Design Patterns,C#,C++,Java,Perl,OOP",
+  "label": "tech"
+ },
+ {
+  "id": "d37341b8e6911f3d",
+  "title": "Principal / Senior Engineer, Product Engineering, Technical Operations Management",
+  "department": null,
+  "company_domain": "aumovio.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "1b16ece6e6600f45",
+  "title": "Senior Geotechnical Engineer",
+  "department": null,
+  "company_domain": "pri.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "e9eb852a6a2144fb",
+  "title": "Revenue Operations Senior Associate",
+  "department": "GTM Operations",
+  "company_domain": "faire.io",
+  "skills": "Machine Learning,Excel,Google Sheets,SQL",
+  "label": "adjacent"
+ },
+ {
+  "id": "6c355204f13af178",
+  "title": "Warehouse Laborer",
+  "department": null,
+  "company_domain": "esselenvironmental.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d860658bb47d009f",
+  "title": "Credit Risk Analyst - Funds | Risk",
+  "department": null,
+  "company_domain": "natixisinportugal.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "f92d5289aa54d194",
+  "title": "Senior Data Center IT Support Technician",
+  "department": "Data Center Technicians",
+  "company_domain": "microsoft.com",
+  "skills": "IT Support,Microsoft 365,Azure,Storage,Windows Server,Windows,CompTIA",
+  "label": "tech"
+ },
+ {
+  "id": "041834194c398f10",
+  "title": "Senior Global Supply Manager, Avionics",
+  "department": "Supply Chain",
+  "company_domain": "relativity.com",
+  "skills": "ERP,SAP,SQL,Oracle",
+  "label": "adjacent"
+ },
+ {
+  "id": "4496685316b0a6c1",
+  "title": "Loyalty Manager",
+  "department": "Marketing",
+  "company_domain": "bullfinch.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "9fd64f8ef6b3dc69",
+  "title": "Prepress Technician",
+  "department": "Print",
+  "company_domain": "advatix.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "1b9d8fa87afa5c66",
+  "title": "Underground Heavy Machine Operator (CDL)",
+  "department": null,
+  "company_domain": "esselenvironmental.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "4707bc083618bf93",
+  "title": "Prize - Guest Service Agent(m/w/d)- Schwerpunkt Front Office",
+  "department": null,
+  "company_domain": "rhg.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "cc393ba2a068105b",
+  "title": "Fab Utility Engineer",
+  "department": "Corporate Functions",
+  "company_domain": "apple.com",
+  "skills": "PLC",
+  "label": "adjacent"
+ },
+ {
+  "id": "a805788304c8d039",
+  "title": "Lead bartender",
+  "department": null,
+  "company_domain": "mikacoralgables.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "58e11747ee2bb8be",
+  "title": "Engineering Operation Technician",
+  "department": "Operations, IT, & Support Engineering",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS,Incident Management",
+  "label": "tech"
+ },
+ {
+  "id": "9177452967c84cbc",
+  "title": "Principal Software Engineer, Continuous Integration (Starship)",
+  "department": "Starship Software Engineering",
+  "company_domain": "spacex.com",
+  "skills": "CI/CD,Bazel,Python,C++,Rust,Go",
+  "label": "tech"
+ },
+ {
+  "id": "a572e80aad08a844",
+  "title": "Supply Growth Manager, Vietnam",
+  "department": "Supply",
+  "company_domain": "moloco.com",
+  "skills": "Machine Learning",
+  "label": "adjacent"
+ },
+ {
+  "id": "36590f9de16dcdc8",
+  "title": "Senior GTM Manager - UK",
+  "department": "Strategy & Operations",
+  "company_domain": "xero.com",
+  "skills": "Project Management,Asana,Jira",
+  "label": "adjacent"
+ },
+ {
+  "id": "f40d5a219ef7da12",
+  "title": " Neuroscience Therapeutic Sales Specialist (Hollywood, CA)",
+  "department": "Sales",
+  "company_domain": "compasspathways.com",
+  "skills": "TypeScript",
+  "label": "non-tech"
+ },
+ {
+  "id": "dfc606ac571eb78a",
+  "title": "Full Charge Bookkeeper",
+  "department": null,
+  "company_domain": "stafffinancialgroup.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "deae7a4ae32b3f0a",
+  "title": "Account Payable Senior Analyst (Bangkok Based, Relocation Provided)",
+  "department": "Finance",
+  "company_domain": "agoda.com",
+  "skills": "Excel,ERP,SQL,Oracle,SAP,Lean Six Sigma",
+  "label": "adjacent"
+ },
+ {
+  "id": "4e27ce9ec24aff18",
+  "title": "Full Stack Engineer",
+  "department": "Engineering",
+  "company_domain": "bondsports.ai",
+  "skills": "Project Management,REST API,CI/CD,Node.js,JavaScript,React,TypeScript,Python,Java,C#,Angular,AWS,GCP,ETL",
+  "label": "tech"
+ },
+ {
+  "id": "2d9438488e728849",
+  "title": "GIS Industry Solutions Specialist - Architecture, Engineering, and Construction (AEC)",
+  "department": "6070 - Solutions - Industry",
+  "company_domain": "esri.com",
+  "skills": "Project Management,Microsoft 365,SharePoint,HubSpot,GDPR",
+  "label": "tech"
+ },
+ {
+  "id": "47b0412b25a8c85c",
+  "title": "Senior AI Engineer (m/f/n)",
+  "department": null,
+  "company_domain": "inpost.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "f3955b569b009f0c",
+  "title": "Senior Mechanical Product Design Engineer, Platforms",
+  "department": null,
+  "company_domain": "google.com",
+  "skills": "Machine Learning,GCP,Vertex AI,ASIC",
+  "label": "tech"
+ },
+ {
+  "id": "f17057fb780995f0",
+  "title": "Brand Marketing Specialist",
+  "department": null,
+  "company_domain": "apply-superstaffjobs.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "af6d97fdf5139ed4",
+  "title": "בנקאי.ת שירות למחלקת פעולות עו\"ש מורכבות, אגף מרכזי מומחים- חטיבת תפעול ונכסים",
+  "department": null,
+  "company_domain": "discountbank.co.il",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "5353bbcf0fdcb8f9",
+  "title": "Deployed Engineer - APAC",
+  "department": "Customer Engineering",
+  "company_domain": "cognition.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "9b111d5b10d0c246",
+  "title": "593 NDT/RT Assistant Technicians - Robinson, IL Full Time Resident/Nested",
+  "department": "Resident Inspectors",
+  "company_domain": "apave.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "80bf220deec34830",
+  "title": "Facilities Technician (EPDII)",
+  "department": null,
+  "company_domain": "foxconnassemblyllc.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "0ffbfe84ec475ffa",
+  "title": "Clinical Technology Specialist",
+  "department": "Operations",
+  "company_domain": "fortecmedical2.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "baaa9da1eea08bed",
+  "title": "Director, BoT",
+  "department": "RFC Fulfillment",
+  "company_domain": "coupang.com",
+  "skills": "Project Management",
+  "label": "non-tech"
+ },
+ {
+  "id": "d0df7c49c6105f1c",
+  "title": "Customer Service Representative (English)",
+  "department": "CF Group",
+  "company_domain": "etoro.com",
+  "skills": "Statistics",
+  "label": "adjacent"
+ },
+ {
+  "id": "8447bfdf6df6e203",
+  "title": "JDA JD Edward Consultant - Demand & Supply",
+  "department": null,
+  "company_domain": "squircleitconsultingservicespvtltd.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "88765b8201647c19",
+  "title": "Mid-Market Account Executive",
+  "department": "Corporate Sales",
+  "company_domain": "alphasense.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "a5b224c039ef699b",
+  "title": "Founder's Associate",
+  "department": "Growth",
+  "company_domain": "almedia.io",
+  "skills": "Financial Modeling",
+  "label": "adjacent"
+ },
+ {
+  "id": "6eca68fa8b365b49",
+  "title": "Senior Oracle Payroll Integrations Developer",
+  "department": null,
+  "company_domain": "next-generation-inc.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "3e9853875090b834",
+  "title": "Strategy & Execution Manager (m/f/d) ",
+  "department": "Business Operations",
+  "company_domain": "sereact.io",
+  "skills": "Robotics",
+  "label": "adjacent"
+ },
+ {
+  "id": "22f13521029733fe",
+  "title": "Artic Driver",
+  "department": "National Distribution Centre​",
+  "company_domain": "bwgfoods.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "32559cc01649b8fc",
+  "title": "Operations Manager(ASM LEVEL)_현대백화점판교점",
+  "department": "Stores",
+  "company_domain": "aloyoga.com",
+  "skills": "Excel,Agile",
+  "label": "non-tech"
+ },
+ {
+  "id": "3c4a2b6cba9b8042",
+  "title": "Intern Accounting (all genders)",
+  "department": "Business",
+  "company_domain": "aboutyougmbh.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "6700f448d5a71c31",
+  "title": "Digital Trading Specialist - 12 month FTC",
+  "department": "Customer and Commercial",
+  "company_domain": "asos.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "bc6aba82144e5478",
+  "title": "Senior Business Development Manager (Marketing Services) - Fixed Term Contract",
+  "department": null,
+  "company_domain": "visa.com",
+  "skills": "CRM,Stakeholder Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "3f641f1faa9dffd4",
+  "title": "Client Services ",
+  "department": "Clients",
+  "company_domain": "dept.io",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "5d86d4a91ac8108e",
+  "title": "Area Manager",
+  "department": "Fulfillment & Operations Management",
+  "company_domain": "amazon.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "1f89395980266029",
+  "title": "Technical Program Manager - Image Sensor & Process Integration",
+  "department": "Operations and Supply Chain",
+  "company_domain": "apple.com",
+  "skills": "Project Management",
+  "label": "tech"
+ },
+ {
+  "id": "9b3da89689619523",
+  "title": "Field Service Technician",
+  "department": "Service",
+  "company_domain": "asco-equipment.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "99502541542d8b22",
+  "title": "Warehouse Associate I",
+  "department": "Operations",
+  "company_domain": "literati.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "68d99d801dd54a6c",
+  "title": "Senior Manager, Customer Success",
+  "department": "Sales",
+  "company_domain": "rev.com",
+  "skills": "CRM,HubSpot,Looker",
+  "label": "adjacent"
+ },
+ {
+  "id": "be250303b65e496e",
+  "title": "Territory Systems Engineer, Commercial, Germany",
+  "department": "Sales",
+  "company_domain": "purestorage.com",
+  "skills": "IT Support",
+  "label": "tech"
+ },
+ {
+  "id": "f0d8884d9241dce8",
+  "title": "Senior Full-stack Engineer (Argentina) - Payroll Software",
+  "department": "Operations",
+  "company_domain": "truelogic.io",
+  "skills": "JavaScript,TypeScript,Node.js,Svelte,React,Vue,Angular,SQL,PostgreSQL",
+  "label": "tech"
+ },
+ {
+  "id": "856b938ee7b8c329",
+  "title": "Assistant Business Manager",
+  "department": "Retail",
+  "company_domain": "charlotte-tilbury.fr",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d501020863700fcd",
+  "title": "CEO/Founder Vietnam",
+  "department": null,
+  "company_domain": "fuku.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "991cb56748ae645d",
+  "title": "Sterling Account Executive",
+  "department": "Sales",
+  "company_domain": "transperfect.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "426fb62d788274d2",
+  "title": "Internal Auditor",
+  "department": "Deloitte Human Capital - West Africa",
+  "company_domain": "deloitte6.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "94c28dbe83ee79b2",
+  "title": "Senior Manager, Clinical Scientist",
+  "department": "Research & Development / Medical Affairs",
+  "company_domain": "replimune.com",
+  "skills": "GCP,Excel",
+  "label": "non-tech"
+ },
+ {
+  "id": "06afb37ce04deed4",
+  "title": "Rework Clerk (38.5h | 3-month fixed-term, with possibility of extension | all genders)",
+  "department": "Product Department",
+  "company_domain": "novritschtrading.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "053e691692fe8ad9",
+  "title": "Product Marketing Manager - Alliances",
+  "department": "Marketing",
+  "company_domain": "illumio.com",
+  "skills": "Zero Trust,AWS,Azure,GCP",
+  "label": "adjacent"
+ },
+ {
+  "id": "e3c3ed735448e56c",
+  "title": "エリアマネージャー, Sort Center",
+  "department": "Project/Program/Product Management--Non-Tech",
+  "company_domain": "amazon.com",
+  "skills": "Excel",
+  "label": "non-tech"
+ },
+ {
+  "id": "1aa17b47b263a190",
+  "title": "B2B Creative Director",
+  "department": "Creative",
+  "company_domain": "powerdigitalmarketing.com",
+  "skills": "Project Management",
+  "label": "non-tech"
+ },
+ {
+  "id": "9de5d13ccdbc05d0",
+  "title": "Account Executive",
+  "department": "Sales",
+  "company_domain": "depthfirst.com",
+  "skills": "LLM,AI Agents,Generative AI,Spark,Databricks,Product Management,DevOps",
+  "label": "adjacent"
+ },
+ {
+  "id": "51ba0da68b129d07",
+  "title": "Customer Success Manager, Enterprise (New York)",
+  "department": "CSM & Renewals",
+  "company_domain": "abnormalsecurity.com",
+  "skills": "Product Management,CRM,Salesforce,Jira",
+  "label": "adjacent"
+ },
+ {
+  "id": "1e2484b8f9731b36",
+  "title": "SAP Pricing and Promotions Lead",
+  "department": "58239872 - AFS SAP Development",
+  "company_domain": "accenturefederalservices.com",
+  "skills": "SAP",
+  "label": "tech"
+ },
+ {
+  "id": "3826bfd795c9a28f",
+  "title": "Per Diem Family Nurse Practitioner or Physician Assistant (Casual Employee)",
+  "department": "Clinical",
+  "company_domain": "onemedical.ai",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "bda0e55a0ac3744b",
+  "title": "GL Sacramento",
+  "department": null,
+  "company_domain": "esselenvironmental.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "508cca4b14f4e722",
+  "title": "Account Executive - Credit",
+  "department": "All Departments",
+  "company_domain": "plaid.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "8fd33cdff2ed1cc6",
+  "title": "Senior Account Executive, European and Global Organizations",
+  "department": "Sales, Advertising, & Account Management",
+  "company_domain": "aws.amazon.com",
+  "skills": "AWS",
+  "label": "adjacent"
+ },
+ {
+  "id": "4d667aca2b387b61",
+  "title": "Operator Trappistenbrouwerij",
+  "department": "Operations",
+  "company_domain": "royalswinkels.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d5c9341f5666d041",
+  "title": "Business Development Representative",
+  "department": "Sales",
+  "company_domain": "neuraflash.com",
+  "skills": "AWS,Salesforce,Generative AI,LLM,AI Agents,CRM",
+  "label": "adjacent"
+ },
+ {
+  "id": "fefb9a9989ddb544",
+  "title": "Accounting Operations Associate",
+  "department": "Finance",
+  "company_domain": "mainstay.com",
+  "skills": "ERP,Excel",
+  "label": "adjacent"
+ },
+ {
+  "id": "2e5c6e5faf2f365f",
+  "title": "Electrical Engineer",
+  "department": "Engineering",
+  "company_domain": "etch.co",
+  "skills": "Design Systems,System Design",
+  "label": "tech"
+ },
+ {
+  "id": "f9c9aa809eb0b86f",
+  "title": "Journeyperson Machinist",
+  "department": "Promac Group of Companies",
+  "company_domain": "inspiredhr.ca",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "55cc033237e51aa5",
+  "title": "Strategic Procurement Manager",
+  "department": "Supply Chain Ops",
+  "company_domain": "googlefiber.com",
+  "skills": "Project Management,ERP,SAP",
+  "label": "adjacent"
+ },
+ {
+  "id": "edcfdcd6a03e09ee",
+  "title": "Chief Electrician",
+  "department": "Engineering",
+  "company_domain": "constancehospitalitymanagement.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d0a9d9ff532b9d50",
+  "title": "HR Business Partner | NTS Eindhoven",
+  "department": "NTS Eindhoven - Mechatronic Assembly",
+  "company_domain": "nts.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "450eda24ff67058a",
+  "title": "Senior Design Project Manager (Architect/Interior Design)",
+  "department": "Program Design & Development",
+  "company_domain": "flow.life",
+  "skills": "PMP,PRINCE2,Project Management,MS Project,AutoCAD",
+  "label": "non-tech"
+ },
+ {
+  "id": "07775ce9fbd2a682",
+  "title": "Market Lead - Data Centers",
+  "department": "Land Development",
+  "company_domain": "bkfengineers.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "b321382fdf6033c4",
+  "title": "Accounts Payable Clerk",
+  "department": null,
+  "company_domain": "cooperautogroup.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "428ec4c5bf6f7374",
+  "title": "Sales Team Leader – Air Compressor | Saudi Arabia",
+  "department": "Oil & Gas",
+  "company_domain": "hudsonmanpower.com",
+  "skills": "CRM",
+  "label": "non-tech"
+ },
+ {
+  "id": "56668e07e9971cee",
+  "title": "Medical Assistant Certified",
+  "department": "Program Services-Delivery",
+  "company_domain": "seamarcommunityhealthcenters.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "ce2242b4be4a43f2",
+  "title": "Licensed Clinical Social Worker- Remote",
+  "department": "Provider Growth",
+  "company_domain": "betterhelp.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "72d4e85504a24f3d",
+  "title": "Enterprise Account Executive - Netherlands",
+  "department": "Enterprise Sales",
+  "company_domain": "harnessinc.com",
+  "skills": "Application Security,DevOps,Salesforce",
+  "label": "adjacent"
+ },
+ {
+  "id": "1faa049a2b87630a",
+  "title": "Operations Manager ",
+  "department": "Fulfillment & Operations Management",
+  "company_domain": "amazon.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "c43b152e429f5df4",
+  "title": "1099 Bath Installer",
+  "department": "Field",
+  "company_domain": "renuity.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "dde03528aff09e5b",
+  "title": "Project Manager - Subsea Pipelines & Process",
+  "department": null,
+  "company_domain": "enermech.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "dc737ecf87300622",
+  "title": "Business QA Analyst [m/f/d]",
+  "department": null,
+  "company_domain": "sportradar.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "87ab809bf7cd9825",
+  "title": "Information System Security Officer",
+  "department": null,
+  "company_domain": "sosi.com",
+  "skills": "",
+  "label": "tech"
+ },
+ {
+  "id": "8d8b859cd2667dc2",
+  "title": "EHS Specialist ",
+  "department": "Medical, Health, & Safety",
+  "company_domain": "amazon.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "4adb2d11778b9c50",
+  "title": "Benefits Consultant - West Region",
+  "department": "Benefit Consulting",
+  "company_domain": "bennie.com",
+  "skills": "Excel",
+  "label": "adjacent"
+ },
+ {
+  "id": "204da8356c3d301e",
+  "title": "Product Lead, Core Product Experiences",
+  "department": "Builder",
+  "company_domain": "abridge.com",
+  "skills": "Generative AI,User Research,Machine Learning,Product Management,C,System Design",
+  "label": "tech"
+ },
+ {
+  "id": "21bf7d613211b700",
+  "title": "Deployment Strategist",
+  "department": "Growth",
+  "company_domain": "paradigmai.com",
+  "skills": "Spark,Databricks",
+  "label": "adjacent"
+ },
+ {
+  "id": "3286fd6415630be9",
+  "title": "HR M&A Director",
+  "department": "People & Places",
+  "company_domain": "cloudflare.com",
+  "skills": "Cloudflare,Project Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "8d713fc0a358b045",
+  "title": "Technical Trainer (Opportunity in Fiji)",
+  "department": "Fiji (NWVL)",
+  "company_domain": "thewonderfulcompany.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "80ef1f061f3ef0b0",
+  "title": "Technology Trainer – Anthropic Enablement-Netherlands/EMEA",
+  "department": "Agentic AI",
+  "company_domain": "highmetric.com",
+  "skills": "LLM,Anthropic,ServiceNow,IT Support,Excel,Generative AI,AI Agents,Google Workspace,Microsoft 365,RAG,Confluence,Notion,Miro,Machine Learning",
+  "label": "adjacent"
+ },
+ {
+  "id": "187375b986a7b393",
+  "title": "Senior Database Engineer - Platform Engineering",
+  "department": "Product & Technology",
+  "company_domain": "integrichain1.com",
+  "skills": "Platform Engineering",
+  "label": "tech"
+ },
+ {
+  "id": "0cee9331293224b2",
+  "title": "Studio Coach - Avondale, AZ",
+  "department": "Coaches",
+  "company_domain": "ww.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "77a096c52003acb1",
+  "title": "Real Estate Portfolio Lead",
+  "department": "Workplace Real Estate & Tech-156",
+  "company_domain": "okta.com",
+  "skills": "IAM,Okta,Project Management,PMP,Machine Learning",
+  "label": "adjacent"
+ },
+ {
+  "id": "796423b8eec622ef",
+  "title": "Product Development Manager",
+  "department": null,
+  "company_domain": "wildbrain.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "d51a21f61ff5eb6a",
+  "title": "Full Stack Software Engineer - Billing Team",
+  "department": "Engineering",
+  "company_domain": "clickhouse.com",
+  "skills": "ClickHouse,Observability,TypeScript,Serverless,AWS,Kubernetes,SQS,MongoDB,Node.js,JavaScript,React,GCP,Azure,Distributed Systems",
+  "label": "tech"
+ },
+ {
+  "id": "3ca6cfb453168f55",
+  "title": "Manager, Revenue Cycle Operations",
+  "department": "Revenue Cycle",
+  "company_domain": "imaginepediatrics.com",
+  "skills": "Lean Six Sigma,PMP,Excel,Tableau",
+  "label": "non-tech"
+ },
+ {
+  "id": "32a0c3812a909237",
+  "title": "Backend Engineer, IAM",
+  "department": "BE Platform",
+  "company_domain": "reddit.com",
+  "skills": "IAM,Product Management,Kubernetes,CI/CD,AWS,GCP",
+  "label": "tech"
+ },
+ {
+  "id": "2184ee0925ee3fe4",
+  "title": "Sales Operations Associate II",
+  "department": "Precision for Medicine",
+  "company_domain": "precisionmedicinegroup.com",
+  "skills": "Salesforce,Excel,Microsoft 365,SharePoint",
+  "label": "adjacent"
+ },
+ {
+  "id": "c5b7f8212de9bc7d",
+  "title": "Bäckergeselle: in",
+  "department": "Produktion",
+  "company_domain": "riedmair.de",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "912d6864ca4e2505",
+  "title": "Senior Product Engineer",
+  "department": "EPD",
+  "company_domain": "encord.com",
+  "skills": "Machine Learning,CI/CD,Python,TypeScript,React,GCP,Kubernetes,Deep Learning,PyTorch,CUDA,Ray",
+  "label": "tech"
+ },
+ {
+  "id": "297478c8939a93eb",
+  "title": "Senior Solutions Engineer",
+  "department": "Sales",
+  "company_domain": "decagon.ai",
+  "skills": "LLM,AI Agents,Generative AI",
+  "label": "tech"
+ },
+ {
+  "id": "1a2ab84a409dcad8",
+  "title": "Technical Solutions Manager ",
+  "department": "Global Field Organization - COR",
+  "company_domain": "coreweave.com",
+  "skills": "Product Management,Machine Learning,Project Management,Kubernetes",
+  "label": "tech"
+ },
+ {
+  "id": "f18f229c1b58f98d",
+  "title": "Head of Fraud Operations",
+  "department": "Risk",
+  "company_domain": "cardless.com",
+  "skills": "SQL",
+  "label": "adjacent"
+ },
+ {
+  "id": "7c7774a1a610dff6",
+  "title": "Electrical Systems Integration Engineer",
+  "department": "Hardware Platform : Hardware Engineering Services : Electrical Integration",
+  "company_domain": "andurilindustries.com",
+  "skills": "Machine Learning,Computer Vision,System Design",
+  "label": "tech"
+ },
+ {
+  "id": "284f5783ae9dc68b",
+  "title": "Office Administrator",
+  "department": "Finance",
+  "company_domain": "c3iot.com",
+  "skills": "LLM,AI Agents,Generative AI,Excel",
+  "label": "adjacent"
+ },
+ {
+  "id": "6136b953e998d463",
+  "title": "Business Analyst - Canadian Payments",
+  "department": "Product",
+  "company_domain": "form3.com",
+  "skills": "Stakeholder Management",
+  "label": "adjacent"
+ },
+ {
+  "id": "75f41b99c7819b37",
+  "title": "Finance Section Chief",
+  "department": "Response",
+  "company_domain": "acdisaster.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "aef071ebd7b12ab3",
+  "title": "Business Development Lead",
+  "department": null,
+  "company_domain": "digitalfoundry.com",
+  "skills": "",
+  "label": "adjacent"
+ },
+ {
+  "id": "471d77a4f98c75ee",
+  "title": "Personal Training Manager in Training",
+  "department": "Apopka",
+  "company_domain": "crunchfitness.com",
+  "skills": "",
+  "label": "non-tech"
+ },
+ {
+  "id": "1707ebd4253a30e5",
+  "title": "Technicien de maintenance/Electricien  HAVAC 38h/sem",
+  "department": "Maintenance",
+  "company_domain": "vandervalkluxembourg.com",
+  "skills": "",
+  "label": "non-tech"
+ }
+]

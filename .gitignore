@@ -44,3 +44,6 @@ salary-sample*.json
 salary-matrix.json
 _local-snapshot.db
 _matrix.json
+
+# local precomputed files for scripts/dev_server.py
+loader/precomputed/

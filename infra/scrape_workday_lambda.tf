@@ -65,6 +65,11 @@ resource "aws_iam_role_policy" "scrape_workday_lambda" {
           # description is new or changed (loader/descriptions.py).
           "${aws_s3_bucket.data.arn}/descriptions/*",
           "${aws_s3_bucket.data.arn}/status.json",
+          # workday-poll-state.json.gz: per-tenant schedule and board
+          # fingerprints (loader/scrape_state.py under its own key).
+          # Without it every run re-walks every tenant; seen live on
+          # the first run, 2026-09-21.
+          "${aws_s3_bucket.data.arn}/workday-poll-state.json.gz",
           # deltas/*: how this Lambda's results actually reach
           # jobs-read.db. The partition above is only its own memory of
           # which listings it has already fetched descriptions for;

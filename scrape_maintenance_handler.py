@@ -92,6 +92,8 @@ FRONTEND_BUCKET = os.environ.get("FRONTEND_BUCKET")
 # Kept in step with loader/bootstrap.py's VIEWS, which says why there are
 # two of them. Copied rather than imported: this handler runs from the
 # Lambda's root and loader/ ships beside it, and the map is two lines.
+# Only the country is passed on: bootstrap.py's own VIEWS carries the
+# rest of each view (roles=tech since 2026-09-21).
 BOOTSTRAP_VIEWS = {"bootstrap.json": {}, "bootstrap-il.json": {"country": "IL"}}
 
 

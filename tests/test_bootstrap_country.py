@@ -88,7 +88,7 @@ with tempfile.TemporaryDirectory() as tmp:
     # this wrong costs nothing but the speed-up; getting the rows wrong
     # would be a lie, which is the check below it.
     check("the params string is the one app.js builds for this view",
-          boot["params"] == "country=IL&confidence=all&sort=age&dir=asc&limit=50&offset=0",
+          boot["params"] == "country=IL&confidence=all&roles=tech&sort=age&dir=asc&limit=50&offset=0",
           boot["params"])
     check("only the country's listings are in it", ids == ["il-1", "il-2", "il-3"], repr(ids))
     check("and the total counts only those", boot["jobs"]["total"] == 3, repr(boot["jobs"]["total"]))
@@ -110,7 +110,7 @@ with tempfile.TemporaryDirectory() as tmp:
           [j["id"] for j in plain["jobs"]["jobs"]] == ["il-1", "us-1", "il-2", "us-2", "il-3"],
           repr([j["id"] for j in plain["jobs"]["jobs"]]))
     check("and says so in its params",
-          plain["params"] == "confidence=all&sort=age&dir=asc&limit=50&offset=0", plain["params"])
+          plain["params"] == "confidence=all&roles=tech&sort=age&dir=asc&limit=50&offset=0", plain["params"])
 
 # A snapshot from before the country column exists. The API degrades to
 # an unfiltered answer here; this file must refuse to publish instead,

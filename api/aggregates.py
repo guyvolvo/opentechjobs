@@ -340,7 +340,12 @@ def has_board_filters(params: dict) -> bool:
     narrowed either, so a global number is what matches what the reader
     is looking at.
     """
+    # roles is held constant as well, and for the same reason: the board
+    # sends roles=tech on every plain page load since 2026-09-21. The
+    # precomputed artifacts carry a tech variant (loader/precompute.py),
+    # so a request narrowed by nothing but roles has a ready answer.
     probe = {**params, "confidence": "verified"}
+    probe.pop("roles", None)
     return build_jobs_where(probe, True) != build_jobs_where({"confidence": "verified"}, True)
 
 

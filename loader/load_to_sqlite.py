@@ -52,6 +52,7 @@ for _candidate in (_LOADER_DIR.parent / "api", _LOADER_DIR.parent, _LOADER_DIR):
         sys.path.insert(0, str(_candidate))
         break
 from countries import city_string, country_string  # noqa: E402
+from role_class import classify_role  # noqa: E402
 from same_company import SAME_COMPANY  # noqa: E402
 
 SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
@@ -143,6 +144,12 @@ _NEW_COLUMNS = {
     "salary_text": "TEXT",
     "salary_is_estimate": "INTEGER NOT NULL DEFAULT 0",
     "salary_source": "TEXT",
+    # The tech-role verdict (api/role_class.py): tech, adjacent, non-tech
+    # or unknown, its score, and the evidence it rests on. Filled by
+    # classify_roles after every load, for rows still NULL.
+    "role_class": "TEXT",
+    "role_score": "REAL",
+    "role_evidence": "TEXT",
 }
 
 
@@ -625,6 +632,9 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- here for it to blank. A job that moves across town should
             -- show the town it moved to.
             city = excluded.city,
+            -- A verdict is about a title and a team; when either moves,
+            -- it goes back to NULL and classify_roles reads it again.
+            role_class = CASE WHEN title IS NOT excluded.title OR department IS NOT excluded.department THEN NULL ELSE role_class END,
             -- salary_text needed a stricter guard than "not empty":
             -- reported live -- a Comeet job's discover-pass estimate
             -- (title+description, e.g. a specific "Go Developer" figure)
@@ -871,6 +881,77 @@ def _demote_same_company(conn: sqlite3.Connection, ts: str) -> int:
                           reason=f"same company as {keep} (see api/same_company.py)")
             n += 1
     return n
+
+
+def classify_roles(conn: sqlite3.Connection) -> int:
+    """Give every row without a verdict one. Two passes: the first reads
+    title, team and skills alone; the second, for what the first left
+    unknown, adds the company's own mix, the share of its decided open
+    roles that are tech. Returns how many rows were read this run. A
+    backfill of the whole snapshot is the same call, the first time the
+    column exists; measured at 33us a row."""
+    # In slices, because the first run over a whole snapshot is 370k
+    # rows and the merge Lambda already peaks near its 2 GB with the
+    # database in hand; a slice at a time keeps the backfill a few
+    # megabytes. Every row leaves the NULL set once read, unknown
+    # included, so the loop ends.
+    total = 0
+    while True:
+        rows = conn.execute(
+            "SELECT id, company_domain, title, department, skills FROM jobs WHERE role_class IS NULL LIMIT 20000"
+        ).fetchall()
+        if not rows:
+            break
+        total += len(rows)
+        _classify_slice(conn, rows)
+    # Rows decided before the company rule existed, or before their
+    # company had enough decided roles: read once more with the
+    # company's mix. "company:" in the evidence marks a row that has had
+    # its turn, so this is a one-off per row, not every merge.
+    while True:
+        rows = conn.execute(
+            "SELECT id, company_domain, title, department, skills FROM jobs"
+            " WHERE role_class IN ('adjacent', 'unknown') AND (role_evidence IS NULL OR role_evidence NOT LIKE '%company%') LIMIT 20000"
+        ).fetchall()
+        if not rows:
+            break
+        total += len(rows)
+        _classify_with_company(conn, rows)
+    return total
+
+
+def _classify_slice(conn: sqlite3.Connection, rows: list) -> None:
+    first = []
+    for jid, domain, title, department, skills in rows:
+        verdict, score, evidence = classify_role(title, department, skills)
+        first.append((verdict, score, evidence, jid))
+    conn.executemany("UPDATE jobs SET role_class = ?, role_score = ?, role_evidence = ? WHERE id = ?", first)
+    again = [row for row, r in zip(rows, first) if r[0] in ("unknown", "adjacent")]
+    if again:
+        _classify_with_company(conn, again)
+
+
+def _company_tech_share(conn: sqlite3.Connection) -> dict[str, float]:
+    """Per company, the share of its decided open roles that is technical
+    work by title and skills. Roles promoted by the company rule carry
+    "company-tech" in their evidence and are left out of the numerator,
+    so a company cannot become a tech company by its own promotions."""
+    return {
+        domain: tech / decided
+        for domain, tech, decided in conn.execute(
+            "SELECT company_domain,"
+            " SUM(role_class = 'tech' AND (role_evidence IS NULL OR role_evidence NOT LIKE '%company-tech%')), COUNT(*)"
+            " FROM jobs WHERE closed_at IS NULL AND role_class IN ('tech', 'adjacent', 'non-tech')"
+            " GROUP BY company_domain HAVING COUNT(*) >= 3"
+        )
+    }
+
+
+def _classify_with_company(conn: sqlite3.Connection, rows: list) -> None:
+    share = _company_tech_share(conn)
+    second = [(*classify_role(title, department, skills, share.get(domain)), jid)
+              for jid, domain, title, department, skills in rows]
+    conn.executemany("UPDATE jobs SET role_class = ?, role_score = ?, role_evidence = ? WHERE id = ?", second)
 
 
 def prune_stale_companies(conn: sqlite3.Connection, current_domains: set[str], ts: str) -> int:
@@ -1514,6 +1595,9 @@ def main() -> int:
         conn = open_db(args.out)
         with conn:
             current_domains = load_resolved(conn, args.resolved, args.drop_description)
+            n_roles = classify_roles(conn)
+            if n_roles:
+                print(f"role verdicts for {n_roles} rows", file=sys.stderr)
             if args.deep:
                 load_deep(conn, args.deep)
             if args.prune_stale:
