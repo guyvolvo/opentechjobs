@@ -59,6 +59,25 @@ FLOOR_S = 300
 # get here, so a board that posts even occasionally never does.
 CEILING_S = 14400
 
+# The ceiling for a board somebody has an alert on.
+#
+# Reported live on 2026-09-21: a ScaleOps posting took 72 minutes to
+# reach the reader who was waiting for it. Nothing was broken. ScaleOps
+# posts rarely, so it had backed off to the four-hour ceiling above, and
+# 8,055 of 10,104 boards were sitting there with it. Waiting is the
+# right default for a board nobody is watching, and the wrong one for a
+# board somebody asked to be told about.
+#
+# 30 minutes rather than the floor: the floor would poll a quiet
+# followed board every five minutes forever, which is what the ceiling
+# exists to stop. Thirty minutes is six times cheaper than that and
+# eight times faster than waiting four hours.
+#
+# Costs almost nothing, because almost nobody is followed. Which domains
+# these are comes from the alert table by way of watched-domains.json
+# (alerts.py writes it, scrape_handler.py reads it).
+WATCHED_CEILING_S = 1800
+
 # Gentle on purpose. At 1.5 a board reaches the ceiling after five
 # consecutive quiet polls, roughly half an hour of silence, so a board
 # posting a few times a day never drifts far from the floor.
@@ -236,7 +255,42 @@ def due(state, entries, now=None):
     return [e for _, e in scored[:MAX_PER_SWEEP]]
 
 
-def record(state, results, now=None):
+# A prune that drops more than this share of the state file is refused.
+#
+# The company list is rebuilt by discovery, and a run that produced a
+# short or empty one would otherwise take every board's backoff and
+# validators with it. That is not fatal, every board would simply be
+# fetched in full once more, but it is thousands of needless fetches and
+# it would be invisible. Refusing is cheap; the orphans wait a day.
+MAX_PRUNE_SHARE = 0.10
+
+
+def prune(state, entries):
+    """Drop state rows for companies that are no longer in the list.
+
+    Measured live on 2026-09-21: 10,104 rows against 9,515 companies,
+    and 611 of the difference were more than an hour overdue, one of
+    them by ten days. They were not being starved. due() walks the
+    company list and looks each one up here, so a row with no company
+    behind it is never a candidate for anything. It just sits in the
+    file being counted.
+
+    Returns how many were dropped, for the log.
+    """
+    live = {str(e.get("domain", "")).lower() for e in entries}
+    orphans = [k for k in state if k.lower() not in live]
+    if not orphans:
+        return 0
+    if len(orphans) > len(state) * MAX_PRUNE_SHARE:
+        print("refusing to prune %d of %d state rows: the company list looks wrong, not the state"
+              % (len(orphans), len(state)), file=sys.stderr)
+        return 0
+    for k in orphans:
+        del state[k]
+    return len(orphans)
+
+
+def record(state, results, now=None, watched=frozenset()):
     """Fold one sweep's outcome back in. Returns a summary for logging.
 
     Three outcomes, scheduled differently.
@@ -263,7 +317,8 @@ def record(state, results, now=None):
             interval = float(row.get("interval_s") or FLOOR_S)
         elif r.get("unchanged"):
             counts["unchanged"] += 1
-            interval = min(float(row.get("interval_s") or FLOOR_S) * GROWTH, CEILING_S)
+            ceiling = WATCHED_CEILING_S if domain in watched else CEILING_S
+            interval = min(float(row.get("interval_s") or FLOOR_S) * GROWTH, ceiling)
         else:
             counts["changed"] += 1
             interval = float(FLOOR_S)

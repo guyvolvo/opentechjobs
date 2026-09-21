@@ -93,6 +93,19 @@ STATE_TABLE = os.environ.get("SCRAPE_STATE_TABLE")
 
 
 
+def _watched_domains(s3) -> frozenset:
+    """Companies with an alert on them, as the maintenance run last saw
+    them. An empty set is the safe answer to every failure here: it means
+    the sweep schedules exactly the way it did before this existed.
+    """
+    try:
+        body = s3.get_object(Bucket=BUCKET, Key="watched-domains.json")["Body"].read()
+        return frozenset(json.loads(body).get("domains") or ())
+    except Exception as e:
+        print(f"watched-domains.json unreadable, nobody gets the fast lane this tick: {e!r}")
+        return frozenset()
+
+
 def _write_status(s3, phase: str, detail: str = "") -> None:
     """Best-effort, real-time "what is the pipeline doing right now"
     signal -- read by /api/pipeline-status (api/handler.py) so the
@@ -176,6 +189,18 @@ def lambda_handler(event, context):
     # own interval: reset to 3 minutes by a change, backed off by 1.5x
     # per quiet poll up to 20. See loader/scrape_state.py.
     poll_state, state_etag = scrape_state.load(BUCKET, s3, STATE_TABLE)
+    # The boards somebody is waiting on. They get a much lower ceiling so
+    # a posting reaches the reader who asked for it in half an hour
+    # rather than four. The file is written by the maintenance run, which
+    # reads the alert table anyway; missing it is not an error, it only
+    # means everything backs off the way it always did.
+    watched = _watched_domains(s3)
+    # Rows for companies that have left the list. Harmless but permanent
+    # without this: due() only ever looks up companies that exist, so an
+    # orphan is never swept and never expires.
+    dropped = scrape_state.prune(poll_state, known)
+    if dropped:
+        print(f"pruned {dropped} state rows with no company behind them")
     sweep = scrape_state.due(poll_state, sweep)
     if not sweep:
         # Everything is inside its own interval. Nothing to do, and
@@ -217,7 +242,7 @@ def lambda_handler(event, context):
     errors = [r["domain"] for r in data if r.get("error")]
     unchanged = [r for r in data if r.get("unchanged")]
     n_jobs = sum(r["job_count"] for r in hits)
-    sched = scrape_state.record(poll_state, data)
+    sched = scrape_state.record(poll_state, data, watched=watched)
     saved = scrape_state.save(BUCKET, s3, poll_state, state_etag)
     changed = [r for r in data if r.get("ats") and not r.get("unchanged")]
     print(f"sweep: {len(hits)}/{len(data)} re-verified, {n_jobs} jobs, "

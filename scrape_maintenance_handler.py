@@ -97,6 +97,32 @@ FRONTEND_BUCKET = os.environ.get("FRONTEND_BUCKET")
 BOOTSTRAP_VIEWS = {"bootstrap.json": {}, "bootstrap-il.json": {"country": "IL"}}
 
 
+# The companies somebody has an alert on, for the sweep to poll more
+# often than the quiet majority. Written here because this is where the
+# alert table is already being read; the sweep only has to fetch one
+# small file. See loader/scrape_state.py's WATCHED_CEILING_S.
+WATCHED_KEY = "watched-domains.json"
+
+
+def _write_watched_domains(s3, domains) -> None:
+    if domains is None:
+        # evaluate_alerts declined to run (no table configured). Leaving
+        # the old file alone is right: it is a cache of who is followed,
+        # and an empty one would quietly send every followed board back
+        # to the four-hour ceiling.
+        return
+    try:
+        s3.put_object(
+            Bucket=BUCKET, Key=WATCHED_KEY, ContentType="application/json",
+            Body=json.dumps({
+                "domains": list(domains),
+                "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            }).encode("utf-8"),
+        )
+    except Exception as e:
+        print(f"{WATCHED_KEY} write failed (non-fatal): {e!r}")
+
+
 def _write_status(s3, phase: str, detail: str = "") -> None:
     """Same shape as scrape_handler.py's own _write_status, own key
     (merge-status.json) -- see this module's own docstring for why.
@@ -377,6 +403,7 @@ def lambda_handler(event, context):
     alerts_result = evaluate_alerts(snapshot)
     if alerts_result.get("errors"):
         print(f"alert evaluation errors: {alerts_result['errors']}")
+    _write_watched_domains(s3, alerts_result.get("watched_domains"))
 
     # The two aggregate routes, answered here once instead of on every
     # request. Measured with the edge cache bypassed, /api/stats took

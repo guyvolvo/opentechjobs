@@ -73,6 +73,11 @@ resource "aws_iam_role_policy" "scrape_fast_lambda" {
           # it replaces.
           "${aws_s3_bucket.data.arn}/scrape-state.json.gz",
           "${aws_s3_bucket.data.arn}/known.json",
+          # watched-domains.json: read-only here. Written by the
+          # maintenance Lambda after it evaluates alerts; this Lambda
+          # only asks who is being waited on. A read that fails is not an
+          # error, it means nobody gets the fast lane this tick.
+          "${aws_s3_bucket.data.arn}/watched-domains.json",
           # salary-matrix.json: read once per container, never written
           # here. Rebuilt daily by build-salary-matrix.yml, which is why
           # probe.py downloads it rather than reading a bundled copy that

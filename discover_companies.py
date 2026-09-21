@@ -88,9 +88,44 @@ from job_filters import IL_KEYWORDS
 # CDX is slow and answers 502 under load, and the gain flattens as the
 # snapshots overlap.
 CC_INDEXES = [
+    "https://index.commoncrawl.org/CC-MAIN-2026-39-index",
     "https://index.commoncrawl.org/CC-MAIN-2026-34-index",
     "https://index.commoncrawl.org/CC-MAIN-2026-30-index",
     "https://index.commoncrawl.org/CC-MAIN-2026-25-index",
+]
+
+# Workday gets a deeper pass than the rest, and only Workday.
+#
+# The three-snapshot argument above is about diminishing returns, and it
+# holds for an ATS whose token sits in the URL path: a prefix match finds
+# essentially all of them in one snapshot. Workday is the opposite shape.
+# The tenant is a subdomain, so this is a matchType=domain sweep, and
+# each snapshot is a different sample of a very long tail.
+#
+# Measured 2026-09-21, against a list of 1,807 tenants, counting only
+# tenants not already known:
+#
+#     CC-MAIN-2026-39    77 new
+#     CC-MAIN-2026-21   145 new
+#     CC-MAIN-2026-12   241 new
+#     CC-MAIN-2026-08    75 new
+#     CC-MAIN-2025-43    67 new
+#
+# 495 in total, a 27% larger list, and that is a floor: three more
+# snapshots in the same run answered with a truncated response and
+# contributed nothing. There is no sign of the curve flattening, which
+# is what a long tail looks like from the inside.
+#
+# Workday is also where the payoff is. It is 186,625 of the board's
+# 481,272 open roles, at a mean of 240 a tenant, so a tenant found here
+# is worth several from anywhere else.
+CC_INDEXES_WORKDAY = CC_INDEXES + [
+    "https://index.commoncrawl.org/CC-MAIN-2026-21-index",
+    "https://index.commoncrawl.org/CC-MAIN-2026-17-index",
+    "https://index.commoncrawl.org/CC-MAIN-2026-12-index",
+    "https://index.commoncrawl.org/CC-MAIN-2026-08-index",
+    "https://index.commoncrawl.org/CC-MAIN-2025-51-index",
+    "https://index.commoncrawl.org/CC-MAIN-2025-43-index",
 ]
 
 # CDX's own wildcard syntax (a URL prefix, not arbitrary regex) --
@@ -198,7 +233,7 @@ COMEET_POSITIONS = "https://www.comeet.com/careers-api/1.0/company/{uid}/positio
 SITE_ORIGIN = "https://opentechjobs.org"
 
 
-def fetch_cc_urls(url_pattern: str, max_pages: int) -> list[str]:
+def fetch_cc_urls(url_pattern: str, max_pages: int, indexes=None) -> list[str]:
     """Pages through Common Crawl's CDX API for one URL pattern, once per
     snapshot in CC_INDEXES. Each page is a real HTTP request against
     Common Crawl's own index servers, and max_pages bounds this per
@@ -233,7 +268,7 @@ def fetch_cc_urls(url_pattern: str, max_pages: int) -> list[str]:
     # extract_tokens narrows it back down to tenants.
     domain_match = "*" not in url_pattern
     urls = []
-    for index in CC_INDEXES:
+    for index in (indexes or CC_INDEXES):
         snapshot = index.rsplit("/", 1)[-1]
         for page in range(max_pages):
             resp = None
@@ -705,7 +740,8 @@ def main() -> int:
         print(f"  {len(tokens)} employers hiring there", file=sys.stderr)
     else:
         print(f"querying Common Crawl for {CC_URL_PATTERNS[args.ats]} ...", file=sys.stderr)
-        urls = fetch_cc_urls(CC_URL_PATTERNS[args.ats], args.max_pages)
+        urls = fetch_cc_urls(CC_URL_PATTERNS[args.ats], args.max_pages,
+                             indexes=CC_INDEXES_WORKDAY if args.ats == "workday" else None)
         print(f"  {len(urls)} URLs found", file=sys.stderr)
 
         tokens = extract_tokens(args.ats, urls)

@@ -68,7 +68,33 @@ def evaluate_alerts(jobs_db_path: Path) -> dict:
             errors.append(f"{alert['user_id']}/{alert['alert_id']}: {e}")
 
     conn.close()
-    return {"alerts_checked": len(alerts), "digests_sent": sent, "errors": errors}
+    return {"alerts_checked": len(alerts), "digests_sent": sent, "errors": errors,
+            "watched_domains": sorted(_watched_domains(alerts))}
+
+
+def _watched_domains(alerts: list[dict]) -> set[str]:
+    """The company domains somebody is actually waiting on.
+
+    A board nobody follows can sit at the four-hour ceiling without
+    anyone noticing. A board with an alert on it cannot: the reader is
+    waiting for exactly the posting that ceiling delays. The sweep gives
+    these a much lower ceiling of their own (see loader/scrape_state.py).
+
+    Only alerts that name a company count. An alert on "python in
+    Israel" follows no particular board, and treating it as though it
+    followed all ten thousand would empty the idea of meaning.
+    """
+    out: set[str] = set()
+    for alert in alerts:
+        raw = (alert.get("filter") or {}).get("company")
+        if not raw:
+            continue
+        # Same ',' convention build_jobs_where reads it with.
+        for part in str(raw).split(","):
+            part = part.strip().lower()
+            if part:
+                out.add(part)
+    return out
 
 
 def _scan_active_alerts(table) -> list[dict]:
