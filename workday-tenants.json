@@ -26408,5 +26408,175 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "bso.io",
+  "tenant": "bso",
+  "wd": "wd1",
+  "site": "BSO",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cityofirvine.net",
+  "tenant": "cityofirvine",
+  "wd": "wd12",
+  "site": "CityofIrvine",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cromwell.com",
+  "tenant": "cromwell",
+  "wd": "wd3",
+  "site": "01",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "faef.com",
+  "tenant": "faef",
+  "wd": "wd12",
+  "site": "FAEF_External_Careers",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "forrester.com",
+  "tenant": "forrester",
+  "wd": "wd501",
+  "site": "careers",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "fhlbi.com",
+  "tenant": "fhlbi",
+  "wd": "wd1",
+  "site": "FHLBI_Careers",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "fortlewiscollege.com",
+  "tenant": "fortlewiscollege",
+  "wd": "wd1",
+  "site": "FLC",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "gulfportenergy.com",
+  "tenant": "gulfportenergy",
+  "wd": "wd5",
+  "site": "GPOR_Career_Site",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "hummingbird.com",
+  "tenant": "hummingbird",
+  "wd": "wd1",
+  "site": "hummingbird",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "legalshieldcorp.com",
+  "tenant": "legalshieldcorp",
+  "wd": "wd1",
+  "site": "lsc",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "naic.co",
+  "tenant": "naic",
+  "wd": "wd115",
+  "site": "NAIC",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "revature.com",
+  "tenant": "revature",
+  "wd": "wd1",
+  "site": "revaturecareers",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "stibosystems.com",
+  "tenant": "stibosystems",
+  "wd": "wd3",
+  "site": "careers-at-stibo-systems",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "suddath.com",
+  "tenant": "suddath",
+  "wd": "wd5",
+  "site": "Perdue",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "vetsource.com",
+  "tenant": "vetsource",
+  "wd": "wd504",
+  "site": "vetsource_careers",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "waupacacountywi.com",
+  "tenant": "waupacacountywi",
+  "wd": "wd108",
+  "site": "Career",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wibr.com",
+  "tenant": "wibr",
+  "wd": "wd1",
+  "site": "WIBR-Careers",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]
