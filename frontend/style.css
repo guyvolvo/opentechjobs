@@ -3836,7 +3836,10 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .contact h2 {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(24px, 3vw, 2.4rem);
+  /* Both ends are documented display steps: the Statistics column's
+     24px at its smallest, the section title's 34px at its largest, so a
+     heading under the claim never outgrows the claim. */
+  font-size: clamp(24px, 3vw, 34px);
   line-height: 1.05;
   letter-spacing: -0.02em;
   margin: 0 0 18px;
