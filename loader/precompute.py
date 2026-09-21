@@ -35,7 +35,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_ROOT))
 sys.path.insert(0, str(_ROOT / "api"))
 
-from aggregates import compute_facets, compute_stats, top_companies_with_logos  # noqa: E402
+from aggregates import compute_facets, compute_scoped_stats, compute_stats, top_companies_with_logos  # noqa: E402
 from job_filters import register_functions  # noqa: E402
 
 PREFIX = "precomputed/"
@@ -76,6 +76,12 @@ def build(db_path: Path) -> dict[str, dict]:
         # /facets?x=1 answered in 0.34s while the request the browser
         # actually makes still took 7.18s.
         facets = {c: compute_facets(conn, {"confidence": c}) for c in ("verified", "all")}
+        # The tech view (roles=tech, the board's default since
+        # 2026-09-21) is a second variant of each, and a scoped stats
+        # block of its own, so the plain page load never computes live.
+        for c in ("verified", "all"):
+            facets[f"{c}:tech"] = compute_facets(conn, {"confidence": c, "roles": "tech"})
+        stats["scoped_tech"] = compute_scoped_stats(conn, {"confidence": "all", "roles": "tech"})
     finally:
         conn.close()
     return {"stats.json": stats, "facets.json": facets}
@@ -162,9 +168,16 @@ if __name__ == "__main__":
     ap.add_argument("--db", type=Path, required=True)
     ap.add_argument("--bucket")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--out", type=Path, help="write the files to this directory instead of the bucket "
+                                              "(scripts/dev_server.py reads loader/precomputed)")
     args = ap.parse_args()
 
-    if args.dry_run or not args.bucket:
+    if args.out:
+        args.out.mkdir(parents=True, exist_ok=True)
+        for name, payload in build(args.db).items():
+            (args.out / name).write_text(json.dumps(payload, default=str, ensure_ascii=False), encoding="utf-8")
+            print(f"wrote {args.out / name}")
+    elif args.dry_run or not args.bucket:
         for name, payload in build(args.db).items():
             body = json.dumps(payload, default=str, ensure_ascii=False)
             print(f"{name}: {len(body):,} bytes, {len(payload)} top-level keys")

@@ -70,6 +70,9 @@ const state = {
   confidence: "all", // no confidence filter in the UI; shown inline via badge instead
   max_age_days: "", // "" = any time; else days-since-posting cutoff, straight into the API param of the same name
   starred_only: false,
+  // "tech" shows only listings the classifier (api/role_class.py) judged
+  // technical work, which is the board's default; "all" is every role.
+  roles: "tech",
   sort: "age",
   dir: "asc", // newest first by default
   offset: 0,
@@ -852,7 +855,10 @@ function renderScopeLine() {
   const el = document.getElementById("stats-scope");
   if (!el) return;
   const mode = currentScopeMode();
-  const applied = activeFilterSummary().join(" · ");
+  // The view is part of the scope: on the default view the numbers are
+  // tech roles only, and the line says so before the filters.
+  const view = state.roles === "tech" && !state.starred_only ? ["Tech roles"] : [];
+  const applied = [...view, ...activeFilterSummary()].join(" · ");
   if (mode === "global") {
     el.textContent = "No filters applied";
     return;
@@ -1210,7 +1216,8 @@ let lastJobsResponse = null;
 // view with nothing else to keep in step.
 function currentView() {
   if (state.starred_only) return "saved";
-  return state.skills.length ? "matches" : "all";
+  if (state.skills.length) return "matches";
+  return state.roles === "tech" ? "tech" : "all";
 }
 
 function paintViewSwitch() {
@@ -1301,7 +1308,8 @@ async function setView(view) {
     return;
   }
   state.starred_only = false;
-  if (view === "all") {
+  if (view === "all" || view === "tech") {
+    state.roles = view;
     state.skills = [];
     if (state.sort === "match") setActiveSortHeader("age", "asc");
     loadJobs();
@@ -1351,6 +1359,9 @@ function currentFilterParams() {
     skills: state.skills.join(","),
     confidence: state.confidence,
     max_age_days: state.max_age_days,
+    // Not in the Saved view: a listing someone saved stays on their
+    // list whatever the classifier makes of it.
+    roles: !state.starred_only && state.roles === "tech" ? "tech" : "",
   };
 }
 
@@ -1379,6 +1390,7 @@ function buildShareParams() {
   if (state.confidence !== "all") p.set("confidence", state.confidence);
   if (state.max_age_days) p.set("max_age_days", state.max_age_days);
   if (state.starred_only) p.set("starred", "1");
+  if (state.roles !== "tech") p.set("roles", state.roles);
   // Against the order this view would take on its own (see
   // followSearchSort), not against "age" flat: with a search in the box
   // that IS relevance, so a reader who chose Newest has to have it
@@ -1509,6 +1521,7 @@ function applyStateFromUrl(search) {
     if (v !== undefined) state.max_age_days = v;
   }
   if (p.has("starred")) state.starred_only = p.get("starred") === "1";
+  if (p.has("roles")) state.roles = p.get("roles") === "all" ? "all" : "tech";
   if (p.has("sort")) {
     const v = cleanFilterValue("sort", p.get("sort"));
     if (v !== undefined) {
@@ -1540,7 +1553,7 @@ const FILTERS_KEY = "iljobs_filters";
 const PERSISTED_FILTER_KEYS = [
   "search", "department", "seniority", "company", "country", "city",
   "workplace", "skills", "confidence", "max_age_days", "starred_only",
-  "sort", "dir",
+  "sort", "dir", "roles",
 ];
 
 function saveFiltersToStorage() {
@@ -1727,8 +1740,8 @@ function setLoadBar(active) {
 // the snapshot. The keys must match loader/bootstrap.py's VIEWS, and a
 // request for anything else gets no file and a normal fetch.
 const BOOTSTRAP_FILES = {
-  "confidence=all&sort=age&dir=asc&limit=50&offset=0": "/bootstrap.json",
-  "country=IL&confidence=all&sort=age&dir=asc&limit=50&offset=0": "/bootstrap-il.json",
+  "confidence=all&roles=tech&sort=age&dir=asc&limit=50&offset=0": "/bootstrap.json",
+  "country=IL&confidence=all&roles=tech&sort=age&dir=asc&limit=50&offset=0": "/bootstrap-il.json",
 };
 const bootstrapFetches = new Map();
 function getBootstrap(params) {
@@ -2125,7 +2138,8 @@ let matchedSkills = new Set();
 // names, so the two never disagree about whether a filter is on.
 function resultNoun() {
   if (currentView() === "matches") return "roles matching your CV";
-  return activeFilterSummary().length ? "matching roles" : "roles";
+  const noun = state.roles === "tech" && !state.starred_only ? "tech roles" : "roles";
+  return activeFilterSummary().length ? `matching ${noun}` : noun;
 }
 
 function renderJobs(data, starred) {
@@ -3343,6 +3357,7 @@ function wireFilters() {
     state.skills = [];
     state.max_age_days = "";
     state.starred_only = false;
+    state.roles = "tech";
     state.sort = "age";
     state.dir = "asc";
     state.offset = 0;

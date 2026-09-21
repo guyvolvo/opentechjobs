@@ -179,6 +179,17 @@ def salary_source_select(conn) -> str:
             "WHEN salary_is_estimate = 1 THEN 'table' ELSE 'disclosed' END AS salary_source")
 
 
+def has_role_class(conn) -> bool:
+    """Whether this database carries the role verdict column. The
+    handler drops a roles= parameter when it does not, so a snapshot
+    from before the column answers with every role rather than an
+    error."""
+    try:
+        return any(r[1] == "role_class" for r in conn.execute("PRAGMA table_info(jobs)"))
+    except Exception:
+        return False
+
+
 def has_fts_index(conn) -> bool:
     """Whether this database carries the jobs_fts index.
 
@@ -497,6 +508,11 @@ def build_jobs_where(params: dict, has_fts: bool = False,
     _add_in_filter(where, args, params, "seniority", "seniority")
     _add_in_filter(where, args, params, "location", "location")
     _add_in_filter(where, args, params, "workplace", "workplace_type")
+    # roles=tech: only listings the classifier (api/role_class.py) judged
+    # technical work. Anything else, or nothing, is every role. The
+    # handler drops the parameter when the snapshot predates the column.
+    if (params.get("roles") or "").lower() == "tech":
+        where.append("role_class = 'tech'")
 
     wanted_id_list = wanted_ids(params)
     if wanted_id_list:

@@ -1,0 +1,13 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const page = await b.newPage({ viewport: { width: 1440, height: 900 } });
+await page.addInitScript(() => { try { localStorage.setItem("iljobs_geo_asked", "1"); localStorage.removeItem("iljobs_filters"); } catch {} });
+await page.goto("http://127.0.0.1:8000/board", { waitUntil: "load" });
+await page.waitForSelector("#jobs-body tr[data-id]", { timeout: 60000 });
+await page.waitForTimeout(1500);
+console.log("count:", await page.textContent("#result-count"), "| active:", await page.textContent("#view-switch .seg-btn.active"), "| url:", page.url());
+await page.screenshot({ path: "tests/e2e/board-tech-roles.png" });
+await page.click('#view-switch [data-view="all"]');
+await page.waitForTimeout(2500);
+console.log("all:", await page.textContent("#result-count"), "| url:", page.url());
+await b.close();

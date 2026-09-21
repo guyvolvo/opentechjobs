@@ -40,7 +40,7 @@ from saved import is_saved_id, job_id_of, saved_id
 from skills import SKILL_TERMS
 from skills import spec as skill_spec
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, MAX_SEARCH_TERMS, bool_param,
-                         build_jobs_where, has_fts_index, has_places,
+                         build_jobs_where, has_fts_index, has_places, has_role_class,
                          is_job_id, relevance_score_sql, salary_source_select, search_mode,
                          search_terms, skills_score_sql, wanted_skills)
 
@@ -53,7 +53,7 @@ _alerts_table = boto3.resource("dynamodb").Table(os.environ["ALERTS_TABLE"])
 _ALLOWED_FILTER_KEYS = {
     "search", "q", "keywords", "ats", "company", "department", "seniority", "location", "country",
     "city", "workplace", "confidence", "israel_only", "include_closed", "include_outdated",
-    "min_age_days", "max_age_days", "skills", "ids", "search_mode",
+    "min_age_days", "max_age_days", "skills", "ids", "search_mode", "roles",
 }
 
 # Best matches: how many days since posting cost one matched skill in the
@@ -232,6 +232,8 @@ def lambda_handler(event, context):
     if path.startswith("/api"):
         path = path[4:] or "/"
     params = _query_params(event)
+    if "roles" in params and not has_role_class(get_connection()):
+        params.pop("roles")  # a snapshot from before the verdict column: every role, not an error
 
     try:
         if path == "/help":
@@ -951,10 +953,12 @@ def route_facets(params: dict) -> dict:
     variant = _unfiltered_confidence(params)
     if variant is not None:
         ready = _precomputed_json("facets.json")
-        # A snapshot written before this was keyed by confidence has the
-        # three lists at the top level instead of a variant map. Falling
-        # through is correct for it, and stops being needed one merge
-        # after this ships.
+        # The tech view is its own variant ("all:tech"), written beside
+        # the plain one since 2026-09-21. A snapshot from before has no
+        # such key and falls through to a live count, which is correct
+        # and stops being needed one merge after this ships.
+        if (params.get("roles") or "").lower() == "tech":
+            variant = f"{variant}:tech"
         if isinstance(ready, dict) and variant in ready:
             return ready[variant]
     return compute_facets(get_connection(), params)
@@ -986,6 +990,11 @@ def route_stats(params: dict | None = None) -> dict:
             out["top_locations"] = ready.get("top_locations_israel", out.get("top_locations", []))
         if filtered:
             out["scoped"] = compute_scoped_stats(get_connection(), params)
+        elif (params.get("roles") or "").lower() == "tech":
+            # The default view: narrowed by roles alone, whose scoped
+            # block the merge precomputes as scoped_tech. Missing only
+            # on a snapshot from before it existed.
+            out["scoped"] = ready.get("scoped_tech") or compute_scoped_stats(get_connection(), params)
         # Two fields in here are clocks, not aggregates, and freezing a
         # clock for fifteen minutes makes it wrong rather than stale.
         # Reported live: the Data Health tile read "19M old" while the

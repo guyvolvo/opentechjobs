@@ -41,7 +41,7 @@ from job_filters import build_jobs_where, has_places, register_functions  # noqa
 # default view: currentFilterParams() with everything empty leaves only
 # confidence, then sort/dir/limit/offset. PAGE_SIZE is 50 there. qs()
 # drops empty values, which is why no other keys appear.
-BOOTSTRAP_PARAMS = "confidence=all&sort=age&dir=asc&limit=50&offset=0"
+BOOTSTRAP_PARAMS = "confidence=all&roles=tech&sort=age&dir=asc&limit=50&offset=0"
 PAGE_SIZE = 50
 
 # The views worth precomputing, as file name to the filter behind it.
@@ -56,9 +56,11 @@ PAGE_SIZE = 50
 #
 # currentFilterParams() emits country ahead of confidence, so that is the
 # order here. The frontend compares this string exactly.
+# roles=tech on both: the board opens on tech roles (api/role_class.py)
+# since 2026-09-21, and that is the view these files stand in for.
 VIEWS = {
-    "bootstrap.json": {},
-    "bootstrap-il.json": {"country": "IL"},
+    "bootstrap.json": {"roles": "tech"},
+    "bootstrap-il.json": {"country": "IL", "roles": "tech"},
 }
 
 

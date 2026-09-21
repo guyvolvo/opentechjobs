@@ -52,6 +52,7 @@ for _candidate in (_LOADER_DIR.parent / "api", _LOADER_DIR.parent, _LOADER_DIR):
         sys.path.insert(0, str(_candidate))
         break
 from countries import city_string, country_string  # noqa: E402
+from role_class import classify_role  # noqa: E402
 from same_company import SAME_COMPANY  # noqa: E402
 
 SCHEMA_PATH = Path(__file__).parent.parent / "db" / "schema.sql"
@@ -143,6 +144,12 @@ _NEW_COLUMNS = {
     "salary_text": "TEXT",
     "salary_is_estimate": "INTEGER NOT NULL DEFAULT 0",
     "salary_source": "TEXT",
+    # The tech-role verdict (api/role_class.py): tech, adjacent, non-tech
+    # or unknown, its score, and the evidence it rests on. Filled by
+    # classify_roles after every load, for rows still NULL.
+    "role_class": "TEXT",
+    "role_score": "REAL",
+    "role_evidence": "TEXT",
 }
 
 
@@ -625,6 +632,9 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- here for it to blank. A job that moves across town should
             -- show the town it moved to.
             city = excluded.city,
+            -- A verdict is about a title and a team; when either moves,
+            -- it goes back to NULL and classify_roles reads it again.
+            role_class = CASE WHEN title IS NOT excluded.title OR department IS NOT excluded.department THEN NULL ELSE role_class END,
             -- salary_text needed a stricter guard than "not empty":
             -- reported live -- a Comeet job's discover-pass estimate
             -- (title+description, e.g. a specific "Go Developer" figure)
@@ -871,6 +881,44 @@ def _demote_same_company(conn: sqlite3.Connection, ts: str) -> int:
                           reason=f"same company as {keep} (see api/same_company.py)")
             n += 1
     return n
+
+
+def classify_roles(conn: sqlite3.Connection) -> int:
+    """Give every row without a verdict one. Two passes: the first reads
+    title, team and skills alone; the second, for what the first left
+    unknown, adds the company's own mix, the share of its decided open
+    roles that are tech. Returns how many rows were read this run. A
+    backfill of the whole snapshot is the same call, the first time the
+    column exists; measured at 33us a row."""
+    rows = conn.execute(
+        "SELECT id, company_domain, title, department, skills FROM jobs WHERE role_class IS NULL"
+    ).fetchall()
+    if not rows:
+        return 0
+    first = []
+    for jid, domain, title, department, skills in rows:
+        verdict, score, evidence = classify_role(title, department, skills)
+        first.append((verdict, score, evidence, jid))
+    conn.executemany("UPDATE jobs SET role_class = ?, role_score = ?, role_evidence = ? WHERE id = ?", first)
+    unknown = [r for r in first if r[0] == "unknown"]
+    if unknown:
+        share = {
+            domain: tech / decided
+            for domain, tech, decided in conn.execute(
+                "SELECT company_domain, SUM(role_class = 'tech'), COUNT(*) FROM jobs"
+                " WHERE closed_at IS NULL AND role_class IN ('tech', 'adjacent', 'non-tech')"
+                " GROUP BY company_domain HAVING COUNT(*) >= 3"
+            )
+        }
+        by_id = {row[0]: row for row in rows}
+        second = []
+        for _, _, _, jid in unknown:
+            _, domain, title, department, skills = by_id[jid]
+            if domain in share:
+                second.append((*classify_role(title, department, skills, share[domain]), jid))
+        if second:
+            conn.executemany("UPDATE jobs SET role_class = ?, role_score = ?, role_evidence = ? WHERE id = ?", second)
+    return len(rows)
 
 
 def prune_stale_companies(conn: sqlite3.Connection, current_domains: set[str], ts: str) -> int:
@@ -1514,6 +1562,9 @@ def main() -> int:
         conn = open_db(args.out)
         with conn:
             current_domains = load_resolved(conn, args.resolved, args.drop_description)
+            n_roles = classify_roles(conn)
+            if n_roles:
+                print(f"role verdicts for {n_roles} rows", file=sys.stderr)
             if args.deep:
                 load_deep(conn, args.deep)
             if args.prune_stale:

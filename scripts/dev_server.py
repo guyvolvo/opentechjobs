@@ -42,6 +42,8 @@ FRONTEND_BUCKET = os.environ.get("FRONTEND_BUCKET", "iljobs-frontend-87691369868
 # the repo. Fetched once per run and held.
 PUBLISHED = {"/bootstrap.json": "application/json", "/facets.json": "application/json"}
 _published_cache: dict[str, bytes | None] = {}
+_s3_client = None
+_s3_lock = __import__("threading").Lock()
 
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
@@ -69,6 +71,21 @@ def make_handler(db_path: Path):
     db_module.get_connection = fake_get_connection
     import handler as handler_module
 
+    # loader/precomputed/<name>, when present, stands in for the bucket's
+    # precomputed/ objects: `python loader/precompute.py --db loader/jobs.db
+    # --out loader/precomputed` writes them for the local snapshot, so the
+    # facets and stats routes answer from files here too instead of
+    # computing over the whole table on every page load.
+    local_pre = REPO_ROOT / "loader" / "precomputed"
+    if local_pre.is_dir():
+        _bucket_precomputed = handler_module._precomputed_json
+
+        def _local_precomputed(name):
+            p = local_pre / name
+            return json.loads(p.read_text(encoding="utf-8")) if p.exists() else _bucket_precomputed(name)
+
+        handler_module._precomputed_json = _local_precomputed
+
     class DevHandler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args):
             print(f"  {self.address_string()} - {fmt % args}")
@@ -85,8 +102,14 @@ def make_handler(db_path: Path):
         def _serve_published(self, path):
             if path not in _published_cache:
                 try:
-                    import boto3
-                    obj = boto3.client("s3").get_object(Bucket=FRONTEND_BUCKET, Key=path.lstrip("/"))
+                    # One client, made under a lock: two page requests
+                    # building boto3 clients at once deadlocked the server.
+                    with _s3_lock:
+                        global _s3_client
+                        if _s3_client is None:
+                            import boto3
+                            _s3_client = boto3.client("s3")
+                    obj = _s3_client.get_object(Bucket=FRONTEND_BUCKET, Key=path.lstrip("/"))
                     _published_cache[path] = obj["Body"].read()
                 except Exception as exc:  # no credentials or no object: app.js falls back to the API
                     print(f"  {path}: not served ({exc.__class__.__name__}), app.js will use the API")
