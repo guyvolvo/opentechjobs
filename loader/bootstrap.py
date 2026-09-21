@@ -66,7 +66,9 @@ VIEWS = {
 
 def params_for(filters: dict) -> str:
     """The query string app.js builds for this view, in its order."""
-    lead = "".join(f"{k}={v}&" for k, v in filters.items())
+    # roles is already in BOOTSTRAP_PARAMS, where app.js puts it (after
+    # confidence); repeating it in the lead would break the exact match.
+    lead = "".join(f"{k}={v}&" for k, v in filters.items() if k != "roles")
     return lead + BOOTSTRAP_PARAMS
 
 # Same column list as route_jobs. Notably no `description`: the list
@@ -163,7 +165,14 @@ def main() -> int:
     ap.add_argument("--out", required=True, type=Path, help="where to write the payload")
     ap.add_argument("--country", help="build the country view instead of the default")
     args = ap.parse_args()
-    payload = build(args.db, {"country": args.country} if args.country else {})
+    # The views are defined once, in VIEWS above: the merge Lambda's own
+    # copy only says which country, and roles=tech came from here alone,
+    # which is how a file said roles=tech and counted every role (live,
+    # 2026-09-21).
+    filters = dict(VIEWS["bootstrap-il.json" if args.country else "bootstrap.json"])
+    if args.country:
+        filters["country"] = args.country
+    payload = build(args.db, filters)
     args.out.write_text(json.dumps(payload, ensure_ascii=False, default=str), encoding="utf-8")
     print(f"wrote {args.out} ({args.out.stat().st_size} bytes, "
           f"{len(payload['jobs']['jobs'])} of {payload['jobs']['total']} jobs)", file=sys.stderr)
