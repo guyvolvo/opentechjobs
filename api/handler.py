@@ -560,7 +560,23 @@ def route_jobs(params: dict) -> dict:
     limit = _int_param(params, "limit", default=100, lo=1, hi=500)
     offset = _int_param(params, "offset", default=0, lo=0, hi=10_000_000)
 
-    total = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {where_sql}", args).fetchone()[0]
+    # The count runs the whole WHERE a second time, and for a search that
+    # WHERE is the expensive part: four substring scans over every row.
+    # Paying it twice put a typed search at three seconds. The board now
+    # asks for the rows without it and asks again for the count while the
+    # reader is already reading, so "count=skip" answers with total null
+    # and "count=only" answers with nothing but the number.
+    #
+    # Anything else, including every caller that does not know this
+    # parameter, gets both in one response exactly as before.
+    count_mode = (params.get("count") or "").strip().lower()
+    if count_mode == "skip":
+        total = None
+    else:
+        total = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {where_sql}", args).fetchone()[0]
+        if count_mode == "only":
+            return {"jobs": [], "total": total, "limit": 0, "offset": 0,
+                    "matched_skills": [], "count_only": True}
 
     rows = conn.execute(
         f"""

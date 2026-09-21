@@ -1774,6 +1774,9 @@ function getBootstrap(params) {
 // call overtakes this one.
 let jobsRequestSeq = 0;
 let jobsInFlight = null;
+// The count is its own request now (see loadJobCount), so it needs its
+// own controller: a count for a search nobody is waiting on must not land.
+let jobCountInFlight = null;
 
 // background: a timer or tab-return refresh, not something the reader
 // did. Only those may hold new rows back (see holdForReader).
@@ -1864,10 +1867,24 @@ async function loadJobs({ background = false } = {}) {
     document.getElementById("jobs-loading").textContent = "Loading listings";
   }
 
+  // The total runs the whole WHERE a second time, and for a typed search
+  // that WHERE is four substring scans over every row. Paying it twice
+  // put a search at three seconds. A foreground load asks for the rows
+  // alone and picks the number up afterwards, while the reader is
+  // already reading. A background refresh still asks for both: nobody is
+  // waiting on it, and a response shaped like the cached one is what
+  // lets the no-flicker comparison below do its job.
+  const deferCount = !background;
   setLoadBar(true);
   try {
-    const data = await getJSON(`/jobs?${params}`, { signal: inFlight.signal });
+    const data = await getJSON(`/jobs?${params}${deferCount ? "&count=skip" : ""}`, { signal: inFlight.signal });
     if (seq !== jobsRequestSeq) return;
+    // Revisiting a view we already have a number for: keep showing it
+    // rather than blanking the total and putting it back a moment later.
+    // Same params means the same WHERE, so the cached count is exactly
+    // as fresh as the cached rows already on screen, and loadJobCount
+    // replaces it with the truth either way.
+    if (data.total === null && cached && typeof cached.total === "number") data.total = cached.total;
     document.getElementById("jobs-loading").textContent = "";
     // Skip the re-render when the background refresh just confirms
     // nothing changed -- avoids a jarring flicker/scroll-reset for what
@@ -1881,6 +1898,7 @@ async function loadJobs({ background = false } = {}) {
       renderJobs(data, starred);
       renderPagination(data);
     }
+    if (deferCount) loadJobCount(params, seq);
   } catch (err) {
     // An abort is this function cancelling itself, not a failure, and a
     // stale rejection belongs to a filter nobody is looking at.
@@ -2142,6 +2160,52 @@ function resultNoun() {
   return activeFilterSummary().length ? `matching ${noun}` : noun;
 }
 
+// The second half of a foreground load: the number, once the rows are
+// already on screen. Same sequence guard as the rows, so a count for a
+// search the reader has moved on from is dropped rather than drawn.
+//
+// A count that never arrives is not an error worth a banner. The rows
+// are up and useful, and the line simply keeps reading "Showing 1-50"
+// without a total.
+async function loadJobCount(params, seq) {
+  if (jobCountInFlight) jobCountInFlight.abort();
+  const inFlight = new AbortController();
+  jobCountInFlight = inFlight;
+  try {
+    const data = await getJSON(`/jobs?${params}&count=only`, { signal: inFlight.signal });
+    if (seq !== jobsRequestSeq || !lastJobsResponse) return;
+    lastJobsResponse.total = data.total;
+    // Back into the cache with the number in it. The rows were stored a
+    // moment ago with total null, and without this a reader returning to
+    // a view they have already seen watches the total blink out and come
+    // back. getCachedJobs reads localStorage, so mutating what it
+    // returned would change nothing.
+    setCachedJobs(params, lastJobsResponse);
+    renderResultCount(lastJobsResponse);
+    renderPagination(lastJobsResponse);
+  } catch (err) {
+    if (err.name !== "AbortError" && seq === jobsRequestSeq) console.debug("count:", err.message);
+  } finally {
+    if (jobCountInFlight === inFlight) jobCountInFlight = null;
+  }
+}
+
+// The one line above the table. Its own function because the number now
+// arrives after the rows: this redraws a line instead of the table.
+function renderResultCount(data) {
+  const el = document.getElementById("result-count");
+  if (!data || !data.jobs || !data.jobs.length) { el.innerHTML = ""; return; }
+  const from = state.offset + 1;
+  if (data.total === null || data.total === undefined) {
+    // The range is true without the total, and it does not move when the
+    // total lands, so nothing on the line jumps.
+    el.innerHTML = `Showing <b>${from}–${state.offset + data.jobs.length}</b> ${resultNoun()}`;
+    return;
+  }
+  const to = Math.min(state.offset + data.jobs.length, data.total);
+  el.innerHTML = `Showing <b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> ${resultNoun()}`;
+}
+
 function renderJobs(data, starred) {
   matchedSkills = new Set(data.matched_skills || []);
   renderSearchNotice(data);
@@ -2158,10 +2222,7 @@ function renderJobs(data, starred) {
   }
   document.getElementById("jobs-empty").style.display = "none";
   renderJobRows(data.jobs, starred);
-  const from = state.offset + 1;
-  const to = Math.min(state.offset + data.jobs.length, data.total);
-  document.getElementById("result-count").innerHTML =
-    `Showing <b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> ${resultNoun()}`;
+  renderResultCount(data);
 }
 
 // "Company · Department · Location (Workplace)" -- one scannable line
@@ -2485,8 +2546,14 @@ async function copyToClipboard(btn, url) {
 
 function renderPagination(data) {
   const el = document.getElementById("pagination-pages");
-  const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
   const current = Math.floor(state.offset / PAGE_SIZE) + 1;
+  // Before the count lands, a full page means there is almost certainly
+  // another one. Deriving the last page from the total alone would show
+  // a dead next button that quietly comes alive a moment later.
+  const known = data.total !== null && data.total !== undefined;
+  const totalPages = known
+    ? Math.max(1, Math.ceil(data.total / PAGE_SIZE))
+    : current + (data.jobs.length === PAGE_SIZE ? 1 : 0);
   const start = Math.max(1, current - 3);
   const end = Math.min(totalPages, start + 6);
 
@@ -3246,7 +3313,13 @@ function wireFilters() {
       state.offset = 0;
       loadJobs();
       loadTicker();
-    }, 300)
+      // 500, not 300. At 300 a ten-character word fired eight requests,
+      // each one a full search, and the later ones queued behind the
+      // earlier ones until the gateway gave up at 29 seconds and the
+      // reader got a 500 instead of results. Typing settles inside 500ms
+      // between keys for almost everyone, so this is one request per
+      // word rather than one per keystroke.
+    }, 500)
   );
 
   msDepartment = createMultiSelect("ms-department", {
