@@ -12294,3 +12294,13 @@ invygo.com
 kitt.ai
 hausfursicherheit.com
 hatchtech.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+dispel.com
+evolve-security.com
+equipment-experts.com
+fastbreak.ai
+farmacy.com
+fitmate.ai
+fp1.com
+getvocal.ai
