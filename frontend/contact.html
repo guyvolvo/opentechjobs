@@ -56,8 +56,23 @@
     </section>
 
     <section class="contact" aria-label="Ways to reach me">
+      <form class="contact-form" id="contact-form" novalidate>
+        <label for="contact-name">Name</label>
+        <input id="contact-name" name="name" type="text" maxlength="120" autocomplete="name" />
+        <label for="contact-email">Email <span class="contact-req">for the reply</span></label>
+        <input id="contact-email" name="email" type="email" maxlength="254" autocomplete="email" required />
+        <label for="contact-message">Message</label>
+        <textarea id="contact-message" name="message" rows="7" maxlength="5000" required></textarea>
+        <!-- Never shown; a form filler that fills it is not a person. -->
+        <div class="contact-trap" aria-hidden="true"><label for="contact-website">Website</label><input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
+        <div class="contact-actions">
+          <button class="btn hero-primary" id="contact-send" type="submit">Send <svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <p class="contact-status" id="contact-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+
       <div class="contact-ways">
-        <h2>Find me</h2>
+        <h2>Socials and links</h2>
         <a class="contact-way" href="mailto:guyvoloshin@gmail.com">
           <span class="contact-way-name"><svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 6l9 7 9-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Email</span></span>
           <span class="contact-way-value">guyvoloshin@gmail.com</span>
@@ -75,22 +90,6 @@
           <span class="contact-way-value">the repository's issues</span>
         </a>
       </div>
-
-      <form class="contact-form" id="contact-form" novalidate>
-        <h2>Or write here</h2>
-        <label for="contact-name">Name</label>
-        <input id="contact-name" name="name" type="text" maxlength="120" autocomplete="name" />
-        <label for="contact-email">Email <span class="contact-req">for the reply</span></label>
-        <input id="contact-email" name="email" type="email" maxlength="254" autocomplete="email" required />
-        <label for="contact-message">Message</label>
-        <textarea id="contact-message" name="message" rows="7" maxlength="5000" required></textarea>
-        <!-- Never shown; a form filler that fills it is not a person. -->
-        <div class="contact-trap" aria-hidden="true"><label for="contact-website">Website</label><input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
-        <div class="contact-actions">
-          <button class="btn hero-primary" id="contact-send" type="submit">Send <svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          <p class="contact-status" id="contact-status" role="status" aria-live="polite"></p>
-        </div>
-      </form>
     </section>
   </main>
 

@@ -3918,12 +3918,12 @@ a.hero-account-btn { text-decoration: none; }
 .hero-foot .hero-foot-links { gap: 28px; }
 
 /* The contact page: the landing page's own voice, with two columns
-   under the claim. The ways to reach me are the display face on ink
-   rules, the same weight as the feature rows; the form is the board's
-   fields. */
+   under the claim. The form leads and takes the wider column, because
+   writing is what most readers came to do. The links sit beside it,
+   unruled, so four short rows read as a list and not as a table. */
 .contact {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: clamp(32px, 6vw, 96px);
   padding: clamp(40px, 6vw, 88px) var(--edge) clamp(40px, 6vw, 88px);
   max-width: 1200px;
@@ -3945,12 +3945,11 @@ a.hero-account-btn { text-decoration: none; }
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
-  padding: 18px 0;
-  border-top: var(--rule) solid var(--black);
+  padding: 14px 0;
   color: var(--black);
   text-decoration: none;
 }
-.contact-way:last-child { border-bottom: var(--rule) solid var(--black); }
+.contact-way:first-of-type { padding-top: 0; }
 .contact-way:hover .contact-way-value { color: var(--green-text); }
 .contact-way-name { display: inline-flex; align-items: center; }
 /* The platform's own mark, in ink rather than its brand colour, so the
@@ -3958,7 +3957,7 @@ a.hero-account-btn { text-decoration: none; }
 .contact-icon { width: 28px; height: 28px; color: var(--black); }
 .contact-way:hover .contact-icon { color: var(--green-text); }
 .contact-way-value { font-family: var(--font-ui); font-size: 14px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
-.contact-form { display: flex; flex-direction: column; }
+.contact-form { display: flex; flex-direction: column; align-self: start; }
 .contact-form label { font-family: var(--font-ui); font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
 .contact-form label:first-of-type { margin-top: 0; }
 .contact-req { font-weight: 400; color: var(--grey); }
