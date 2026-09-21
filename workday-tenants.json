@@ -23508,5 +23508,235 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "nwtc.com",
+  "tenant": "nwtc",
+  "wd": "wd1",
+  "site": "NWTC1",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "oxy.com",
+  "tenant": "oxy",
+  "wd": "wd5",
+  "site": "Corporate",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "southlake.ai",
+  "tenant": "southlake",
+  "wd": "wd10",
+  "site": "Southlake",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "workwear.ai",
+  "tenant": "workwear",
+  "wd": "wd503",
+  "site": "Careers",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wsc.com",
+  "tenant": "wsc",
+  "wd": "wd1",
+  "site": "EOC",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "awc.org",
+  "tenant": "awc",
+  "wd": "wd3",
+  "site": "AWC_Career_Site",
+  "jobs_seen": 43,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "bydeluxe.com",
+  "tenant": "bydeluxe",
+  "wd": "wd5",
+  "site": "Deluxe_External",
+  "jobs_seen": 43,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cerved.com",
+  "tenant": "cerved",
+  "wd": "wd3",
+  "site": "Cerved",
+  "jobs_seen": 43,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "conocophillips.com",
+  "tenant": "conocophillips",
+  "wd": "wd1",
+  "site": "external",
+  "jobs_seen": 43,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "csgonline.org",
+  "tenant": "csgonline",
+  "wd": "wd5",
+  "site": "CSG",
+  "jobs_seen": 43,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "proceptbiorobotics.com",
+  "tenant": "proceptbiorobotics",
+  "wd": "wd108",
+  "site": "PROCEPT",
+  "jobs_seen": 43,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "racwa.com",
+  "tenant": "racwa",
+  "wd": "wd3",
+  "site": "RAC-WA",
+  "jobs_seen": 43,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "weareeverise.com",
+  "tenant": "weareeverise",
+  "wd": "wd1",
+  "site": "EveriseCareers",
+  "jobs_seen": 43,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "anchorglass.com",
+  "tenant": "anchorglass",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 42,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "cascadia.com",
+  "tenant": "cascadia",
+  "wd": "wd12",
+  "site": "cascadiahealth",
+  "jobs_seen": 42,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "choicehotels.com",
+  "tenant": "choicehotels",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 42,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "communitybrands.com",
+  "tenant": "communitybrands",
+  "wd": "wd1",
+  "site": "Momentive_External_Careers",
+  "jobs_seen": 42,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mahec.net",
+  "tenant": "mahec",
+  "wd": "wd5",
+  "site": "MAHEC",
+  "jobs_seen": 42,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "wellsky.com",
+  "tenant": "wellsky",
+  "wd": "wd1",
+  "site": "WellSkyCareers",
+  "jobs_seen": 42,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "eosgroup.com",
+  "tenant": "eosgroup",
+  "wd": "wd3",
+  "site": "eos",
+  "jobs_seen": 41,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "metsagroup.com",
+  "tenant": "metsagroup",
+  "wd": "wd103",
+  "site": "MetsaGroup_Careers",
+  "jobs_seen": 41,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "mtminc.com",
+  "tenant": "mtminc",
+  "wd": "wd1",
+  "site": "MTM_External",
+  "jobs_seen": 41,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
+ },
+ {
+  "domain": "propetroservices.com",
+  "tenant": "propetroservices",
+  "wd": "wd5",
+  "site": "ProPetro_Careers",
+  "jobs_seen": 41,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-21"
  }
 ]

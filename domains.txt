@@ -12517,3 +12517,16 @@ phoenixocp.fr
 exadel.com
 arvida.org
 phdata.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+brainlab.com
+fischergroup.com
+lacroix.io
+sanmar.com
+matx.com
+palo-it.com
+anavah.co
+kpn.com
+harleytherapy.com
+externaljobboards.com
+focused.com
