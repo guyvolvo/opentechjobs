@@ -27968,5 +27968,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "ccg.com",
+  "tenant": "ccg",
+  "wd": "wd503",
+  "site": "PROCEDEO",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "svgruppe.myworkdayjobs.com",
+  "tenant": "svgruppe",
+  "wd": "wd103",
+  "site": "logistik_sued_sv_gruppe",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "nrpgroup.myworkdayjobs.com",
+  "tenant": "nrpgroup",
+  "wd": "wd1",
+  "site": "INT",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
