@@ -13226,3 +13226,6 @@ thesciongroupllc.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 stack.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+advanced-systems.fr

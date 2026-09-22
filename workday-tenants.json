@@ -27718,5 +27718,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "spicergroup.com",
+  "tenant": "spicergroup",
+  "wd": "wd504",
+  "site": "External",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "westernexp.com",
+  "tenant": "westernexp",
+  "wd": "wd5",
+  "site": "WSX",
+  "jobs_seen": 37,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "webcor.com",
+  "tenant": "webcor",
+  "wd": "wd503",
+  "site": "webcor",
+  "jobs_seen": 36,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
