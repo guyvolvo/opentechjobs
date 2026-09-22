@@ -78,6 +78,10 @@ function setAuthTokens(tokens) {
 // page having registered anything.
 let authRenderSink = () => {};
 function setAuthRenderSink(fn) { authRenderSink = fn; }
+// Called by signin_dialog.js once a sign-in lands, so whichever
+// script owns the bar on this page redraws it. Same sink signOut
+// uses, from the other direction.
+function notifyAuthRender() { authRenderSink(); }
 
 function signOut() {
   localStorage.removeItem(AUTH_TOKENS_KEY);
