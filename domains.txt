@@ -13048,3 +13048,19 @@ atak.com
 cgiar.org
 cleafy.com
 clean-power.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+cmic.org
+aceliafrica.com
+amara.ai
+dnanexus.com
+innovativeresourcesolutions.com
+myfirst.io
+safelyconnectedtheeatingdisordercentre.com
+youthworks.com
+meridianpubliccharterschool.com
+rapidfinance.com
+salesroads.com
+localprogress.org
+encon.ai
+higher.ai
