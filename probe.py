@@ -22,6 +22,7 @@ import re
 import sys
 import threading
 import time
+import zlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
@@ -214,6 +215,34 @@ FETCH_LOGOS = False
 # 45s is generous against the 0.3s a hit costs and bounds the worst case
 # so one bad host cannot hold a worker for three minutes.
 GUESS_BUDGET_S = 45
+
+# Which slice of the not-yet-resolved domains this run may guess at, as
+# (index, total), or None for all of them. Set by --guess-shard.
+#
+# Guessing is the only part of the sweep whose cost grows with
+# domains.txt, because a domain that already resolved is one hinted
+# fetch and a domain that never has is the full 45-second search plus
+# two careers-page scrapes. domains.txt went from 4,271 to 15,602 and
+# the run that covered the 4,271 took 3h40m, so at that rate the sweep
+# now wants more than GitHub's 6-hour job cap and gets killed with
+# nothing written. Sharding the guesses, and only the guesses, keeps
+# every already-known company on a nightly re-poll while the expensive
+# half rotates over `total` days. A domain outside this run's shard
+# comes back deferred (see _deferred), not missed.
+GUESS_SHARD: tuple[int, int] | None = None
+
+# time.monotonic() value past which resolve() stops working and hands
+# every remaining domain back deferred. Set by --deadline-minutes.
+#
+# The shard above bounds the expected cost; this bounds the worst case.
+# A slow night, a provider timing out on thousands of hosts, or a shard
+# that happens to be full of pathological domains all end the same way
+# without it: the job hits the 6-hour cap mid-probe, resolved.json is
+# never written, and the load step never runs. Three consecutive days of
+# discovery landed nothing that way in September. A run that stops early
+# and writes what it has beats a run that does more work and writes none
+# of it.
+BATCH_DEADLINE: float | None = None
 
 # ATSes whose per-job detail fetch runs even with FETCH_FULL_DESCRIPTIONS
 # off. A global flag is the wrong lever here because the two gated
@@ -3777,6 +3806,68 @@ def load_hints(path: Path) -> dict[str, dict]:
     return out
 
 
+def _fetch_by_ats(sess: requests.Session, ats: str, token: str) -> list | None:
+    """Fetch one board from an ats+token this project has already
+    verified. None is "no usable answer", which is not the same as an
+    empty list.
+
+    token format per-ats: comeet is "uid:token", workday is
+    "tenant:wd:site", jsonld is the page URL itself (re-fetched and
+    re-extracted), everything else is the raw FETCHERS[ats] token. Those
+    three compound forms are why this is a function rather than a
+    FETCHERS lookup. _resolve_board's hint path used FETCHERS directly
+    and so could never use a hint for them: 308 Comeet companies, 26
+    Workday and one jsonld re-ran the full guess-and-scrape search every
+    single night for an answer already sitting in known.json.
+    """
+    try:
+        if ats == "comeet":
+            uid, ctoken = token.split(":", 1)
+            return _fetch_comeet_pin(sess, uid, ctoken)
+        if ats == "workday":
+            tenant, wd, site = token.split(":", 2)
+            return f_workday(sess, tenant, wd, site)
+        if ats == "jsonld":
+            r = sess.get(token, timeout=CAREER_SCRAPE_TIMEOUT)
+            return _extract_jobposting_jsonld(r.text, token) if r.status_code == 200 else None
+        if ats in FETCHERS:
+            return FETCHERS[ats](sess, token)
+    except Exception:
+        return None
+    return None
+
+
+def _deferred(res: Resolution, why: str) -> Resolution:
+    """Hand a domain back untried, for a later run to pick up.
+
+    retryable is load-bearing here. load_to_sqlite reads an ats=None
+    result with retryable set as "no evidence either way": it leaves the
+    company's stored ats, token, job_count and open jobs exactly as they
+    were, and keep_unanswered_known() keeps its known.json entry. The
+    domain still appears in resolved.json, so prune_stale_companies
+    still counts it as tracked and does not demote it for being absent.
+    Deferring therefore costs a domain nothing beyond a day of latency.
+    """
+    res.error = why
+    res.retryable = True
+    return res
+
+
+def _in_guess_shard(domain: str) -> bool:
+    """Whether this run is the one that guesses at `domain`.
+
+    crc32 and not hash(): PYTHONHASHSEED randomises str hashing per
+    process, which would reshuffle the shards on every run and let a
+    domain go weeks without being picked. This way a domain sits in the
+    same shard until the shard count changes, so `total` runs cover
+    every domain exactly once.
+    """
+    if GUESS_SHARD is None:
+        return True
+    index, total = GUESS_SHARD
+    return zlib.crc32(domain.encode("utf-8")) % total == index
+
+
 def refetch_known(sess: requests.Session, domain: str, ats: str, token: str,
                   etag: str | None = None, last_modified: str | None = None,
                   content_hash: str | None = None) -> Resolution:
@@ -3784,9 +3875,7 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str,
     scraping. The fast, frequent-running path (see --known), versus
     resolve()'s expensive discovery.
 
-    token format per-ats: comeet is "uid:token", workday is
-    "tenant:wd:site", jsonld is the page URL itself (re-fetched and
-    re-extracted), everything else is the raw FETCHERS[ats] token.
+    token format per-ats: see _fetch_by_ats.
     """
     res = Resolution(domain=domain)
     # Only arm validators for platforms measured to honour them. Sending
@@ -3799,22 +3888,7 @@ def refetch_known(sess: requests.Session, domain: str, ats: str, token: str,
     _cond_reset(etag if ats in CONDITIONAL_ATS else None,
                 last_modified if ats in CONDITIONAL_ATS else None,
                 content_hash)
-    try:
-        if ats == "comeet":
-            uid, ctoken = token.split(":", 1)
-            jobs = _fetch_comeet_pin(sess, uid, ctoken)
-        elif ats == "workday":
-            tenant, wd, site = token.split(":", 2)
-            jobs = f_workday(sess, tenant, wd, site)
-        elif ats == "jsonld":
-            r = sess.get(token, timeout=CAREER_SCRAPE_TIMEOUT)
-            jobs = _extract_jobposting_jsonld(r.text, token) if r.status_code == 200 else None
-        elif ats in FETCHERS:
-            jobs = FETCHERS[ats](sess, token)
-        else:
-            jobs = None
-    except Exception:
-        jobs = None
+    jobs = _fetch_by_ats(sess, ats, token)
 
     res.tried = 1
 
@@ -3917,6 +3991,8 @@ def resolve(domain: str, sess: requests.Session) -> Resolution:
     refetch_known's five-minute sweep. FETCH_LOGOS turns it off for runs
     that only want boards.
     """
+    if BATCH_DEADLINE is not None and time.monotonic() > BATCH_DEADLINE:
+        return _deferred(Resolution(domain=domain), "batch deadline reached before this domain was probed")
     res = _resolve_board(domain, sess)
     if FETCH_LOGOS and company_logo and res.ats:
         try:
@@ -4035,18 +4111,31 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
     # moved is still found.
     hint = HINTS.get(domain)
     hint_unanswered = False
-    if hint and hint.get("ats") in FETCHERS and hint.get("token"):
+    if hint and hint.get("ats") and hint.get("token"):
         tried += 1
         if VERBOSE:
             print(f"    probe hint:{hint['ats']}:{hint['token']}", file=sys.stderr)
-        try:
-            jobs = FETCHERS[hint["ats"]](sess, hint["token"])
-        except Exception:
-            jobs = None
+        jobs = _fetch_by_ats(sess, hint["ats"], hint["token"])
         # None is no answer at all, which a rate limit looks like too. An
         # empty list is a board that answered with nothing open.
         hint_unanswered = jobs is None
-        if jobs and _match_is_fresh(jobs):
+        # An empty answer from a hint ends the search, where an empty
+        # answer from a guessed token does not. The difference is what
+        # stands behind the token. A guess landing on an empty board is
+        # usually someone else's slug (see the "only an empty board
+        # matched" note at the bottom of this function); a hint is a
+        # pair this project resolved and the loader stored, so zero open
+        # roles is this company's board saying zero.
+        #
+        # Two things were wrong with falling through. It cost 444 known
+        # companies the full 45-second search plus two careers-page
+        # scrapes a night to re-learn what known.json already said. And
+        # when the token was one guessing cannot reach (workable:
+        # eramtalent-1 and every Comeet pin), the search ended at "no ATS
+        # matched any token candidate", which is not retryable, so the
+        # loader cleared a working company's ats on the strength of its
+        # board being quiet that week.
+        if jobs is not None and (not jobs or _match_is_fresh(jobs)):
             res.ats, res.token = hint["ats"], hint["token"]
             res.jobs = _fill_classifications(jobs, res.domain)
             res.job_count = len(res.jobs)
@@ -4080,6 +4169,19 @@ def _resolve_board(domain: str, sess: requests.Session) -> Resolution:
             res.job_count = len(res.jobs)
             res.tried = tried
             return res
+
+    # Everything below this line is guessing, which is the expensive
+    # half of the sweep and the half that is sharded. Nothing above it
+    # is: a pin and a hint are both cheap and both run every night for
+    # every domain, so a company already on the board keeps its nightly
+    # refresh whatever shard it falls in.
+    if not _in_guess_shard(domain):
+        res.tried = tried
+        index, total = GUESS_SHARD
+        return _deferred(res, f"not in this run's guess shard ({index}/{total})")
+    if BATCH_DEADLINE is not None and time.monotonic() > BATCH_DEADLINE:
+        res.tried = tried
+        return _deferred(res, "batch deadline reached before guessing this domain")
 
     # Everything from here down is a guess, so requests stop retrying
     # (see _request_json) and the whole search gets a wall-clock budget.
@@ -4247,6 +4349,22 @@ def raw_dump(sess: requests.Session, url: str) -> int:
     return 0
 
 
+def parse_guess_shard(text: str) -> tuple[int, int]:
+    """Read "2/4" as (2, 4).
+
+    Raises on anything else rather than falling back to no shard. A typo
+    here is otherwise invisible: the run still succeeds, it has just
+    quietly stopped guessing at three quarters of domains.txt.
+    """
+    try:
+        index, total = (int(part) for part in text.split("/", 1))
+    except ValueError:
+        raise SystemExit(f"--guess-shard wants INDEX/TOTAL, got {text!r}")
+    if total < 1 or not 0 <= index < total:
+        raise SystemExit(f"--guess-shard {text!r} is out of range (need 0 <= INDEX < TOTAL)")
+    return index, total
+
+
 def print_row(r: Resolution) -> None:
     if not r.ats:
         print(f"{r.domain:<26} MISS  ({r.tried} probes)")
@@ -4319,6 +4437,16 @@ def main() -> int:
                      help="fetch each Comeet/Workday job's per-job detail page for a real description (neither "
                           "ATS's list endpoint has one). One extra request per listing on either -- meant for "
                           "scrape-discover.yml's slower pass, not the 10-min fast-poll.")
+    ap.add_argument("--guess-shard", metavar="INDEX/TOTAL",
+                     help="only guess at domains in shard INDEX of TOTAL (crc32 of the domain). "
+                          "Domains with a usable hint or a companies.yml pin are still probed in "
+                          "full every run, so this divides the expensive half of the sweep and "
+                          "leaves the cheap half alone. A domain outside the shard comes back "
+                          "retryable, which the loader reads as no evidence and ignores.")
+    ap.add_argument("--deadline-minutes", type=float, metavar="N",
+                     help="stop probing after N minutes and hand every remaining domain back "
+                          "retryable, so the caller still gets a resolved.json to load. Bounds the "
+                          "worst case that --guess-shard only bounds on average.")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
 
@@ -4326,6 +4454,7 @@ def main() -> int:
         return selftest()
 
     global VERBOSE, SCRAPE_COMEET, SCRAPE_EMBED, FETCH_FULL_DESCRIPTIONS, FETCH_LOGOS, HINTS
+    global GUESS_SHARD, BATCH_DEADLINE
     VERBOSE = args.verbose
     SCRAPE_COMEET = not args.no_comeet
     FETCH_FULL_DESCRIPTIONS = args.fetch_descriptions
@@ -4334,6 +4463,17 @@ def main() -> int:
         HINTS = load_hints(args.hints)
         print(f"{len(HINTS)} hints loaded from {args.hints}", file=sys.stderr)
     SCRAPE_EMBED = not args.no_embed_scrape
+    if args.guess_shard:
+        GUESS_SHARD = parse_guess_shard(args.guess_shard)
+        index, total = GUESS_SHARD
+        print(f"guessing only at shard {index} of {total}", file=sys.stderr)
+    # Checked against None rather than for truth, so
+    # --deadline-minutes 0 means "already past" and not "no deadline".
+    # Nobody passes 0 on purpose, but a shell expansion that produced
+    # one should stop the run rather than silently uncap it.
+    if args.deadline_minutes is not None:
+        BATCH_DEADLINE = time.monotonic() + args.deadline_minutes * 60
+        print(f"probing stops after {args.deadline_minutes:g} minutes", file=sys.stderr)
 
     sess = session()
 

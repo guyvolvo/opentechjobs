@@ -2,9 +2,30 @@ name: scrape-discover
 
 # The SLOW pipeline: full guess-and-verify against every ATS, plus the
 # Comeet and embed/JSON-LD fallbacks, across every domain in domains.txt.
-# Minutes, not seconds (~10-15 min over ~350 domains). That's why it
-# doesn't run on scrape-fast.yml's cadence, since a company's ATS
-# platform doesn't change minute to minute.
+# Hours, not minutes. That's why it doesn't run on scrape-fast.yml's
+# cadence, since a company's ATS platform doesn't change minute to minute.
+#
+# Two things bound how long it runs, both added when the Pvalyou seed
+# list took domains.txt from 12,088 domains to 15,602 (see the block
+# comment in that file). Neither is a tuning knob; without them this job
+# hits GitHub's 6-hour cap and writes nothing at all.
+#
+# --guess-shard rotates the expensive work. A domain that already
+# resolved costs one hinted request; a domain that never has costs
+# probe.py's whole 45-second search and then two careers-page scrapes.
+# So only the guessing is divided, over four days, and every known
+# company is still re-polled every night. The cost of that: a brand new
+# domain waits up to four days for its first probe instead of one.
+# Worth it, and invisible next to the weeks a domain typically sits in
+# this file before anyone notices it resolved.
+#
+# --deadline-minutes is the floor under that. Whatever the shard turns
+# out to contain, probing stops at four hours and every domain not
+# reached comes back retryable, which the loader reads as no evidence
+# and leaves alone. The run then loads and pushes what it did get. This
+# is the difference between a short night and a lost one: on
+# 2026-09-09 through 2026-09-11 the sweep probed everything and then
+# died before its first write, so three days of discovery landed nothing.
 #
 # Once a company resolves here, scrape-fast.yml re-polls it directly from
 # then on (see loader.py's export_known(), which re-derives known.json
@@ -45,6 +66,10 @@ env:
 jobs:
   discover:
     runs-on: ubuntu-latest
+    # Above --deadline-minutes below plus the load, and below the 6-hour
+    # default. Stated rather than inherited so that if this job ever does
+    # run long, the log says which limit stopped it.
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
 
@@ -96,10 +121,20 @@ jobs:
           aws s3 cp "s3://${{ vars.DATA_BUCKET }}/known.json" known.json || true
           [ -f known.json ] && cp known.json known-at-start.json || true
 
+      # 10# on the day number, because `date +%j` zero-pads and bash
+      # reads 008 and 009 as bad octal. Day-of-year and not the run
+      # number so the rotation stays predictable across re-runs and
+      # manual dispatches.
       - name: Full probe, guess, Comeet scrape, embed/JSON-LD fallback
         if: ${{ github.event.inputs.domains == '' }}
-        run: python probe.py --batch domains.txt --hints known.json --fetch-descriptions --json > resolved.json
+        run: |
+          shard=$(( 10#$(date -u +%j) % 4 ))
+          python probe.py --batch domains.txt --hints known.json --fetch-descriptions \n            --guess-shard "$shard/4" --deadline-minutes 240 --json > resolved.json
 
+      # No --guess-shard here, deliberately. The point of a targeted
+      # dispatch is to probe the domains you asked for, now; deferring
+      # three of every four of them to a later run would answer a
+      # different question than the one being asked.
       - name: Targeted probe (workflow_dispatch domains input)
         if: ${{ github.event.inputs.domains != '' }}
         run: python probe.py --domain "${{ github.event.inputs.domains }}" --hints known.json --fetch-descriptions --json > resolved.json
@@ -124,10 +159,15 @@ jobs:
           import json
           data = json.load(open('resolved.json', encoding='utf-8'))
           hits = [r for r in data if r.get('ats')]
+          deferred = [r for r in data if not r.get('ats') and r.get('retryable')
+                      and 'shard' in (r.get('error') or '')]
+          late = [r for r in data if not r.get('ats') and r.get('retryable')
+                  and 'deadline' in (r.get('error') or '')]
           by_ats = {}
           for r in hits:
               by_ats[r['ats']] = by_ats.get(r['ats'], 0) + 1
           print(f'{len(hits)}/{len(data)} resolved')
+          print(f'  {len(deferred)} left to another shard, {len(late)} cut off by the deadline')
           for a, n in sorted(by_ats.items(), key=lambda kv: -kv[1]):
               print(f'  {a:<18} {n}')
           print(f'  total jobs      {sum(r[\"job_count\"] for r in hits)}')
