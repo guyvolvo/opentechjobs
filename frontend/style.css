@@ -449,6 +449,11 @@ button, input, select {
   text-decoration: none;
 }
 .saved-title:hover { color: var(--green-text); text-decoration: underline; }
+/* The title is the link out to the listing, so on a touch screen it
+   needs a box rather than a line of text to hit. */
+@media (pointer: coarse) {
+  .saved-title { display: inline-block; padding: 5px 0; }
+}
 .saved-meta {
   color: var(--grey);
   font-size: 12px;
@@ -497,6 +502,13 @@ button, input, select {
   cursor: pointer;
 }
 .alert-toggle:hover { background: var(--black); color: var(--white); }
+/* The whole row is three controls on one line, and on a touch screen
+   all three were between 14px and 26px tall. Padding only, so the row
+   grows once and the three stay on their line. */
+@media (pointer: coarse) {
+  .alert-summary { padding: 11px 0; }
+  .alert-toggle { padding: 8px 12px; }
+}
 
 .alert-delete {
   background: none;
@@ -508,6 +520,11 @@ button, input, select {
   padding: 2px;
 }
 .alert-delete:hover { color: var(--red); }
+/* A 17px glyph is not a thumb target. The padding grows the tap box
+   without moving the glyph, so the row keeps its height. */
+@media (pointer: coarse) {
+  .alert-delete { padding: 12px; margin: -12px 0; }
+}
 
 .create-alert-feedback {
   margin: 8px 0 0;
@@ -3334,28 +3351,201 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   .xbar-ticks span:nth-child(2), .xbar-ticks span:nth-child(3), .xbar-ticks span:nth-child(4) { display: none; }
 }
 
-/* Account page. Blocks rather than cards: this is a settings screen, so
-   the reader is scanning for one thing at a time and a border per
-   section is enough to separate them. */
-.account-page { max-width: 720px; }
+/* Account page.
+
+   Two columns on the board's own grid rather than a 720px reading
+   column. Measured before this: 720px of a 1600px window, 45% used,
+   with four identically sized 13px headings in it, so nothing led and
+   most of the screen was empty. What you came here to do is on the
+   left, who you are is on the right, and the one band that takes
+   something away is full width at the bottom behind its own rule. */
+.account-page { padding-left: 0; padding-right: 0; }
+/* .workspace is itself the board's two-column grid, so a page that puts
+   one .section in it gets the Market Stats column reserved beside it
+   and never filled. That column is where a third of this page's width
+   was going. */
+.workspace-solo { grid-template-columns: 1fr; }
+.account-layout {
+  display: grid;
+  /* The same shape as .workspace: a flexible main column beside a fixed
+     one that stops growing, so the extra width at ultra-wide goes to
+     the content instead of stretching the sidebar. */
+  grid-template-columns: clamp(200px, 17vw, 240px) minmax(0, 1fr);
+  grid-template-areas:
+    "id   main"
+    "nav  main";
+  /* The nav's row has to be the tall one. A sticky grid item can only
+     travel inside its own grid area, so giving the second row 1fr is
+     what lets the nav ride down the length of the content beside it. */
+  grid-template-rows: auto 1fr;
+  column-gap: var(--gutter);
+}
+/* display on a class beats the user agent's [hidden], which is how the
+   signed-out page would otherwise render the whole account under the
+   sign-in dialog. Same trap as .auth-email-form[hidden] above. */
+.account-layout[hidden] { display: none; }
+.account-main { grid-area: main; min-width: 0; }
+
+/* The page's own nav. It names the four sections below and nothing the
+   topbar already carries, and it stays quieter than the content it
+   points at: no icons, no fill, one tinted row for where you are. */
+.account-nav { grid-area: nav; min-width: 0; align-self: start; }
+.account-id { grid-area: id; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.account-id-mark .hero-avatar { width: 36px; height: 36px; font-size: 15px; }
+.account-email {
+  margin: 0;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Above the breakpoint the .seg control stands on end: the group's own
+   border and its cell dividers come off, and each cell becomes a full
+   row with its count pushed to the far side. */
+.account-nav-list { flex-direction: column; border: 0; border-radius: 0; width: 100%; }
+.account-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 34px;
+  border-right: 0;
+  border-radius: 4px;
+  font-weight: 400;
+  color: var(--black);
+  text-decoration: none;
+}
+.account-nav-count { color: var(--grey); font-variant-numeric: tabular-nums; }
+/* Where you are, in the same tint the board gives the row whose listing
+   is open. A filled ink row at this width read as the loudest thing on
+   the page, which is the one thing a local nav must not be. */
+.seg-btn.account-nav-link.active {
+  background: var(--row-selected);
+  color: var(--green-text);
+  font-weight: 700;
+}
+.seg-btn.account-nav-link.active .account-nav-count { color: var(--green-text); }
+@media (min-width: 961px) {
+  .account-nav { position: sticky; top: 24px; }
+}
+
+/* A section has to clear the sticky nav when it is scrolled to, or its
+   heading lands underneath it. */
+.account-block { scroll-margin-top: 88px; }
+
+/* Below the breakpoint the same markup is the .seg control the board
+   puts above its listings, lying down, scrolling sideways if the four
+   labels do not fit, and sticking to the top of the window so it is
+   still there once the reader is deep in the alerts form. */
+@media (max-width: 960px) {
+  /* Block, not a one-column grid. Sticky inside a grid is bounded by
+     the item's own grid area, which in a single-column stack is the
+     height of the thing itself: the strip would unstick the moment it
+     scrolled past its own 52px. In normal flow its container is the
+     whole layout and it travels the length of the page. */
+  .account-layout { display: block; }
+  .account-nav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .account-nav-scroll {
+    overflow-x: auto;
+    padding: 10px 0;
+    background: var(--white);
+    border-bottom: var(--rule) solid var(--grey-line);
+    scrollbar-width: none;
+  }
+  .account-nav-scroll::-webkit-scrollbar { display: none; }
+  .account-nav-list {
+    flex-direction: row;
+    width: max-content;
+    border: 1.5px solid var(--black);
+    border-radius: 4px;
+  }
+  .account-nav-link {
+    height: 32px;
+    border-right: 1.5px solid var(--black);
+    border-radius: 0;
+    padding: 0 12px;
+  }
+  .account-nav-link:last-child { border-right: 0; }
+  .account-block:first-of-type { padding-top: 24px; }
+}
+
+/* Everything in the main column is a form or a list, and both were
+   running the full 1028px of it at desktop width: six stacked pickers
+   and a 1028px green button, all shaped for the 360px panel they were
+   written for on the board. Here they lay out the way the board's own
+   filter bar does, across the row. */
+.account-main .alert-create-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.account-main .alert-create-fields > input[type="text"] { grid-column: 1 / -1; }
+.account-main .alert-create .btn { width: auto; min-width: 180px; }
+
+
+/* Blocks rather than cards: this is a settings screen, so the reader is
+   scanning for one thing at a time and a rule between sections
+   separates them without boxing each one. */
 .account-block {
   border-top: var(--rule) solid var(--grey-line);
-  padding: 20px 0;
+  padding: 28px 0;
 }
-.account-block:first-of-type { border-top: none; padding-top: 0; }
-.account-block-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
+.account-block:first-of-type { border-top: none; padding-top: 4px; }
 .account-block-title {
-  margin: 0;
-  font-size: 13px;
+  margin: 0 0 6px;
+  /* Display / Section Title at its 24px step, the one the Statistics
+     column already takes when a display title has to sit above 13px
+     controls. At the old 13px these were the same size as the labels
+     inside them, which is why the page read as four equal things. */
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
-.account-hint { color: var(--grey); font-size: 11.5px; }
-.account-email { margin: 0 0 8px; font-weight: 700; }
+.account-block-note {
+  margin: 0 0 18px;
+  max-width: 68ch;
+  color: var(--grey);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* The last thing in the Account section and the only place on the page
+   behind a full-strength ink rule. Everything above it adds something;
+   this removes it. */
+.account-danger {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: var(--rule) solid var(--black);
+}
+.account-danger-text { flex: 1 1 340px; min-width: 0; }
+.account-danger-title { margin: 0 0 6px; font-size: 15px; }
+.account-danger .account-block-note { margin-bottom: 0; }
+.account-danger .account-actions { margin-top: 4px; }
+
+@media (max-width: 960px) {
+  /* Two across at tablet width, one per row on a phone: a 4-character
+     picker label in a third of 320px is not a control. */
+  .account-main .alert-create-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .account-main .alert-create .btn { width: 100%; }
+}
+@media (max-width: 640px) {
+  .account-main .alert-create-fields { grid-template-columns: 1fr; }
+  .cv-drop { padding: 24px 16px; }
+}
 
 /* Signed out, the sign-in is a dialog in the middle of the window
    rather than a card at the top of an otherwise empty page. The page
@@ -3482,7 +3672,21 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 /* CV analyser. The file is read in the page and never uploaded, so
    there is no upload affordance to draw: a button and the filename is
    the whole interaction. */
-.cv-drop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cv-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 20px;
+  border: var(--rule) solid var(--grey-line);
+  border-radius: 4px;
+  text-align: center;
+}
+/* The one green moment on this page, and it lasts as long as a file is
+   over the zone. */
+.cv-drop.dragging { border-color: var(--green); }
+.cv-drop-lead { margin: 0; font-size: 15px; font-weight: 600; }
+.cv-drop-sub { margin: 0 0 10px; color: var(--grey); font-size: 12px; }
 .cv-filename { color: var(--grey); font-size: 11.5px; }
 .cv-status { font-size: 11.5px; color: var(--grey); margin: 8px 0 0; min-height: 1.2em; }
 .cv-status.error { color: var(--red); }
@@ -3508,6 +3712,11 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 .cv-chip:hover span { color: var(--white); }
 .cv-chip:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .cv-none { color: var(--grey); font-size: 11.5px; }
+/* Each chip is a remove button and at 29px it was a small one for a
+   thumb. Height only: the row still wraps the same way. */
+@media (pointer: coarse) {
+  .cv-chip { min-height: 36px; padding: 6px 10px; font-size: 12.5px; }
+}
 
 /* /hero. A draft landing page: a giant wordmark over a full-width block of
    live board numbers on two tickers, then the features, each rising into

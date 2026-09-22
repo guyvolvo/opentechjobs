@@ -24,6 +24,14 @@ function setStatus(el, text, isError = false) {
 
 const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only: true };
 
+// The three tiles in the side column. Each one counts what is in the
+// block across from it, so they are set wherever that block is filled
+// rather than by a fourth request asking for totals.
+function setCount(id, n) {
+  const el = $(id);
+  if (el) el.textContent = String(n);
+}
+
 async function loadProfile() {
   try {
     const data = await authedFetch("/me/profile");
@@ -116,35 +124,63 @@ function paintMatchLink() {
   if (draft.israel_only) p.set("israel_only", "1");
   const link = $("profile-matches");
   if (link) link.href = "/board?" + p.toString();
+  setCount("stat-skills", draft.skills.length);
+}
+
+async function takeCvFile(file) {
+  $("cv-filename").textContent = file.name;
+  setStatus("cv-status", "Reading…");
+  try {
+    const text = await readCv(file);
+    const found = skillsIn(text);
+    // Merge rather than replace: someone who analyses a second CV, or
+    // has already added a skill by hand, should not silently lose it.
+    draft.skills = [...new Set([...draft.skills, ...found])].slice(0, 40);
+    $("cv-result").hidden = false;
+    paintChips();
+    setStatus("cv-status", found.length
+      ? `Found ${found.length} skill${found.length === 1 ? "" : "s"}.`
+      : "No known skills found.");
+  } catch (err) {
+    setStatus("cv-status", "Could not read that file. PDF or plain text.", true);
+  }
 }
 
 function wireProfile() {
   const input = $("cv-file");
+  const zone = $("cv-drop");
 
   $("cv-analyze").addEventListener("click", () => input.click());
 
   input.addEventListener("change", async () => {
     const file = input.files?.[0];
     if (!file) return;
-    $("cv-filename").textContent = file.name;
-    setStatus("cv-status", "Reading…");
     try {
-      const text = await readCv(file);
-      const found = skillsIn(text);
-      // Merge rather than replace: someone who analyses a second CV, or
-      // has already added a skill by hand, should not silently lose it.
-      draft.skills = [...new Set([...draft.skills, ...found])].slice(0, 40);
-      $("cv-result").hidden = false;
-      paintChips();
-      setStatus("cv-status", found.length
-        ? `Found ${found.length} skill${found.length === 1 ? "" : "s"}.`
-        : "No known skills found.");
-    } catch (err) {
-      setStatus("cv-status", "Could not read that file. PDF or plain text.", true);
+      await takeCvFile(file);
     } finally {
       // So picking the same file twice still fires a change event.
       input.value = "";
     }
+  });
+
+  // Dropping one. The zone has been called cv-drop since it was a row
+  // with a button in it; now it is the size of a target and behaves
+  // like one. preventDefault on dragover is what tells the browser this
+  // element will take the file instead of navigating to it.
+  ["dragenter", "dragover"].forEach((ev) => zone.addEventListener(ev, (e) => {
+    e.preventDefault();
+    zone.classList.add("dragging");
+  }));
+  zone.addEventListener("dragleave", (e) => {
+    // dragleave fires on every child crossed on the way in, so the
+    // highlight only drops when the pointer has left the zone itself.
+    if (!zone.contains(e.relatedTarget)) zone.classList.remove("dragging");
+  });
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    zone.classList.remove("dragging");
+    const file = e.dataTransfer?.files?.[0];
+    if (file) takeCvFile(file);
   });
 
   $("profile-save").addEventListener("click", async (e) => {
@@ -165,6 +201,91 @@ function wireProfile() {
   });
 }
 
+// The page's own nav. Anchors, not routes: every section is already on
+// the page and an alert half-edited in one of them should survive a
+// click on another, which a route change would not allow. The hash is
+// kept current so a link to /account#alerts opens there.
+function wireAccountNav() {
+  const links = [...document.querySelectorAll(".account-nav-link")];
+  const sections = links
+    .map((a) => ({ link: a, el: document.querySelector(a.getAttribute("href")) }))
+    .filter((s) => s.el);
+  if (!sections.length) return;
+
+  let current = null;
+  const setActive = (el) => {
+    if (el === current) return;
+    current = el;
+    sections.forEach((s) => s.link.classList.toggle("active", s.el === el));
+  };
+
+  const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // A click has to outrank the measurement below while the scroll it
+  // started is still running, or on a short page the last section is
+  // already on screen when the reader arrives and lights up instead of
+  // the one they asked for.
+  let ignoreSpyUntil = 0;
+  const goTo = (s) => {
+    // replaceState rather than setting location.hash: the hash jumps
+    // first and the smooth scroll then runs from the wrong place, and
+    // on a phone the jump lands under the sticky nav.
+    history.replaceState(null, "", s.link.getAttribute("href"));
+    s.el.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+    setActive(s.el);
+    ignoreSpyUntil = Date.now() + (smooth ? 900 : 100);
+  };
+
+  sections.forEach((s) => s.link.addEventListener("click", (e) => {
+    e.preventDefault();
+    goTo(s);
+  }));
+
+  // Which section the reader is actually in: whichever one covers the
+  // most of the window right now.
+  //
+  // The obvious rule, the last heading whose top has crossed a line
+  // near the top of the window, is wrong at the foot of this page. The
+  // alerts form is tall enough that at full scroll its own heading is
+  // already below the line, so the nav claimed Saved listings while the
+  // reader was looking at Account. Measured, not guessed: 1440x900,
+  // scrolled to the end. Area has no such blind spot, and it needs no
+  // special case for a last section too short to reach the line.
+  let queued = false;
+  const spy = () => {
+    queued = false;
+    if (Date.now() < ignoreSpyUntil) return;
+    const h = window.innerHeight;
+    let found = sections[0].el;
+    let best = -1;
+    for (const s of sections) {
+      const r = s.el.getBoundingClientRect();
+      const seen = Math.min(r.bottom, h) - Math.max(r.top, 0);
+      if (seen > best) { best = seen; found = s.el; }
+    }
+    setActive(found);
+  };
+  const soon = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(spy);
+  };
+  addEventListener("scroll", soon, { passive: true });
+  addEventListener("resize", soon, { passive: true });
+  // The sections are wired before their contents arrive, and at that
+  // moment the alerts form is the tallest thing on the page, so the
+  // first measurement named Alerts on a page sitting at the top. Every
+  // load changes a section's height, so watching the heights is the
+  // one hook that covers all of them without each loader knowing about
+  // the nav. spy only reads, so this cannot feed itself.
+  new ResizeObserver(soon).observe(document.querySelector(".account-main"));
+
+  // A link into a section, followed before the sections had any content
+  // in them. Scrolling now would land short, so it waits a frame.
+  const landing = sections.find((s) => s.link.getAttribute("href") === location.hash);
+  if (landing) requestAnimationFrame(() => goTo(landing));
+  else spy();
+}
+
 // Alerts are app.js's own renderAlertsList and wireAlertCreateForm,
 // pointed at markup on this page with the same ids. A second copy of a
 // form with six filter pickers is exactly the kind of duplication that
@@ -181,6 +302,14 @@ async function wireAlerts() {
     // Non-fatal: the pickers fall back to whatever they can load on
     // their own, and the search box still works.
   }
+  // renderAlertsList is app.js's, and it is called again after every
+  // create, edit, pause and delete. Counting inside it is the only hook
+  // that catches all of those without a second copy of the list here.
+  const paintList = renderAlertsList;
+  renderAlertsList = (list) => {
+    setCount("stat-alerts", (list || []).length);
+    paintList(list);
+  };
   wireAlertCreateForm();
   renderAlertsList(await loadMyAlerts());
 }
@@ -264,6 +393,7 @@ async function loadSaved() {
     host.innerHTML = '<p class="alerts-empty">Could not load your saved listings.</p>';
     return;
   }
+  setCount("stat-saved", ids.length);
   if (!ids.length) {
     host.innerHTML = '<p class="alerts-empty">Nothing saved yet. Star a listing on the board and it will appear here.</p>';
     return;
@@ -328,6 +458,7 @@ function paintSaved(jobs) {
       }
       const row = btn.closest("[data-saved]");
       if (row) row.remove();
+      setCount("stat-saved", $("saved-list").querySelectorAll("[data-saved]").length);
       if (!$("saved-list").querySelector("[data-saved]")) loadSaved();
     });
   });
@@ -390,9 +521,14 @@ async function bootAccount() {
     return;
   }
   $("account-body").hidden = false;
-  $("account-email").textContent = decodeJwtEmail(tokens.id_token) || "signed in";
+  const email = decodeJwtEmail(tokens.id_token) || "signed in";
+  $("account-email").textContent = email;
+  // The same mark the board's account menu draws: Google's photo when
+  // the token carries one, the first letter when it does not.
+  $("account-avatar").innerHTML = avatarHtml(email, tokens.id_token);
 
   wireLeaving();
+  wireAccountNav();
   // Order matters: the analyser runs on the rules the server returns
   // (skill_spec), so it cannot be wired before they arrive.
   const loaded = await loadProfile();

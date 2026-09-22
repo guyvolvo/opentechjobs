@@ -58,7 +58,7 @@
     </div>
   </div>
 
-  <div class="workspace">
+  <div class="workspace workspace-solo">
     <section class="section">
       <div class="container account-page">
         <h2 class="section-title">Account</h2>
@@ -91,84 +91,115 @@
          </div>
         </div>
 
-        <div id="account-body" hidden>
-          <section class="account-block">
-            <div class="account-block-head">
-              <h3 class="account-block-title">Signed in as</h3>
-            </div>
+        <!-- Two columns, the same grid the board uses: what you came to
+             do on the left, who you are on the right. Below 960px they
+             stack, identity card first and the delete band last. -->
+        <div id="account-body" class="account-layout" hidden>
+
+          <!-- The page's own nav, not a second global one: it names the
+               four sections below and nothing that already lives in the
+               topbar. A sidebar beside the content above 960px, a row of
+               the board's own .seg control above it below that. -->
+          <div class="account-id">
+            <div class="account-id-mark" id="account-avatar"></div>
             <p class="account-email" id="account-email"></p>
-          </section>
+          </div>
 
-          <section class="account-block" id="cv">
-            <div class="account-block-head">
-              <h3 class="account-block-title">CV analyser</h3>
-            </div>
-
-            <div class="cv-drop" id="cv-drop">
-              <input type="file" id="cv-file" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden />
-              <button class="btn btn-small" id="cv-analyze" type="button">Analyze CV</button>
-              <span class="cv-filename" id="cv-filename">PDF or plain text</span>
-            </div>
-            <p class="cv-status" id="cv-status" aria-live="polite"></p>
-
-            <div id="cv-result" hidden>
-              <p class="account-label">Skills found</p>
-              <div class="cv-chips" id="cv-chips"></div>
-              <div class="account-actions">
-                <button class="btn btn-small" id="profile-save" type="button">Save to profile</button>
-                <a class="btn ghost btn-small" id="profile-matches" href="/board">See matches</a>
-                <span class="account-status" id="profile-status" aria-live="polite"></span>
+          <nav class="account-nav" aria-label="Account sections">
+            <div class="account-nav-scroll">
+              <div class="account-nav-list seg">
+                <a class="seg-btn account-nav-link" href="#cv">CV matching<span class="account-nav-count" id="stat-skills">0</span></a>
+                <a class="seg-btn account-nav-link" href="#saved">Saved listings<span class="account-nav-count" id="stat-saved">0</span></a>
+                <a class="seg-btn account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts">0</span></a>
+                <a class="seg-btn account-nav-link" href="#settings">Account</a>
               </div>
             </div>
-          </section>
+          </nav>
 
-          <!-- The listings this reader starred, from any device. They used
-               to live only in one browser's localStorage, so this section
-               could not have existed. -->
-          <section class="account-block">
-            <div class="account-block-head">
+          <div class="account-main">
+            <section class="account-block" id="cv">
+              <h3 class="account-block-title">CV matching</h3>
+              <p class="account-block-note">The file is read in this tab and never uploaded. Only the skills you save reach the server, and they are what Best matches sorts the board by.</p>
+
+              <div class="cv-drop" id="cv-drop">
+                <input type="file" id="cv-file" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden />
+                <p class="cv-drop-lead">Drop a CV here</p>
+                <p class="cv-drop-sub">PDF or plain text</p>
+                <button class="btn btn-small" id="cv-analyze" type="button">Choose a file</button>
+                <span class="cv-filename" id="cv-filename"></span>
+              </div>
+              <p class="cv-status" id="cv-status" aria-live="polite"></p>
+
+              <div id="cv-result" hidden>
+                <p class="account-label">Skills found</p>
+                <div class="cv-chips" id="cv-chips"></div>
+                <div class="account-actions">
+                  <button class="btn btn-small" id="profile-save" type="button">Save to profile</button>
+                  <a class="btn ghost btn-small" id="profile-matches" href="/board">See matches</a>
+                  <span class="account-status" id="profile-status" aria-live="polite"></span>
+                </div>
+              </div>
+            </section>
+
+            <!-- The listings this reader starred, from any device. They used
+                 to live only in one browser's localStorage, so this section
+                 could not have existed. -->
+            <section class="account-block" id="saved">
               <h3 class="account-block-title">Saved listings</h3>
-              <span class="account-hint">Starred on any device</span>
-            </div>
-            <div id="saved-list"><p class="alerts-empty">Loading…</p></div>
-          </section>
+              <p class="account-block-note">Starred on any device, read live from the board. One that has since closed still appears, marked closed, because that is the part worth knowing.</p>
+              <div id="saved-list"><p class="alerts-empty">Loading…</p></div>
+            </section>
 
-          <!-- Same ids as the board's own alert panel, so app.js's
-               renderAlertsList and wireAlertCreateForm drive this page
-               too rather than a second implementation of the same form. -->
-          <section class="account-block">
-            <div class="account-block-head">
+            <!-- Same ids as the board's own alert panel, so app.js's
+                 renderAlertsList and wireAlertCreateForm drive this page
+                 too rather than a second implementation of the same form. -->
+            <section class="account-block" id="alerts">
               <h3 class="account-block-title">Alerts</h3>
-              <span class="account-hint">Emailed when a new listing matches</span>
-            </div>
-            <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
+              <p class="account-block-note">An email when a new listing matches. A board that answers one of your alerts gets re-polled every thirty minutes instead of every four hours.</p>
+              <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
 
-            <div class="alert-create" id="alert-create">
-              <div class="alerts-header" id="alert-form-title">New Alert</div>
-              <div class="alert-create-fields">
-                <input type="text" id="alert-f-search" placeholder="SEARCH" />
-                <div class="ms" id="alert-ms-department"></div>
-                <div class="ms" id="alert-ms-seniority"></div>
-                <div class="ms" id="alert-ms-company"></div>
-                <div class="ms" id="alert-ms-location"></div>
-                <div class="ms" id="alert-ms-workplace"></div>
+              <div class="alert-create" id="alert-create">
+                <div class="alerts-header" id="alert-form-title">New Alert</div>
+                <div class="alert-create-fields">
+                  <input type="text" id="alert-f-search" placeholder="SEARCH" />
+                  <div class="ms" id="alert-ms-department"></div>
+                  <div class="ms" id="alert-ms-seniority"></div>
+                  <div class="ms" id="alert-ms-company"></div>
+                  <div class="ms" id="alert-ms-location"></div>
+                  <div class="ms" id="alert-ms-workplace"></div>
+                </div>
+                <div class="alert-form-actions">
+                  <button class="btn" id="create-alert-btn" type="button">Create Alert</button>
+                  <button class="btn btn-quiet" id="cancel-edit-btn" type="button" hidden>Cancel</button>
+                </div>
+                <p class="create-alert-feedback" id="create-alert-feedback" hidden></p>
               </div>
-              <div class="alert-form-actions">
-                <button class="btn" id="create-alert-btn" type="button">Create Alert</button>
-                <button class="btn btn-quiet" id="cancel-edit-btn" type="button" hidden>Cancel</button>
-              </div>
-              <p class="create-alert-feedback" id="create-alert-feedback" hidden></p>
-            </div>
-          </section>
+            </section>
 
-          <section class="account-block">
-            <div class="account-actions">
-              <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
-              <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete Account</button>
-              <button class="btn btn-small btn-danger-solid" id="account-delete-confirm" type="button" hidden>Confirm</button>
-              <span class="account-status" id="account-status" aria-live="polite"></span>
-            </div>
-          </section>
+            <section class="account-block" id="settings">
+              <h3 class="account-block-title">Account</h3>
+              <p class="account-block-note">Your email, the skills you save, your alerts and your starred listings. That is everything this account holds.</p>
+              <div class="account-actions">
+                <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
+              </div>
+
+              <!-- Behind the page's only full-strength ink rule. These are
+                   the two controls on the site that take something away,
+                   and they had been sitting level with the ones that
+                   don't. -->
+              <div class="account-danger">
+                <div class="account-danger-text">
+                  <h4 class="account-danger-title">Delete your account</h4>
+                  <p class="account-block-note">Removes your alerts, the skills on your profile and your saved listings, then signs you out. There is no undo and no export.</p>
+                </div>
+                <div class="account-actions">
+                  <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete account</button>
+                  <button class="btn btn-small btn-danger-solid" id="account-delete-confirm" type="button" hidden>Confirm</button>
+                  <span class="account-status" id="account-status" aria-live="polite"></span>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
     </section>
