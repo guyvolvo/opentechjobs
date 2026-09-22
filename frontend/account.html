@@ -57,7 +57,11 @@
        It stays on screen here when signed in, unlike the landing page,
        where signing in moves the theme into the account menu. This bar
        has no menu to move it into. -->
-  <header class="hero-bar hero-bar-head hero-bar-bare">
+  <header class="hero-bar hero-bar-head hero-bar-bare account-bar">
+    <!-- The way back. Taking Explore and API off this bar was right;
+         taking the board off it left the page with no exit on a wide
+         screen, where there is no phone menu to fall back on. -->
+    <a class="hero-bar-name" href="/board">Jobs</a>
     <div class="hero-bar-right">
       <button type="button" class="hero-theme" id="theme-toggle">Dark</button>
     </div>
@@ -105,29 +109,78 @@
 
           <div class="account-id">
             <div class="account-id-mark" id="account-avatar"></div>
-            <p class="account-email" id="account-email"></p>
+            <div class="account-id-text">
+              <p class="account-email" id="account-email"></p>
+              <!-- Only filled when the token actually says which provider
+                   signed this reader in. See account.js. -->
+              <p class="acct-provider" id="account-provider" hidden></p>
+            </div>
           </div>
 
           <!-- The page's own nav, not a second global one: it names the
                four sections and nothing the topbar already carries. -->
           <nav class="account-nav" aria-label="Account sections">
             <div class="account-nav-list">
-              <a class="account-nav-link" href="#cv">CV matching<span class="account-nav-count" id="stat-skills">0</span></a>
-              <a class="account-nav-link" href="#saved">Saved listings<span class="account-nav-count" id="stat-saved">0</span></a>
+              <a class="account-nav-link" href="#account">Account</a>
+              <a class="account-nav-link" href="#cv">Resume scanner<span class="account-nav-count" id="stat-skills">0</span></a>
               <a class="account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts">0</span></a>
-              <a class="account-nav-link" href="#settings">Account</a>
+              <a class="account-nav-link" href="#saved">Saved jobs<span class="account-nav-count" id="stat-saved">0</span></a>
             </div>
           </nav>
 
           <div class="account-main">
-            <!-- Phone only. On a wide screen the nav never goes away, so
+<!-- Phone only. On a wide screen the nav never goes away, so
                  there is nothing to come back to. -->
             <button class="account-back" id="account-back" type="button">
               <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 2.5 4.5 8 10 13.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Back
             </button>
+            <!-- The overview. Everything here is already true somewhere else
+                 on the page; this is the one screen that says it all at
+                 once, which is why it is the section the nav opens on. -->
+            <section class="account-block" id="account">
+              <h3 class="account-block-title">Account</h3>
+
+              <div class="account-metrics">
+                <div class="account-metric">
+                  <span class="value" id="tile-saved">0</span>
+                  <span class="label">Saved jobs</span>
+                </div>
+                <div class="account-metric">
+                  <span class="value" id="tile-alerts">0</span>
+                  <span class="label">Active alerts</span>
+                </div>
+                <div class="account-metric">
+                  <span class="value" id="tile-skills">0</span>
+                  <span class="label">Matched skills</span>
+                </div>
+              </div>
+
+              <div class="acct-profile">
+                <h4 class="acct-sub">Skill profile</h4>
+                <p class="account-label">Last resume read on this device</p>
+                <p class="acct-file" id="acct-file">None yet</p>
+                <p class="account-label">Skill tags</p>
+                <div class="acct-tags" id="acct-tags"></div>
+              </div>
+
+              <div class="account-actions">
+                <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
+              </div>
+
+              <div class="account-danger">
+                <h4 class="acct-sub">Danger zone</h4>
+                <p class="account-block-note">Deleting removes your alerts, the skills on your profile and your saved jobs, then signs you out. There is no undo and no export.</p>
+                <div class="account-actions">
+                  <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete account</button>
+                  <button class="btn btn-small btn-danger-solid" id="account-delete-confirm" type="button" hidden>Confirm</button>
+                  <span class="account-status" id="account-status" aria-live="polite"></span>
+                </div>
+              </div>
+            </section>
+
             <section class="account-block" id="cv">
-              <h3 class="account-block-title">CV matching</h3>
+              <h3 class="account-block-title">Resume scanner</h3>
               <p class="account-block-note">The file is read in this tab and never uploaded. Only the skills you save reach the server, and they are what Best matches sorts the board by.</p>
 
               <div class="cv-drop" id="cv-drop">
@@ -150,16 +203,7 @@
               </div>
             </section>
 
-            <!-- The listings this reader starred, from any device. They used
-                 to live only in one browser's localStorage, so this section
-                 could not have existed. -->
-            <section class="account-block" id="saved">
-              <h3 class="account-block-title">Saved listings</h3>
-              <p class="account-block-note">Starred on any device, read live from the board. One that has since closed still appears, marked closed, because that is the part worth knowing.</p>
-              <div id="saved-list"><p class="alerts-empty">Loading…</p></div>
-            </section>
-
-            <!-- Same ids as the board's own alert panel, so app.js's
+<!-- Same ids as the board's own alert panel, so app.js's
                  renderAlertsList and wireAlertCreateForm drive this page
                  too rather than a second implementation of the same form. -->
             <section class="account-block" id="alerts">
@@ -185,28 +229,13 @@
               </div>
             </section>
 
-            <section class="account-block" id="settings">
-              <h3 class="account-block-title">Account</h3>
-              <p class="account-block-note">Your email, the skills you save, your alerts and your starred listings. That is everything this account holds.</p>
-              <div class="account-actions">
-                <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
-              </div>
-
-              <!-- Behind the page's only full-strength ink rule. These are
-                   the two controls on the site that take something away,
-                   and they had been sitting level with the ones that
-                   don't. -->
-              <div class="account-danger">
-                <div class="account-danger-text">
-                  <h4 class="account-danger-title">Delete your account</h4>
-                  <p class="account-block-note">Removes your alerts, the skills on your profile and your saved listings, then signs you out. There is no undo and no export.</p>
-                </div>
-                <div class="account-actions">
-                  <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete account</button>
-                  <button class="btn btn-small btn-danger-solid" id="account-delete-confirm" type="button" hidden>Confirm</button>
-                  <span class="account-status" id="account-status" aria-live="polite"></span>
-                </div>
-              </div>
+            <!-- The listings this reader starred, from any device. They used
+                 to live only in one browser's localStorage, so this section
+                 could not have existed. -->
+            <section class="account-block" id="saved">
+              <h3 class="account-block-title">Saved jobs</h3>
+              <p class="account-block-note">Starred on any device, read live from the board. One that has since closed still appears, marked closed, because that is the part worth knowing.</p>
+              <div id="saved-list"><p class="alerts-empty">Loading…</p></div>
             </section>
           </div>
         </div>

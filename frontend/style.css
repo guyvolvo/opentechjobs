@@ -3583,27 +3583,108 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   line-height: 1.5;
 }
 
-/* The last thing in the Account section and the only place on the page
-   behind a full-strength ink rule. Everything above it adds something;
-   this removes it. */
-.account-danger {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: var(--rule) solid var(--black);
-}
-.account-danger-text { flex: 1 1 340px; min-width: 0; }
-.account-danger-title { margin: 0 0 6px; font-size: 15px; }
-.account-danger .account-block-note { margin-bottom: 0; }
-.account-danger .account-actions { margin-top: 4px; }
-
 @media (max-width: 640px) {
   .account-main .alert-create-fields { grid-template-columns: 1fr; }
   .cv-drop { padding: 24px 16px; }
+}
+
+/* The account bar carries one link out and the theme, so it is the
+   landing bar's shape rather than its bare, right-aligned variant. */
+.account-bar { justify-content: space-between; }
+.account-bar .hero-bar-name { display: inline-flex; align-items: center; }
+.account-bar .hero-bar-name:hover { color: var(--green-text); }
+
+.account-id-text { min-width: 0; text-align: left; }
+/* Which provider signed this reader in, when the token says so. Not a
+   claim the page makes on its own: see account.js. */
+.acct-provider {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0 0;
+  padding: 2px 10px 2px 6px;
+  border: 1px solid var(--grey-line);
+  border-radius: 999px;
+  color: var(--grey);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+.acct-provider[hidden] { display: none; }
+.acct-provider svg { flex: none; }
+
+/* The overview's three counts, built the way the board's Market Stats
+   tiles are: paper cells over a hairline ground, so the 2px gaps are
+   the grid showing through rather than a border each. */
+.account-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--rule);
+  margin: 0 0 32px;
+  background: var(--grey-line);
+  border: var(--rule) solid var(--grey-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.account-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 20px 12px 16px;
+  background: var(--white);
+  text-align: center;
+}
+.account-metric .value {
+  font-size: 30px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.account-metric .label { color: var(--grey); font-size: 12px; }
+
+.acct-profile { margin-bottom: 32px; }
+.acct-sub {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+}
+.acct-profile .account-label { margin: 16px 0 6px; }
+.acct-profile .account-label:first-of-type { margin-top: 0; }
+/* The file is read in the tab and never uploaded, so this is what this
+   browser last looked at, not something the account holds. */
+.acct-file { margin: 0; font-size: 13px; }
+.acct-file.none { color: var(--grey); }
+.acct-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Read-only here. Removing one is the scanner's job, where the list
+   being edited is the one about to be saved. */
+.acct-tag {
+  padding: 5px 12px;
+  border: 1px solid var(--grey-line);
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+}
+.acct-tags .acct-none { color: var(--grey); font-size: 13px; }
+
+/* Its own box in the page's one reserved colour, because everything
+   above it adds something and this is the only thing that removes it. */
+.account-danger {
+  margin-top: 30px;
+  padding: 18px 20px 20px;
+  border: 1.5px solid var(--red);
+  border-radius: 14px;
+}
+.account-danger .acct-sub { color: var(--red); }
+.account-danger .account-block-note { margin-bottom: 0; max-width: 62ch; }
+.account-danger .account-actions { margin-top: 14px; }
+
+@media (max-width: 640px) {
+  .account-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .account-metric { padding: 16px 6px 14px; }
+  .account-metric .value { font-size: 24px; }
+  .account-metric .label { font-size: 11.5px; }
 }
 
 /* Signed out, the sign-in is a dialog in the middle of the window
@@ -3957,6 +4038,10 @@ body.signin-open .workspace > .section { border-bottom: 0; }
   /* Everything the menu now carries, taken out of the bar itself. */
   .hero-bar-head .hero-bar-stack,
   .hero-bar-head .hero-bar-right,
+  /* The account bar's way back to the board. The menu below already
+     carries Jobs, and the rule on a phone is that the bar is the three
+     rules and nothing else. */
+  .account-bar .hero-bar-name,
   .topbar .topnav { display: none; }
   /* The panel is a child of the bar, and the bar is a flex row, so
      without this it lands beside the icon instead of under it. */

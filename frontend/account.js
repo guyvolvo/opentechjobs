@@ -24,12 +24,70 @@ function setStatus(el, text, isError = false) {
 
 const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only: true };
 
-// The three tiles in the side column. Each one counts what is in the
-// block across from it, so they are set wherever that block is filled
-// rather than by a fourth request asking for totals.
-function setCount(id, n) {
-  const el = $(id);
-  if (el) el.textContent = String(n);
+// Each count appears twice: small beside its button in the nav, large
+// on a tile in the overview. One call writes both, so they cannot drift.
+// They are set wherever the block they count gets filled, rather than by
+// a request that asks for totals.
+function setCount(key, n) {
+  for (const id of ["stat-" + key, "tile-" + key]) {
+    const el = $(id);
+    if (el) el.textContent = String(n);
+  }
+}
+
+// The name of the last file the scanner read, kept so the overview can
+// say what this browser looked at. The file itself is never uploaded and
+// never stored, which is the whole point of reading it in the tab, so
+// this is a note about this device and is labelled as one.
+const CV_FILE_KEY = "iljobs_cv_filename";
+
+function paintCvFile() {
+  const el = $("acct-file");
+  if (!el) return;
+  let name = "";
+  try { name = localStorage.getItem(CV_FILE_KEY) || ""; } catch {}
+  el.textContent = name || "None yet";
+  el.classList.toggle("none", !name);
+}
+
+// Read-only, unlike the scanner's own chips: the list being edited is
+// the one about to be saved, and that lives in the scanner.
+function paintSkillTags() {
+  const host = $("acct-tags");
+  if (!host) return;
+  host.innerHTML = draft.skills.length
+    ? draft.skills.map((sk) => `<span class="acct-tag">${escapeHtml(sk)}</span>`).join("")
+    : '<span class="acct-none">No skills saved yet. Read a resume in the scanner.</span>';
+}
+
+// Which provider signed this reader in, and only when the token says so.
+// Cognito puts an identities claim on a federated user, which today is
+// Google alone: GitHub runs through a custom auth Lambda on a native
+// user (see github_auth_handler.py, which sets email and nothing else)
+// and email OTP is native too, so neither is distinguishable from the
+// other here. Rather than label those two with a guess, this says
+// nothing about them.
+const PROVIDER_MARKS = {
+  Google: '<svg viewBox="0 0 18 18" width="13" height="13" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.348 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>',
+};
+
+function paintProvider(idToken) {
+  const el = $("account-provider");
+  if (!el) return;
+  let name = "";
+  try {
+    const claims = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    // Cognito writes this as a JSON string on some flows and an array on
+    // others, so both shapes are read.
+    let ids = claims.identities;
+    if (typeof ids === "string") ids = JSON.parse(ids);
+    name = (Array.isArray(ids) && ids[0] && ids[0].providerName) || "";
+  } catch {
+    return;
+  }
+  if (!PROVIDER_MARKS[name]) return;
+  el.innerHTML = PROVIDER_MARKS[name] + `<span>Signed in with ${escapeHtml(name)}</span>`;
+  el.hidden = false;
 }
 
 async function loadProfile() {
@@ -124,11 +182,14 @@ function paintMatchLink() {
   if (draft.israel_only) p.set("israel_only", "1");
   const link = $("profile-matches");
   if (link) link.href = "/board?" + p.toString();
-  setCount("stat-skills", draft.skills.length);
+  setCount("skills", draft.skills.length);
+  paintSkillTags();
 }
 
 async function takeCvFile(file) {
   $("cv-filename").textContent = file.name;
+  try { localStorage.setItem(CV_FILE_KEY, file.name); } catch {}
+  paintCvFile();
   setStatus("cv-status", "Reading…");
   try {
     const text = await readCv(file);
@@ -290,7 +351,7 @@ async function wireAlerts() {
   // that catches all of those without a second copy of the list here.
   const paintList = renderAlertsList;
   renderAlertsList = (list) => {
-    setCount("stat-alerts", (list || []).length);
+    setCount("alerts", (list || []).length);
     paintList(list);
   };
   wireAlertCreateForm();
@@ -376,7 +437,7 @@ async function loadSaved() {
     host.innerHTML = '<p class="alerts-empty">Could not load your saved listings.</p>';
     return;
   }
-  setCount("stat-saved", ids.length);
+  setCount("saved", ids.length);
   if (!ids.length) {
     host.innerHTML = '<p class="alerts-empty">Nothing saved yet. Star a listing on the board and it will appear here.</p>';
     return;
@@ -441,7 +502,7 @@ function paintSaved(jobs) {
       }
       const row = btn.closest("[data-saved]");
       if (row) row.remove();
-      setCount("stat-saved", $("saved-list").querySelectorAll("[data-saved]").length);
+      setCount("saved", $("saved-list").querySelectorAll("[data-saved]").length);
       if (!$("saved-list").querySelector("[data-saved]")) loadSaved();
     });
   });
@@ -509,6 +570,9 @@ async function bootAccount() {
   // The same mark the board's account menu draws: Google's photo when
   // the token carries one, the first letter when it does not.
   $("account-avatar").innerHTML = avatarHtml(email, tokens.id_token);
+  paintProvider(tokens.id_token);
+  paintCvFile();
+  paintSkillTags();
 
   wireLeaving();
   wireAccountNav();
