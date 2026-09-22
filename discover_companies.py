@@ -322,6 +322,58 @@ def fetch_cc_urls(url_pattern: str, max_pages: int, indexes=None) -> list[str]:
     return urls
 
 
+WAYBACK_CDX = "https://web.archive.org/cdx/search/cdx"
+
+
+def fetch_wayback_urls(url_pattern: str, domain_match: bool, limit: int = 200000) -> list[str]:
+    """The same job fetch_cc_urls does, against the Internet Archive's
+    index instead of Common Crawl's.
+
+    Two indexes, not one, because they disagree about which hosts are
+    worth keeping. Measured 2026-09-22 on pinpointhq.com: Wayback
+    returned 115,531 URLs covering 1,404 tenants, and Common Crawl
+    returned nothing at all for the same host across four snapshots.
+    Common Crawl stays the default because it is a crawl of the open web
+    and Wayback is a record of what somebody asked it to keep, which
+    makes it denser on ATS hosts and thinner on the long tail.
+
+    One request, no paging: Wayback answers the whole collapsed set in a
+    single response, where CDX pages. It is also the slower of the two
+    and goes down for maintenance, which is why the failure here is a
+    printed line and an empty list rather than an exception.
+    """
+    sess = requests.Session()
+    sess.headers.update({"User-Agent": UA})
+    params = {"url": f"*.{url_pattern}" if domain_match else url_pattern,
+              "output": "text", "fl": "original", "collapse": "urlkey", "limit": str(limit)}
+    for attempt in (1, 2, 3):
+        try:
+            resp = sess.get(WAYBACK_CDX, params=params, timeout=600)
+        except requests.RequestException as e:
+            if attempt == 3:
+                print(f"    wayback: request failed after 3 tries: {e!r}", file=sys.stderr)
+                return []
+            time.sleep(5 * attempt)
+            continue
+        if resp.status_code == 200 and resp.text.strip():
+            return [line.strip() for line in resp.text.splitlines() if line.strip()]
+        if resp.status_code == 200:
+            # Said out loud, because an empty 200 is what this index
+            # returns when it is shedding load, and it is indistinguishable
+            # from "this host has no tenants" unless somebody says so.
+            print("    wayback: 200 with an empty body, which means overloaded, not empty",
+                  file=sys.stderr)
+            if attempt == 3:
+                return []
+            time.sleep(10 * attempt)
+            continue
+        print(f"    wayback: {resp.status_code} {resp.text[:100]!r}", file=sys.stderr)
+        if attempt == 3:
+            return []
+        time.sleep(10 * attempt)
+    return []
+
+
 def extract_tokens(ats: str, urls: list[str]) -> set[str]:
     if ats == "comeet":
         # uid first, so the half before the colon is the identity for
@@ -792,10 +844,12 @@ def main() -> int:
 
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ats", required=True, choices=sorted(CC_URL_PATTERNS), help="which ATS to search")
-    ap.add_argument("--source", choices=["commoncrawl", "directory"], default="commoncrawl",
-                    help="where candidate tokens come from. 'directory' reads the ATS's own "
-                         "cross-customer job search, which carries the real domain and filters "
-                         "by location; only Workable publishes one")
+    ap.add_argument("--source", choices=["commoncrawl", "wayback", "directory"], default="commoncrawl",
+                    help="where candidate tokens come from. 'wayback' reads the Internet "
+                         "Archive's index instead of Common Crawl's, which is the only one that "
+                         "covers some ATS hosts (pinpointhq.com among them). 'directory' reads "
+                         "the ATS's own cross-customer job search, which carries the real domain "
+                         "and filters by location; only Workable publishes one")
     ap.add_argument("--location", default="Israel", help="location filter for --source directory")
     ap.add_argument("--max-pages", type=int, default=3, help="Common Crawl CDX pages to fetch")
     ap.add_argument("--verify-limit", type=int, default=100, help="cap on how many new candidates to live-verify")
@@ -814,6 +868,13 @@ def main() -> int:
         directory = fetch_workable_directory(sess, args.location, args.max_pages * 10)
         tokens = set(directory)
         print(f"  {len(tokens)} employers hiring there", file=sys.stderr)
+    elif args.source == "wayback":
+        print(f"querying the Wayback index for {CC_URL_PATTERNS[args.ats]} ...", file=sys.stderr)
+        urls = fetch_wayback_urls(CC_URL_PATTERNS[args.ats], args.ats in CC_DOMAIN_MATCH)
+        print(f"  {len(urls)} URLs found", file=sys.stderr)
+
+        tokens = extract_tokens(args.ats, urls)
+        print(f"  {len(tokens)} unique candidate slugs extracted", file=sys.stderr)
     else:
         print(f"querying Common Crawl for {CC_URL_PATTERNS[args.ats]} ...", file=sys.stderr)
         urls = fetch_cc_urls(CC_URL_PATTERNS[args.ats], args.max_pages,

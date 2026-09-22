@@ -110,7 +110,21 @@ ATS_LIMITS = {
     "recruitee": (1, 1600),
     "jazzhr": (1, 2500),
     "breezy": (1, 3500),
+    # Read from the Wayback index instead, because Common Crawl has
+    # nothing for this host: four snapshots returned zero URLs where
+    # Wayback returned 115,531 covering 1,404 tenants. 1,600 covers the
+    # whole pool with headroom, for the same reason recruitee's does.
+    # Measured 2026-09-22: 676 of those tenants answer with open roles
+    # and 19,523 postings, and 670 of the 676 hand over the employer's
+    # real domain rather than a guess.
+    "pinpoint": (1, 1600),
 }
+
+# Which index an ATS is discovered through. Common Crawl unless named
+# here. Worth knowing for later: Lever is excluded from ATS_LIMITS above
+# because jobs.lever.co/robots.txt blocks Common Crawl's crawler
+# outright, and that argument says nothing about this index.
+ATS_SOURCE = {"pinpoint": "wayback"}
 
 
 def _discover(args: list[str], label: str) -> list[dict]:
@@ -200,8 +214,10 @@ def main() -> int:
         return directory_pass(queue, seen, args.location)
 
     for ats, (max_pages, verify_limit) in ATS_LIMITS.items():
-        print(f"discovering {ats} (max-pages={max_pages}, verify-limit={verify_limit})...", file=sys.stderr)
-        candidates = _discover(["--ats", ats, "--max-pages", str(max_pages),
+        source = ATS_SOURCE.get(ats, "commoncrawl")
+        print(f"discovering {ats} from {source} (max-pages={max_pages}, "
+              f"verify-limit={verify_limit})...", file=sys.stderr)
+        candidates = _discover(["--ats", ats, "--source", source, "--max-pages", str(max_pages),
                                 "--verify-limit", str(verify_limit)], f"--ats {ats}")
         for c in candidates:
             key = (c["ats"], c["token"])
