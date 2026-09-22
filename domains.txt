@@ -13223,3 +13223,6 @@ sports.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 thesciongroupllc.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+stack.ai

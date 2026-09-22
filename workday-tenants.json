@@ -27678,5 +27678,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "osborn.com",
+  "tenant": "osborn",
+  "wd": "wd504",
+  "site": "OEC",
+  "jobs_seen": 59,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "flybreeze.com",
+  "tenant": "flybreeze",
+  "wd": "wd503",
+  "site": "Breeze_Airways",
+  "jobs_seen": 54,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "spokanecounty.com",
+  "tenant": "spokanecounty",
+  "wd": "wd503",
+  "site": "Spokane",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "scm.com",
+  "tenant": "scm",
+  "wd": "wd3",
+  "site": "DaviesNorthAmerica",
+  "jobs_seen": 46,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
