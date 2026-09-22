@@ -85,7 +85,37 @@ function notifyAuthRender() { authRenderSink(); }
 
 function signOut() {
   localStorage.removeItem(AUTH_TOKENS_KEY);
+  forgetProfileSkills();
   authRenderSink();
+}
+
+// The CV skills are the signed-out reader's business only in the sense
+// that they are not. They come from a profile, but the board keeps them
+// in its saved filters so a reload lands on the same view, and those
+// filters outlive the token.
+//
+// Reported live: sign out on Best matches, reload, and the board still
+// ranked every listing against a CV it was no longer entitled to read.
+// The rows were fetched with skills in the query, so this was not only
+// a stale label.
+function forgetProfileSkills() {
+  try {
+    const raw = localStorage.getItem("iljobs_filters");
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== "object") return;
+    saved.skills = [];
+    // Best matches with nothing to match on is an empty board, so the
+    // view falls back to the one a reader arriving fresh would get.
+    if (saved.sort === "match") {
+      saved.sort = "age";
+      saved.dir = "asc";
+    }
+    localStorage.setItem("iljobs_filters", JSON.stringify(saved));
+  } catch {
+    // Unreadable or unavailable storage. The token is already gone,
+    // which is the part that must not depend on this working.
+  }
 }
 
 // No verification -- this is display-only (the signed-in email in the

@@ -160,7 +160,9 @@
       return;
     }
     if (act === "signout") {
-      try { localStorage.removeItem(KEY); } catch {}
+      // auth.js's signOut, so the CV skills go with the token. Removing
+      // the key here was a second implementation that forgot half of it.
+      signOut();
       setOpen(false);
       // Each page draws its own signed-out bar; reloading is the one
       // move that is correct on all of them.

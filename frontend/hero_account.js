@@ -85,8 +85,11 @@
       paintThemeBtn();
     });
     document.getElementById("hero-logout").addEventListener("click", () => {
-      try { localStorage.removeItem(KEY); } catch {}
-      render();
+      // auth.js's signOut, not a second copy of it: signing out also has
+      // to forget the CV skills the board keeps in its saved filters,
+      // and that lives in one place. It calls render itself, through the
+      // sink registered at the bottom of this file.
+      signOut();
     });
   }
 
