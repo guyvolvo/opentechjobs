@@ -3723,10 +3723,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .acct-danger-note { margin: 0; max-width: 62ch; color: var(--grey); font-size: 13px; }
 .account-danger .account-actions { margin-top: 12px; }
-/* Said on the step where it is about to be true, rather than standing
-   on the page warning everyone who opens the overview. */
-.acct-danger-warn { margin: 10px 0 0; color: var(--red); font-size: 12px; }
-.acct-danger-warn[hidden] { display: none; }
 
 @media (max-width: 640px) {
   .account-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }

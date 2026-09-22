@@ -376,20 +376,15 @@ function wireLeaving() {
   const confirmBtn = $("account-delete-confirm");
   let armed = null;
 
-  // The line that says it cannot be undone appears with Confirm rather
-  // than standing on the overview warning everyone who opens it.
-  const warn = $("account-delete-warn");
   const disarm = () => {
     clearTimeout(armed);
     armed = null;
     confirmBtn.hidden = true;
-    if (warn) warn.hidden = true;
   };
 
   del.addEventListener("click", () => {
     if (!confirmBtn.hidden) return disarm();
     confirmBtn.hidden = false;
-    if (warn) warn.hidden = false;
     armed = setTimeout(disarm, 8000);
   });
 
