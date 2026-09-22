@@ -3699,11 +3699,10 @@ body.signin-open .workspace > .section { border-bottom: 0; }
   border: 1px solid var(--grey-line);
   border-radius: 999px;
   background: none;
-  padding: 4px 14px;
+  padding: 2px 18px;
   color: inherit;
-  font-family: var(--font-ui);
-  font-size: 17px;
-  font-weight: 700;
+  /* The bar's face and size, as the account control beside it. */
+  font: inherit;
   cursor: pointer;
 }
 .hero-theme:hover { border-color: var(--green); }
@@ -3746,10 +3745,11 @@ a.hero-account-btn { text-decoration: none; }
   border: 0;
   background: none;
   color: var(--black);
+  /* The bar's own face and size, inherited rather than restated. It used
+     to be 17px of the dense UI face, which made the two ends of the bar
+     two different voices: the site's name on the left at 26px display,
+     and this answering it a third smaller. */
   font: inherit;
-  font-family: var(--font-ui);
-  font-size: 17px;
-  font-weight: 700;
   cursor: pointer;
 }
 .hero-account-btn:hover { color: var(--green-text); }
@@ -3816,6 +3816,9 @@ a.hero-account-btn { text-decoration: none; }
   font-weight: 400;
 }
 .hero-menu-head .hero-avatar { width: 30px; height: 30px; font-size: 14px; }
+/* Grown with the word beside it. At 26px text a 30px mark read as a
+   button from a smaller bar that had wandered in. */
+.hero-bar-right .hero-avatar { width: 36px; height: 36px; font-size: 16px; }
 /* Over the letter, not instead of it: an image that fails removes
    itself and the letter is already there underneath. */
 .hero-avatar-img {
@@ -3899,7 +3902,21 @@ a.hero-account-btn { text-decoration: none; }
   gap: 14px 24px;
   margin-top: clamp(20px, 2.4vw, 30px);
 }
-.hero-primary.btn { display: inline-flex; align-items: center; gap: 8px; }
+/* The one door on the page, so it is not the 13px dense-face button the
+   rest of the site shares. The display face at 16px, a taller box and
+   the same 14px corner the account menu floats on. */
+.hero-primary.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 24px;
+  border-radius: 14px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+}
+.hero-primary.btn .cta-arrow { width: 16px; height: 16px; }
 .cta-arrow { flex: none; }
 .hero-secondary { font-size: 15px; color: var(--black); text-underline-offset: 3px; }
 .hero-secondary:hover { color: var(--green-text); }
