@@ -26918,5 +26918,115 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "bcbskc.com",
+  "tenant": "bcbskc",
+  "wd": "wd1",
+  "site": "BCBS_External_Career_Site",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "deseretmanagement.com",
+  "tenant": "deseretmanagement",
+  "wd": "wd1",
+  "site": "Boncom",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "fimc.com",
+  "tenant": "fimc",
+  "wd": "wd1",
+  "site": "Fairway_Careers",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "iaggbs.com",
+  "tenant": "iaggbs",
+  "wd": "wd103",
+  "site": "IAGGBS",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "my1060wd.com",
+  "tenant": "my1060wd",
+  "wd": "wd5",
+  "site": "Chicago_Cubs_FO",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "namb.com",
+  "tenant": "namb",
+  "wd": "wd1",
+  "site": "NAMB",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "nibcatwork.com",
+  "tenant": "nibcatwork",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "novavax.com",
+  "tenant": "novavax",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "portagemutual.com",
+  "tenant": "portagemutual",
+  "wd": "wd10",
+  "site": "External_Site",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "toyotaau.com",
+  "tenant": "toyotaau",
+  "wd": "wd3",
+  "site": "Careers",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "tera.ai",
+  "tenant": "tera",
+  "wd": "wd3",
+  "site": "TERANET",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
