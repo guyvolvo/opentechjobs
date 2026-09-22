@@ -30,15 +30,18 @@ checking a much larger slice of an already-free, already-automated
 source finds more real Israel-relevant companies without needing a
 paid search API at all.
 
-lever excluded entirely: confirmed live via jobs.lever.co/robots.txt --
-`User-agent: CCBot / Disallow: /` blocks Common Crawl's own crawler
-outright, so its index has essentially nothing for this host (62 URLs
-across 10 pages, all robots.txt itself, zero real job-board captures).
-Not a bug on this side to fix -- Lever's own robots.txt opts out of
-Common Crawl specifically. The only way to find new Lever-hosted
-companies is a real search engine's own index (a manual web search
-found several live 2026-09-08), which this pipeline doesn't have
-automated access to.
+lever was excluded here until 2026-09-22, on the grounds that
+jobs.lever.co/robots.txt blocked Common Crawl's crawler by name
+(`User-agent: CCBot / Disallow: /`), leaving its index with 62 URLs for
+the host and none of them a job board. Refetched today, that file is
+three lines: `User-agent: * / Allow: / / Crawl-delay: 1`. The block is
+gone. Common Crawl's index still has nothing, because an index reflects
+crawls made while the block was live, so this is worth re-checking on
+each new snapshot rather than assuming either way.
+
+Meanwhile the Internet Archive indexes the host and always did: 2,535
+distinct tokens off 750,000 rows in one sweep, still climbing when the
+archive started throttling. That is what --source wayback is for.
 """
 
 import argparse
@@ -118,13 +121,29 @@ ATS_LIMITS = {
     # and 19,523 postings, and 670 of the 676 hand over the employer's
     # real domain rather than a guess.
     "pinpoint": (1, 1600),
+    # Pools measured 2026-09-22, sized above them so the cap bounds wall
+    # clock rather than sampling the pool. Sampling 80 tokens of each
+    # through the repo's own fetchers: bamboohr 4.96 jobs per sampled
+    # token, teamtailor 8.25, personio 6.39. These are SMB platforms and
+    # the mean tenant has five to eight roles open, so the three together
+    # are worth roughly 47,000 jobs, not the hundreds of thousands the
+    # raw tenant counts suggest.
+    "bamboohr": (1, 6000),
+    "personio": (1, 1800),
+    "teamtailor": (1, 1600),
+    # Lever through the Wayback index. 2,535 distinct tokens off 750,000
+    # rows before the archive started throttling, and the count was still
+    # climbing steeply at the cut, so the real pool is larger and this cap
+    # is set for it. 11.66 jobs per sampled token, the highest of any pool
+    # measured, because Lever skews to larger employers.
+    "lever": (1, 5000),
 }
 
 # Which index an ATS is discovered through. Common Crawl unless named
 # here. Worth knowing for later: Lever is excluded from ATS_LIMITS above
 # because jobs.lever.co/robots.txt blocks Common Crawl's crawler
 # outright, and that argument says nothing about this index.
-ATS_SOURCE = {"pinpoint": "wayback"}
+ATS_SOURCE = {"pinpoint": "wayback", "lever": "wayback"}
 
 
 def _discover(args: list[str], label: str) -> list[dict]:

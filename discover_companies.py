@@ -184,6 +184,26 @@ CC_URL_PATTERNS = {
     # thinner; if a run here comes back with far fewer than 1,404, that
     # is the reason and not a bug.
     "pinpoint": "pinpointhq.com",
+    # Three more subdomain-shaped hosts nobody had asked Common Crawl
+    # about. Measured 2026-09-22 against CC-MAIN-2026-39/34/30:
+    # bamboohr 5,431 distinct tenants, jobs.personio.de 1,441,
+    # teamtailor.com 1,291. The queue draining to empty was read as the
+    # source being exhausted; it was exhausted only for the six patterns
+    # already listed here.
+    #
+    # These grow the global board rather than the Israeli one, the same
+    # trade recruitee, breezy and jazzhr were added knowing.
+    "bamboohr": "bamboohr.com",
+    "personio": "jobs.personio.de",
+    "teamtailor": "teamtailor.com",
+    # Not subdomain-shaped: the token is the first path segment, like
+    # greenhouse. Read from the Wayback index, because Common Crawl's
+    # own index still reflects crawls made while jobs.lever.co blocked
+    # CCBot by name. That block is gone as of 2026-09-22 (robots.txt is
+    # now three lines, "User-agent: * / Allow: / / Crawl-delay: 1"), so
+    # Common Crawl should start filling on a future snapshot and this is
+    # worth re-checking per release.
+    "lever": "jobs.lever.co/*",
     # The exception to the "guessable token" rule above, and the reason
     # it is worth making one. Comeet is what most Israeli startups
     # actually run, and no amount of token guessing reaches it: the API
@@ -199,7 +219,8 @@ CC_URL_PATTERNS = {
 # Queried with matchType=domain rather than a URL prefix, because the
 # company's token is the subdomain. CDX returns every URL under the host
 # for these, so extract_tokens does the narrowing.
-CC_DOMAIN_MATCH = frozenset({"recruitee", "breezy", "jazzhr", "workday", "pinpoint"})
+CC_DOMAIN_MATCH = frozenset({"recruitee", "breezy", "jazzhr", "workday", "pinpoint",
+                             "bamboohr", "personio", "teamtailor"})
 WORKDAY_URL_RE = re.compile(
     r"https?://([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Za-z]{2}/)?([A-Za-z0-9_-]+)(?:/|\?|$)", re.I)
 # Path segments that are not a site: a job page's own prefix, the login
@@ -225,6 +246,9 @@ _TOKEN_PATTERNS = dict(EMBED_ATS_PATTERNS)
 _TOKEN_PATTERNS.setdefault("breezy", re.compile(r"https?://([a-zA-Z0-9-]+)\.breezy\.hr"))
 _TOKEN_PATTERNS.setdefault("jazzhr", re.compile(r"https?://([a-zA-Z0-9-]+)\.applytojob\.com"))
 _TOKEN_PATTERNS.setdefault("pinpoint", re.compile(r"https?://([a-zA-Z0-9-]+)\.pinpointhq\.com"))
+_TOKEN_PATTERNS.setdefault("bamboohr", re.compile(r"https?://([a-zA-Z0-9-]+)\.bamboohr\.com"))
+_TOKEN_PATTERNS.setdefault("teamtailor", re.compile(r"https?://([a-zA-Z0-9-]+)\.teamtailor\.com"))
+_TOKEN_PATTERNS.setdefault("personio", re.compile(r"https?://([a-zA-Z0-9-]+)\.jobs\.personio\.(?:de|com)"))
 _NON_TENANT_SUBDOMAINS = frozenset({"www", "api", "static", "assets", "cdn", "app", "jobs", "help",
                                     "support", "marketing-assets"})
 

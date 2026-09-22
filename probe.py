@@ -1537,50 +1537,86 @@ def f_jazzhr(sess, token):
     return out
 
 
-# Teamtailor's hosted career page (`{token}.teamtailor.com`) is also plain
-# server-rendered HTML, no public JSON API -- the real API
-# (api.teamtailor.com) needs a per-company key, useless for probing
-# companies we haven't onboarded. Ground-truthed against
-# cigames.teamtailor.com and sessions.teamtailor.com. A nonexistent token
-# 404s cleanly, unlike JazzHR's redirect-to-marketing-site trick.
-_TEAMTAILOR_JOB_RE = re.compile(
-    r'<a[^>]+href="(https://[^"]+/jobs/\d+-[^"]*)"[^>]*>\s*'
-    r'(?:<span[^>]*></span>\s*)?(.*?)\s*</a>\s*'
-    r'<div class="mt-1 text-md">(.*?)</div>',
+# Teamtailor. The board is a JSON Feed at `{token}.teamtailor.com/jobs.json`,
+# and this used to scrape the HTML instead.
+#
+# That scrape is why this is being rewritten. It matched on
+# `<div class="mt-1 text-md">`, Teamtailor shipped a CSS refactor that
+# flipped the class order and changed the margin to `text-md mt-4`, and
+# the regex stopped matching. Confirmed live 2026-09-22 against the two
+# tenants the old comment named: cigames has 6 open jobs and sessions has
+# 4, and the fetcher returned an empty list for both. An empty list is
+# not "no answer", it is "this board has nothing open", so the loader
+# closed every Teamtailor listing we had. A parser keyed on someone
+# else's class names was always going to end this way.
+#
+# The feed carries more than the scrape ever did: a real published date
+# and the full description, neither of which the HTML list had. What it
+# does not carry is the location, so the jobs page is still read once per
+# board for that, keyed on the job URL and the div that follows it rather
+# than on any class name. That read is best-effort. If it fails the jobs
+# still land, without a location, instead of the board vanishing.
+#
+# robots.txt here is Teamtailor's, not the employer's, unlike Pinpoint.
+# Byte-identical across tenants once the tenant name is stripped, and it
+# allows /jobs and declares the sitemap: `Disallow: /app/`, `/messages/`,
+# `/messenger/`, `/facebook/tab/`, `/jobs/internal/`, and a
+# `Content-Signal: search=yes`. Nothing to check per tenant.
+_TEAMTAILOR_ID_RE = re.compile(r"/jobs/(\d+)-")
+# The job link, then the first div after it. Class-independent on purpose:
+# the last version of this file hard-coded two class names and both of
+# them changed.
+_TEAMTAILOR_META_RE = re.compile(
+    r'href="(https://[^"]+/jobs/\d+-[^"]*)"[^>]*>.*?</a>\s*<div[^>]*>(.*?)</div>',
     re.DOTALL,
 )
 
 
-def f_teamtailor(sess, token):
-    """The per-job meta line (department/office/remote-type, separated by
-    a middot span) has no consistent field-by-field meaning across
-    companies -- confirmed live, one board's middle segment is a real
-    department ("Finance"), another's is a legal-entity/office name ("CI
-    Games SE"), not a department at all, and a company can configure
-    fewer segments or none. Rather than guess a mapping that would be
-    right for some companies and wrong for others, every segment is
-    joined into one `location` string (informative, not fabricated) and
-    department is left unset. _classify_workplace() still catches
-    "remote"/"hybrid"/"onsite" out of that combined text the same way it
-    already does for Greenhouse's unstructured locations.
+def _teamtailor_locations(sess, token: str) -> dict[str, str]:
+    """job url -> the meta line under it on the jobs page, or {}.
+
+    The line is department, office and remote-type separated by middots,
+    and which segment means what is not consistent between companies:
+    one board's middle segment is a real department ("Finance"), another's
+    is a legal entity ("CI Games SE"). So the segments are joined into one
+    location string rather than split into fields that would be wrong for
+    half of them. _classify_workplace reads "Fully Remote" out of the
+    joined text the same way it does for Greenhouse.
     """
-    url = f"https://{token}.teamtailor.com/jobs"
     try:
-        r = sess.get(url, timeout=TIMEOUT, allow_redirects=True)
+        r = sess.get(f"https://{token}.teamtailor.com/jobs", timeout=TIMEOUT, allow_redirects=True)
     except requests.RequestException:
+        return {}
+    if r.status_code != 200:
+        return {}
+    out = {}
+    for m in _TEAMTAILOR_META_RE.finditer(r.text):
+        text = html.unescape(_HTML_TAG_RE.sub(" ", m.group(2)))
+        segments = [seg.strip() for seg in text.split("·") if seg.strip()]
+        if segments:
+            out[m.group(1)] = ", ".join(segments)
+    return out
+
+
+def f_teamtailor(sess, token):
+    d = get_json(sess, f"https://{token}.teamtailor.com/jobs.json")
+    if not isinstance(d, dict) or not isinstance(d.get("items"), list):
         return None
-    if r.status_code != 200 or f"{token}.teamtailor.com" not in r.url:
-        return None
+    items = d["items"]
+    # Only worth a request when there is something to attach it to.
+    locations = _teamtailor_locations(sess, token) if items else {}
     out = []
-    for m in _TEAMTAILOR_JOB_RE.finditer(r.text):
-        job_url, raw_title, meta_html = m.group(1), m.group(2), m.group(3)
-        title = html.unescape(_WHITESPACE_RE.sub(" ", raw_title)).strip()
-        meta_text = html.unescape(_HTML_TAG_RE.sub(" ", meta_html))
-        segments = [s.strip() for s in meta_text.split("·") if s.strip()]
-        location = ", ".join(segments)
-        job_id_match = re.search(r"/jobs/(\d+)-", job_url)
-        job_id = job_id_match.group(1) if job_id_match else job_url
-        out.append(Job("teamtailor", token, job_id, title, location, job_url, None, None))
+    for j in items:
+        job_url = _txt(j.get("url"))
+        # The numeric id out of the URL, not the feed's own uuid: that is
+        # what every Teamtailor row already stored here is keyed on, and
+        # changing it would orphan all of them.
+        m = _TEAMTAILOR_ID_RE.search(job_url)
+        body = _clean_text(j.get("content_html"))
+        out.append(Job("teamtailor", token, m.group(1) if m else job_url,
+                       _txt(j.get("title")), locations.get(job_url, ""), job_url,
+                       _normalize_date(j.get("date_published")), None,
+                       len(body or ""), body))
     return out
 
 
@@ -3373,7 +3409,9 @@ EMBED_ATS_PATTERNS: list[tuple[str, "re.Pattern[str]"]] = [
     ("workable", re.compile(r"apply\.workable\.com/([a-zA-Z0-9_-]+)")),
     ("recruitee", re.compile(r"([a-zA-Z0-9_-]+)\.recruitee\.com")),
     ("smartrecruiters", re.compile(r"(?:jobs|careers)\.smartrecruiters\.com/([a-zA-Z0-9_-]+)")),
-    ("personio", re.compile(r"([a-zA-Z0-9_-]+)\.jobs\.personio\.de")),
+    # Both hosts. A tenant answers on .com as well as .de, and a careers
+    # page linking the .com form was invisible here until this.
+    ("personio", re.compile(r"([a-zA-Z0-9_-]+)\.jobs\.personio\.(?:de|com)")),
 ]
 
 WORKDAY_RE = re.compile(
