@@ -13217,3 +13217,6 @@ first-first.com
 greater-than.org
 iec.org
 lexlegis.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+sports.com
