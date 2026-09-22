@@ -27468,5 +27468,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "oregonstate.org",
+  "tenant": "oregonstate",
+  "wd": "wd501",
+  "site": "OSU_Careers_Site",
+  "jobs_seen": 198,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "freseniusglobal.com",
+  "tenant": "freseniusglobal",
+  "wd": "wd3",
+  "site": "FK_Careers",
+  "jobs_seen": 188,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "valorhospitality.com",
+  "tenant": "valorhospitality",
+  "wd": "wd503",
+  "site": "who-we-are",
+  "jobs_seen": 170,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "trojanbattery.com",
+  "tenant": "trojanbattery",
+  "wd": "wd5",
+  "site": "Trojan",
+  "jobs_seen": 168,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
