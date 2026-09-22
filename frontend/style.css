@@ -3396,15 +3396,35 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .signin-dialog .auth-provider-btn,
 .signin-dialog .auth-email-form input {
-  height: 44px;
+  height: 46px;
   font-size: 14px;
-  /* The default 4px, not something between this and the shell's 24px.
-     The showcase card does the same thing: a soft outer card holding
-     hard-cornered controls, and the contrast is the point. */
-  border-radius: 4px;
 }
 .signin-dialog .auth-provider-btn { margin-bottom: 10px; }
-.signin-dialog .auth-email-form .btn { height: 44px; border-radius: 4px; font-size: 13px; padding: 0 16px; }
+.signin-dialog .auth-email-form .btn { height: 46px; font-size: 13px; padding: 0 18px; }
+/* The controls inside the dialog, all four shaped alike.
+   
+   They used to be the system's 2px ink rule on a 4px corner, on the
+   argument that a soft outer card holding hard-cornered controls is the
+   contrast that makes the card read. That was the showcase card's
+   reasoning borrowed wholesale, and it does not survive here: this card
+   floats over the page rather than sitting in it, and four hard boxes
+   inside a floating card read as a form pasted into a dialog.
+   
+   So the same corner the card and the landing button use, and an edge
+   made of shadow rather than ink. The hairline stays for the same
+   reason the account menu keeps one: on a dark ground a shadow is
+   invisible and the control still needs a boundary. */
+.signin-dialog .auth-provider-btn,
+.signin-dialog .auth-email-form input,
+.signin-dialog .auth-email-form .btn {
+  border-radius: 14px;
+  border: 1px solid var(--grey-line);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.07);
+}
+/* The one filled control here, so its edge comes from its own fill. */
+.signin-dialog .auth-email-form .btn { border-color: transparent; }
+.signin-dialog .auth-provider-btn:hover { border-color: var(--black); }
+.signin-dialog .auth-email-form input:focus { outline-offset: -1px; }
 .signin-dialog .auth-divider { font-size: 13px; margin: 14px 0; }
 .signin-dialog .account-block-title {
   margin: 0;
