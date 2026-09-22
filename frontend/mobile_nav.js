@@ -36,6 +36,7 @@
   const icons = {
     person: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 14c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
     bookmark: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 2h8v12l-4-3-4 3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+    chart: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2 13.5h12M4 13V8M7.3 13V4.5M10.6 13V9.5M13.9 13V6.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
     bell: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 14a1.5 1.5 0 0 0 3 0" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
     chat: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M2.5 3h11v8h-6l-3 2.5V11h-2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     code: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M5.5 4L2 8l3.5 4M10.5 4L14 8l-3.5 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -103,6 +104,7 @@
       rows.push(`<a class="hero-nav-item" href="/account">${icons.person}My profile</a>`);
       rows.push(`<a class="hero-nav-item" href="/board?starred=1">${icons.bookmark}Saved jobs</a>`);
       rows.push(`<a class="hero-nav-item" href="/account#alerts">${icons.bell}Alerts</a>`);
+      rows.push(`<a class="hero-nav-item" href="/stats">${icons.chart}Statistics</a>`);
     }
     rows.push(`<a class="hero-nav-item" href="/api/help">${icons.code}API reference</a>`);
     rows.push(`<a class="hero-nav-item" href="/contact">${icons.chat}Contact</a>`);
