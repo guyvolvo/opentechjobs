@@ -3425,7 +3425,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   gap: 14px;
   margin-bottom: 10px;
 }
-.account-id-mark .hero-avatar { width: 52px; height: 52px; font-size: 21px; }
+.account-id-mark .hero-avatar { width: 52px; height: 52px; font-size: 24px; }
 .account-email {
   margin: 0;
   min-width: 0;
@@ -3538,6 +3538,9 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   .account-id { padding-right: 0; }
   .account-nav { padding-right: 0; }
   .account-main { padding-left: 0; border-left: 0; min-height: 0; }
+  /* "My account" is directly above it here, so the column's own label
+     would be saying it twice. */
+  .account-nav-label { display: none; }
   .account-nav-list { gap: 12px; }
   .account-nav-link {
     justify-content: center;
