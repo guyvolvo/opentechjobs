@@ -27458,5 +27458,15 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "younglife.org",
+  "tenant": "younglife",
+  "wd": "wd5",
+  "site": "YoungLife_Careers",
+  "jobs_seen": 308,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]

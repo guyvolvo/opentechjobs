@@ -13220,3 +13220,6 @@ lexlegis.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 sports.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+thesciongroupllc.com
