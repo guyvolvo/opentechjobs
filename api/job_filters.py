@@ -286,6 +286,47 @@ def search_terms(raw: str, limit: int | None = MAX_SEARCH_TERMS) -> list[str]:
     return out if limit is None else out[:limit]
 
 
+# Whole words, not substrings.
+#
+# Reported live: searching "rust" returned Trust Officer, Entrust
+# Identity and Begeleider - Buitenrust, because every field was matched
+# with LIKE '%rust%'. SQLite's LIKE has no character classes, and
+# registering a Python REGEXP callback would run per row over 600k rows.
+#
+# GLOB does have character classes, and is one operation per field
+# rather than the sixteen nested REPLACEs that normalising the haystack
+# would need. The value is padded with spaces so a term at either end
+# still has a boundary character beside it, and lowercased because GLOB
+# is case-sensitive where LIKE is not.
+#
+# The plain LIKE stays in front of it as a prefilter. Both are full
+# scans, but LIKE is the cheaper of the two and SQLite evaluates the
+# terms of an AND in order here, so the class match only runs on rows
+# that could possibly match.
+#
+# "+" and "#" are deliberately not boundary characters: C++ and C# are
+# searches people actually make, and treating those as separators would
+# turn both into a bare "c".
+GLOB_META = ("*", "?", "[", "]")
+
+
+def boundary_glob(term: str) -> str | None:
+    """A GLOB pattern matching `term` only as a whole word, or None when
+    the term carries GLOB syntax of its own and the caller should fall
+    back to the plain substring match."""
+    low = term.lower()
+    if not low or any(ch in low for ch in GLOB_META):
+        return None
+    return f"*[^a-z0-9+#]{low}[^a-z0-9+#]*"
+
+
+def word_match_sql(column: str) -> str:
+    """`column` holds the term as a whole word. Two placeholders: the
+    LIKE prefilter, then the boundary pattern."""
+    return (f"(LOWER(COALESCE({column}, '')) LIKE ?"
+            f" AND ' ' || LOWER(COALESCE({column}, '')) || ' ' GLOB ?)")
+
+
 # Every term must appear ("all", the default) or any one of them may
 # ("any"). Never inferred: a search that finds nothing is broadened by
 # the reader asking for it, so the results always answer the question
@@ -321,9 +362,14 @@ def relevance_score_sql(params: dict, has_fts: bool = False) -> tuple[str, list]
     parts, args = [], []
     for term in terms:
         like = f"%{term.lower()}%"
+        glob = boundary_glob(term)
         for column, weight in RELEVANCE_WEIGHTS.items():
-            parts.append(f"(CASE WHEN LOWER(COALESCE({column}, '')) LIKE ? THEN {weight} ELSE 0 END)")
-            args.append(like)
+            if glob is None:
+                parts.append(f"(CASE WHEN LOWER(COALESCE({column}, '')) LIKE ? THEN {weight} ELSE 0 END)")
+                args.append(like)
+            else:
+                parts.append(f"(CASE WHEN {word_match_sql(column)} THEN {weight} ELSE 0 END)")
+                args.extend([like, glob])
         if has_fts:
             parts.append(f"(CASE WHEN jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)"
                          f" THEN {RELEVANCE_DESCRIPTION} ELSE 0 END)")
@@ -592,9 +638,14 @@ def build_jobs_where(params: dict, has_fts: bool = False,
             # than the company's real name because that name lives in the
             # companies table, and this same function runs in the alert
             # evaluator, which queries jobs on its own with no join.
-            parts = ["LOWER(title) LIKE ?", "LOWER(company_domain) LIKE ?",
-                     "LOWER(location) LIKE ?", "LOWER(COALESCE(department, '')) LIKE ?"]
-            term_args = [like, like, like, like]
+            glob = boundary_glob(term)
+            columns = ("title", "company_domain", "location", "department")
+            if glob is None:
+                parts = [f"LOWER(COALESCE({c}, '')) LIKE ?" for c in columns]
+                term_args = [like] * len(columns)
+            else:
+                parts = [word_match_sql(c) for c in columns]
+                term_args = [a for c in columns for a in (like, glob)]
             if has_fts:
                 parts.append("jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)")
                 term_args.append(fts_escape(term))

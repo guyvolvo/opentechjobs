@@ -60,6 +60,12 @@ _ALLOWED_FILTER_KEYS = {
 # ranking. See the sort_key == "match" branch in route_jobs.
 MATCH_RECENCY_DAYS = 14
 
+# Relevance: how many days since posting cost RELEVANCE_AGE_PENALTY
+# points of search score. Five is the weight of one field match
+# (department), so a fortnight of age is worth about one field.
+RELEVANCE_RECENCY_DAYS = 14
+RELEVANCE_AGE_PENALTY = 5
+
 # The link a Greenhouse listing's Apply button opens. Not the stored url,
 # which is the absolute_url Greenhouse reports: for most companies that
 # is their own careers site with a ?gh_jid= on it, and whether that page
@@ -536,11 +542,26 @@ def route_jobs(params: dict) -> dict:
     # match_score in the response stays the plain count, which is what the
     # row's "4 of your 7 skills" says.
     if sort_key == "relevance":
-        # Score first, then the usual newest-first order inside a band of
-        # equally relevant rows. Freshness is the tiebreaker and nothing
-        # more: a good older listing should not lose to a barely matching
-        # new one, which is what folding age into the score would do.
-        order_sql = f"{rank_sql} DESC, {order_sql}"
+        # Score first, then newest inside a band of equally relevant rows.
+        #
+        # Freshness used to be the tiebreaker and nothing more, on the
+        # argument that a good older listing should not lose to a barely
+        # matching new one. Measured live on "machine learning engineer":
+        # five listings aged 7 to 62 days scored 115 and sat above two
+        # posted that morning scoring 110, and the whole gap was a
+        # department reading "Machine Learning Engineering" rather than
+        # "Machine Learning", worth five points for the word engineer.
+        # Exact ties are rare enough at this granularity that the
+        # tiebreaker almost never got to act.
+        #
+        # So age costs points, the way it already costs a matched skill
+        # in the match sort above. At these weights a fresh listing
+        # overtakes an equal one about two months older, and a title
+        # holding the whole phrase (+40) still cannot be jumped by a
+        # weaker fresh match for about four months.
+        age_steps = (f"CAST(MAX(0, julianday('now') - julianday(COALESCE(posted_at, first_seen)))"
+                     f" / {RELEVANCE_RECENCY_DAYS} AS INTEGER)")
+        order_sql = f"({rank_sql} - {RELEVANCE_AGE_PENALTY} * {age_steps}) DESC, {order_sql}"
         order_args = list(rank_args)
 
     if sort_key == "match":
