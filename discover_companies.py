@@ -60,6 +60,7 @@ Usage:
 
 import argparse
 import json
+import html
 import re
 import sys
 import time
@@ -71,7 +72,8 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent / "api"))
-from probe import EMBED_ATS_PATTERNS, FETCHERS, KNOWN_FALSE_POSITIVES, UA, workday_israel_count, workday_page1
+from probe import (EMBED_ATS_PATTERNS, FETCHERS, KNOWN_FALSE_POSITIVES, UA, f_oracle_cx,
+                   workday_israel_count, workday_page1)
 from job_filters import IL_KEYWORDS
 
 # Common Crawl publishes a snapshot roughly monthly, and a board only
@@ -140,6 +142,21 @@ CC_INDEXES_WORKDAY = CC_INDEXES + [
 CC_URL_PATTERNS = {
     "greenhouse": "boards.greenhouse.io/*",
     "lever": "jobs.lever.co/*",
+    # Oracle Recruiting Cloud. f_oracle_cx has existed and been tested
+    # for a while against four hand-pinned tenants; the only thing
+    # missing was ever finding a fifth. Both halves of its "pod:site"
+    # token sit in the URL path, the way Workday's three halves do:
+    #   https://{pod}/hcmUI/CandidateExperience/en/sites/{site}/jobs
+    # so a CDX sweep reads them straight out with no extra fetch.
+    #
+    # Queried per region rather than across oraclecloud.com in one go,
+    # which times out. Measured 2026-09-22 over four regions that
+    # answered (us2, em2, ap1, ocs), each capped at 40,000 rows: 633
+    # pod/site pairs across 223 distinct pods. Sampling 80 pairs through
+    # f_oracle_cx: 61 returned jobs, 7,430 between them, 92.9 per sampled
+    # pair. That is an order of magnitude above any SMB platform here,
+    # because Oracle Recruiting Cloud is what large employers run.
+    "oracle": "oraclecloud.com",
     "ashby": "jobs.ashbyhq.com/*",
     "workable": "apply.workable.com/*",
     "smartrecruiters": "jobs.smartrecruiters.com/*",
@@ -346,6 +363,17 @@ def fetch_cc_urls(url_pattern: str, max_pages: int, indexes=None) -> list[str]:
     return urls
 
 
+# Oracle pods, queried one region at a time. A single query across
+# oraclecloud.com returns a 504 from both indexes: the host carries every
+# Oracle SaaS product, not just recruiting.
+ORACLE_REGIONS = ("us2", "us6", "us8", "em2", "em3", "ap1", "ca2", "uk1", "ocs")
+ORACLE_URL_RE = re.compile(
+    r"https?://([a-z0-9.-]+\.oraclecloud\.com)/hcmUI/CandidateExperience/[^/]+/sites/([A-Za-z0-9_-]+)",
+    re.I)
+# Path segments that are not a site, the same trap _WORKDAY_NOT_A_SITE
+# covers. "null" really is served as a site name.
+_ORACLE_NOT_A_SITE = frozenset({"null", "undefined", "job", "jobs", "search", "apply", "home"})
+
 WAYBACK_CDX = "https://web.archive.org/cdx/search/cdx"
 
 
@@ -423,6 +451,22 @@ def extract_tokens(ats: str, urls: list[str]) -> set[str]:
             per = sites.setdefault((m.group(1).lower(), m.group(2).lower()), {})
             per[m.group(3)] = per.get(m.group(3), 0) + 1
         return {f"{tenant}:{wd}:{max(per, key=per.get)}" for (tenant, wd), per in sites.items()}
+    if ats == "oracle":
+        # One site per pod, the one most of its crawled URLs sit under.
+        # 133 of 223 pods publish more than one career site and they
+        # mostly serve the same requisitions: fa-eotc answered 448 jobs
+        # under each of "subteacher", "CX_2001" and "jobsearch". Taking
+        # every site would triple the tenant count and the job count with
+        # it, all of it duplicate. The dominant site wins by orders of
+        # magnitude, so this is not a close call to get wrong.
+        sites: dict[str, dict[str, int]] = {}
+        for url in urls:
+            m = ORACLE_URL_RE.match(url)
+            if not m or m.group(2).lower() in _ORACLE_NOT_A_SITE:
+                continue
+            per = sites.setdefault(m.group(1).lower(), {})
+            per[m.group(2)] = per.get(m.group(2), 0) + 1
+        return {f"{pod}:{max(per, key=per.get)}" for pod, per in sites.items()}
     pattern = _TOKEN_PATTERNS[ats]
     tokens = set()
     for url in urls:
@@ -654,8 +698,7 @@ def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
     return f"{token}.com", False
 
 
-# Pinpoint's board page links to the employer's own site, so its domain
-# is read rather than guessed.
+# Some boards name the employer. Read it instead of guessing.
 #
 # _guess_domain is a good guess and still wrong often enough to matter:
 # measured over 160 merged companies it missed 39, because an ATS tenant
@@ -669,32 +712,40 @@ def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
 # Hosts that belong to Pinpoint, to a CDN, or to a social network are
 # not the employer. Neither is a careers subdomain, which is the same
 # company one label down.
-_PINPOINT_NOT_THE_EMPLOYER = re.compile(
+_NOT_THE_EMPLOYER = re.compile(
     r"(?:^|[.])(?:pinpointhq[.]com|cloudfront[.]net|amazonaws[.]com|cloudinary[.]com|typekit[.]net"
     r"|adobe[.]com|cdnfonts[.]com|jsdelivr[.]net|unpkg[.]com|cloudflare[.]com|googleapis[.]com"
     r"|gstatic[.]com|google[.]com|doubleclick[.]net|hotjar[.]com|foresee[.]com|linkedin[.]com"
     r"|facebook[.]com|twitter[.]com|x[.]com|instagram[.]com|youtube[.]com|tiktok[.]com|threads[.]net"
     r"|bsky[.]app|pinterest[.][a-z.]+|snapchat[.]com|whatsapp[.]com|medium[.]com|github[.]com"
     r"|vimeo[.]com|spotify[.]com|apple[.]com|microsoft[.]com|glassdoor[.][a-z.]+|indeed[.][a-z.]+"
-    r"|wikipedia[.]org|w3[.]org|schema[.]org|bit[.]ly)$", re.I)
-_PINPOINT_HREF_RE = re.compile(r'href="https?://([a-z0-9.-]+[.][a-z]{2,})', re.I)
+    r"|wikipedia[.]org|w3[.]org|schema[.]org|bit[.]ly|oraclecloud[.]com|oracle[.]com"
+    r"|sharepoint[.]com|office[.]com|workday[.]com|myworkdayjobs[.]com)$", re.I)
+_PAGE_HREF_RE = re.compile(r'href="https?://([a-z0-9.-]+[.][a-z]{2,})', re.I)
 _CAREERS_SUBDOMAIN_RE = re.compile(
     r"^(?:jobs|careers|career|apply|talent|recruitment|recruiting|hire|join|work)[.]", re.I)
 
 
-def _pinpoint_domain(sess: requests.Session, token: str) -> str | None:
-    """The employer's own domain, read off their Pinpoint board page, or
-    None when the page names nothing usable."""
+def _domain_from_page(sess: requests.Session, url: str, slug: str) -> str | None:
+    """The employer's own domain, read off a board page they control, or
+    None when the page names nothing usable.
+
+    `slug` is only a tiebreak. A host whose name matches it wins over one
+    that does not, but a host that matches nothing still counts, because
+    the employer is the one who put the link there. Measured on Pinpoint
+    over 80 random tenants: 78 gave a domain, and across all 676 it was
+    670, against a slug guess that misses roughly a quarter.
+    """
     try:
-        r = sess.get(f"https://{token}.pinpointhq.com/", timeout=15)
+        r = sess.get(url, timeout=15)
     except requests.RequestException:
         return None
     if r.status_code != 200:
         return None
     hosts: dict[str, int] = {}
-    for raw in _PINPOINT_HREF_RE.findall(r.text):
+    for raw in _PAGE_HREF_RE.findall(r.text):
         host = raw.lower().rstrip(".")
-        if _PINPOINT_NOT_THE_EMPLOYER.search(host):
+        if _NOT_THE_EMPLOYER.search(host):
             continue
         host = _CAREERS_SUBDOMAIN_RE.sub("", host.removeprefix("www."))
         hosts[host] = hosts.get(host, 0) + 1
@@ -706,13 +757,48 @@ def _pinpoint_domain(sess: requests.Session, token: str) -> str | None:
         for other in list(hosts):
             if other != host and other.endswith("." + host):
                 hosts[host] += hosts.pop(other, 0)
-    slug = re.sub(r"[^a-z0-9]", "", token.lower())
+    slug = re.sub(r"[^a-z0-9]", "", slug.lower())
 
     def rank(host: str) -> tuple:
         stem = re.sub(r"[^a-z0-9]", "", host.split(".")[0])
         return (stem == slug, slug.startswith(stem) or stem.startswith(slug), hosts[host])
 
     return max(hosts, key=rank)
+
+
+_ORACLE_NAME_RES = (
+    re.compile(r'<meta[^>]+property="og:site_name"[^>]+content="([^"]{1,80})"', re.I),
+    re.compile(r"<title>([^<]{1,80})</title>", re.I),
+)
+# Words the employer's career-site name carries that its domain will not.
+_ORACLE_NAME_NOISE = re.compile(
+    r"\b(careers?|jobs?|sites?|recruiting|recruitment|talent|hiring|"
+    r"opportunities|external|internal|portal|home|welcome)\b", re.I)
+
+
+def _oracle_employer(sess: requests.Session, pod: str, site: str) -> str | None:
+    """The employer's name off their Oracle career site, stripped of the
+    words a career site adds to it. "Apparel Career Site" is Apparel
+    Group; "Macy's" is already itself."""
+    try:
+        r = sess.get(f"https://{pod}/hcmUI/CandidateExperience/en/sites/{site}/", timeout=15)
+    except requests.RequestException:
+        return None
+    if r.status_code != 200:
+        return None
+    for pattern in _ORACLE_NAME_RES:
+        m = pattern.search(r.text)
+        if not m:
+            continue
+        name = html.unescape(m.group(1)).strip()
+        name = _ORACLE_NAME_NOISE.sub(" ", name)
+        # Apostrophes vanish rather than becoming a separator: Macy's is
+        # macys.com, not macy-s.com.
+        name = name.replace("'", "").replace("’", "")
+        name = re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-").lower()
+        if name and not name.startswith(pod.split(".")[0]):
+            return name
+    return None
 
 
 def _comeet_where(position: dict) -> str:
@@ -813,6 +899,48 @@ def verify_candidate(sess: requests.Session, ats: str, token: str,
             "domain_verified": domain_verified,
             "sample_titles": [str(j.get("title") or "") for j in page1["postings"][:3]],
         }
+    if ats == "oracle":
+        # Compound token like Workday's, so FETCHERS' single-argument
+        # loop below cannot reach it.
+        pod, site = token.split(":", 1)
+        try:
+            jobs = f_oracle_cx(sess, token)
+        except Exception:
+            jobs = None
+        if not jobs:
+            return None
+        # The pod name is four letters of Oracle's own addressing
+        # ("ebcs" is Arcadis, "ebwh" is Macy's), so guessing a domain
+        # from it is worthless. The career site names the employer in
+        # its og:site_name and its title, so the name is read there and
+        # then guessed from, which is the same guess this file already
+        # makes for every other ATS, just given a real company name
+        # instead of a vendor's tenant slug.
+        #
+        # Not the page's own links, unlike Pinpoint. These pages link
+        # whatever the employer's careers team put there: Macy's board
+        # links employeeconnection.net more often than macys.com, and
+        # Arcadis links only its SharePoint. A Pinpoint board page has a
+        # header that goes to the company site; this does not.
+        name = _oracle_employer(sess, pod, site)
+        guessed_domain, domain_verified = _guess_domain(name or pod.split(".")[0], sess)
+        # _guess_domain says "this host resolves and is not parked",
+        # which is not the same as "this is that employer". A site called
+        # "Apparel Career Site" reduces to "apparel", and apparel.com
+        # resolves to somebody. Only keep the verified flag when the
+        # domain is actually built out of the name we read, so the loader
+        # and the UI treat the rest as the guesses they are.
+        if domain_verified and name:
+            stem = re.sub(r"[^a-z0-9]", "", guessed_domain.split(".")[0])
+            domain_verified = stem == re.sub(r"[^a-z0-9]", "", name)
+        return {
+            "ats": ats, "token": token, "job_count": len(jobs),
+            "israel_job_count": sum(
+                1 for j in jobs
+                if j.location and any(kw in j.location.lower() for kw in IL_KEYWORDS)),
+            "guessed_domain": guessed_domain, "domain_verified": domain_verified,
+            "sample_titles": [j.title for j in jobs[:3]],
+        }
     tokens = [token] + list((known or {}).get("fallbacks") or [])
     jobs = None
     for candidate in tokens:
@@ -831,9 +959,10 @@ def verify_candidate(sess: requests.Session, ats: str, token: str,
         # Straight from the employer's own listing, so there is nothing
         # to guess and nothing for a human to second-guess.
         guessed_domain, domain_verified = known["domain"], True
-    elif ats == "pinpoint" and (site := _pinpoint_domain(sess, token)):
+    elif ats == "pinpoint" and (site := _domain_from_page(
+            sess, f"https://{token}.pinpointhq.com/", token)):
         # Same standing as the directory above: the employer put this
-        # link on their own board page. See _pinpoint_domain.
+        # link on their own board page. See _domain_from_page.
         guessed_domain, domain_verified = site, True
     else:
         guessed_domain, domain_verified = _guess_domain(token, sess)
@@ -894,7 +1023,14 @@ def main() -> int:
         print(f"  {len(tokens)} employers hiring there", file=sys.stderr)
     elif args.source == "wayback":
         print(f"querying the Wayback index for {CC_URL_PATTERNS[args.ats]} ...", file=sys.stderr)
-        urls = fetch_wayback_urls(CC_URL_PATTERNS[args.ats], args.ats in CC_DOMAIN_MATCH)
+        if args.ats == "oracle":
+            urls = []
+            for region in ORACLE_REGIONS:
+                got = fetch_wayback_urls(f"*.fa.{region}.oraclecloud.com/hcmUI/*", False)
+                print(f"    {region}: {len(got)} URLs", file=sys.stderr)
+                urls.extend(got)
+        else:
+            urls = fetch_wayback_urls(CC_URL_PATTERNS[args.ats], args.ats in CC_DOMAIN_MATCH)
         print(f"  {len(urls)} URLs found", file=sys.stderr)
 
         tokens = extract_tokens(args.ats, urls)

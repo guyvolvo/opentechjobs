@@ -137,13 +137,21 @@ ATS_LIMITS = {
     # is set for it. 11.66 jobs per sampled token, the highest of any pool
     # measured, because Lever skews to larger employers.
     "lever": (1, 5000),
+    # Oracle Recruiting Cloud, through Wayback and one query per region.
+    # 633 pod/site pairs over four regions that answered, each query
+    # capped, so the real pool is larger. The cap is set well above what
+    # was measured for that reason. This is the highest-yield entry in
+    # this table by an order of magnitude: 92.9 jobs per sampled pair
+    # against 4.96 for bamboohr, because Oracle Recruiting Cloud is what
+    # large employers run.
+    "oracle": (1, 3000),
 }
 
 # Which index an ATS is discovered through. Common Crawl unless named
 # here. Worth knowing for later: Lever is excluded from ATS_LIMITS above
 # because jobs.lever.co/robots.txt blocks Common Crawl's crawler
 # outright, and that argument says nothing about this index.
-ATS_SOURCE = {"pinpoint": "wayback", "lever": "wayback"}
+ATS_SOURCE = {"pinpoint": "wayback", "lever": "wayback", "oracle": "wayback"}
 
 
 def _discover(args: list[str], label: str) -> list[dict]:

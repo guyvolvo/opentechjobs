@@ -218,21 +218,21 @@ def links(*hosts):
 print()
 print("-- the domain, read off the board page rather than guessed --")
 check("the employer's own site wins",
-      discover_companies._pinpoint_domain(
+      discover_companies._domain_from_page(
           PageSess(links("d2n5ied94mazop.cloudfront.net", "www.impulsespace.com", "www.x.com")),
-          "impulsespace") == "impulsespace.com")
+          "https://impulsespace.pinpointhq.com/", "impulsespace") == "impulsespace.com")
 check("a careers subdomain is the same company one label down",
-      discover_companies._pinpoint_domain(PageSess(links("careers.careys.co")), "careys") == "careys.co")
+      discover_companies._domain_from_page(PageSess(links("careers.careys.co")), "u", "careys") == "careys.co")
 check("a parent named alongside its own subdomain wins",
-      discover_companies._pinpoint_domain(
-          PageSess(links("trustcareers.si.edu", "affiliations.si.edu", "si.edu")), "smithsonian") == "si.edu")
+      discover_companies._domain_from_page(
+          PageSess(links("trustcareers.si.edu", "affiliations.si.edu", "si.edu")), "u", "smithsonian") == "si.edu")
 check("a page that links nothing but a CDN yields nothing",
-      discover_companies._pinpoint_domain(
-          PageSess(links("res.cloudinary.com", "fonts.adobe.com")), "sandbox") is None)
+      discover_companies._domain_from_page(
+          PageSess(links("res.cloudinary.com", "fonts.adobe.com")), "u", "sandbox") is None)
 check("and so does a page that does not answer",
-      discover_companies._pinpoint_domain(PageSess("", status=500), "whoever") is None)
+      discover_companies._domain_from_page(PageSess("", status=500), "u", "whoever") is None)
 check("a domain that shares no name with the slug is still taken, because the employer linked it",
-      discover_companies._pinpoint_domain(PageSess(links("meliorefoundation.org")), "meliore")
+      discover_companies._domain_from_page(PageSess(links("meliorefoundation.org")), "u", "meliore")
       == "meliorefoundation.org")
 
 print()
