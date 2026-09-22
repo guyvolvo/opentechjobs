@@ -27858,5 +27858,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "theoutlawgroup.com",
+  "tenant": "theoutlawgroup",
+  "wd": "wd501",
+  "site": "theoutlawgroupcareers",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "clarknuber.com",
+  "tenant": "clarknuber",
+  "wd": "wd503",
+  "site": "ClarkNuberCareers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "gladstone.com",
+  "tenant": "gladstone",
+  "wd": "wd503",
+  "site": "careers",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]

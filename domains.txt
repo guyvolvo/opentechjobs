@@ -13232,3 +13232,6 @@ advanced-systems.fr
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 astropakllc.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+odys.org
