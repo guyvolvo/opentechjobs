@@ -12935,3 +12935,26 @@ theflex.io
 zero.io
 ygo.ai
 workshop.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+accora.ai
+alivo.io
+astrid-entertainment.com
+bit-by-bit.io
+clayglobal.com
+connectad.com
+cold.org
+blockdeliver.com
+cityofamericus.com
+nbadvisors.co
+sellanycarcom.com
+seia.com
+childandfamily.org
+blenheimchalcotindia.com
+cofertility.com
+coinme.com
+enumerate.ai
+minno.io
+resortpass.com
+survata.co
+ultragenyxpharmaceutical.com

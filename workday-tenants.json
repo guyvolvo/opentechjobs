@@ -26908,5 +26908,15 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "veritone.com",
+  "tenant": "veritone",
+  "wd": "wd1",
+  "site": "Veritone_Career_Site",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
