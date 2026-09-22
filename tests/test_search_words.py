@@ -1,4 +1,15 @@
-"""A search for "rust" is not a search for "Trust Officer".
+"""Relevance weighs age. Whole-word matching does not, any more.
+
+REVERTED 2026-09-22, the same day it shipped. The whole-word rule below
+made the site return HTTP 500 on any common search term: measured live
+against 805,863 jobs, search=python timed the Lambda out at 29 seconds
+on both sorts. A search for "rust" returns "Trust Officer" again, and
+that is recorded here as a debt rather than quietly dropped. The fix
+belongs in FTS5; see the note at the top of api/job_filters.py.
+
+Original note follows, because the reasoning still stands.
+
+A search for "rust" is not a search for "Trust Officer".
 
 Reported live 2026-09-22 against the production API. Sorting by
 relevance, `search=rust` returned, in order: two genuine Rust roles,
@@ -98,54 +109,18 @@ def found(search, **extra):
 
 hits = found("rust")
 check("a search for rust finds the Rust roles", set(hits) >= {"r1", "r2"}, repr(hits))
-check("and not Trustly, Entrust, Trust or Buitenrust",
-      not ({"n1", "n2", "n3", "n4", "n5"} & set(hits)), repr(sorted(hits)))
+# The known-bad behaviour, asserted so it is a recorded debt rather than
+# a surprise. The whole-word rule that fixed this was reverted the same
+# day for cost (see the note at the top of job_filters.py); until it
+# comes back through FTS5, a search for rust really does return Trustly
+# and Buitenrust.
+check("KNOWN: Trustly, Entrust and Buitenrust still come back",
+      {"n1", "n2", "n5"} <= set(hits), repr(sorted(hits)))
 
-# The rule is a boundary, not a prefix or a suffix: all four of these are
-# the same bug wearing different hats.
-check("a word inside another word is not a match",
-      "n6" not in found("industry"), repr(found("industry")))
-check("a term at the very start of a title still matches",
-      "n6" in found("industrial"), repr(found("industrial")))
-check("a term at the very end still matches", "r1" in found("developer"))
-check("punctuation counts as a boundary, so a trailing comma does not hide a word",
-      "n1" in found("manager"), repr(found("manager")))
-check("a hyphen counts too", "r2" in found("engineer"), repr(found("engineer")))
-
-# The two searches that must not be turned into a bare "c".
-conn.execute("INSERT INTO jobs (id, company_domain, title, location, department, description,"
-             " confidence, posted_at, first_seen, last_seen, ats)"
-             " VALUES ('c1','plus.com','Senior C++ Engineer','Tel Aviv','R&D','','verified',?,?,?,'greenhouse')",
-             (ago(1), ago(1), ago(0)))
-conn.execute("INSERT INTO jobs (id, company_domain, title, location, department, description,"
-             " confidence, posted_at, first_seen, last_seen, ats)"
-             " VALUES ('c2','sharp.com','C# Developer','Tel Aviv','R&D','','verified',?,?,?,'greenhouse')",
-             (ago(1), ago(1), ago(0)))
-conn.commit()
-check("C++ is a search, not a bare C", found("c++") == ["c1"], repr(found("c++")))
-check("so is C#", found("c#") == ["c2"], repr(found("c#")))
-check("and a bare c matches neither of them",
-      not ({"c1", "c2"} & set(found("c"))), repr(found("c")))
-
-# A term carrying GLOB syntax has to fall back rather than error or
-# silently match nothing: these arrive from a URL anyone can edit.
-check("a term with a bracket in it does not blow up",
-      isinstance(found("rust[1]"), list))
-check("nor does one with a star", isinstance(found("rust*"), list))
-check("boundary_glob declines those terms rather than guessing",
-      job_filters.boundary_glob("rust[1]") is None and job_filters.boundary_glob("rust*") is None)
-check("and returns a pattern for an ordinary one",
-      job_filters.boundary_glob("Rust") == "*[^a-z0-9+#]rust[^a-z0-9+#]*",
-      repr(job_filters.boundary_glob("Rust")))
-
-# Scoring obeys the same rule, or a row kept out of the results by the
-# filter would still have been scored as a match by any other caller.
-score_sql, score_args = job_filters.relevance_score_sql({"search": "rust"})
-scored = {r["id"]: r["s"] for r in conn.execute(
-    f"SELECT id, {score_sql} AS s FROM jobs", score_args)}
-check("Trust Officer scores nothing for rust", scored.get("n3") == 0, repr(scored.get("n3")))
-check("a real Rust role scores the title weight",
-      scored.get("r1") == job_filters.RELEVANCE_WEIGHTS["title"], repr(scored.get("r1")))
+# The boundary checks that lived here (whole-word matching, C++ and C#
+# kept intact, GLOB metacharacters declined) went with the revert. They
+# belong with the FTS5 work, not here, because asserting them against
+# the current code would just fail.
 
 # Age, in the ranking rather than only in the tiebreak. The live shape,
 # reproduced: five listings a department-match ahead of two posted this
@@ -175,8 +150,11 @@ raw = {r["id"]: r["s"] for r in conn.execute(f"SELECT id, {rank_sql} AS s FROM j
 # The gap that caused the complaint has gone at its root: the five
 # points came from the word "engineer" matching a department called
 # "Machine Learning Engineering", and it no longer does.
-check("the department gap disappears once engineer stops matching Engineering",
-      raw["old2"] == raw["new1"], repr({k: raw[k] for k in ("old2", "new1")}))
+# With substring matching back, "engineer" scores against a department
+# called "Machine Learning Engineering" again, which is the gap that
+# caused the original complaint. The age penalty is what answers it now.
+check("the department gap is back, and is what the age penalty has to cross",
+      raw["old2"] > raw["new1"], repr({k: raw[k] for k in ("old2", "new1")}))
 
 age_steps = (f"CAST(MAX(0, julianday('now') - julianday(COALESCE(posted_at, first_seen)))"
              f" / {handler.RELEVANCE_RECENCY_DAYS} AS INTEGER)")
@@ -200,28 +178,6 @@ check("a whole-phrase title match outlives a weaker fresh one for months",
 check("but the penalty is not so small it cannot cross one field match",
       handler.RELEVANCE_AGE_PENALTY >= job_filters.RELEVANCE_WEIGHTS["department"],
       repr(handler.RELEVANCE_AGE_PENALTY))
-
-# The deliberate cost of a whole-word rule, pinned so it is a decision
-# rather than a surprise. Strict matching is what the description half
-# of this search has always done (FTS5 tokenises, so it has never
-# matched inside a word), and this makes the other four fields agree
-# with it. Loosening the rule to "starts a word" would bring
-# Engineering back and take JavaScript with it on a search for java.
-conn.execute("INSERT INTO jobs (id, company_domain, title, location, department, description,"
-             " confidence, posted_at, first_seen, last_seen, ats)"
-             " VALUES ('em','co.com','Engineering Manager','Remote','Platform','','verified',?,?,?,'greenhouse')",
-             (ago(1), ago(1), ago(0)))
-conn.execute("INSERT INTO jobs (id, company_domain, title, location, department, description,"
-             " confidence, posted_at, first_seen, last_seen, ats)"
-             " VALUES ('js','co.com','Senior JavaScript Developer','Remote','R&D','','verified',?,?,?,'greenhouse')",
-             (ago(1), ago(1), ago(0)))
-conn.commit()
-check("a search for engineer does not reach Engineering Manager",
-      "em" not in found("engineer"), repr(found("engineer")))
-check("which is the same rule that keeps JavaScript out of a search for java",
-      "js" not in found("java"), repr(found("java")))
-check("searching the word itself still finds it",
-      "em" in found("engineering") and "js" in found("javascript"))
 
 print()
 if failures:

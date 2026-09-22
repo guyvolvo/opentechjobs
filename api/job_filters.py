@@ -286,7 +286,29 @@ def search_terms(raw: str, limit: int | None = MAX_SEARCH_TERMS) -> list[str]:
     return out if limit is None else out[:limit]
 
 
-# Whole words, not substrings.
+# Whole words, not substrings. NOT IN USE -- see the note below.
+#
+# Reverted 2026-09-22, hours after it shipped, because it made the site
+# unusable. Timed live against 805,863 jobs: search=python returned HTTP
+# 500 after 29 seconds on both sorts, which is the Lambda's timeout, and
+# search=engineer did the same on relevance. Rare terms were fine and
+# common ones died, because the cost scales with how many rows the LIKE
+# lets through to the GLOB: for a term matching a large share of the
+# table that is a string concatenation and a GLOB per row per column,
+# twice over, once for the listing and once for the count behind
+# "Showing 1-50 of N".
+#
+# The correctness argument below is still right and the fix belongs in
+# FTS5, which tokenises and has an index, and is why the description
+# half of this search never had the Trust Officer problem in the first
+# place. Extend the existing FTS table (loader/rebuild_fts.py) to carry
+# title, company_domain, location and department, then match against it
+# here. boundary_glob and word_match_sql are kept for that work and for
+# the fallback a snapshot predating those columns will need.
+#
+# What went wrong is worth naming: this shipped with 25 correctness
+# assertions against an eight-row fixture and no measurement of what the
+# query costs on the real table.
 #
 # Reported live: searching "rust" returned Trust Officer, Entrust
 # Identity and Begeleider - Buitenrust, because every field was matched
@@ -362,14 +384,9 @@ def relevance_score_sql(params: dict, has_fts: bool = False) -> tuple[str, list]
     parts, args = [], []
     for term in terms:
         like = f"%{term.lower()}%"
-        glob = boundary_glob(term)
         for column, weight in RELEVANCE_WEIGHTS.items():
-            if glob is None:
-                parts.append(f"(CASE WHEN LOWER(COALESCE({column}, '')) LIKE ? THEN {weight} ELSE 0 END)")
-                args.append(like)
-            else:
-                parts.append(f"(CASE WHEN {word_match_sql(column)} THEN {weight} ELSE 0 END)")
-                args.extend([like, glob])
+            parts.append(f"(CASE WHEN LOWER(COALESCE({column}, '')) LIKE ? THEN {weight} ELSE 0 END)")
+            args.append(like)
         if has_fts:
             parts.append(f"(CASE WHEN jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)"
                          f" THEN {RELEVANCE_DESCRIPTION} ELSE 0 END)")
@@ -646,14 +663,9 @@ def build_jobs_where(params: dict, has_fts: bool = False,
             # than the company's real name because that name lives in the
             # companies table, and this same function runs in the alert
             # evaluator, which queries jobs on its own with no join.
-            glob = boundary_glob(term)
             columns = ("title", "company_domain", "location", "department")
-            if glob is None:
-                parts = [f"LOWER(COALESCE({c}, '')) LIKE ?" for c in columns]
-                term_args = [like] * len(columns)
-            else:
-                parts = [word_match_sql(c) for c in columns]
-                term_args = [a for c in columns for a in (like, glob)]
+            parts = [f"LOWER(COALESCE({c}, '')) LIKE ?" for c in columns]
+            term_args = [like] * len(columns)
             if has_fts:
                 parts.append("jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)")
                 term_args.append(fts_escape(term))
