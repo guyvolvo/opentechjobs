@@ -64,6 +64,30 @@ from load_to_sqlite import SCHEMA_VERSION, open_db, s3_pull, s3_push, update_met
 PARTITION_PREFIX = "jobs-partition-"
 
 
+
+# Whether to index description text into jobs_fts.
+#
+# Off, after it took the site down on 2026-09-22. The description column
+# is dropped from this snapshot (see _DROP below) precisely so the file
+# stays small, and then this rebuilt a full-text index over the same text
+# and put the bytes back. jobs-read.db reached 2,405,965,824 bytes, of
+# which jobs_fts_data alone was 901MB, against 501,518,336 for the same
+# data with the index gone. api/db.py could not pull 2.4GB inside the 29s
+# API Gateway allows, so every cold container timed out and /api/health,
+# /api/jobs and every search returned 500. Dropping the table and
+# vacuuming took seven seconds and brought the whole site back.
+#
+# api/job_filters.has_fts_index() checks for the table at runtime and the
+# API degrades to matching title, company, location and department, so
+# nothing errors. What is lost is searching the words inside a
+# description.
+#
+# Turning this back on needs the index to live somewhere that is not the
+# file every request downloads. That is the same problem the descriptions
+# themselves had, and loader/descriptions.py already solved it by moving
+# them to one S3 object per job.
+BUILD_DESCRIPTION_FTS = False
+
 def list_partitions(bucket: str, prefix: str = PARTITION_PREFIX) -> list[str]:
     import boto3
 
@@ -283,15 +307,19 @@ def merge_partitions(partition_paths: dict[str, Path], out_path: Path,
                 f"SELECT {','.join(job_cols)} FROM src.jobs WHERE company_domain IN ({placeholders})",
                 keep_domains,
             )
-        # Rebuilt, never copied: FTS5 rowids only mean anything inside one
-        # database file, and this output assigns fresh rowids as rows
-        # arrive. Joining on the stable job id maps each one correctly.
-        with merged:
-            merged.execute(
-                "INSERT INTO jobs_fts(rowid, description) "
-                "SELECT j.rowid, s.description FROM jobs j JOIN src.jobs s ON s.id = j.id "
-                "WHERE s.description IS NOT NULL AND s.description != ''"
-            )
+        # The description index is NOT built here any more. See
+        # BUILD_DESCRIPTION_FTS below for the outage that decided it.
+        if BUILD_DESCRIPTION_FTS:
+            # Rebuilt, never copied: FTS5 rowids only mean anything inside
+            # one database file, and this output assigns fresh rowids as
+            # rows arrive. Joining on the stable job id maps each one
+            # correctly.
+            with merged:
+                merged.execute(
+                    "INSERT INTO jobs_fts(rowid, description) "
+                    "SELECT j.rowid, s.description FROM jobs j JOIN src.jobs s ON s.id = j.id "
+                    "WHERE s.description IS NOT NULL AND s.description != ''"
+                )
         merged.execute("DETACH DATABASE src")
 
     # with merged: commits -- VACUUM can't run inside an open transaction,
