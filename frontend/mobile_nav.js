@@ -27,6 +27,11 @@
   const topbar = document.querySelector(".topbar > .container");
   const host = hero || topbar;
   if (!host) return;
+  // The panel hangs off the bar rather than sitting inside its row, so
+  // it covers the page instead of shoving it down. On the board that
+  // means the sticky .topbar, which is the element with the background
+  // and the stacking context; on the hero pages the header is both.
+  const outer = hero || document.querySelector(".topbar");
 
   const icons = {
     person: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 14c.6-3 2.7-4.5 5.5-4.5s4.9 1.5 5.5 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
@@ -69,15 +74,15 @@
   panel.className = "hero-nav-panel";
   panel.id = "mobile-nav-panel";
   panel.setAttribute("aria-label", "Menu");
-  panel.hidden = true;
+  // Not [hidden]: it has to be in the layout to be measured and to
+  // animate. visibility in the stylesheet keeps it out of the tab order
+  // and off a screen reader while it is closed.
+  panel.setAttribute("aria-hidden", "true");
 
   // First child, so it is the left edge of the bar and the first thing
   // a keyboard reaches.
   host.insertBefore(toggle, host.firstChild);
-  // Into the same element the toggle went into, so the list lines up
-  // under the icon: both bars already pad themselves to the page
-  // margin, and a panel one level up would be indented past it.
-  host.appendChild(panel);
+  outer.appendChild(panel);
 
   // The board itself, not merely a page that borrows the board's bar.
   // The first version asked whether this page had that bar, which is
@@ -104,19 +109,36 @@
     rows.push(`<a class="hero-nav-item" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">${icons.github}GitHub</a>`);
     rows.push(`<button type="button" class="hero-nav-item" data-act="theme">${isDark() ? icons.sun : icons.moon}${isDark() ? "Light mode" : "Dark mode"}</button>`);
     if (who) rows.push(`<button type="button" class="hero-nav-item hero-nav-out" data-act="signout">${icons.out}Log out</button>`);
-    panel.innerHTML = rows.join("");
+    // Wrapped, because the slide is a transform on the list and the
+    // clipping is on the panel around it. See .hero-nav-list in
+    // style.css for why it is done that way rather than on a height.
+    panel.innerHTML = '<div class="hero-nav-list">' + rows.join("") + "</div>";
   }
+
+  let open = false;
 
   function setOpen(on) {
-    if (on) build();
-    panel.hidden = !on;
+    if (on) {
+      build();
+      // The list is a brand new element every time it is built, and a
+      // new element with the open class already on its ancestor paints
+      // straight at its final position: there is no earlier state to
+      // ease from. Reading a layout value here forces the browser to
+      // settle it parked above the window first, so the class below has
+      // something to move it from. Without this the menu appears rather
+      // than arrives, which is what the first version of it did.
+      void panel.offsetHeight;
+    }
+    panel.setAttribute("aria-hidden", String(!on));
+    outer.classList.toggle("nav-open", on);
     host.classList.toggle("nav-open", on);
     toggle.setAttribute("aria-expanded", String(on));
+    open = on;
   }
 
-  toggle.addEventListener("click", () => setOpen(panel.hidden));
+  toggle.addEventListener("click", () => setOpen(!open));
   document.addEventListener("click", (e) => {
-    if (!panel.hidden && !panel.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
+    if (open && !panel.contains(e.target) && !toggle.contains(e.target)) setOpen(false);
   });
   document.addEventListener("keydown", (e) => {
     // The sign-in dialog opens from this menu and closes on Escape too.
@@ -156,13 +178,7 @@
 
   // Rebuilt after a sign-in, so the menu names the reader without a
   // reload. auth.js calls every render sink it has been given.
-  if (typeof setAuthRenderSink === "function") {
-    const prior = window.__navRenderSink;
-    if (!prior) {
-      window.__navRenderSink = true;
-      document.addEventListener("iljobs:auth", () => { if (!panel.hidden) build(); });
-    }
-  }
+  document.addEventListener("iljobs:auth", () => { if (open) build(); });
 
   // Widened past the breakpoint with the menu open, it would stay in
   // the DOM doing nothing visible until the next phone-width visit.

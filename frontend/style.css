@@ -3578,42 +3578,72 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 .hero-nav-panel {
   display: none;
   flex-direction: column;
-  /* No side padding: it sits inside a bar that already pads itself
-     to the page margin, so the list lines up under the icon rather
-     than stepping in from it. */
-  padding: 8px 0 16px;
-  font-family: var(--font-ui);
-  font-size: 16px;
+  /* Hung off the bar, so it covers the page rather than pushing it
+     down. The bar is the positioned ancestor and, on the board, the
+     sticky element that already paints over the listings. */
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  /* The window the list slides through. It keeps its full height at all
+     times and is simply invisible when shut, which is what lets the
+     slide be a transform: animating a height instead would make the
+     browser lay the page out again on every frame of the ease. Absolute,
+     so holding that height costs the page nothing. */
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear 0.26s;
+  /* The display face at a size a thumb can aim at. The dense UI face is
+     for tables; this is nine words on an otherwise empty screen. */
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
 }
-.hero-nav-panel[hidden] { display: none; }
+.hero-nav-list {
+  padding: 6px 0 14px;
+  background: var(--white);
+  border-bottom: var(--rule) solid var(--black);
+  /* Parked directly above the window, so it arrives from under the bar
+     rather than fading in where it lands. */
+  transform: translateY(-100%);
+  transition: transform 0.26s ease-out;
+}
+.nav-open .hero-nav-panel {
+  visibility: visible;
+  pointer-events: auto;
+  transition: visibility 0s;
+}
+.nav-open .hero-nav-list { transform: translateY(0); }
 .hero-nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 13px 2px;
+  padding: 15px 0;
   border: 0;
   border-bottom: 1px solid var(--grey-line);
   background: none;
   color: var(--black);
   font: inherit;
-  font-weight: 700;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
 }
 .hero-nav-item:last-child { border-bottom: 0; }
 .hero-nav-item:active { color: var(--green-text); }
-.hero-nav-item svg { flex: none; }
+/* Grown with the text beside them, or a 16px mark against 24px type
+   reads as an afterthought. */
+.hero-nav-item svg, .hero-nav-who svg { flex: none; width: 21px; height: 21px; }
 .hero-nav-out { color: var(--red); }
 .hero-nav-who {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 2px 14px;
+  padding: 14px 0 16px;
   border-bottom: 1px solid var(--grey-line);
-  font-family: var(--font-ui);
-  font-weight: 700;
+  font-size: 19px;
 }
 .hero-nav-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -3627,19 +3657,29 @@ body.signin-open .workspace > .section { border-bottom: 0; }
   /* The panel is a child of the bar, and the bar is a flex row, so
      without this it lands beside the icon instead of under it. */
   .hero-bar-head {
-    flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: center;
     padding-top: 12px;
-    padding-bottom: 4px;
+    padding-bottom: 10px;
   }
-  .hero-nav-panel { flex: 1 0 100%; }
-  /* The board's bar is the same shape one level down, and it keeps
-     its status light and ticker: only the controls move out. */
-  .topbar > .container { flex-wrap: wrap; align-items: center; gap: 12px; }
+  .hero-nav-panel { display: flex; }
+  /* The panel is absolute against these, so they have to be what it is
+     absolute against. The board's is already sticky, which positions
+     it; the hero header is not. */
+  .hero-bar-head { position: relative; }
+  /* It no longer sits inside the padded row, so it carries the page
+     margin itself. Two rules because the two bars measure that margin
+     differently, and the board's clears a notch. */
+  .hero-bar-head .hero-nav-list { padding-left: var(--edge); padding-right: var(--edge); }
+  .topbar .hero-nav-list {
+    padding-left: max(var(--gutter), env(safe-area-inset-left));
+    padding-right: max(var(--gutter), env(safe-area-inset-right));
+  }
+  .topbar > .container { align-items: center; gap: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-nav-bars i { transition: none; }
+  .hero-nav-bars i,
+  .hero-nav-list { transition: none; }
 }
 }
 .hero-theme {
