@@ -27388,5 +27388,55 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "whataburger.com",
+  "tenant": "whataburger",
+  "wd": "wd5",
+  "site": "WAB_CAREERS",
+  "jobs_seen": 4186,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "petco.net",
+  "tenant": "petco",
+  "wd": "wd504",
+  "site": "External",
+  "jobs_seen": 2000,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "takeda.com",
+  "tenant": "takeda",
+  "wd": "wd502",
+  "site": "External",
+  "jobs_seen": 1779,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "rbc.ai",
+  "tenant": "rbc",
+  "wd": "wd3",
+  "site": "rbcglobal1",
+  "jobs_seen": 1238,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "thriveworks.com",
+  "tenant": "thriveworks",
+  "wd": "wd5",
+  "site": "Thriveworks",
+  "jobs_seen": 1076,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
