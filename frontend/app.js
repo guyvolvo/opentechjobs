@@ -2882,6 +2882,9 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
   const selected = new Set();
   let currentOptions = options;
   const foundOptions = new Map();
+  // Which values were already ticked when the menu was last opened. See
+  // renderOptions for why this is a snapshot and not `selected` itself.
+  let pinOrder = [];
   let searchSeq = 0;
   let searchTimer = 0;
 
@@ -2928,6 +2931,32 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
     const q = filterText.trim().toLowerCase();
     const pool = allOptions();
     const visible = q ? pool.filter((o) => o.label.toLowerCase().includes(q)) : pool;
+    // Ticked rows first, in the order they were ticked. Reported live:
+    // the Companies list is alphabetical over ten thousand names, so a
+    // reader who had chosen five opened it and saw 2k.com, 3m.ai,
+    // 42dot.com and none of their own. The toggle said "5 selected" and
+    // the list showed none of them.
+    //
+    // Only while there is no filter text. Typing is a search, and a
+    // search that answers with something else on top is not a search.
+    //
+    // pinOrder is taken once, on the way open, rather than read live.
+    // Ticking a box asks the board to reload, which refreshes these
+    // counts and redraws this list; reading `selected` here meant the
+    // row a reader had just clicked jumped to the top from under the
+    // cursor still resting on it. Anything ticked while the menu is
+    // open keeps its place and rises the next time it is opened.
+    if (!q && pinOrder.length) {
+      const order = pinOrder;
+      visible.sort((x, y) => {
+        const a2 = order.indexOf(x.value);
+        const b2 = order.indexOf(y.value);
+        if (a2 === -1 && b2 === -1) return 0;   // both unticked, leave the list alone
+        if (a2 === -1) return 1;
+        if (b2 === -1) return -1;
+        return a2 - b2;
+      });
+    }
     optionsEl.innerHTML =
       visible
         .map(
@@ -2960,6 +2989,8 @@ function createMultiSelect(containerId, { placeholder, options = [], searchable 
 
   function open() {
     OPEN_MULTISELECTS.forEach((closeOther) => closeOther());
+    pinOrder = [...selected];
+    renderOptions(searchEl ? searchEl.value : "");
     menu.hidden = false;
     toggle.setAttribute("aria-expanded", "true");
     OPEN_MULTISELECTS.add(close);
