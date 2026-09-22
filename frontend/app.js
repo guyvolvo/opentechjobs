@@ -4823,6 +4823,12 @@ async function boot() {
   await handleAuthRedirect();
   if (!document.getElementById("jobs-body")) {
     wireAuth();
+    // The theme control is on every page that loads this file and only
+    // the board was ever wiring it, because the call sits below this
+    // return. Found live on /account: the button was there, said Dark,
+    // and did nothing. The board is the only other page here, so this
+    // reaches exactly one more button.
+    if (document.getElementById("theme-toggle")) wireThemeToggle();
     return;
   } // before wireAuth: a fresh token from a redirect must be in localStorage before the initial render; also before applyStateFromUrl below, since a code-exchange redirect strips the URL down to location.pathname first
 

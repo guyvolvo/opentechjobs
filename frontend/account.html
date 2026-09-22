@@ -47,16 +47,21 @@
 </head>
 <body>
 
-  <div class="topbar">
-    <div class="container">
-      <nav class="topnav">
-        <button id="theme-toggle" class="theme-toggle" type="button">Dark</button>
-        <a class="link" href="/board">Job board</a>
-        <a class="link" href="/stats">Explore</a>
-        <a class="link" href="/api/help">API</a>
-      </nav>
+  <!-- The landing page's bar, not the board's. Every link this used to
+       carry (Job board, Explore, API) is already in the phone menu and
+       one click away in the account menu everywhere else, and on the
+       page called Account they were four ways out of it above the only
+       thing the reader came for. The theme sits where the landing page
+       puts it, and keeps its id so app.js and mobile_nav.js find it.
+
+       It stays on screen here when signed in, unlike the landing page,
+       where signing in moves the theme into the account menu. This bar
+       has no menu to move it into. -->
+  <header class="hero-bar hero-bar-head hero-bar-bare">
+    <div class="hero-bar-right">
+      <button type="button" class="hero-theme" id="theme-toggle">Dark</button>
     </div>
-  </div>
+  </header>
 
   <div class="workspace workspace-solo">
     <section class="section account-section">
