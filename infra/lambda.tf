@@ -121,8 +121,22 @@ resource "aws_lambda_function" "api" {
   # that same fix added logging. 3008MB was already proven safe on the
   # scrape Lambdas; sized well above the 639MB that just happened, not
   # just enough to clear it, since one batch already grew this fast once.
+  #
+  # And again on 2026-09-22, at the next size up. /api/health was
+  # reporting refresh state "failed", OSError(28) after 993MB of a
+  # 2,163,675,136-byte snapshot. A refresh holds the copy it is serving
+  # while it downloads the next one, so the requirement is twice the
+  # file, 4.1GB against 3008MB. Cold starts still fit, which is why
+  # nothing looked broken: every container served whatever it started
+  # with and never updated, and the same query answered 599,871 or
+  # 612,827 depending on which container took it.
+  #
+  # 10240 is Lambda's ceiling, so this is the last time this particular
+  # fix is available. Two copies of the file the Workday backlog will
+  # produce is about 6.4GB, which fits with room; a third doubling after
+  # that needs a different design, not a bigger number.
   ephemeral_storage {
-    size = 3008
+    size = 10240
   }
 
   # Reserved concurrency would be a second free cost cap alongside the API
