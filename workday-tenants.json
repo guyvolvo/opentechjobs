@@ -27028,5 +27028,145 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "aptiagroup.com",
+  "tenant": "aptiagroup",
+  "wd": "wd3",
+  "site": "broadbean_external",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "campaignmonitor.com",
+  "tenant": "campaignmonitor",
+  "wd": "wd5",
+  "site": "marigold",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "faro.com",
+  "tenant": "faro",
+  "wd": "wd1",
+  "site": "FARO",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "fordfoundation.org",
+  "tenant": "fordfoundation",
+  "wd": "wd1",
+  "site": "FordFoundationCareerPage",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "gentoogroup.com",
+  "tenant": "gentoogroup",
+  "wd": "wd3",
+  "site": "Gentoo_External",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "hanoverresearch.com",
+  "tenant": "hanoverresearch",
+  "wd": "wd5",
+  "site": "HanoverResearch",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "immatics.com",
+  "tenant": "immatics",
+  "wd": "wd3",
+  "site": "Immatics_External",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "kiolbassa.com",
+  "tenant": "kiolbassa",
+  "wd": "wd501",
+  "site": "Career",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "mustangfuel.com",
+  "tenant": "mustangfuel",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "ont.io",
+  "tenant": "ont",
+  "wd": "wd5",
+  "site": "External",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "sjsurf.com",
+  "tenant": "sjsurf",
+  "wd": "wd1",
+  "site": "SJSURF",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "sundayriley.com",
+  "tenant": "sundayriley",
+  "wd": "wd1",
+  "site": "SundayRileyCareers",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "velco.com",
+  "tenant": "velco",
+  "wd": "wd12",
+  "site": "VELCO",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "western.com",
+  "tenant": "western",
+  "wd": "wd1",
+  "site": "WESTERN",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
