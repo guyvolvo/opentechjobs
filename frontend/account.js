@@ -35,29 +35,23 @@ function setCount(key, n) {
   }
 }
 
-// The name of the last file the scanner read, kept so the overview can
-// say what this browser looked at. The file itself is never uploaded and
-// never stored, which is the whole point of reading it in the tab, so
-// this is a note about this device and is labelled as one.
-const CV_FILE_KEY = "iljobs_cv_filename";
+// A summary, not the whole list. Forty chips made the overview mostly
+// chips; the rest are one click away in CV matching, which is where
+// they can actually be changed.
+const TAGS_SHOWN = 7;
 
-function paintCvFile() {
-  const el = $("acct-file");
-  if (!el) return;
-  let name = "";
-  try { name = localStorage.getItem(CV_FILE_KEY) || ""; } catch {}
-  el.textContent = name || "None yet";
-  el.classList.toggle("none", !name);
-}
-
-// Read-only, unlike the scanner's own chips: the list being edited is
-// the one about to be saved, and that lives in the scanner.
 function paintSkillTags() {
   const host = $("acct-tags");
   if (!host) return;
-  host.innerHTML = draft.skills.length
-    ? draft.skills.map((sk) => `<span class="acct-tag">${escapeHtml(sk)}</span>`).join("")
-    : '<span class="acct-none">No skills saved yet. Read a resume in the scanner.</span>';
+  if (!draft.skills.length) {
+    host.innerHTML = '<span class="acct-none">No skills yet. Read a CV in CV matching.</span>';
+    return;
+  }
+  const rest = draft.skills.length - TAGS_SHOWN;
+  host.innerHTML =
+    draft.skills.slice(0, TAGS_SHOWN)
+      .map((sk) => `<span class="acct-tag">${escapeHtml(sk)}</span>`).join("")
+    + (rest > 0 ? `<a class="acct-more" href="#cv">+${rest} more</a>` : "");
 }
 
 // Which provider signed this reader in, and only when the token says so.
@@ -188,8 +182,6 @@ function paintMatchLink() {
 
 async function takeCvFile(file) {
   $("cv-filename").textContent = file.name;
-  try { localStorage.setItem(CV_FILE_KEY, file.name); } catch {}
-  paintCvFile();
   setStatus("cv-status", "Reading…");
   try {
     const text = await readCv(file);
@@ -306,10 +298,18 @@ function wireAccountNav() {
     window.scrollTo(0, 0);
   };
 
-  panels.forEach((p) => p.link.addEventListener("click", (e) => {
+  // The nav, and everything else that names a section: the overview's
+  // counts and its "+N more". One handler, so a link added later behaves
+  // like the nav without knowing anything about it.
+  const byId = new Map(panels.map((p) => [p.id, p]));
+  layout.addEventListener("click", (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a || !layout.contains(a)) return;
+    const p = byId.get(a.getAttribute("href").slice(1));
+    if (!p) return;
     e.preventDefault();
     show(p.id, true);
-  }));
+  });
   back.addEventListener("click", () => show(null, true));
 
   addEventListener("popstate", () => {
@@ -376,15 +376,20 @@ function wireLeaving() {
   const confirmBtn = $("account-delete-confirm");
   let armed = null;
 
+  // The line that says it cannot be undone appears with Confirm rather
+  // than standing on the overview warning everyone who opens it.
+  const warn = $("account-delete-warn");
   const disarm = () => {
     clearTimeout(armed);
     armed = null;
     confirmBtn.hidden = true;
+    if (warn) warn.hidden = true;
   };
 
   del.addEventListener("click", () => {
     if (!confirmBtn.hidden) return disarm();
     confirmBtn.hidden = false;
+    if (warn) warn.hidden = false;
     armed = setTimeout(disarm, 8000);
   });
 
@@ -571,7 +576,6 @@ async function bootAccount() {
   // the token carries one, the first letter when it does not.
   $("account-avatar").innerHTML = avatarHtml(email, tokens.id_token);
   paintProvider(tokens.id_token);
-  paintCvFile();
   paintSkillTags();
 
   wireLeaving();

@@ -3390,9 +3390,13 @@ body.explore-busy .explore-metric { color: var(--green-text); }
      centred there, by request. The nav and the open section start level
      underneath. */
   grid-template-areas:
-    "id   id"
-    "nav  main";
-  grid-template-rows: auto 1fr;
+    "id    id"
+    "lede  lede"
+    "nav   main";
+  /* The nav's row has to be the tall one. A sticky grid item can only
+     travel inside its own grid area, so giving the last row 1fr is what
+     lets the nav ride down the length of the content beside it. */
+  grid-template-rows: auto auto 1fr;
 }
 /* display on a class beats the user agent's [hidden], which is how the
    signed-out page would otherwise render the whole account under the
@@ -3418,56 +3422,59 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin-bottom: 28px;
+  gap: 14px;
+  margin-bottom: 10px;
 }
-.account-id-mark .hero-avatar { width: 36px; height: 36px; font-size: 15px; }
+.account-id-mark .hero-avatar { width: 52px; height: 52px; font-size: 21px; }
 .account-email {
   margin: 0;
   min-width: 0;
-  font-weight: 700;
+  color: var(--grey);
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.account-nav-list { display: flex; flex-direction: column; gap: 10px; }
+.account-nav-list { display: flex; flex-direction: column; gap: 2px; }
 .account-nav-link {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 10px;
-  height: 56px;
+  height: 46px;
   padding: 0 14px;
-  border: 1.5px solid var(--black);
-  border-radius: 14px;
-  background: var(--white);
+  /* Transparent, not an outline. Four bordered pills made this column
+     read as a separate product standing beside the content, and they
+     were the heaviest thing on a page whose job is to be scanned. The
+     left edge carries the state instead. */
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 4px;
+  background: none;
   color: var(--black);
-  /* The same voice and size as the phone's own nav panel
-     (.hero-nav-panel): the display face at 24px, weight 400. These are
-     four words on a mostly empty screen, which is that panel's case
-     rather than the dense UI face's. */
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 17px;
   font-weight: 400;
   text-decoration: none;
   cursor: pointer;
 }
-/* Not the open one: its whole point is that it is not filled. */
 .account-nav-link:hover:not(.active) { background: var(--hover-bg); }
 .account-nav-link:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-/* Body size against the label's 24px: a count is what the button holds,
-   not what it says. */
-.account-nav-count { color: var(--grey); font-size: 14px; font-variant-numeric: tabular-nums; }
+.account-nav-count {
+  color: var(--grey);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
 /* Which section is open, in the same tint the board gives the row whose
    listing is open. A filled ink button read as the loudest thing on the
    page, which is the one thing a local nav must not be. */
-/* The open section is marked by its edge and its text, not by a fill.
-   A tinted panel behind the words made the button look pressed and put
-   a block of colour beside the section it names. */
+/* A green edge and green text. A whole row of colour was a block of it
+   sitting beside the section it names. */
 .account-nav-link.active {
-  border-color: var(--green-text);
+  border-left-color: var(--green);
+  background: var(--hover-bg);
   color: var(--green-text);
   font-weight: 500;
 }
@@ -3532,7 +3539,15 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   .account-nav { padding-right: 0; }
   .account-main { padding-left: 0; border-left: 0; min-height: 0; }
   .account-nav-list { gap: 12px; }
-  .account-nav-link { height: 62px; }
+  .account-nav-link {
+    justify-content: center;
+    height: 62px;
+    border: 1.5px solid var(--black);
+    border-radius: 14px;
+    font-size: 24px;
+  }
+  .account-nav-link.active { border-color: var(--green-text); background: none; }
+  .account-nav-count { font-size: 14px; }
   /* The two states. Nothing animates between them: a section is a
      different screen, not a drawer. */
   .account-layout:not(.section-open) .account-main { display: none; }
@@ -3595,6 +3610,21 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-bar .hero-bar-name:hover { color: var(--green-text); }
 
 .account-id-text { min-width: 0; text-align: left; }
+.account-id-title {
+  margin: 0 0 2px;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+}
+/* One line saying what the page is for, under the block that names it. */
+.account-lede {
+  grid-area: lede;
+  margin: 0 0 32px;
+  color: var(--grey);
+  font-size: 13px;
+  text-align: center;
+}
 /* Which provider signed this reader in, when the token says so. Not a
    claim the page makes on its own: see account.js. */
 .acct-provider {
@@ -3633,8 +3663,13 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   min-width: 0;
   padding: 20px 12px 16px;
   background: var(--white);
+  color: var(--black);
+  text-decoration: none;
   text-align: center;
 }
+.account-metric:hover { background: var(--hover-bg); }
+.account-metric:hover .value { color: var(--green-text); }
+.account-metric:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
 .account-metric .value {
   font-size: 30px;
   font-weight: 800;
@@ -3650,13 +3685,13 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   font-size: 17px;
   font-weight: 500;
 }
-.acct-profile .account-label { margin: 16px 0 6px; }
-.acct-profile .account-label:first-of-type { margin-top: 0; }
-/* The file is read in the tab and never uploaded, so this is what this
-   browser last looked at, not something the account holds. */
-.acct-file { margin: 0; font-size: 13px; }
-.acct-file.none { color: var(--grey); }
-.acct-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.acct-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.acct-more {
+  color: var(--green-text);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+}
+.acct-more:hover { text-decoration: underline; }
 /* Read-only here. Removing one is the scanner's job, where the list
    being edited is the one about to be saved. */
 .acct-tag {
@@ -3668,17 +3703,27 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .acct-tags .acct-none { color: var(--grey); font-size: 13px; }
 
-/* Its own box in the page's one reserved colour, because everything
-   above it adds something and this is the only thing that removes it. */
+/* The last thing on the page, behind a hairline in the one reserved
+   colour. A bordered red card here was nearly as loud as the workspace
+   itself, which is the wrong weight for something a reader should meet
+   only when they are looking for it. */
 .account-danger {
-  margin-top: 30px;
-  padding: 18px 20px 20px;
-  border: 1.5px solid var(--red);
-  border-radius: 14px;
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--red);
 }
-.account-danger .acct-sub { color: var(--red); }
-.account-danger .account-block-note { margin-bottom: 0; max-width: 62ch; }
-.account-danger .account-actions { margin-top: 14px; }
+.acct-danger-title {
+  margin: 0 0 4px;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+}
+.acct-danger-note { margin: 0; max-width: 62ch; color: var(--grey); font-size: 13px; }
+.account-danger .account-actions { margin-top: 12px; }
+/* Said on the step where it is about to be true, rather than standing
+   on the page warning everyone who opens the overview. */
+.acct-danger-warn { margin: 10px 0 0; color: var(--red); font-size: 12px; }
+.acct-danger-warn[hidden] { display: none; }
 
 @media (max-width: 640px) {
   .account-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }

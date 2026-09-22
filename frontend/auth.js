@@ -141,10 +141,6 @@ function forgetLocalReaderData() {
   // this sweeps rather than deletes by name.
   try {
     localStorage.removeItem("iljobs_starred");
-    // The name of the last resume this browser read, shown on the
-    // account overview. The file was never uploaded; the name still
-    // says something about whoever was signed in.
-    localStorage.removeItem("iljobs_cv_filename");
     for (const key of Object.keys(localStorage)) {
       if (key.startsWith("iljobs_jobs_cache")) localStorage.removeItem(key);
     }

@@ -70,7 +70,6 @@
   <div class="workspace workspace-solo">
     <section class="section account-section">
       <div class="container account-page">
-        <h2 class="section-title">Account</h2>
 
         <!-- Signed out: the whole page is one sign-in, because every
              section below needs a token to say anything at all. Its own
@@ -107,22 +106,28 @@
              section replaces it, with Back to come out again. -->
         <div id="account-body" class="account-layout" hidden>
 
+          <!-- The mark, the page's name and the reader, as one block.
+               The title used to sit above a small detached avatar and
+               the two read as unrelated. Centred as a unit. -->
           <div class="account-id">
             <div class="account-id-mark" id="account-avatar"></div>
             <div class="account-id-text">
+              <h2 class="account-id-title">My account</h2>
               <p class="account-email" id="account-email"></p>
               <!-- Only filled when the token actually says which provider
                    signed this reader in. See account.js. -->
               <p class="acct-provider" id="account-provider" hidden></p>
             </div>
           </div>
+          <p class="account-lede">Manage your saved jobs, CV matching and alerts.</p>
 
           <!-- The page's own nav, not a second global one: it names the
                four sections and nothing the topbar already carries. -->
           <nav class="account-nav" aria-label="Account sections">
+            <p class="account-nav-label">Account</p>
             <div class="account-nav-list">
-              <a class="account-nav-link" href="#account">Account</a>
-              <a class="account-nav-link" href="#cv">Resume scanner<span class="account-nav-count" id="stat-skills">0</span></a>
+              <a class="account-nav-link" href="#overview">Overview</a>
+              <a class="account-nav-link" href="#cv">CV matching<span class="account-nav-count" id="stat-skills">0</span></a>
               <a class="account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts">0</span></a>
               <a class="account-nav-link" href="#saved">Saved jobs<span class="account-nav-count" id="stat-saved">0</span></a>
             </div>
@@ -138,29 +143,32 @@
             <!-- The overview. Everything here is already true somewhere else
                  on the page; this is the one screen that says it all at
                  once, which is why it is the section the nav opens on. -->
-            <section class="account-block" id="account">
-              <h3 class="account-block-title">Account</h3>
+            <section class="account-block" id="overview">
+              <!-- No heading: the identity block above already names the
+                   page, and a second "Account" said it twice. -->
 
+              <!-- Each count goes where it is counted. They open their
+                   section through the same handler the nav uses. -->
               <div class="account-metrics">
-                <div class="account-metric">
+                <a class="account-metric" href="#saved">
                   <span class="value" id="tile-saved">0</span>
                   <span class="label">Saved jobs</span>
-                </div>
-                <div class="account-metric">
+                </a>
+                <a class="account-metric" href="#alerts">
                   <span class="value" id="tile-alerts">0</span>
                   <span class="label">Active alerts</span>
-                </div>
-                <div class="account-metric">
+                </a>
+                <a class="account-metric" href="#cv">
                   <span class="value" id="tile-skills">0</span>
-                  <span class="label">Matched skills</span>
-                </div>
+                  <span class="label">Skills</span>
+                </a>
               </div>
 
               <div class="acct-profile">
                 <h4 class="acct-sub">Skill profile</h4>
-                <p class="account-label">Last resume read on this device</p>
-                <p class="acct-file" id="acct-file">None yet</p>
-                <p class="account-label">Skill tags</p>
+                <!-- A summary, not the wall. Forty chips here made the
+                     overview mostly chips; the full list lives in CV
+                     matching, which is where they can be changed. -->
                 <div class="acct-tags" id="acct-tags"></div>
               </div>
 
@@ -168,19 +176,24 @@
                 <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
               </div>
 
+              <!-- Last, and quiet: a hairline and a small heading rather
+                   than a card competing with the workspace. The part
+                   that cannot be undone is said on the confirm step,
+                   where it is about to be true. -->
               <div class="account-danger">
-                <h4 class="acct-sub">Danger zone</h4>
-                <p class="account-block-note">Deleting removes your alerts, the skills on your profile and your saved jobs, then signs you out. There is no undo and no export.</p>
+                <h4 class="acct-danger-title">Danger zone</h4>
+                <p class="acct-danger-note">Deleting your account removes your alerts, saved jobs and skill profile.</p>
                 <div class="account-actions">
                   <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete account</button>
                   <button class="btn btn-small btn-danger-solid" id="account-delete-confirm" type="button" hidden>Confirm</button>
                   <span class="account-status" id="account-status" aria-live="polite"></span>
                 </div>
+                <p class="acct-danger-warn" id="account-delete-warn" hidden>This cannot be undone, and there is no export.</p>
               </div>
             </section>
 
             <section class="account-block" id="cv">
-              <h3 class="account-block-title">Resume scanner</h3>
+              <h3 class="account-block-title">CV matching</h3>
               <p class="account-block-note">The file is read in this tab and never uploaded. Only the skills you save reach the server, and they are what Best matches sorts the board by.</p>
 
               <div class="cv-drop" id="cv-drop">
