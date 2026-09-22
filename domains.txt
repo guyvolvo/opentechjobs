@@ -13235,3 +13235,7 @@ astropakllc.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 odys.org
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+tryroam.co
+wellth.com

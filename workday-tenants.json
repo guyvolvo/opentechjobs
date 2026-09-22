@@ -27958,5 +27958,15 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "wilhelmsen.myworkdayjobs.com",
+  "tenant": "wilhelmsen",
+  "wd": "wd3",
+  "site": "Norsea_Norway",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
