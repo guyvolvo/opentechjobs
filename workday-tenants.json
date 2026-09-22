@@ -27568,5 +27568,65 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "finning.com",
+  "tenant": "finning",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 111,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "wilsonart.com",
+  "tenant": "wilsonart",
+  "wd": "wd5",
+  "site": "Wilsonart_Careers",
+  "jobs_seen": 94,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "wpi.com",
+  "tenant": "wpi",
+  "wd": "wd5",
+  "site": "WPI_External_Career_Site",
+  "jobs_seen": 93,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "peterpiperpizza.com",
+  "tenant": "peterpiperpizza",
+  "wd": "wd503",
+  "site": "PeterPiperPizza",
+  "jobs_seen": 92,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "centricsoftware.com",
+  "tenant": "centricsoftware",
+  "wd": "wd501",
+  "site": "Centric",
+  "jobs_seen": 87,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "ambiententerprises.com",
+  "tenant": "ambiententerprises",
+  "wd": "wd501",
+  "site": "careers",
+  "jobs_seen": 85,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
