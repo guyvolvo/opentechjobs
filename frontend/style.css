@@ -3677,9 +3677,13 @@ body.signin-open .workspace > .section { border-bottom: 0; }
   .topbar > .container { align-items: center; gap: 12px; }
 }
 
+/* Deliberately no prefers-reduced-motion exception for either menu.
+   Asked for on 2026-09-22: these are to animate whatever the operating
+   system is set to. The stepped rules still honour it, since a width
+   stepping under a thumb is the part of this that could bother anyone
+   who asked for less movement. */
 @media (prefers-reduced-motion: reduce) {
-  .hero-nav-bars i,
-  .hero-nav-list { transition: none; }
+  .hero-nav-bars i { transition: none; }
 }
 }
 .hero-theme {
@@ -3757,26 +3761,48 @@ a.hero-account-btn { text-decoration: none; }
 }
 .hero-menu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
-  width: 240px;
+  width: 248px;
   padding: 6px;
   background: var(--white);
-  border: var(--rule) solid var(--black);
-  border-radius: 4px;
+  border-radius: 14px;
+  /* A shadow instead of the 2px ink rule. This is the one element on
+     the site that floats over the page rather than sitting in it, and a
+     hard border drew it as another box in the layout. The rule is kept
+     as a hairline so the card still has an edge on a dark background,
+     where a shadow alone is invisible. */
+  border: 1px solid var(--grey-line);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16), 0 2px 6px rgba(0, 0, 0, 0.08);
   z-index: 40;
-  font-family: var(--font-ui);
-  font-size: 13px;
+  /* The display face, as the bar above it uses. */
+  font-family: var(--font-display);
+  font-size: 15px;
+  /* Eased down, the way the phone menu is. Opacity and a transform, so
+     it costs the compositor and not the layout. */
+  opacity: 0;
+  transform: translateY(-8px);
+  visibility: hidden;
+  transition: opacity 0.18s ease-out, transform 0.22s ease-out, visibility 0s linear 0.22s;
 }
-.hero-menu[hidden] { display: none; }
+/* The UA stylesheet's display:none cannot be animated, and the script
+   still uses [hidden] to say which state it is in. visibility below is
+   what actually takes it out of the tab order and off a screen reader. */
+.hero-menu[hidden] { display: block; }
+.hero-menu:not([hidden]) {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  transition: opacity 0.18s ease-out, transform 0.22s ease-out, visibility 0s;
+}
 .hero-menu-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 8px 10px;
+  padding: 10px 10px 12px;
   margin-bottom: 4px;
   border-bottom: 1px solid var(--grey-line);
-  font-weight: 700;
+  font-weight: 400;
 }
 .hero-menu-head .hero-avatar { width: 30px; height: 30px; font-size: 14px; }
 /* Over the letter, not instead of it: an image that fails removes
@@ -3795,13 +3821,15 @@ a.hero-account-btn { text-decoration: none; }
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 9px 8px;
+  padding: 10px 10px;
   border: 0;
+  /* The system's own 4px, as the sign-in dialog does: a soft outer
+     card holding hard-cornered rows. Only the card's own radius grew. */
   border-radius: 4px;
   background: none;
   color: var(--black);
   font: inherit;
-  font-weight: 600;
+  font-weight: 400;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
