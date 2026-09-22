@@ -27288,5 +27288,105 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "aba.co",
+  "tenant": "aba",
+  "wd": "wd1",
+  "site": "ABA",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "bzam.com",
+  "tenant": "bzam",
+  "wd": "wd1",
+  "site": "BZAMCareers",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "clayutility.org",
+  "tenant": "clayutility",
+  "wd": "wd115",
+  "site": "Careers",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "healthplanone.com",
+  "tenant": "healthplanone",
+  "wd": "wd1",
+  "site": "HPONE",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "looprecruiting.com",
+  "tenant": "looprecruiting",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "mangroupplc.com",
+  "tenant": "mangroupplc",
+  "wd": "wd3",
+  "site": "Man_Group_Careers",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "ponsse.com",
+  "tenant": "ponsse",
+  "wd": "wd3",
+  "site": "PonsseCareers",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "starfish.com",
+  "tenant": "starfish",
+  "wd": "wd501",
+  "site": "FreedomRealEstate",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "theglobalfund.ai",
+  "tenant": "theglobalfund",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "wto.com",
+  "tenant": "wto",
+  "wd": "wd103",
+  "site": "External",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
