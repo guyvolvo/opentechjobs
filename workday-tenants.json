@@ -27438,5 +27438,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "jdgroupnam.myworkdayjobs.com",
+  "tenant": "jdgroupnam",
+  "wd": "wd1",
+  "site": "JD_Careers",
+  "jobs_seen": 964,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "yai.org",
+  "tenant": "yai",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 498,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
