@@ -3933,8 +3933,9 @@ a.hero-account-btn { text-decoration: none; }
   /* 400, not the 700 every other button on the site carries. The display
      face is already the loud one, and bold on top of it read as shouting
      under a claim set in the same face at 400. Bumped a step, because a
-     regular weight at 16px looked thin inside a box this size. */
-  font-size: 18px;
+     regular weight at 16px looked thin inside a box this size, and 19 is
+     the documented step above it: the hero lede's own upper bound. */
+  font-size: 19px;
   font-weight: 400;
 }
 .hero-primary.btn .cta-arrow { width: 16px; height: 16px; }
