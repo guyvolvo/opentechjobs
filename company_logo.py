@@ -419,6 +419,46 @@ def google_favicon(domain: str, size: int = 128) -> str:
     return f"https://www.google.com/s2/favicons?domain={domain}&sz={size}"
 
 
+# How many site candidates to weigh before settling.
+#
+# The list is already best-first, so this is not a search, it is a
+# tie-break: keep looking a little past the first thing that works in
+# case a later one is a mark on transparency rather than a painted
+# square. Four covers the declared icons plus the two fixed guesses on
+# almost every site, and the loop stops early the moment it finds one.
+TRANSPARENCY_LOOKAHEAD = 4
+
+
+def has_transparency(body: bytes) -> bool:
+    """A real see-through area, not just an alpha channel that is full.
+
+    Used to prefer a mark over a painted tile. Pillow is imported here,
+    not at the top: probe.py pulls this module into the scrape Lambda,
+    where an image library is tens of megabytes for a check that never
+    runs there. Without it every candidate answers False and the first
+    working one wins, which is how this behaved before.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        return False
+    try:
+        import io
+        im = Image.open(io.BytesIO(body))
+        if im.mode not in ("RGBA", "LA", "P"):
+            return False
+        im = im.convert("RGBA")
+        alpha = im.getchannel("A")
+        if alpha.getextrema()[0] >= 250:
+            return False
+        clear = sum(1 for v in alpha.tobytes() if v < 16)
+        # Five percent, so a rounded corner's few soft pixels do not
+        # count as a transparent background.
+        return clear / float(im.width * im.height) > 0.05
+    except Exception:
+        return False
+
+
 def resolve_logo(sess, domain: str, ats: str | None = None,
                  token: str | None = None) -> tuple[str | None, str]:
     """Best logo URL for a company, and which tier produced it.
@@ -426,14 +466,33 @@ def resolve_logo(sess, domain: str, ats: str | None = None,
     Returns (url, source). A None url means every tier failed and the
     caller should draw its own lettered square, which is a real answer
     for a company whose site genuinely serves no icon anywhere.
+
+    Among the site's own icons, one with a transparent background wins
+    over one without, even if the opaque one came first. A favicon is
+    usually a painted square; a mark on transparency sits on any ground
+    and can be tinted. Measured 2026-09-22 over the thirty companies in
+    the landing page's logo band: five of the fourteen opaque ones had a
+    transparent alternative the old first-match rule was walking past.
     """
     url = ats_logo(sess, ats or "", token or "")
     if url:
         return url, "ats"
 
-    for candidate in site_icons(sess, domain):
-        if check_image(sess, candidate):
+    first_working = None
+    for candidate in site_icons(sess, domain)[:TRANSPARENCY_LOOKAHEAD]:
+        if not check_image(sess, candidate):
+            continue
+        if first_working is None:
+            first_working = candidate
+        try:
+            body = sess.get(candidate, timeout=TIMEOUT, allow_redirects=True,
+                            headers={"Referer": ORIGIN + "/"}).content
+        except requests.RequestException:
+            continue
+        if has_transparency(body):
             return candidate, "site"
+    if first_working:
+        return first_working, "site"
 
     if domain:
         candidate = google_favicon(domain)

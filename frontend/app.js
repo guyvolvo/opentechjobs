@@ -3652,6 +3652,29 @@ async function refreshFacetOptions() {
 
 const THEME_KEY = "iljobs_theme";
 
+function isDarkTheme() {
+  return document.documentElement.getAttribute("data-theme") === "dark";
+}
+
+// Set by wireThemeToggle. The account menu's own theme row calls it, so
+// the crossfade and the storage write stay in one place rather than
+// being written a second time next to the menu.
+let runThemeSwap = null;
+
+// Returns a promise that settles once the attribute has actually
+// changed. A view transition runs the callback asynchronously, so a
+// caller that reads the theme straight after this still sees the old
+// one: the account menu's row said "Dark mode" after switching to dark.
+function toggleTheme() {
+  if (!runThemeSwap) return Promise.resolve();
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced || typeof document.startViewTransition !== "function") {
+    runThemeSwap();
+    return Promise.resolve();
+  }
+  return document.startViewTransition(runThemeSwap).updateCallbackDone;
+}
+
 function wireThemeToggle() {
   const btn = document.getElementById("theme-toggle");
   const sync = () => {
@@ -3697,16 +3720,8 @@ function wireThemeToggle() {
   // page before and after and crossfades the two images on the
   // compositor: one animation, no repaint per frame, and it cannot fail
   // to start because the snapshot is taken before the callback runs.
-  btn.addEventListener("click", () => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // Firefox has no view transitions yet. There the theme just snaps,
-    // which is what it already did on every browser.
-    if (reduced || typeof document.startViewTransition !== "function") {
-      swapTheme();
-      return;
-    }
-    document.startViewTransition(swapTheme);
-  });
+  runThemeSwap = swapTheme;
+  btn.addEventListener("click", toggleTheme);
 }
 
 // Topbar ticker: 10 most recent listings matching the board's current
@@ -4090,6 +4105,11 @@ function renderAuthState() {
   // Their Google photo when they signed in that way, the first letter
   // of the address otherwise. avatarHtml in auth.js decides which.
   const avatar = avatarHtml(email, tokens.id_token);
+  // The bar's own theme button belongs to the signed-out state, where
+  // there is no menu to carry the row. Same arrangement as the landing
+  // page's bar.
+  const barTheme = document.getElementById("theme-toggle");
+  if (barTheme) barTheme.hidden = true;
   area.innerHTML = `
     <button class="hero-account-btn" id="topbar-account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="topbar-menu">
       ${avatar}My Account
@@ -4101,6 +4121,7 @@ function renderAuthState() {
       <button role="menuitem" type="button" id="topbar-alert-btn">${MENU_ICONS.bell}Alerts</button>
       <a role="menuitem" href="/api/help">${MENU_ICONS.code}API reference</a>
       <a role="menuitem" href="/contact">${MENU_ICONS.chat}Contact</a>
+      <button role="menuitem" type="button" id="topbar-menu-theme">${isDarkTheme() ? MENU_ICONS.sun : MENU_ICONS.moon}<span>${isDarkTheme() ? "Light mode" : "Dark mode"}</span></button>
       <button role="menuitem" type="button" class="hero-menu-out" id="auth-signout">${MENU_ICONS.out}Log Out</button>
     </div>
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
@@ -4131,6 +4152,16 @@ function renderAuthState() {
     </div>`;
   wireMenu("topbar-account-btn", "topbar-menu");
   wireTopbarAlertButton();
+  // Repaints its own row rather than re-rendering the menu, which would
+  // shut it on the click that opened the change.
+  const themeRow = document.getElementById("topbar-menu-theme");
+  if (themeRow) {
+    themeRow.addEventListener("click", () => {
+      toggleTheme().then(() => {
+        themeRow.innerHTML = `${isDarkTheme() ? MENU_ICONS.sun : MENU_ICONS.moon}<span>${isDarkTheme() ? "Light mode" : "Dark mode"}</span>`;
+      });
+    });
+  }
   document.getElementById("auth-signout").addEventListener("click", signOut);
   wireAlertCreateForm();
   loadMyAlerts().then(renderAlertsList);
@@ -4146,6 +4177,8 @@ const MENU_ICONS = {
   bell: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1.5H3z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 14a1.5 1.5 0 0 0 3 0" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
   code: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   chat: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M2.5 3h11v8h-6l-3 2.5V11h-2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  sun: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9L13 13M13 3l-1.1 1.1M4.1 11.9L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  moon: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M13.5 9.5A5.6 5.6 0 0 1 6.5 2.5a5.6 5.6 0 1 0 7 7z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
   out: '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M6 2.5H3v11h3M10 5l3 3-3 3M13 8H6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
 

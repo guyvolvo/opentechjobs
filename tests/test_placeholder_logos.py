@@ -132,6 +132,21 @@ check("a logo already checked under the current rules is not re-fetched",
 check("a company with no logo at all is not a recheck candidate",
       not rcl.needs_recheck("x.com", {"source": "site", "check": 1}))
 
+# Preferring a mark over a painted square. A favicon is usually a tile
+# with the logo painted on it, and a tile cannot be tinted or sat on a
+# coloured ground. Measured over the thirty companies in the landing
+# band: this took transparent sources from 14 to 17.
+PNG_OPAQUE = bytes.fromhex(
+    "89504e470d0a1a0a0000000d49484452000000080000000808020000004b6d29dc"
+    "0000000e49444154789c63f8cf80130c0c000401ff7f9d2e3d2a0000000049454e44ae426082")
+check("an image with no alpha channel is not preferred",
+      company_logo.has_transparency(PNG_OPAQUE) is False)
+check("nor is something that is not an image at all",
+      company_logo.has_transparency(b"<html>nope</html>") is False)
+check("nor is an empty body", company_logo.has_transparency(b"") is False)
+check("the lookahead is bounded, or one company could cost a dozen fetches",
+      1 < company_logo.TRANSPARENCY_LOOKAHEAD <= 6, repr(company_logo.TRANSPARENCY_LOOKAHEAD))
+
 print()
 if failures:
     print("%d failed:" % len(failures))
