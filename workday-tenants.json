@@ -27508,5 +27508,65 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "usic.com",
+  "tenant": "usicinc",
+  "wd": "wd5",
+  "site": "USICCareers",
+  "jobs_seen": 161,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "symbotic.com",
+  "tenant": "symbotic",
+  "wd": "wd504",
+  "site": "symbotic",
+  "jobs_seen": 130,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "vst.myworkdayjobs.com",
+  "tenant": "vst",
+  "wd": "wd5",
+  "site": "luminant_careers",
+  "jobs_seen": 130,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "natura.com",
+  "tenant": "natura",
+  "wd": "wd501",
+  "site": "NaturaCarreiras",
+  "jobs_seen": 129,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "belron.myworkdayjobs.com",
+  "tenant": "belron",
+  "wd": "wd3",
+  "site": "Carglass_Careers",
+  "jobs_seen": 127,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "google.com",
+  "tenant": "google",
+  "wd": "wd501",
+  "site": "GOCJobs",
+  "jobs_seen": 121,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
