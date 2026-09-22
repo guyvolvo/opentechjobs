@@ -4031,32 +4031,21 @@ a.hero-account-btn { text-decoration: none; }
   aspect-ratio: 1;
   margin-right: clamp(26px, 3vw, 54px);
 }
-/* One colour for every mark, not one colour each.
-   
-   grayscale() only drains the hue and keeps each logo's own lightness,
-   so a black wordmark stayed black beside a pale one and the row read as
-   a jumble of greys. brightness(0) drives every opaque pixel to black
-   whatever colour it started as and leaves transparency alone, which is
-   what turns a logo into a silhouette. opacity sets the one grey they
-   all share.
-   
-   Known and accepted, measured over the thirty marks in this row on
-   2026-09-22: about a dozen of them are not marks at all but painted
-   tiles, a coloured square with the logo knocked out of it. A silhouette
-   of a square is a square, so those read as plain blocks until they have
-   a transparent source. That is a sourcing job, not a filter one, and it
-   is tracked separately. */
+/* Grey, the way a row of marks on a page is grey: they say who is hiring,
+   not who paid. Desaturated, never faded: measured on the live row, the
+   old grayscale-plus-0.55-opacity pair left half the marks under 3:1 on
+   paper, and a company mark nobody can make out is not restraint. */
 .hero-logo img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: brightness(0) opacity(0.5);
+  filter: grayscale(1) contrast(1.3);
   pointer-events: none;
   -webkit-user-drag: none;
 }
-/* The band is dark here, so the silhouettes invert to sit on it. Same
-   idea, opposite ground. */
-:root[data-theme="dark"] .hero-logo img { filter: brightness(0) invert(1) opacity(0.62); }
+/* No theme-specific filter: the band is light in both, so a mark that
+   reads in one reads in the other. Inverting or brightening was only ever
+   compensating for a dark ground. */
 /* Once the page script moves the rows, the CSS drift stops and each row
    can be grabbed and thrown (hero.html). pan-y leaves vertical swipes to
    the page, so a phone still scrolls past the band. */
