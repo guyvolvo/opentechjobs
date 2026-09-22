@@ -22,6 +22,7 @@ import re
 import sys
 import threading
 import time
+import urllib.robotparser
 import zlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
@@ -1649,12 +1650,60 @@ def _pinpoint_salary(j: dict) -> str | None:
     return _txt(j.get("compensation")) or None
 
 
+def _pinpoint_robots(sess, token):
+    """This tenant's robots.txt as a parser, "allow" when there is no
+    such file, or None when the host did not answer.
+
+    Every Pinpoint customer configures their own, and a large minority
+    close the door: measured over all 676 live tenants on 2026-09-22,
+    203 of them serve "User-Agent: * / Disallow: /", and the 473 that do
+    not still opt 1,128 individual postings out by URL. That is the
+    employer's decision about their own board and it is the only signal
+    they have to make it with, so it is read before the board is.
+
+    The three outcomes are deliberately different. A 404 is no rules at
+    all, which is permission. A file that says no is an answer. Anything
+    else, a 500 or a timeout, is not an answer, and the caller must not
+    read silence as either yes or no.
+    """
+    try:
+        r = sess.get(f"https://{token}.pinpointhq.com/robots.txt", timeout=TIMEOUT)
+    except requests.RequestException:
+        return None
+    if r.status_code == 404:
+        return "allow"
+    if r.status_code != 200:
+        return None
+    rp = urllib.robotparser.RobotFileParser()
+    rp.parse(r.text.splitlines())
+    return rp
+
+
 def f_pinpoint(sess, token):
-    d = get_json(sess, f"https://{token}.pinpointhq.com/postings.json")
+    robots = _pinpoint_robots(sess, token)
+    if robots is None:
+        # Not "no jobs". The host did not answer the question, so this
+        # returns the same no-answer every other fetcher returns for an
+        # unreachable board, and nothing already stored gets closed.
+        return None
+    base = f"https://{token}.pinpointhq.com"
+    if robots != "allow" and not robots.can_fetch("*", f"{base}/postings.json"):
+        # An empty board, not a missing one: the employer has asked
+        # crawlers off, so their listings should leave rather than sit
+        # here going stale.
+        if VERBOSE:
+            print(f"    [f_pinpoint] {token} -> robots.txt disallows the board", file=sys.stderr)
+        return []
+    d = get_json(sess, f"{base}/postings.json")
     if not isinstance(d, dict) or not isinstance(d.get("data"), list):
         return None
     out = []
     for j in d["data"]:
+        # A posting the employer named in robots.txt individually. 1,128
+        # of them across the tenants that otherwise allow crawling.
+        url = _txt(j.get("url"))
+        if robots != "allow" and url and not robots.can_fetch("*", url):
+            continue
         # One job can carry several postings, one per location, and the
         # url is per posting. The posting id is the one that matches it.
         body = _pinpoint_body(j)

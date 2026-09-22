@@ -5,19 +5,24 @@ on 2026-09-22. Tenants were recovered from the Wayback index, not Common
 Crawl, which indexes this host thinly: 1,404 subdomains, 676 of them
 answering with open roles and 19,519 postings between them.
 
-Three traps worth a test. An unknown tenant 404s with HTML, so an empty
-`data` list is a real customer between hires and has to come back as [],
-not None, or the loader closes their board. A posting can be marked
-compensation_visible and still say only "Competitive", which is an
-absence of a salary rather than a salary. And the prose lives in four
-fields, not one, so a reader that takes only `description` loses the
-requirements a skills match runs on.
+Four traps worth a test. Every tenant writes its own robots.txt and a
+large minority close the door: 203 of the 676 serve a blanket
+"Disallow: /", covering 6,047 postings, and the 473 that do not still
+name 1,128 individual postings they want left alone. An unknown tenant
+404s with HTML, so an empty `data` list is a real customer between hires
+and has to come back as [], not None, or the loader closes their board.
+A posting can be marked compensation_visible and still say only
+"Competitive", which is an absence of a salary rather than a salary. And
+the prose lives in four fields, not one, so a reader that takes only
+`description` loses the requirements a skills match runs on.
 
 Run directly, no framework:  python tests/test_pinpoint.py
 """
 
 import sys
 from pathlib import Path
+
+import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -78,21 +83,34 @@ class Resp:
         return self._payload
 
 
+ROBOTS_OPEN = "User-Agent: *\nDisallow: /mydata\nDisallow: /admin\nDisallow: /companies\n"
+ROBOTS_CLOSED = "User-Agent: *\nDisallow: /\n"
+
+
 class Sess:
-    def __init__(self, payload=None, status=200, text=""):
+    """Answers robots.txt and postings.json separately, because
+    f_pinpoint asks for the first before it asks for the second."""
+
+    def __init__(self, payload=None, status=200, text="", robots=ROBOTS_OPEN, robots_status=200):
         self.payload, self.status, self.text = payload, status, text
+        self.robots, self.robots_status = robots, robots_status
         self.urls = []
 
     def get(self, url, **kw):
         self.urls.append(url)
+        if url.endswith("/robots.txt"):
+            if self.robots is None:
+                raise requests.RequestException("no answer")
+            return Resp(self.robots_status, None, self.robots)
         return Resp(self.status, self.payload, self.text)
 
 
 print("-- the board --")
 sess = Sess({"data": [posting()]})
 jobs = probe.f_pinpoint(sess, "impulsespace")
-check("asks the tenant's own postings.json",
-      sess.urls == ["https://impulsespace.pinpointhq.com/postings.json"], repr(sess.urls))
+check("asks robots.txt before it asks for the board",
+      sess.urls == ["https://impulsespace.pinpointhq.com/robots.txt",
+                    "https://impulsespace.pinpointhq.com/postings.json"], repr(sess.urls))
 check("reads the board", jobs is not None and len(jobs) == 1, repr(jobs))
 j = jobs[0]
 check("keyed on the posting id, not the job id", j.external_id == "290785", j.external_id)
@@ -111,6 +129,31 @@ check("an unknown tenant's HTML 404 is None",
       probe.f_pinpoint(Sess(None, status=404, text="<html>"), "nope") is None)
 check("so is a 200 that is not the shape we expect",
       probe.f_pinpoint(Sess({"jobs": []}), "nope") is None)
+
+print()
+print("-- robots.txt, which every tenant configures for itself --")
+# Measured over all 676 live tenants on 2026-09-22: 203 of them serve a
+# blanket disallow, covering 6,047 of the 19,514 postings, and the 473
+# that do not still name 1,128 individual postings.
+closed = Sess({"data": [posting()]}, robots=ROBOTS_CLOSED)
+out = probe.f_pinpoint(closed, "priorygroup")
+check("a board that says Disallow: / is read as empty, so its listings leave",
+      out == [], repr(out))
+check("and the board itself is never fetched",
+      closed.urls == ["https://priorygroup.pinpointhq.com/robots.txt"], repr(closed.urls))
+check("a 404 for robots.txt is permission, not a refusal",
+      len(probe.f_pinpoint(Sess({"data": [posting()]}, robots="", robots_status=404), "t") or []) == 1)
+unreachable = probe.f_pinpoint(Sess({"data": [posting()]}, robots=None), "t")
+check("a host that does not answer at all is no answer, not an empty board",
+      unreachable is None, repr(unreachable))
+check("and neither is a 500", probe.f_pinpoint(
+    Sess({"data": [posting()]}, robots="", robots_status=500), "t") is None)
+opted_out = "/en/postings/290785"
+one_job_out = Sess({"data": [posting(pid="290785"), posting(pid="290786")]},
+                   robots=ROBOTS_OPEN + "Disallow: " + opted_out + "\n")
+left = probe.f_pinpoint(one_job_out, "trilongroup")
+check("a single posting the employer named is dropped, the rest stay",
+      [j.external_id for j in left] == ["290786"], repr([j.external_id for j in left]))
 
 print()
 print("-- location, which has no country in it --")
