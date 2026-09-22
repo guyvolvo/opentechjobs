@@ -12870,3 +12870,26 @@ mednet.com
 palmstreet.de
 qontext.io
 reflexai.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+sageox.com
+sanctuary.com
+sf-tensor.com
+skynrg.com
+spotlight.com
+tailwind.com
+vorto.io
+zus.ai
+acquisity.ai
+accurant.com
+alaska.net
+behaviorlive.com
+bgcop.org
+helloproducts.com
+savant.com
+wayoutconsulting.com
+istrallc.com
+betterbusinessbureauofaustin.com
+creative.ai
+altaresourcetechnologiesinc.com
+ansabiotechnologies.com

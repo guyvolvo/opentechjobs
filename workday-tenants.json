@@ -26578,5 +26578,195 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-21"
+ },
+ {
+  "domain": "alchemy.com",
+  "tenant": "alchemy",
+  "wd": "wd1",
+  "site": "Alchemy",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "angc.com",
+  "tenant": "angc",
+  "wd": "wd5",
+  "site": "ANGC",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "athora.com",
+  "tenant": "athora",
+  "wd": "wd3",
+  "site": "athora-careers",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "barnard.myworkdayjobs.com",
+  "tenant": "barnard",
+  "wd": "wd1",
+  "site": "Faculty",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "cisecurity.com",
+  "tenant": "cisecurity",
+  "wd": "wd1",
+  "site": "CIS_External_Career_Site",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "fcm.com",
+  "tenant": "fcm",
+  "wd": "wd10",
+  "site": "fcm",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "fhlbatl.com",
+  "tenant": "fhlbatl",
+  "wd": "wd1",
+  "site": "fhlbatl",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "gcatx.org",
+  "tenant": "gcatx",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "gtefinancial.org",
+  "tenant": "gtefinancial",
+  "wd": "wd1",
+  "site": "GTE_Financial_Career",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "haverford.org",
+  "tenant": "haverford",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "mundipharma.com",
+  "tenant": "mundipharma",
+  "wd": "wd3",
+  "site": "external",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "pbk.com",
+  "tenant": "pbk",
+  "wd": "wd5",
+  "site": "LEAF",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "redaptive.com",
+  "tenant": "redaptive",
+  "wd": "wd12",
+  "site": "Redaptive-Careers",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "resurgent.com",
+  "tenant": "resurgent",
+  "wd": "wd1",
+  "site": "Resurgent",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "scottishwater.com",
+  "tenant": "scottishwater",
+  "wd": "wd3",
+  "site": "External_Careers",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "taxwell.com",
+  "tenant": "taxwell",
+  "wd": "wd1",
+  "site": "TaxwellCareers",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "verawholehealth.com",
+  "tenant": "verawholehealth",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "wehi.com",
+  "tenant": "wehi",
+  "wd": "wd3",
+  "site": "broadbean_external",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "wellcome.org",
+  "tenant": "wellcome",
+  "wd": "wd3",
+  "site": "Wellcome",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
