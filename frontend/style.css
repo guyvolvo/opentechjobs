@@ -3353,44 +3353,71 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 
 /* Account page.
 
-   Two columns on the board's own grid rather than a 720px reading
-   column. Measured before this: 720px of a 1600px window, 45% used,
-   with four identically sized 13px headings in it, so nothing led and
-   most of the screen was empty. What you came here to do is on the
-   left, who you are is on the right, and the one band that takes
-   something away is full width at the bottom behind its own rule. */
-.account-page { padding-left: 0; padding-right: 0; }
+   The nav opens a section rather than scrolling to one, so exactly one
+   is on screen at a time and the page has no length to get lost in.
+   Above 960px the nav and the open section are one group, centred in
+   the window rather than spread to the gutters: a settings screen that
+   ran the full width of an ultra-wide monitor put its nav and its form
+   a metre apart. Below 960px the nav is the whole screen and opening a
+   section replaces it, with Back to come out again.
+
+   Before this the page was a 720px column pinned to the left of a
+   1600px window, 45% of the width, with four sections under four
+   identical 13px headings. */
 /* .workspace is itself the board's two-column grid, so a page that puts
    one .section in it gets the Market Stats column reserved beside it
-   and never filled. That column is where a third of this page's width
-   was going. */
+   and never filled. Without this the group below centres inside that
+   leftover column rather than inside the window. */
 .workspace-solo { grid-template-columns: 1fr; }
+/* .section ends with a rule across the whole window, which is right on a
+   page whose content is also that wide. Here it drew a full-width line
+   under a 1120px group and then nothing, so the page looked like it had
+   lost its second half. There is no footer under it to divide from. */
+.section.account-section { border-bottom: 0; padding-bottom: 64px; }
+.account-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: 0;
+  padding-right: 0;
+}
 .account-layout {
   display: grid;
-  /* The same shape as .workspace: a flexible main column beside a fixed
-     one that stops growing, so the extra width at ultra-wide goes to
-     the content instead of stretching the sidebar. */
-  grid-template-columns: clamp(200px, 17vw, 240px) minmax(0, 1fr);
+  grid-template-columns: clamp(210px, 17vw, 260px) minmax(0, 1fr);
+  /* The name and the reader run across the top of both columns and are
+     centred there, by request. The nav and the open section start level
+     underneath. */
   grid-template-areas:
-    "id   main"
+    "id   id"
     "nav  main";
-  /* The nav's row has to be the tall one. A sticky grid item can only
-     travel inside its own grid area, so giving the second row 1fr is
-     what lets the nav ride down the length of the content beside it. */
   grid-template-rows: auto 1fr;
-  column-gap: var(--gutter);
 }
 /* display on a class beats the user agent's [hidden], which is how the
    signed-out page would otherwise render the whole account under the
    sign-in dialog. Same trap as .auth-email-form[hidden] above. */
 .account-layout[hidden] { display: none; }
-.account-main { grid-area: main; min-width: 0; }
+.account-page > .section-title { text-align: center; }
+.account-main {
+  grid-area: main;
+  min-width: 0;
+  padding-left: var(--gutter);
+  /* The one line that makes the pair read as a box. The same quiet
+     divider the job table puts between rows, not a full ink rule: this
+     separates two halves of one panel, it does not end a section. */
+  border-left: var(--rule) solid var(--grey-line);
+  /* So the divider still has a length behind a short section. */
+  min-height: 440px;
+}
 
-/* The page's own nav. It names the four sections below and nothing the
-   topbar already carries, and it stays quieter than the content it
-   points at: no icons, no fill, one tinted row for where you are. */
-.account-nav { grid-area: nav; min-width: 0; align-self: start; }
-.account-id { grid-area: id; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+/* The page's own nav: four buttons, each its own box, spaced apart. */
+.account-nav { grid-area: nav; min-width: 0; padding-right: var(--gutter); }
+.account-id {
+  grid-area: id;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
 .account-id-mark .hero-avatar { width: 36px; height: 36px; font-size: 15px; }
 .account-email {
   margin: 0;
@@ -3402,85 +3429,41 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   white-space: nowrap;
 }
 
-/* Above the breakpoint the .seg control stands on end: the group's own
-   border and its cell dividers come off, and each cell becomes a full
-   row with its count pushed to the far side. */
-.account-nav-list { flex-direction: column; border: 0; border-radius: 0; width: 100%; }
+.account-nav-list { display: flex; flex-direction: column; gap: 10px; }
 .account-nav-link {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  height: 34px;
-  border-right: 0;
-  border-radius: 4px;
-  font-weight: 400;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 14px;
+  border: 1.5px solid var(--black);
+  border-radius: 14px;
+  background: var(--white);
   color: var(--black);
+  font-family: var(--font-ui);
+  font-size: 13px;
   text-decoration: none;
+  cursor: pointer;
 }
+.account-nav-link:hover { background: var(--hover-bg); }
+.account-nav-link:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 .account-nav-count { color: var(--grey); font-variant-numeric: tabular-nums; }
-/* Where you are, in the same tint the board gives the row whose listing
-   is open. A filled ink row at this width read as the loudest thing on
-   the page, which is the one thing a local nav must not be. */
-.seg-btn.account-nav-link.active {
+/* Which section is open, in the same tint the board gives the row whose
+   listing is open. A filled ink button read as the loudest thing on the
+   page, which is the one thing a local nav must not be. */
+.account-nav-link.active {
   background: var(--row-selected);
+  border-color: var(--green-text);
   color: var(--green-text);
   font-weight: 700;
 }
-.seg-btn.account-nav-link.active .account-nav-count { color: var(--green-text); }
-@media (min-width: 961px) {
-  .account-nav { position: sticky; top: 24px; }
-}
+.account-nav-link.active .account-nav-count { color: var(--green-text); }
 
-/* A section has to clear the sticky nav when it is scrolled to, or its
-   heading lands underneath it. */
-.account-block { scroll-margin-top: 88px; }
-
-/* Below the breakpoint the same markup is the .seg control the board
-   puts above its listings, lying down, scrolling sideways if the four
-   labels do not fit, and sticking to the top of the window so it is
-   still there once the reader is deep in the alerts form. */
-@media (max-width: 960px) {
-  /* Block, not a one-column grid. Sticky inside a grid is bounded by
-     the item's own grid area, which in a single-column stack is the
-     height of the thing itself: the strip would unstick the moment it
-     scrolled past its own 52px. In normal flow its container is the
-     whole layout and it travels the length of the page. */
-  .account-layout { display: block; }
-  .account-nav {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-  }
-  .account-nav-scroll {
-    overflow-x: auto;
-    padding: 10px 0;
-    background: var(--white);
-    border-bottom: var(--rule) solid var(--grey-line);
-    scrollbar-width: none;
-  }
-  .account-nav-scroll::-webkit-scrollbar { display: none; }
-  .account-nav-list {
-    flex-direction: row;
-    width: max-content;
-    border: 1.5px solid var(--black);
-    border-radius: 4px;
-  }
-  .account-nav-link {
-    height: 32px;
-    border-right: 1.5px solid var(--black);
-    border-radius: 0;
-    padding: 0 12px;
-  }
-  .account-nav-link:last-child { border-right: 0; }
-  .account-block:first-of-type { padding-top: 24px; }
-}
-
-/* Everything in the main column is a form or a list, and both were
-   running the full 1028px of it at desktop width: six stacked pickers
-   and a 1028px green button, all shaped for the 360px panel they were
-   written for on the board. Here they lay out the way the board's own
-   filter bar does, across the row. */
+/* Everything in the open section is a form or a list, and both ran the
+   full width of it: six stacked pickers and a full-width green button,
+   all shaped for the 360px panel they were written for on the board.
+   Here they lay out the way the board's own filter bar does. */
 .account-main .alert-create-fields {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3489,15 +3472,84 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-main .alert-create-fields > input[type="text"] { grid-column: 1 / -1; }
 .account-main .alert-create .btn { width: auto; min-width: 180px; }
 
+/* One section at a time. */
+.account-block { padding: 0 0 8px; border-top: 0; }
+.account-block:not(.is-active) { display: none; }
+.account-back { display: none; }
 
-/* Blocks rather than cards: this is a settings screen, so the reader is
-   scanning for one thing at a time and a rule between sections
-   separates them without boxing each one. */
-.account-block {
-  border-top: var(--rule) solid var(--grey-line);
-  padding: 28px 0;
+/* Rounder corners across this page, by request.
+
+   14px, which is what the sign-in dialog and the account menu already
+   use for a control on a surface that floats rather than sits in the
+   grid. Reusing that value rather than inventing a third one, and
+   scoped to this page so the board keeps the system's flat 4px. */
+.account-page .btn,
+.account-page .cv-drop,
+.account-page .cv-chip,
+.account-page .account-back,
+.account-page .badge,
+.account-page .alert-toggle,
+.account-page .ms-toggle,
+.account-page .ms-menu,
+.account-page .alert-create-fields input[type="text"],
+.account-page .alert-create-fields label.toggle { border-radius: 14px; }
+/* Opening a section, above the breakpoint only. On a phone a section is
+   a different screen rather than a panel changing beside a nav that
+   stays put, and sliding one screen over another is a transition this
+   page has no other use for. */
+@media (min-width: 961px) {
+  @keyframes account-panel-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  /* The class is only ever toggled on a change, so this runs when a
+     section opens and not again on a resize or a repaint. */
+  .account-block.is-active { animation: account-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1); }
 }
-.account-block:first-of-type { border-top: none; padding-top: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .account-block.is-active { animation: none; }
+}
+
+@media (max-width: 960px) {
+  /* The nav is the screen, and a section replaces it. Narrow enough to
+     stay a menu rather than four bars across a tablet. */
+  .account-page { max-width: 460px; }
+  .account-layout { display: block; }
+  .account-id { padding-right: 0; }
+  .account-nav { padding-right: 0; }
+  .account-main { padding-left: 0; border-left: 0; min-height: 0; }
+  .account-nav-list { gap: 12px; }
+  .account-nav-link { height: 56px; }
+  /* The two states. Nothing animates between them: a section is a
+     different screen, not a drawer. */
+  .account-layout:not(.section-open) .account-main { display: none; }
+  .account-layout.section-open .account-nav,
+  .account-layout.section-open .account-id { display: none; }
+  .account-page.section-open > .section-title { display: none; }
+  .account-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    margin-bottom: 14px;
+    padding: 0 12px 0 8px;
+    border: var(--rule) solid var(--black);
+    border-radius: 4px;
+    background: var(--white);
+    color: var(--black);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .account-back:hover { background: var(--black); color: var(--white); }
+  .account-back:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+  /* Two across at tablet width, one per row on a phone: a 4-character
+     picker label in a third of 320px is not a control. */
+  .account-main .alert-create-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .account-main .alert-create .btn { width: 100%; }
+}
+
 .account-block-title {
   margin: 0 0 6px;
   /* Display / Section Title at its 24px step, the one the Statistics
@@ -3536,12 +3588,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-danger .account-block-note { margin-bottom: 0; }
 .account-danger .account-actions { margin-top: 4px; }
 
-@media (max-width: 960px) {
-  /* Two across at tablet width, one per row on a phone: a 4-character
-     picker label in a third of 320px is not a control. */
-  .account-main .alert-create-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .account-main .alert-create .btn { width: 100%; }
-}
 @media (max-width: 640px) {
   .account-main .alert-create-fields { grid-template-columns: 1fr; }
   .cv-drop { padding: 24px 16px; }

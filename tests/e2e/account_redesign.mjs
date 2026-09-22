@@ -81,7 +81,11 @@ for (const [name, opts, dark] of shots) {
       nav: r(".account-nav"),
       navLinks: [...document.querySelectorAll(".account-nav-link")]
         .map((a) => `${a.textContent.trim()}${a.classList.contains("active") ? "*" : ""}:${Math.round(a.getBoundingClientRect().height)}`),
-      navScrollable: (() => { const e = document.querySelector(".account-nav-scroll"); return e ? e.scrollWidth > e.clientWidth : null; })(),
+      openPanels: [...document.querySelectorAll(".account-block")]
+        .filter((e) => e.offsetParent).map((e) => e.id),
+      backShown: !!document.getElementById("account-back")?.offsetParent,
+      pageBox: (() => { const e = document.querySelector(".account-page").getBoundingClientRect();
+        return { left: Math.round(e.left), right: Math.round(window.innerWidth - e.right), w: Math.round(e.width) }; })(),
       wide: [...document.querySelectorAll("#account-body *")]
         .filter((e) => e.getBoundingClientRect().right > window.innerWidth + 1)
         .slice(0, 6).map((e) => `${e.tagName}.${e.className}`),

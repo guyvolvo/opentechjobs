@@ -201,89 +201,72 @@ function wireProfile() {
   });
 }
 
-// The page's own nav. Anchors, not routes: every section is already on
-// the page and an alert half-edited in one of them should survive a
-// click on another, which a route change would not allow. The hash is
-// kept current so a link to /account#alerts opens there.
+// The page's own nav. It opens a section rather than scrolling to one,
+// so the page is never longer than the thing being read.
+//
+// Two shapes, one state. On a wide screen the nav is always there and
+// exactly one section is open beside it. On a phone the nav is the
+// whole screen until a section is opened, and Back closes it again,
+// which is why the open section can be nothing at all below 960px and
+// never can above it.
 function wireAccountNav() {
-  const links = [...document.querySelectorAll(".account-nav-link")];
-  const sections = links
-    .map((a) => ({ link: a, el: document.querySelector(a.getAttribute("href")) }))
-    .filter((s) => s.el);
-  if (!sections.length) return;
+  const layout = $("account-body");
+  const page = document.querySelector(".account-page");
+  const back = $("account-back");
+  const panels = [...document.querySelectorAll(".account-nav-link")]
+    .map((link) => ({ link, id: link.getAttribute("href").slice(1), el: document.querySelector(link.getAttribute("href")) }))
+    .filter((p) => p.el);
+  if (!panels.length) return;
 
-  let current = null;
-  const setActive = (el) => {
-    if (el === current) return;
-    current = el;
-    sections.forEach((s) => s.link.classList.toggle("active", s.el === el));
+  const narrow = () => window.matchMedia("(max-width: 960px)").matches;
+  let open = null;
+
+  const paint = () => {
+    panels.forEach((p) => {
+      p.el.classList.toggle("is-active", p.id === open);
+      p.link.classList.toggle("active", p.id === open);
+      p.link.setAttribute("aria-current", p.id === open ? "true" : "false");
+    });
+    layout.classList.toggle("section-open", !!open);
+    page.classList.toggle("section-open", !!open);
   };
 
-  const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  // A click has to outrank the measurement below while the scroll it
-  // started is still running, or on a short page the last section is
-  // already on screen when the reader arrives and lights up instead of
-  // the one they asked for.
-  let ignoreSpyUntil = 0;
-  const goTo = (s) => {
-    // replaceState rather than setting location.hash: the hash jumps
-    // first and the smooth scroll then runs from the wrong place, and
-    // on a phone the jump lands under the sticky nav.
-    history.replaceState(null, "", s.link.getAttribute("href"));
-    s.el.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
-    setActive(s.el);
-    ignoreSpyUntil = Date.now() + (smooth ? 900 : 100);
-  };
-
-  sections.forEach((s) => s.link.addEventListener("click", (e) => {
-    e.preventDefault();
-    goTo(s);
-  }));
-
-  // Which section the reader is actually in: whichever one covers the
-  // most of the window right now.
-  //
-  // The obvious rule, the last heading whose top has crossed a line
-  // near the top of the window, is wrong at the foot of this page. The
-  // alerts form is tall enough that at full scroll its own heading is
-  // already below the line, so the nav claimed Saved listings while the
-  // reader was looking at Account. Measured, not guessed: 1440x900,
-  // scrolled to the end. Area has no such blind spot, and it needs no
-  // special case for a last section too short to reach the line.
-  let queued = false;
-  const spy = () => {
-    queued = false;
-    if (Date.now() < ignoreSpyUntil) return;
-    const h = window.innerHeight;
-    let found = sections[0].el;
-    let best = -1;
-    for (const s of sections) {
-      const r = s.el.getBoundingClientRect();
-      const seen = Math.min(r.bottom, h) - Math.max(r.top, 0);
-      if (seen > best) { best = seen; found = s.el; }
+  // The hash is the section, so a link to /account#alerts opens there
+  // and the browser's own Back walks out of a section on a phone the
+  // same way the button does.
+  const show = (id, record) => {
+    open = id;
+    paint();
+    if (record) {
+      const url = id ? "#" + id : location.pathname;
+      if (history.state && history.state.acct === id) history.replaceState({ acct: id }, "", url);
+      else history.pushState({ acct: id }, "", url);
     }
-    setActive(found);
+    window.scrollTo(0, 0);
   };
-  const soon = () => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(spy);
-  };
-  addEventListener("scroll", soon, { passive: true });
-  addEventListener("resize", soon, { passive: true });
-  // The sections are wired before their contents arrive, and at that
-  // moment the alerts form is the tallest thing on the page, so the
-  // first measurement named Alerts on a page sitting at the top. Every
-  // load changes a section's height, so watching the heights is the
-  // one hook that covers all of them without each loader knowing about
-  // the nav. spy only reads, so this cannot feed itself.
-  new ResizeObserver(soon).observe(document.querySelector(".account-main"));
 
-  // A link into a section, followed before the sections had any content
-  // in them. Scrolling now would land short, so it waits a frame.
-  const landing = sections.find((s) => s.link.getAttribute("href") === location.hash);
-  if (landing) requestAnimationFrame(() => goTo(landing));
-  else spy();
+  panels.forEach((p) => p.link.addEventListener("click", (e) => {
+    e.preventDefault();
+    show(p.id, true);
+  }));
+  back.addEventListener("click", () => show(null, true));
+
+  addEventListener("popstate", () => {
+    const id = location.hash.slice(1);
+    open = panels.some((p) => p.id === id) ? id : null;
+    if (!open && !narrow()) open = panels[0].id;
+    paint();
+  });
+
+  // Coming back across the breakpoint from the phone's menu, where
+  // nothing is open, into a layout that has no menu to show.
+  addEventListener("resize", () => {
+    if (!open && !narrow()) show(panels[0].id, false);
+  }, { passive: true });
+
+  const asked = location.hash.slice(1);
+  const landing = panels.find((p) => p.id === asked);
+  show(landing ? landing.id : (narrow() ? null : panels[0].id), false);
 }
 
 // Alerts are app.js's own renderAlertsList and wireAlertCreateForm,

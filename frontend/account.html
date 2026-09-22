@@ -59,7 +59,7 @@
   </div>
 
   <div class="workspace workspace-solo">
-    <section class="section">
+    <section class="section account-section">
       <div class="container account-page">
         <h2 class="section-title">Account</h2>
 
@@ -91,32 +91,36 @@
          </div>
         </div>
 
-        <!-- Two columns, the same grid the board uses: what you came to
-             do on the left, who you are on the right. Below 960px they
-             stack, identity card first and the delete band last. -->
+        <!-- One section at a time, not a scrolling page: the nav opens
+             the section, it does not point at it. Above 960px the nav
+             sits beside the open section and the pair is one centred
+             group; below it the nav is the whole screen and opening a
+             section replaces it, with Back to come out again. -->
         <div id="account-body" class="account-layout" hidden>
 
-          <!-- The page's own nav, not a second global one: it names the
-               four sections below and nothing that already lives in the
-               topbar. A sidebar beside the content above 960px, a row of
-               the board's own .seg control above it below that. -->
           <div class="account-id">
             <div class="account-id-mark" id="account-avatar"></div>
             <p class="account-email" id="account-email"></p>
           </div>
 
+          <!-- The page's own nav, not a second global one: it names the
+               four sections and nothing the topbar already carries. -->
           <nav class="account-nav" aria-label="Account sections">
-            <div class="account-nav-scroll">
-              <div class="account-nav-list seg">
-                <a class="seg-btn account-nav-link" href="#cv">CV matching<span class="account-nav-count" id="stat-skills">0</span></a>
-                <a class="seg-btn account-nav-link" href="#saved">Saved listings<span class="account-nav-count" id="stat-saved">0</span></a>
-                <a class="seg-btn account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts">0</span></a>
-                <a class="seg-btn account-nav-link" href="#settings">Account</a>
-              </div>
+            <div class="account-nav-list">
+              <a class="account-nav-link" href="#cv">CV matching<span class="account-nav-count" id="stat-skills">0</span></a>
+              <a class="account-nav-link" href="#saved">Saved listings<span class="account-nav-count" id="stat-saved">0</span></a>
+              <a class="account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts">0</span></a>
+              <a class="account-nav-link" href="#settings">Account</a>
             </div>
           </nav>
 
           <div class="account-main">
+            <!-- Phone only. On a wide screen the nav never goes away, so
+                 there is nothing to come back to. -->
+            <button class="account-back" id="account-back" type="button">
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 2.5 4.5 8 10 13.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Back
+            </button>
             <section class="account-block" id="cv">
               <h3 class="account-block-title">CV matching</h3>
               <p class="account-block-note">The file is read in this tab and never uploaded. Only the skills you save reach the server, and they are what Best matches sorts the board by.</p>
