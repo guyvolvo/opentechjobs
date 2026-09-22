@@ -26768,5 +26768,145 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "aeso.com",
+  "tenant": "aeso",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "aesop.io",
+  "tenant": "aesop",
+  "wd": "wd3",
+  "site": "aesopcareers",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "aegislondon.com",
+  "tenant": "aegislondon",
+  "wd": "wd3",
+  "site": "Careers",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "bowens.ai",
+  "tenant": "bowens",
+  "wd": "wd105",
+  "site": "TT",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "comade.net",
+  "tenant": "comade",
+  "wd": "wd103",
+  "site": "CoMade_External",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "equinor.com",
+  "tenant": "equinor",
+  "wd": "wd3",
+  "site": "EQNR",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "heartlandhomeservices.com",
+  "tenant": "heartlandhomeservices",
+  "wd": "wd5",
+  "site": "Church",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "lvvwd.com",
+  "tenant": "lvvwd",
+  "wd": "wd1",
+  "site": "LVVWDWaterJobs",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "maxon.com",
+  "tenant": "maxon",
+  "wd": "wd103",
+  "site": "MAXO",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "medifastinc.com",
+  "tenant": "medifastinc",
+  "wd": "wd108",
+  "site": "Medifast",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "pfm.myworkdayjobs.com",
+  "tenant": "pfm",
+  "wd": "wd5",
+  "site": "PFM-EX",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "pgahq.com",
+  "tenant": "pgahq",
+  "wd": "wd1",
+  "site": "PGAHQ",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "therapybrands.com",
+  "tenant": "therapybrands",
+  "wd": "wd1",
+  "site": "EnsoraHealth",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "valmar.com",
+  "tenant": "valmar",
+  "wd": "wd105",
+  "site": "External",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
