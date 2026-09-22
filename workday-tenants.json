@@ -27748,5 +27748,115 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "talentmanagementsolution.com",
+  "tenant": "talentmanagementsolution",
+  "wd": "wd3",
+  "site": "JonasSoftwareUSA",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "ancestry.org",
+  "tenant": "ancestry",
+  "wd": "wd501",
+  "site": "Careers",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "gormanusa.com",
+  "tenant": "gormanusa",
+  "wd": "wd501",
+  "site": "Gorman",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "patagonia.com",
+  "tenant": "patagonia",
+  "wd": "wd503",
+  "site": "PWCareers",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "ryan.myworkdayjobs.com",
+  "tenant": "ryan",
+  "wd": "wd1",
+  "site": "Students-Graduates",
+  "jobs_seen": 27,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "etsy.myworkdayjobs.com",
+  "tenant": "etsy",
+  "wd": "wd5",
+  "site": "Depop_Careers",
+  "jobs_seen": 25,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "sekologistics.com",
+  "tenant": "sekologistics",
+  "wd": "wd503",
+  "site": "Seko_Logistics",
+  "jobs_seen": 25,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "firstpremier.com",
+  "tenant": "firstpremier",
+  "wd": "wd503",
+  "site": "PREMIER_Careers",
+  "jobs_seen": 23,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "esswd.com",
+  "tenant": "esswd",
+  "wd": "wd501",
+  "site": "External",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "lgtcp.com",
+  "tenant": "lgtcp",
+  "wd": "wd502",
+  "site": "lgtcpcurrentvacancies",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "atltechnology.com",
+  "tenant": "atltechnology",
+  "wd": "wd501",
+  "site": "ATL",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
