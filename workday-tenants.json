@@ -27928,5 +27928,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "msreinsurance.com",
+  "tenant": "msreinsurance",
+  "wd": "wd502",
+  "site": "MSReinsuranceCareers",
+  "jobs_seen": 6,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "barnhillcontracting.com",
+  "tenant": "barnhillcontracting",
+  "wd": "wd503",
+  "site": "Barnhill_Opportunities",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "onedigital.myworkdayjobs.com",
+  "tenant": "onedigital",
+  "wd": "wd504",
+  "site": "Centro",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
