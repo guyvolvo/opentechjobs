@@ -16970,7 +16970,6 @@ pence.net
 thompsons.law
 zincwork.com
 driverondemand.co
-driverondemand.co
 emeraldtransformer.com
 naomiandjacks.org.uk
 rangeline.com
@@ -16981,7 +16980,6 @@ joe.com
 krestonreeves.com
 pricebrotherskc.com
 sabiogroup.com
-vintage.com
 vintage.com
 greenergy.com
 hughbaird.ac.uk
@@ -17017,7 +17015,6 @@ gembaadvantage.com
 gitwit.com
 ifxpayments.com
 invictuscp.com
-invictuscp.com
 kwi.com
 mainstreetanesthesia.com
 ovme.com
@@ -17047,7 +17044,6 @@ mosaicvet.com
 moxbank.com
 peninsula360.com
 peverelcourtcare.co.uk
-seras.co.uk
 taxalchemy.com
 theameswellhotel.com
 arthurcox.com
@@ -17079,7 +17075,6 @@ pflugerarchitects.com
 sandwell.ac.uk
 swagelok.com
 transformuk.com
-epuki.co.uk
 adamarchitecture.com
 americanexcelsior.com
 apd.com
@@ -17167,13 +17162,10 @@ davidchipperfield.com
 freeda.org.je
 fs-elliott.com
 fulwell73.com
-fulwell73.com
 gagosian.com
 gdenergyproducts.com
 hookelehomecare.com
 igegroup.com
-ambition.org.uk
-freeda.org.je
 jesus.ox.ac.uk
 londonyouth.org
 mojomortgages.com
@@ -17252,9 +17244,7 @@ clearlyrated.com
 clearviewresearch.co.uk
 cnps.org
 compassionuk.org
-acrobat-talent.com
 cvtechnology.com
-desteia.com
 digital.je
 digital-science.com
 dofe.org
@@ -17272,3 +17262,27 @@ iuoelocal793.org
 karpstrategies.com
 uk.loccitane.com
 magd.ox.ac.uk
+# Defence and aerospace primes, added by hand 2026-09-22 after a check
+# found the board carrying Boeing, Leidos, Elbit and IAI and none of the
+# rest. Not a discovery gap: none of these was ever in this file, so
+# nothing had tried them.
+#
+# Two are already known to the Workday side and landing nothing.
+# workday-tenants.json holds RTX as tenant "globalhr", site
+# REC_RTX_Ext_Gateway, 4,687 jobs seen, and Northrop as tenant "ngc",
+# site Northrop_Grumman_External_Site, 3,784 seen. Both show zero on the
+# board, which is the stranded-tenant shape fixed in e3bd1a7; they are
+# listed here so the domain is right whichever route reaches them first.
+#
+# gd.com and generaldynamics.com answer 403 to us. Expect a MISS rather
+# than a board: General Dynamics runs iCIMS, which has no fetcher here
+# yet. They are listed so the miss is recorded against the real domain.
+rtx.com
+lockheedmartin.com
+northropgrumman.com
+ngc.com
+gd.com
+generaldynamics.com
+baesystems.com
+l3harris.com
+rafaelsystems.com
