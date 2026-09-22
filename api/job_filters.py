@@ -14,7 +14,7 @@ import re
 
 # IL_KEYWORDS moved to countries.py, where the resolver that has to
 # agree with it lives. Re-exported so every caller is unchanged.
-from countries import ALPHA2, IL_KEYWORDS  # noqa: F401
+from countries import ALPHA2, IL_FALSE_FRIENDS, IL_KEYWORDS  # noqa: F401
 from skills import SKILL_LABELS
 
 # Coarse, cross-company category -- complements the raw `department`
@@ -520,7 +520,15 @@ def israel_clause(places: bool) -> tuple[str, list]:
     """
     if places:
         return "(',' || COALESCE(country, '') || ',') LIKE ?", ["%,IL,%"]
-    return ("(%s)" % " OR ".join("LOWER(location) LIKE ?" for _ in IL_KEYWORDS),
+    # REPLACE, not NOT LIKE. A location can name a real Israeli office
+    # and a Beth Israel hospital in the same string, and NOT LIKE would
+    # throw the whole row away. Blanking the false friend first leaves
+    # every other keyword free to match what is left, which is exactly
+    # what countries.matches_israel does in Python.
+    haystack = "LOWER(COALESCE(location, ''))"
+    for name in IL_FALSE_FRIENDS:
+        haystack = f"REPLACE({haystack}, '{name}', ' ')"
+    return ("(%s)" % " OR ".join(f"{haystack} LIKE ?" for _ in IL_KEYWORDS),
             [f"%{kw}%" for kw in IL_KEYWORDS])
 
 

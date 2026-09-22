@@ -84,6 +84,49 @@ COUNTRY_NAMES = {
 # Reported live: country=IL returned 662 where israel_only returned
 # 2,464. job_filters re-exports it, so every existing caller is
 # unchanged.
+# Places whose name contains an Israeli keyword and are not in Israel.
+#
+# Reported live: 1,075 listings at bilh.myworkdayjobs.com, the Beth
+# Israel Lahey Health hospital network, were counted as Israeli because
+# the bare keyword "israel" matched "Beth Israel Deaconess Medical
+# Center" sitting in the location string. That is 1,075 of what the
+# board called 7,591 Israeli jobs, so the real figure was about 6,496
+# and the headline number was overstated by a sixth.
+#
+# Checked before the keywords rather than after, and matched on the
+# phrase, so a genuine Israeli location is untouched: nothing here
+# removes "Israel" on its own, only a longer name that happens to
+# contain it.
+#
+# This is a list of names, not a rule, because there is no rule. "Beth
+# Israel" is a hospital in Boston and "Israel Discount Bank" is an
+# Israeli bank with a New York branch. Only the ones actually seen in
+# real location strings go here.
+IL_FALSE_FRIENDS = ("beth israel",)
+
+
+def _without_false_friends(location: str) -> str:
+    low = location.lower()
+    for name in IL_FALSE_FRIENDS:
+        if name in low:
+            # Case-insensitively, keeping the rest of the string intact
+            # so every other segment still reads the way it was written.
+            location = re.sub(re.escape(name), " ", location, flags=re.IGNORECASE)
+    return location
+
+
+def matches_israel(location: str | None) -> bool:
+    """Whether this location names somewhere in Israel.
+
+    The one question israel_only and country=IL both have to answer the
+    same way. See IL_KEYWORDS, and IL_FALSE_FRIENDS for why it is not
+    just a substring search.
+    """
+    if not location:
+        return False
+    return any(kw in _without_false_friends(location).lower() for kw in IL_KEYWORDS)
+
+
 IL_KEYWORDS = [
     "israel", "tel aviv", "tel-aviv", "telaviv", "herzliya", "raanana", "ra'anana",
     "rehovot", "netanya", "haifa", "jerusalem", "beer sheva", "beersheva",
@@ -346,6 +389,11 @@ def countries_of(location: str | None) -> list[str]:
     """
     if not location:
         return []
+    # Before anything reads a segment. "Beth Israel Deaconess Medical
+    # Center" is one segment and _segment_country finds the country name
+    # inside it, so the keyword fallback further down never gets a say.
+    # See IL_FALSE_FRIENDS.
+    location = _without_false_friends(location)
     out: list[str] = []
     # Semicolons separate whole locations; everything else separates the
     # parts of one. Both are split the same way here because a country
@@ -393,7 +441,7 @@ def countries_of(location: str | None) -> list[str]:
     # before the cap below. A posting listing a dozen offices must still
     # be findable under Israel, which is the one country this board
     # cannot afford to be approximate about.
-    if "IL" not in out and any(kw in location.lower() for kw in IL_KEYWORDS):
+    if "IL" not in out and matches_israel(location):
         out.insert(0, "IL")
     if not out:
         m = _PHRASE_RE.search(_norm(location))

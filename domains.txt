@@ -693,8 +693,8 @@ connecteam.com
 wolt.com
 chainalysis-careers.com
 semperis.com
-CYE.com
-Irregular.com
+cye.com
+irregular.com
 airwallex.com
 weloglobal.com
 zafran-security.com
@@ -713,7 +713,7 @@ snappy.com
 tzafon.com
 coinbase.com
 2k.com
-ServiceNow.com
+servicenow.com
 coface.com
 abbvie.com
 1global.com
@@ -5483,8 +5483,7 @@ passportcard.com
 hypernative.io
 arberobotics.com
 linx.security
-4Manalytics.com
-clover_security.com
+4manalytics.com
 pango.io
 deltagalil.com
 stampli.com
@@ -5516,7 +5515,6 @@ quicklizard.com
 wsc-sports.com
 thetaray.com
 mineos.ai
-a_security.com
 walmart.com
 zeroport.com
 flexor.ai
@@ -5562,7 +5560,7 @@ outerbox.com
 halon.com
 chaoslabs.com
 riplo.ai
-i4DM.com
+i4dm.com
 fusion92.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
@@ -7115,8 +7113,6 @@ aikidosecurity.com
 nominal.fr
 8fig.co
 minimus.com
-winn_ai.com
-orchid_security.com
 liveu.fr
 stream.security
 buyme.com
@@ -7801,7 +7797,6 @@ vasco.com
 unicourt.co
 tolken.io
 shva.fr
-flo_optics.com
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 afsenergy.com
@@ -8099,7 +8094,7 @@ spherecast.ai
 onebeat.io
 morphisec.com
 mcfarlandcity.org
-Insycle.com
+insycle.com
 3vc.com
 aimms.com
 augmedit.com
@@ -8169,7 +8164,6 @@ nsogroup.com
 paragon-solutions.invalid
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
-orbit_communication_systems.com
 allcloud.io
 tegna.com
 corporate.365scores.com
@@ -10563,12 +10557,18 @@ goalcast.com
 # Common Crawl discovery batch (merge_discovered_batch.py)
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
-huzzle.com
-volgapartners.com
-visit.org
-oikonomakislaw.com
-fpm.global
-sigenergy.com
+huzzle.com
+
+volgapartners.com
+
+visit.org
+
+oikonomakislaw.com
+
+fpm.global
+
+sigenergy.com
+
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 gensyn.ai
@@ -16816,7 +16816,6 @@ compasshealthnetwork.org
 ymcaboston.org
 mountainwarehouse.com
 sunking.com
-sunking.com
 impulsespace.com
 earlybirdtutors.com
 innovetivepetcare.com
@@ -16839,7 +16838,6 @@ mbhealthcare.com
 foxconnwiofficial.com
 auroraer.com
 astranahealth.com
-nightowl.consulting
 nightowl.consulting
 asc-es.com
 natcen.ac.uk
@@ -16868,12 +16866,10 @@ alcumus.com
 reconomy.com
 intermedia.com
 cfc.com
-cfc.com
 scorpiogroup.net
 tabby.ai
 continentalserves.com
 10kai.com
-esland.co.uk
 esland.co.uk
 headkount.com
 
@@ -16917,10 +16913,8 @@ victors.com
 caturus.com
 workstaff360.com
 twinings.co.uk
-twinings.co.uk
 carma.com.au
 trinidadbenham.com
-advita.com
 advita.com
 yuenergy.co.uk
 acorntraining.co.uk
@@ -16934,7 +16928,6 @@ lakesidetrucks.com
 monkeypuzzledaynurseries.com
 migso-pcubed.com
 woodrodgers.com
-bluemantis.com
 bluemantis.com
 confluence.com
 safeguardlaw.com
