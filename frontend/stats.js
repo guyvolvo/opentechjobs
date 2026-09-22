@@ -96,7 +96,7 @@ const LABELS = {
   seniority: { intern: "Intern", junior: "Junior", mid: "Mid", senior: "Senior", staff: "Staff", principal: "Principal", lead: "Lead", manager: "Manager", director: "Director", exec: "Executive" },
   workplace: { remote: "Remote", hybrid: "Hybrid", onsite: "On site" },
   salary_source: { disclosed: "Disclosed by employer", table: "Estimated (Israeli table)", estimated: "Estimated (learned)" },
-  ats: { greenhouse: "Greenhouse", ashby: "Ashby", smartrecruiters: "SmartRecruiters", workable: "Workable", lever: "Lever", comeet: "Comeet", workday: "Workday", recruitee: "Recruitee", personio: "Personio", teamtailor: "Teamtailor", jazzhr: "JazzHR", jsonld: "Career page" },
+  ats: { greenhouse: "Greenhouse", ashby: "Ashby", smartrecruiters: "SmartRecruiters", workable: "Workable", lever: "Lever", comeet: "Comeet", workday: "Workday", recruitee: "Recruitee", personio: "Personio", teamtailor: "Teamtailor", jazzhr: "JazzHR", pinpoint: "Pinpoint", jsonld: "Career page" },
 };
 
 const $ = (id) => document.getElementById(id);

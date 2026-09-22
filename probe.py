@@ -1583,6 +1583,93 @@ def f_teamtailor(sess, token):
     return out
 
 
+# Pinpoint. A guessable subdomain serving its whole board as one JSON
+# document, no auth, no paging: the largest board found while measuring
+# this (trilongroup) returns 919 postings in a single response.
+#
+# Unknown subdomains 404 with an HTML page, so an empty `data` list is a
+# real customer between hires rather than the SmartRecruiters trap of a
+# 200 for any string. Ground-truthed against impulsespace (191 postings,
+# US), mountainwarehouse and nfamilyclub (UK), and mourant, whose board
+# is genuinely empty.
+#
+# Pinpoint is strongest where we are weakest: 676 of the 1,401 tenants
+# recovered from the Wayback index answer with open roles, 19,514
+# postings between them, and the weight of them is UK, Ireland and the
+# Channel Islands.
+#
+# Two things the payload does not have. There is no posted date of any
+# kind, only a `deadline_at` for the closing date, so posted_at is left
+# None and first_seen carries the age the same way it does for Teamtailor
+# and BambooHR. And the location object has a city and a province but no
+# country, which countries.py reads out of "City, Province" for US states
+# and for "England"/"Scotland"/"Wales" -- a UK county on its own
+# ("Slough, Berkshire") names no country it knows, and lands with an
+# empty country like any other location we cannot place.
+PINPOINT_BODY_FIELDS = ("description", "key_responsibilities",
+                        "skills_knowledge_expertise", "benefits")
+
+
+def _pinpoint_body(j: dict) -> str | None:
+    """The posting's prose, which Pinpoint splits across four fields with
+    employer-chosen headings ("Minimum Qualifications", "Preferred Skills
+    and Experience"). Joined under those headings rather than only taking
+    `description`, because the requirements a skills match needs live in
+    the other three."""
+    parts = []
+    for name in PINPOINT_BODY_FIELDS:
+        text = _clean_text(j.get(name))
+        if not text:
+            continue
+        heading = _txt(j.get(f"{name}_header"))
+        parts.append(f"## {heading}\n{text}" if heading else text)
+    return "\n\n".join(parts)[:DESCRIPTION_MAX_CHARS] or None
+
+
+def _pinpoint_location(j: dict) -> str:
+    loc = j.get("location") or {}
+    city, province = _txt(loc.get("city")), _txt(loc.get("province"))
+    if city and province:
+        return f"{city}, {province}"
+    # `name` is the employer's own label for the office ("Berks - Slough",
+    # "DC"), which is what a reader recognises but not always a place a
+    # geocoder does. Second choice, not first.
+    return city or province or _txt(loc.get("name"))
+
+
+def _pinpoint_salary(j: dict) -> str | None:
+    """Pinpoint pre-formats the range ("$110,000 - $180,000 / year"), so
+    there is nothing to assemble. Gated on a real number being present:
+    a posting can be marked visible and still say only "Competitive",
+    which is an absence of a salary, not a salary."""
+    if not j.get("compensation_visible"):
+        return None
+    if not (j.get("compensation_minimum") or j.get("compensation_maximum")):
+        return None
+    return _txt(j.get("compensation")) or None
+
+
+def f_pinpoint(sess, token):
+    d = get_json(sess, f"https://{token}.pinpointhq.com/postings.json")
+    if not isinstance(d, dict) or not isinstance(d.get("data"), list):
+        return None
+    out = []
+    for j in d["data"]:
+        # One job can carry several postings, one per location, and the
+        # url is per posting. The posting id is the one that matches it.
+        body = _pinpoint_body(j)
+        department = ((j.get("job") or {}).get("department") or {}).get("name")
+        salary = _pinpoint_salary(j)
+        out.append(Job("pinpoint", token, _txt(j.get("id")), _txt(j.get("title")),
+                       _pinpoint_location(j), _txt(j.get("url")), None,
+                       _txt(department) or None,
+                       len(body or ""), body,
+                       workplace_type=_ATS_WORKPLACE_MAP.get(_txt(j.get("workplace_type")).lower()) or None,
+                       salary_text=salary, salary_is_estimate=False,
+                       salary_source="disclosed" if salary else None))
+    return out
+
+
 # BambooHR and Breezy. Both serve a public careers list on a guessable
 # subdomain, no auth.
 #
@@ -3013,6 +3100,7 @@ FETCHERS: dict[str, Callable] = {
     "personio": f_personio,                # 0.2%
     "jazzhr": f_jazzhr,                    # 0.1%
     "teamtailor": f_teamtailor,            # 0.0%
+    "pinpoint": f_pinpoint,                # 0.0%
     # The three below never win a guess: bamboohr and breezy serve a
     # handful of companies each and niloosoft is unguessable by
     # construction (it returns None without a request unless the token
@@ -4490,7 +4578,10 @@ def main() -> int:
         if jobs is None:
             print(f"{ats}:{token} did not return a valid board", file=sys.stderr)
             return 1
-        r = Resolution(f"{ats}:{token}", ats, token, len(jobs), 1, None, jobs)
+        # Keyword, not positional: the seventh field is `retryable`, so
+        # passing jobs by position sent every fetched board into a bool
+        # and left --show and --json printing an empty list.
+        r = Resolution(f"{ats}:{token}", ats, token, len(jobs), 1, None, jobs=jobs)
         results = [r]
     elif args.known:
         with open(args.known, encoding="utf-8") as fh:

@@ -175,6 +175,15 @@ CC_URL_PATTERNS = {
     "recruitee": "recruitee.com",
     "breezy": "breezy.hr",
     "jazzhr": "applytojob.com",
+    # Same subdomain shape, and the richest of the four. Measured
+    # 2026-09-22 over the Wayback index rather than here: 1,404 tenants,
+    # of which 676 answer with open roles and 19,519 postings between
+    # them. The weight is US and UK, not Israel, which is a trade worth
+    # making with eyes open -- 2 Israeli listings in the whole harvest.
+    # Wayback found them because Common Crawl's coverage of this host is
+    # thinner; if a run here comes back with far fewer than 1,404, that
+    # is the reason and not a bug.
+    "pinpoint": "pinpointhq.com",
     # The exception to the "guessable token" rule above, and the reason
     # it is worth making one. Comeet is what most Israeli startups
     # actually run, and no amount of token guessing reaches it: the API
@@ -190,7 +199,7 @@ CC_URL_PATTERNS = {
 # Queried with matchType=domain rather than a URL prefix, because the
 # company's token is the subdomain. CDX returns every URL under the host
 # for these, so extract_tokens does the narrowing.
-CC_DOMAIN_MATCH = frozenset({"recruitee", "breezy", "jazzhr", "workday"})
+CC_DOMAIN_MATCH = frozenset({"recruitee", "breezy", "jazzhr", "workday", "pinpoint"})
 WORKDAY_URL_RE = re.compile(
     r"https?://([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Za-z]{2}/)?([A-Za-z0-9_-]+)(?:/|\?|$)", re.I)
 # Path segments that are not a site: a job page's own prefix, the login
@@ -215,7 +224,9 @@ _TOKEN_PATTERNS = dict(EMBED_ATS_PATTERNS)
 # dropped: every tenant answers on www/api/static too.
 _TOKEN_PATTERNS.setdefault("breezy", re.compile(r"https?://([a-zA-Z0-9-]+)\.breezy\.hr"))
 _TOKEN_PATTERNS.setdefault("jazzhr", re.compile(r"https?://([a-zA-Z0-9-]+)\.applytojob\.com"))
-_NON_TENANT_SUBDOMAINS = frozenset({"www", "api", "static", "assets", "cdn", "app", "jobs", "help", "support"})
+_TOKEN_PATTERNS.setdefault("pinpoint", re.compile(r"https?://([a-zA-Z0-9-]+)\.pinpointhq\.com"))
+_NON_TENANT_SUBDOMAINS = frozenset({"www", "api", "static", "assets", "cdn", "app", "jobs", "help",
+                                    "support", "marketing-assets"})
 
 # Both halves of a Comeet board URL: /jobs/{slug}/{uid}.
 COMEET_JOB_RE = re.compile(r"comeet\.com/jobs/([A-Za-z0-9_.-]+)/([A-Za-z0-9.]+)")
@@ -567,6 +578,67 @@ def _guess_domain(token: str, sess: requests.Session) -> tuple[str, bool]:
     return f"{token}.com", False
 
 
+# Pinpoint's board page links to the employer's own site, so its domain
+# is read rather than guessed.
+#
+# _guess_domain is a good guess and still wrong often enough to matter:
+# measured over 160 merged companies it missed 39, because an ATS tenant
+# slug is a slug, not a domain. Pinpoint does not need guessing. Every
+# board page carries the company's own website in its header, its footer
+# or both, the same way Workable's directory carries it. Measured over
+# 80 random live tenants: 78 yielded a domain, and the two that did not
+# were Pinpoint's own sandbox tenant and one board with no outbound link
+# at all. Those two fall back to _guess_domain like everyone else.
+#
+# Hosts that belong to Pinpoint, to a CDN, or to a social network are
+# not the employer. Neither is a careers subdomain, which is the same
+# company one label down.
+_PINPOINT_NOT_THE_EMPLOYER = re.compile(
+    r"(?:^|[.])(?:pinpointhq[.]com|cloudfront[.]net|amazonaws[.]com|cloudinary[.]com|typekit[.]net"
+    r"|adobe[.]com|cdnfonts[.]com|jsdelivr[.]net|unpkg[.]com|cloudflare[.]com|googleapis[.]com"
+    r"|gstatic[.]com|google[.]com|doubleclick[.]net|hotjar[.]com|foresee[.]com|linkedin[.]com"
+    r"|facebook[.]com|twitter[.]com|x[.]com|instagram[.]com|youtube[.]com|tiktok[.]com|threads[.]net"
+    r"|bsky[.]app|pinterest[.][a-z.]+|snapchat[.]com|whatsapp[.]com|medium[.]com|github[.]com"
+    r"|vimeo[.]com|spotify[.]com|apple[.]com|microsoft[.]com|glassdoor[.][a-z.]+|indeed[.][a-z.]+"
+    r"|wikipedia[.]org|w3[.]org|schema[.]org|bit[.]ly)$", re.I)
+_PINPOINT_HREF_RE = re.compile(r'href="https?://([a-z0-9.-]+[.][a-z]{2,})', re.I)
+_CAREERS_SUBDOMAIN_RE = re.compile(
+    r"^(?:jobs|careers|career|apply|talent|recruitment|recruiting|hire|join|work)[.]", re.I)
+
+
+def _pinpoint_domain(sess: requests.Session, token: str) -> str | None:
+    """The employer's own domain, read off their Pinpoint board page, or
+    None when the page names nothing usable."""
+    try:
+        r = sess.get(f"https://{token}.pinpointhq.com/", timeout=15)
+    except requests.RequestException:
+        return None
+    if r.status_code != 200:
+        return None
+    hosts: dict[str, int] = {}
+    for raw in _PINPOINT_HREF_RE.findall(r.text):
+        host = raw.lower().rstrip(".")
+        if _PINPOINT_NOT_THE_EMPLOYER.search(host):
+            continue
+        host = _CAREERS_SUBDOMAIN_RE.sub("", host.removeprefix("www."))
+        hosts[host] = hosts.get(host, 0) + 1
+    if not hosts:
+        return None
+    # A company that links both si.edu and trustcareers.si.edu means the
+    # first one. Any host another candidate is a subdomain of wins.
+    for host in list(hosts):
+        for other in list(hosts):
+            if other != host and other.endswith("." + host):
+                hosts[host] += hosts.pop(other, 0)
+    slug = re.sub(r"[^a-z0-9]", "", token.lower())
+
+    def rank(host: str) -> tuple:
+        stem = re.sub(r"[^a-z0-9]", "", host.split(".")[0])
+        return (stem == slug, slug.startswith(stem) or stem.startswith(slug), hosts[host])
+
+    return max(hosts, key=rank)
+
+
 def _comeet_where(position: dict) -> str:
     """Comeet answers with a location object on most postings and a bare
     string on some, so both shapes have to read the same way here.
@@ -683,6 +755,10 @@ def verify_candidate(sess: requests.Session, ats: str, token: str,
         # Straight from the employer's own listing, so there is nothing
         # to guess and nothing for a human to second-guess.
         guessed_domain, domain_verified = known["domain"], True
+    elif ats == "pinpoint" and (site := _pinpoint_domain(sess, token)):
+        # Same standing as the directory above: the employer put this
+        # link on their own board page. See _pinpoint_domain.
+        guessed_domain, domain_verified = site, True
     else:
         guessed_domain, domain_verified = _guess_domain(token, sess)
     # Free: `jobs` is already the full list this call just fetched to
