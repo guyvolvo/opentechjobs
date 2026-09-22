@@ -349,6 +349,19 @@ grotesque-sans display face, never the reverse.
   headers, panel titles, the result count. Controls carrying label-style
   text (buttons, the view switch, chips) are 13px in Source Sans 3.
 
+- **Display / Account nav and dialog title** (400, 17px, Overused Grotesk
+  or Helvetica): three places, all of them a label that has to sit above
+  body text without becoming a heading. The account page's panel nav
+  (`.account-nav-link`), its section subtitles (`.acct-sub`) and the job
+  detail panel's title (`.job-detail-title`). 17px rather than 15px
+  because on the account page these are the only navigation on screen
+  and had to be tappable; 17px rather than 24px because 24px made a
+  four-item list the loudest thing on a mostly empty page.
+- **Display / Landing sign-off** (400, 26px, Overused Grotesk): one line,
+  the closing line above the landing page footer. Sized against the
+  footer's own 26px so it reads as a full-voice ending rather than the
+  13px caption it was.
+
 ### Named Rules
 **The Three-Voice Rule.** Helvetica (via `--font`) carries everything
 dense. Source Sans 3 (via `--font-ui`) is for controls: buttons, inputs,
@@ -442,11 +455,45 @@ All depth and grouping comes from the 2px black rule grid (metrics/panel
 cards) and from solid borders, never from a shadow standing in for
 elevation.
 
+### Two surfaces that break this, on purpose, and one that is a bug
+
+**The sign-in dialog and the landing menu carry a shadow.**
+`.signin-dialog .auth-email-form .btn` and `.hero-menu` both use a
+two-layer `rgba(0,0,0,...)` shadow. Both float over content rather than
+sitting in the rule grid, and on the landing page there is no rule grid
+for them to sit in. That is a reason, not a licence: the No-Shadow Rule
+below still holds everywhere else, and these two are named here so the
+next reader knows they were argued rather than copied in. If the landing
+page ever gains the board's rule grid, they should go.
+
+**The terminal block's green is not the board's green.** `#2fae60` on
+`#0a0a0a`, in the API example block. The page's own `--green` is a
+foliage green chosen to sit on paper, and at 4.5:1 it fails on near
+black. This is the one colour in the file picked for a dark background,
+and it is deliberately the colour a terminal uses, because the block is
+pretending to be one.
+
 ### Named Rules
 **The No-Shadow Rule.** The black rules between cards are the only depth
 cue this design uses. A shadow anywhere is a bug, not a style choice.
 
 ## Shapes
+
+Three radii, and only three. 4px is the default and carries the whole
+board. The other two exist for one surface each and are listed here so
+they are a decision rather than drift.
+
+**14px, the account page only.** Every box on `/account`: the four panel
+nav buttons on phones, the section panels, the alert-form toggles, the
+metric tiles. The page is a centred column of large, widely spaced
+blocks rather than a dense table, and at 4px those blocks read as
+offcuts of the board rather than as their own surface. Nothing outside
+`.account-page` uses it.
+
+**999px, pill controls only.** The theme toggle on the landing bar
+(`.hero-theme`) and the small count chip beside it. A pill is the shape
+a reader already reads as "this toggles", and both sit on the landing
+page where there is no table grid for a 4px box to align to.
 
 4px radius is the default for every discrete bordered box, buttons
 (`.btn`, `.job-detail-apply`, `.job-detail-star`, `.job-detail-icon-btn`),
