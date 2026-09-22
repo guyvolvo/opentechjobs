@@ -119,7 +119,7 @@
               <p class="acct-provider" id="account-provider" hidden></p>
             </div>
           </div>
-          <p class="account-lede">Manage your saved jobs, CV matching and alerts.</p>
+          <p class="account-lede">Manage your saved jobs, alerts and resume scanning.</p>
 
           <!-- The page's own nav, not a second global one: it names the
                four sections and nothing the topbar already carries. -->
@@ -127,7 +127,7 @@
             <p class="account-nav-label">Account</p>
             <div class="account-nav-list">
               <a class="account-nav-link" href="#overview">Overview</a>
-              <a class="account-nav-link" href="#cv">CV matching<span class="account-nav-count" id="stat-skills">0</span></a>
+              <a class="account-nav-link" href="#cv">Resume Scanner<span class="account-nav-count" id="stat-skills">0</span></a>
               <a class="account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts">0</span></a>
               <a class="account-nav-link" href="#saved">Saved jobs<span class="account-nav-count" id="stat-saved">0</span></a>
             </div>
@@ -190,9 +190,7 @@
             </section>
 
             <section class="account-block" id="cv">
-              <h3 class="account-block-title">CV matching</h3>
-              <p class="account-block-note">The file is read in this tab and never uploaded. Only the skills you save reach the server, and they are what Best matches sorts the board by.</p>
-
+              <h3 class="account-block-title">Resume Scanner</h3>
               <div class="cv-drop" id="cv-drop">
                 <input type="file" id="cv-file" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden />
                 <p class="cv-drop-lead">Drop a CV here</p>
@@ -218,7 +216,7 @@
                  too rather than a second implementation of the same form. -->
             <section class="account-block" id="alerts">
               <h3 class="account-block-title">Alerts</h3>
-              <p class="account-block-note">An email when a new listing matches. A board that answers one of your alerts gets re-polled every thirty minutes instead of every four hours.</p>
+              <p class="account-block-note">Set alert settings to get an email whenever a new job matching the preferences has been posted.</p>
               <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
 
               <div class="alert-create" id="alert-create">
@@ -244,7 +242,6 @@
                  could not have existed. -->
             <section class="account-block" id="saved">
               <h3 class="account-block-title">Saved jobs</h3>
-              <p class="account-block-note">Starred on any device, read live from the board. One that has since closed still appears, marked closed, because that is the part worth knowing.</p>
               <div id="saved-list"><p class="alerts-empty">Loading…</p></div>
             </section>
           </div>

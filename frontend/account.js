@@ -36,7 +36,7 @@ function setCount(key, n) {
 }
 
 // A summary, not the whole list. Forty chips made the overview mostly
-// chips; the rest are one click away in CV matching, which is where
+// chips; the rest are one click away in Resume Scanner, which is where
 // they can actually be changed.
 const TAGS_SHOWN = 7;
 
@@ -44,7 +44,7 @@ function paintSkillTags() {
   const host = $("acct-tags");
   if (!host) return;
   if (!draft.skills.length) {
-    host.innerHTML = '<span class="acct-none">No skills yet. Read a CV in CV matching.</span>';
+    host.innerHTML = '<span class="acct-none">No skills yet. Read a resume in Resume Scanner.</span>';
     return;
   }
   const rest = draft.skills.length - TAGS_SHOWN;
@@ -439,7 +439,7 @@ async function loadSaved() {
   }
   setCount("saved", ids.length);
   if (!ids.length) {
-    host.innerHTML = '<p class="alerts-empty">Nothing saved yet. Star a listing on the board and it will appear here.</p>';
+    host.innerHTML = '<p class="alerts-empty">No saved jobs yet.</p>';
     return;
   }
   let jobs = [];
