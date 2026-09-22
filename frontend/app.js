@@ -4066,7 +4066,20 @@ async function refreshPipelineStatus() {
 // and contact pages can offer sign-in too. This page says where a
 // problem is shown.
 setAuthErrorSink((msg) => showAuthError(msg));
-setAuthRenderSink(() => renderAuthState());
+setAuthRenderSink(() => {
+  renderAuthState();
+  // Signing out clears the stored skills, but the board is already
+  // running with them in memory and on screen. Reported live: log out
+  // on Best matches and the view stayed, still labelled "matching your
+  // CV", until something forced a reload.
+  //
+  // Best matches with nobody signed in has nothing to rank against, so
+  // the board falls back to the view a reader arriving fresh would get.
+  if (!getAuthTokens() && (state.sort === "match" || state.skills.length)) {
+    state.skills = [];
+    setView(state.roles === "all" ? "all" : "tech");
+  }
+});
 
 // The sign-in dialog registers its own sink while it is open, so this
 // is the fallback for an error raised with no dialog on screen: a token
