@@ -98,11 +98,7 @@
 </head>
 <body class="hero-page">
 
-  <header class="hero-bar hero-bar-head">
-    <div class="hero-bar-stack">
-      <a class="hero-bar-name" href="/">opentechjobs.org</a>
-      <a class="hero-bar-name" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">github</a>
-    </div>
+  <header class="hero-bar hero-bar-head hero-bar-bare">
     <!-- Sign in, or My Account with its menu: hero_account.js fills it
          from the same stored tokens the board and account page use.
          Hidden on a phone, where mobile_nav.js rebuilds all of this as
@@ -116,9 +112,11 @@
   <main>
     <section class="hero">
       <h1 class="hero-claim">Find your next opportunity.</h1>
-      <p class="hero-lede"><span id="lede-count">Every listing</span> read directly from company hiring systems and career sites.</p>
+      <!-- The count lives in the door now rather than in a sentence above
+           it. "all" until the stats land, so the button reads as a whole
+           phrase either way and nothing reflows into a gap. -->
       <div class="hero-actions">
-        <a class="btn hero-primary" href="/board">Search open jobs <svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="btn hero-primary" href="/board"><span>Search <span id="lede-count">all</span> open jobs</span><svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         <a class="hero-secondary" href="/api/help">Explore the API</a>
       </div>
     </section>
@@ -213,8 +211,9 @@
           item(fmt(t.companies_hiring), "companies hiring"),
           item(fmt(remote), "remote"),
         ], 12);
+        // The number inside the button: "Search 599,686 open jobs".
         const lede = document.getElementById("lede-count");
-        if (t.open_jobs) lede.textContent = `${fmt(t.open_jobs)} open jobs,`;
+        if (t.open_jobs) lede.textContent = fmt(t.open_jobs);
 
         // top_companies_logos is thirty companies, the hand-picked big tech
         // and startups first (api/hot_companies.py). Until a precompute has
