@@ -106,10 +106,28 @@ _s3 = boto3.client("s3")
 # download_file defaults to 10 concurrent 8MB parts, each buffered in
 # memory. On a snapshot this size that is the largest single thing this
 # function allocates, and it is why Max Memory Used sits near the
-# configured ceiling on any invocation that refreshes. Two parts is still
-# plenty of throughput inside a region and costs a fraction of the
-# footprint, which is what lets the memory setting come down.
-_TRANSFER = TransferConfig(max_concurrency=2, multipart_chunksize=8 * 1024 * 1024)
+# configured ceiling on any invocation that refreshes. Two parts used to
+# be plenty of throughput inside a region and cost a fraction of the
+# footprint, which is what let the memory setting come down.
+#
+# It stopped being plenty. jobs-read.db was 650MB on 2026-09-14 and is
+# 2,405,965,824 bytes today, and two 8MB parts cannot pull 2.24GB inside
+# the 29s that API Gateway allows. Every request was a cold container
+# timing out mid-download: /api/health, /api/jobs with no filter at all
+# and every search term returned 500 at 29 to 30 seconds. The whole API,
+# not the query path.
+#
+# Eight parts, with the memory now at 3008 rather than 1536. The buffer
+# is 8 x 8MB = 64MB against roughly 1.4GB of headroom, so the thing the
+# old comment was protecting is no longer scarce and the thing it was
+# trading away is now the outage.
+#
+# This is a stopgap and the number will not save us again. The file is
+# growing by hundreds of megabytes a week and the ceiling is a 29s
+# timeout that cannot move. The fix is not downloading descriptions to
+# list jobs: DESCRIPTION_MAX_CHARS is 8000 across 800k rows, so they are
+# most of these 2.24GB, and the board never reads one to render a row.
+_TRANSFER = TransferConfig(max_concurrency=8, multipart_chunksize=8 * 1024 * 1024)
 
 _lock = threading.Lock()
 _conn: sqlite3.Connection | None = None
