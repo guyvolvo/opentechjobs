@@ -13198,3 +13198,15 @@ fantium.com
 maestroqa.com
 malengo.org
 movley.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+stacktalent.co
+tlzdispatch.com
+wonderpointsoftwarepvtltd.com
+rightrez.com
+cunj.com
+lovelytics.com
+reveale.com
+sureswiftcapital.com
+1-grid.com
+community-solutions.org
