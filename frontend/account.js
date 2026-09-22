@@ -186,7 +186,14 @@ async function wireAlerts() {
 }
 
 function wireLeaving() {
-  $("account-signout").addEventListener("click", signOut);
+  // This page is the one protected view on the site, so signing out
+  // here leaves a signed-out reader looking at an account. Everywhere
+  // else redraws in place, which is right, because everywhere else is
+  // public.
+  $("account-signout").addEventListener("click", () => {
+    signOut();
+    location.href = "/";
+  });
 
   // A separate Confirm button rather than the same button changing its
   // own label. The destructive click then lands somewhere the pointer

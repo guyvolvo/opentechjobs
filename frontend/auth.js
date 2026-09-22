@@ -83,10 +83,42 @@ function setAuthRenderSink(fn) { authRenderSink = fn; }
 // uses, from the other direction.
 function notifyAuthRender() { authRenderSink(); }
 
+// Local cleanup is the part that must never fail, so it happens first
+// and the network call follows without being waited on.
+//
+// Until 2026-09-22 this only deleted our copy of the tokens. The refresh
+// token stayed valid at Cognito for its full thirty days, so signing out
+// on a shared machine forgot the session rather than ending it: anyone
+// holding that token could still mint fresh access tokens from it.
+// /oauth2/revoke kills the refresh token and every access token minted
+// from it. It needs enable_token_revocation on the app client, which
+// infra/cognito.tf now sets.
 function signOut() {
+  let refresh = null;
+  try {
+    const t = JSON.parse(localStorage.getItem(AUTH_TOKENS_KEY) || "null");
+    refresh = t && t.refresh_token;
+  } catch {}
   localStorage.removeItem(AUTH_TOKENS_KEY);
-  forgetProfileSkills();
+  forgetLocalReaderData();
   authRenderSink();
+  revokeRefreshToken(refresh);
+}
+
+// Not awaited, and every failure swallowed. The reader is already signed
+// out of this browser by the time this runs; a network error must not
+// leave them looking at a page that says otherwise. Cognito answers 200
+// to a revoke it cannot honour anyway.
+function revokeRefreshToken(refresh) {
+  if (!refresh) return;
+  const body = new URLSearchParams({ token: refresh, client_id: COGNITO_CLIENT_ID });
+  const url = `https://${COGNITO_DOMAIN}/oauth2/revoke`;
+  // keepalive, because this often runs a moment before a reload or a
+  // redirect and would otherwise be cancelled in flight.
+  fetch(url, { method: "POST", keepalive: true,
+               headers: { "Content-Type": "application/x-www-form-urlencoded" },
+               body: body.toString() })
+    .catch(() => {});
 }
 
 // The CV skills are the signed-out reader's business only in the sense
@@ -98,6 +130,24 @@ function signOut() {
 // ranked every listing against a CV it was no longer entitled to read.
 // The rows were fetched with skills in the query, so this was not only
 // a stale label.
+// Everything this browser holds about the person who was signed in.
+// Theme, the geo prompt and panel collapse state stay: those are
+// preferences of the device, not of the reader.
+function forgetLocalReaderData() {
+  // Saved jobs and the cached listing pages are the reader's own. On a
+  // shared machine the next person saw what the last one had bookmarked.
+  //
+  // The cache is a key prefix with the query appended, not one key, so
+  // this sweeps rather than deletes by name.
+  try {
+    localStorage.removeItem("iljobs_starred");
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("iljobs_jobs_cache")) localStorage.removeItem(key);
+    }
+  } catch {}
+  forgetProfileSkills();
+}
+
 function forgetProfileSkills() {
   try {
     const raw = localStorage.getItem("iljobs_filters");

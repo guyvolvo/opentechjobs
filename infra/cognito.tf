@@ -134,6 +134,12 @@ resource "aws_cognito_user_pool_client" "web" {
     var.google_client_id != "" ? [aws_cognito_identity_provider.google[0].provider_name] : []
   )
 
+  # Signing out revokes the refresh token at Cognito, not only in the
+  # browser (frontend/auth.js calls /oauth2/revoke). Without this the
+  # endpoint answers but does nothing, and a token captured before a
+  # sign-out stays good for the 30 days below.
+  enable_token_revocation = true
+
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
