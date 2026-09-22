@@ -124,16 +124,21 @@ class FakeProbe:
     pass
 
 
+# The version on each row below is what says "the jobs behind this
+# fingerprint were delivered". Without it the board is walked whatever
+# the fingerprint says, which is its own test in
+# tests/test_workday_delivery_order.py.
+CURRENT = handler.WORKDAY_STATE_VERSION
 sess = Sess(postings)
-r = handler._poll_workday(sess, {"domain": "acme.com", "tenant": "acme", "wd": "wd1", "site": "External"}, {"content_hash": fp}, {"R0001"})
+r = handler._poll_workday(sess, {"domain": "acme.com", "tenant": "acme", "wd": "wd1", "site": "External"}, {"content_hash": fp, "version": CURRENT}, {"R0001"})
 check("a board whose fingerprint matches is reported unchanged after one request",
       r.get("unchanged") is True and r["job_count"] == 1 and r["content_hash"] == fp and len(sess.calls) == 1, repr(r)[:200])
 sess = Sess(postings)
-r = handler._poll_workday(sess, {"domain": "acme.com", "tenant": "acme", "wd": "wd1", "site": "External"}, {"content_hash": fp}, None)
+r = handler._poll_workday(sess, {"domain": "acme.com", "tenant": "acme", "wd": "wd1", "site": "External"}, {"content_hash": fp, "version": CURRENT}, None)
 check("with nothing known yet, a matching fingerprint still walks every page",
       not r.get("unchanged") and r["job_count"] == 45 and r["content_hash"] == fp, repr(r)[:200])
 sess = Sess(postings)
-r = handler._poll_workday(sess, {"domain": "acme.com", "tenant": "acme", "wd": "wd1", "site": "External"}, {"content_hash": "stale"}, {"R0001"})
+r = handler._poll_workday(sess, {"domain": "acme.com", "tenant": "acme", "wd": "wd1", "site": "External"}, {"content_hash": "stale", "version": CURRENT}, {"R0001"})
 check("a moved board is walked and its jobs come back", not r.get("unchanged") and len(r["jobs"]) == 45 and r["jobs"][0]["company_domain"] if "company_domain" in r["jobs"][0] else len(r["jobs"]) == 45)
 
 

@@ -43,6 +43,17 @@ every_hours no longer applies to Workday tenants; the state's own
 backoff does (5 minutes to 4 hours, reset on change), under this
 Lambda's hourly schedule.
 
+Deliver, then remember (2026-09-22): put_fragment runs before
+scrape_state.record, and the loader subprocess no longer raises. The old
+order wrote each tenant's fingerprint to S3 and only then delivered, so
+a run that died in between left tenants whose state said "read it,
+nothing new" about jobs that had never reached jobs-read.db. deltas.py
+drops unchanged results from fragments, so those tenants were gone for
+good unless their board moved on its own. Counted on 2026-09-22 against
+/api/companies?ats=workday: 1,212 of 2,800 tenants had ever landed.
+WORKDAY_STATE_VERSION below is how the 1,614 that had not get read
+again without anybody editing S3.
+
 Known-state-gated descriptions (2026-09-08, same day, once partitioning
 made this cadence affordable to shrink): Workday's own search endpoint
 sends Cache-Control: no-store, no-cache and no ETag at all (confirmed
@@ -126,6 +137,28 @@ TENANTS_PATH = ROOT / "workday-tenants.json"
 # poll's (loader/scrape_state.py) under its own key: per tenant, when it
 # is next due and the fingerprint of its board when last read.
 WORKDAY_STATE_KEY = "workday-poll-state.json.gz"
+# Bumped when a stored fingerprint stops meaning "the jobs behind this
+# were delivered". A tenant whose row was written by an older version is
+# read in full once, whatever its fingerprint says, and then goes back to
+# normal fingerprint behaviour. Same shape as LOGO_CHECK_VERSION in
+# resolve_company_logos.py, and it exists for the same reason: the rows
+# live in S3 and there is no way to go and edit them by hand.
+#
+# 2 because version 1 rows are the ones the old ordering stranded. That
+# ordering saved the fingerprint before put_fragment had sent anything,
+# so every run that died in between left tenants whose state said "read
+# it, nothing new" while jobs-read.db had never seen them once. A
+# stranded tenant only escapes by posting a job, which moves its
+# fingerprint. A quiet board waits forever.
+#
+# Measured 2026-09-22 against /api/companies?ats=workday: 1,212 of the
+# 2,800 tenants had ever landed, and the 1,614 that never did hold about
+# 372,000 jobs at probe.WORKDAY_MAX_JOBS.
+#
+# The re-read this forces is cheap. The partition still has those jobs
+# with description_sha set, so described covers them and f_workday skips
+# every detail fetch. It is a page walk, not a first read.
+WORKDAY_STATE_VERSION = 2
 # Tenants read at once. Each is its own host, so Workday's limits do not
 # add up across them; the ceiling is this process's own connections
 # (probe.session() keeps 16 per host, and a tenant uses up to 8 for
@@ -307,6 +340,22 @@ def _workday_entries() -> list[dict]:
     return entries
 
 
+def _delivered_under_current_rules(state_row: dict | None) -> bool:
+    """Whether a stored fingerprint still stands for jobs that were sent.
+
+    A row written before the current WORKDAY_STATE_VERSION may be one of
+    the stranded ones, where the fingerprint was saved and the jobs were
+    not. Those are read again once, and record() stamps the current
+    version on the way back out, so the next run trusts the fingerprint.
+    """
+    if not state_row:
+        return False
+    try:
+        return int(state_row.get("version") or 0) >= WORKDAY_STATE_VERSION
+    except (TypeError, ValueError):
+        return False
+
+
 def _poll_workday(sess, entry: dict, state_row: dict | None, known_ids: set[str] | None) -> dict:
     """One tenant: page 1 always, the rest only when the board moved.
 
@@ -316,6 +365,9 @@ def _poll_workday(sess, entry: dict, state_row: dict | None, known_ids: set[str]
     board is reported unchanged: one request, and load_to_sqlite leaves
     its rows alone. Different, or nothing known yet, and every page is
     fetched; the first one is handed over so it is not fetched twice.
+
+    A fingerprint from an older WORKDAY_STATE_VERSION is ignored, so the
+    board is walked once after a deploy that bumps it. See that constant.
     """
     tenant, wd, site = entry["tenant"], entry["wd"], entry["site"]
     token = f"{tenant}:{wd}:{site}"
@@ -326,7 +378,8 @@ def _poll_workday(sess, entry: dict, state_row: dict | None, known_ids: set[str]
         if page1 is None:
             return miss
         fingerprint = probe.workday_fingerprint(page1)
-        if state_row and state_row.get("content_hash") == fingerprint and known_ids is not None:
+        if (state_row and state_row.get("content_hash") == fingerprint
+                and known_ids is not None and _delivered_under_current_rules(state_row)):
             return {"domain": entry["domain"], "ats": "workday", "token": token, "job_count": len(known_ids),
                     "tried": 1, "error": None, "retryable": False, "unchanged": True,
                     "content_hash": fingerprint, "jobs": []}
@@ -394,9 +447,10 @@ def lambda_handler(event, context):
     failed = sum(1 for r in results if not r["ats"])
     print(f"workday: {reached}/{len(due)} due tenants reached, {changed} changed, {unchanged} unchanged, {failed} failed"
           + (f", {len(due) - reached} left for next run" if reached < len(due) else ""))
-    counts = scrape_state.record(state, results)
-    saved = scrape_state.save(BUCKET, s3, state, state_etag, key=WORKDAY_STATE_KEY)
-    print(f"poll state {'saved' if saved else 'NOT saved'}: {counts}")
+    # Where the tenant results end and the big-tech ones begin. The poll
+    # state is keyed on Workday fingerprints, so only this slice belongs
+    # in it, the same slice that used to be recorded right here.
+    n_tenants = len(results)
 
     for ats, domain, pin in big_tech:
         if domain in not_due:
@@ -413,60 +467,85 @@ def lambda_handler(event, context):
     n_jobs = sum(r["job_count"] for r in hits)
     print(f"{len(hits)}/{len(results)} workday and big-tech companies re-verified, {n_jobs} jobs")
 
+    # Delivery comes first, and everything else in this function is
+    # downstream of it.
+    #
+    # The fragment is the only thing here that reaches jobs-read.db,
+    # exactly as the fast sweep's does. The partition written further
+    # down is this Lambda's own memory, not a delivery mechanism. It
+    # stopped being one when delta fragments replaced the partition
+    # merge: nothing has merged jobs-partition-*.db into jobs-read.db
+    # since. That was found by asking why 700 Workday listings in the
+    # served snapshot all carried the previous day's last_seen while this
+    # Lambda ran every 30 minutes without an error.
+    _write_status(s3, "loading", f"delivering {n_jobs} Workday and big-tech jobs")
+    fragments = put_fragment(BUCKET, results)
+    print(f"delta fragments: {len(fragments)} written"
+          if fragments else "delta fragments: (nothing to apply, none written)")
+
+    # Only now may a fingerprint be remembered, because remembering one
+    # is a promise that the jobs behind it went out. This used to run
+    # before put_fragment, so any run that died in between told the next
+    # run "already read, nothing new" about tenants jobs-read.db had
+    # never seen. 1,614 of 2,800 tenants were sitting in that hole on
+    # 2026-09-22, holding about 372,000 jobs, and nothing in the pipeline
+    # could ever ask for them again. Now a run that dies before delivery
+    # loses only its scheduling, and every tenant it touched is still due
+    # next run. Re-delivery is an upsert, so doing it twice is free.
+    counts = scrape_state.record(state, results[:n_tenants], version=WORKDAY_STATE_VERSION)
+    saved = scrape_state.save(BUCKET, s3, state, state_etag, key=WORKDAY_STATE_KEY)
+    print(f"poll state {'saved' if saved else 'NOT saved'}: {counts}")
+
     # Streamed to disk rather than built as one string beside the list it
     # came from, and freed before the loader starts: the subprocess shares
     # this Lambda's memory ceiling with everything this process still holds.
     resolved_path = TMP / "resolved-workday.json"
     with resolved_path.open("w", encoding="utf-8") as fh:
         json.dump(results, fh)
-
-    _write_status(s3, "loading", f"writing {n_jobs} Workday jobs to jobs-partition-workday.db")
-    # Was 60, matching scrape_handler.py's own (also-since-fixed) loader
-    # timeout. Confirmed live (2026-09-08) this exact call hit
-    # TimeoutExpired outright once jobs.db passed 1GB -- kept at 300 for
-    # real margin even though this now writes a small pinned partition,
-    # not the full db (see this module's own docstring). --skip-vacuum
-    # for the same reason scrape_handler.py's own shard cycle passes it:
-    # scrape_maintenance_handler.py owns VACUUM as part of its hourly
-    # merge instead. --skip-known: see load_to_sqlite.py's own docstring
-    # for that flag.
-    load = subprocess.run(
-        [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
-         "--resolved", str(resolved_path), "--out", str(TMP / "jobs-partition-workday.db"),
-         "--bucket", BUCKET, "--key", "jobs-partition-workday.db",
-         "--skip-vacuum", "--skip-known", "--drop-description"],
-        capture_output=True, text=True, timeout=420,
-    )
-    if load.stderr:
-        print(load.stderr)
-    if load.returncode != 0:
-        _write_status(s3, "error", f"load_to_sqlite.py exited {load.returncode}")
-        raise RuntimeError(f"load_to_sqlite.py exited {load.returncode}")
-
-    # The partition above is this Lambda's own memory, not a delivery
-    # mechanism. It stopped being one when delta fragments replaced the
-    # partition merge: nothing has merged jobs-partition-*.db into
-    # jobs-read.db since, so every Workday run since has written 139MB to
-    # a file no reader opens.
-    #
-    # Found by asking why 700 Workday listings in the served snapshot all
-    # carried the same last_seen from the previous day while this Lambda
-    # was running every 30 minutes without an error. It was working
-    # perfectly and delivering nowhere.
-    #
-    # The fragment is what reaches jobs-read.db, exactly as the fast
-    # sweep's does. The partition stays because _known_external_ids_by_domain
-    # reads it back to skip description re-fetches, which is the whole
-    # reason a run is 65 seconds instead of many minutes.
-    fragments = put_fragment(BUCKET, results)
     # Counted before the list is dropped: the status line below needs it,
     # and reading len() of the cleared list is what failed every run that
     # followed the memory fix, after its data had already gone out.
     n_results = len(results)
     results = None
     gc.collect()
-    print(f"delta fragments: {len(fragments)} written"
-          if fragments else "delta fragments: (nothing to apply, none written)")
 
-    _write_status(s3, "idle", f"last run: {len(hits)}/{n_results} Workday and big-tech companies, {n_jobs} jobs")
-    return {"hits": len(hits), "jobs": n_jobs, "fragments": len(fragments)}
+    _write_status(s3, "loading", f"writing {n_jobs} Workday jobs to jobs-partition-workday.db")
+    # The partition is a cache. _known_state_by_domain reads it back to
+    # skip description re-fetches, which is the whole reason a run is 65
+    # seconds instead of many minutes. A loader failure costs re-fetches
+    # on the next run and nothing else, so it is logged loudly and
+    # reported in the return value rather than raised. The raise this
+    # replaces sat above put_fragment and took delivery down with it.
+    #
+    # The timeout was 60, matching scrape_handler.py's own (also-since-
+    # fixed) loader timeout. Confirmed live (2026-09-08) this exact call
+    # hit TimeoutExpired outright once jobs.db passed 1GB, so there is
+    # real margin now even though this writes a small pinned partition,
+    # not the full db (see this module's own docstring). --skip-vacuum
+    # for the same reason scrape_handler.py's own shard cycle passes it:
+    # scrape_maintenance_handler.py owns VACUUM as part of its hourly
+    # merge instead. --skip-known: see load_to_sqlite.py's own docstring
+    # for that flag.
+    loader_error = None
+    try:
+        load = subprocess.run(
+            [sys.executable, str(ROOT / "loader" / "load_to_sqlite.py"),
+             "--resolved", str(resolved_path), "--out", str(TMP / "jobs-partition-workday.db"),
+             "--bucket", BUCKET, "--key", "jobs-partition-workday.db",
+             "--skip-vacuum", "--skip-known", "--drop-description"],
+            capture_output=True, text=True, timeout=420,
+        )
+        if load.stderr:
+            print(load.stderr)
+        if load.returncode != 0:
+            loader_error = f"load_to_sqlite.py exited {load.returncode}"
+    except Exception as e:
+        loader_error = repr(e)
+    if loader_error:
+        print(f"PARTITION CACHE NOT WRITTEN: {loader_error}. The jobs already went out in "
+              f"{len(fragments)} delta fragments, so this costs description re-fetches next run.")
+
+    detail = f"last run: {len(hits)}/{n_results} Workday and big-tech companies, {n_jobs} jobs"
+    _write_status(s3, "idle", detail + (f" (partition cache not written: {loader_error})" if loader_error else ""))
+    return {"hits": len(hits), "jobs": n_jobs, "fragments": len(fragments),
+            "state_saved": saved, "loader_error": loader_error}

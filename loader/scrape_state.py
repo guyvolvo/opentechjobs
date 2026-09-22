@@ -290,7 +290,7 @@ def prune(state, entries):
     return len(orphans)
 
 
-def record(state, results, now=None, watched=frozenset()):
+def record(state, results, now=None, watched=frozenset(), version=None):
     """Fold one sweep's outcome back in. Returns a summary for logging.
 
     Three outcomes, scheduled differently.
@@ -304,6 +304,14 @@ def record(state, results, now=None, watched=frozenset()):
     board that is failing is not a board that is quiet, and letting a
     transient outage push it toward the ceiling would mean its listings
     come back and nobody notices for twenty minutes.
+
+    version, when the caller passes one, is written on the rows this
+    sweep really read, beside the validators and for the same reason. It
+    is a claim about what the caller already delivered, and an error or
+    an unchanged answer delivered nothing to claim. A caller that reads
+    it back can then tell a row it wrote under today's rules from one
+    left by older code. scrape_workday_handler.py's
+    WORKDAY_STATE_VERSION says what the number means there.
     """
     now = now or _now()
     counts = {"changed": 0, "unchanged": 0, "errored": 0}
@@ -329,6 +337,8 @@ def record(state, results, now=None, watched=frozenset()):
             for k in _VALIDATORS:
                 if r.get(k):
                     row[k] = str(r[k])
+            if version is not None:
+                row["version"] = version
         row["interval_s"] = round(interval)
         spread = interval * random.uniform(-JITTER, 0)
         row["next_at"] = (now + timedelta(seconds=interval + spread)).isoformat()
