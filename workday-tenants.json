@@ -27628,5 +27628,55 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "fbhwa.com",
+  "tenant": "fbhwa",
+  "wd": "wd503",
+  "site": "Search",
+  "jobs_seen": 75,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "sammonsindustrial.com",
+  "tenant": "sammonsindustrial",
+  "wd": "wd501",
+  "site": "SIND",
+  "jobs_seen": 69,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "hfsc.org",
+  "tenant": "hfsc",
+  "wd": "wd503",
+  "site": "Careers",
+  "jobs_seen": 66,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "silfex.com",
+  "tenant": "silfex",
+  "wd": "wd503",
+  "site": "Silfex",
+  "jobs_seen": 63,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "nrel.co",
+  "tenant": "nrel",
+  "wd": "wd5",
+  "site": "NLR",
+  "jobs_seen": 62,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
