@@ -3454,7 +3454,8 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   text-decoration: none;
   cursor: pointer;
 }
-.account-nav-link:hover { background: var(--hover-bg); }
+/* Not the open one: its whole point is that it is not filled. */
+.account-nav-link:hover:not(.active) { background: var(--hover-bg); }
 .account-nav-link:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 /* Body size against the label's 24px: a count is what the button holds,
    not what it says. */
@@ -3462,8 +3463,10 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 /* Which section is open, in the same tint the board gives the row whose
    listing is open. A filled ink button read as the loudest thing on the
    page, which is the one thing a local nav must not be. */
+/* The open section is marked by its edge and its text, not by a fill.
+   A tinted panel behind the words made the button look pressed and put
+   a block of colour beside the section it names. */
 .account-nav-link.active {
-  background: var(--row-selected);
   border-color: var(--green-text);
   color: var(--green-text);
   font-weight: 500;
