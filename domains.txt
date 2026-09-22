@@ -17286,3 +17286,24 @@ generaldynamics.com
 baesystems.com
 l3harris.com
 rafaelsystems.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+maverick-games.com
+mjhughes.com
+nextgenskillsacademy.com
+priceofoil.org
+priceofoil.org
+pridefoundation.org
+quiet.ly
+relationshipone.com
+ruffwear.com
+saotg.com
+savannainstitute.org
+stellarmanagement.com
+stpetrocs.org.uk
+stubbers.co.uk
+tactileinc.com
+tatachemicalseurope.com
+unitar.org
+wealthwizards.com
+xeneta.com
