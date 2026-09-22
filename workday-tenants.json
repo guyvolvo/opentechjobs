@@ -27888,5 +27888,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "aha.io",
+  "tenant": "aha",
+  "wd": "wd501",
+  "site": "AHA",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "braunability.com",
+  "tenant": "braunability",
+  "wd": "wd503",
+  "site": "ARCH_Retail_Careers",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "rockefellergroup.com",
+  "tenant": "rockefellergroup",
+  "wd": "wd503",
+  "site": "Rockefeller",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "fhlbpgh.com",
+  "tenant": "fhlbpgh",
+  "wd": "wd503",
+  "site": "fhlb-pgh",
+  "jobs_seen": 8,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
