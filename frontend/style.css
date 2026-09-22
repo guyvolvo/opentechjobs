@@ -3530,6 +3530,11 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 .hero-bar-right { display: flex; align-items: flex-start; gap: 20px; }
 .hero-bar-right > * { min-height: var(--bar-line); }
 .hero-theme { display: inline-flex; align-items: center; }
+/* Signed in, the theme is a row in the account menu and this button
+   is hidden. The line above sets display, which beats the browser's
+   own [hidden] rule, so without this it stayed on screen: the same
+   trap .auth-email-form[hidden] documents further up this file. */
+.hero-theme[hidden] { display: none; }
 
 /* The phone menu, on every page.
    
@@ -3685,17 +3690,23 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
   .hero-nav-bars i { transition: none; }
 }
-}
+
+/* Only ever on screen signed out, where there is no account menu to
+   carry the theme row. A pill rather than the bare word it used to be:
+   it stands next to a round avatar and a menu with a 14px corner, and a
+   naked word between them read as unfinished. */
 .hero-theme {
-  border: 0;
+  border: 1px solid var(--grey-line);
+  border-radius: 999px;
   background: none;
-  padding: 0;
+  padding: 4px 14px;
   color: inherit;
   font-family: var(--font-ui);
   font-size: 17px;
   font-weight: 700;
   cursor: pointer;
 }
+.hero-theme:hover { border-color: var(--green); }
 .hero-theme:hover { color: var(--green-text); }
 .hero-theme:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 4px; }
 .hero-account { position: relative; display: flex; align-items: flex-start; }
