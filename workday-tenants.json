@@ -27168,5 +27168,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "alto.myworkdayjobs.com",
+  "tenant": "alto",
+  "wd": "wd1",
+  "site": "Alto_External_Career_Site",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "apexcapitalcorp.com",
+  "tenant": "apexcapitalcorp",
+  "wd": "wd5",
+  "site": "Apex_External",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "avesis.com",
+  "tenant": "avesis",
+  "wd": "wd5",
+  "site": "Avesis",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
