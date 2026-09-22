@@ -13104,3 +13104,25 @@ sisu.com
 sylvan-labs.com
 sifflet.de
 zodl.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+accordia.io
+beamcircular.org
+bhaasha.com
+brightwaters.com
+calor.com
+chattacademy.org
+britishecologicalsociety.org
+cluse.com
+336express.com
+canyongbs.com
+cellfiemobile.com
+cawst.com
+cmfirstgroup.com
+englishwithlaura.com
+winbold.com
+vonq.com
+doorloop.com
+greenshadessoftware.com
+bota.ai
+elevate.io

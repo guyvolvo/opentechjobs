@@ -27198,5 +27198,95 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-22"
+ },
+ {
+  "domain": "lifung.com",
+  "tenant": "lifung",
+  "wd": "wd3",
+  "site": "NeoTangent",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "msf.com",
+  "tenant": "msf",
+  "wd": "wd3",
+  "site": "work-with-msf-ocg-hq-lhs",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "quadient.com",
+  "tenant": "quadient",
+  "wd": "wd3",
+  "site": "External_Career_Site",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "santacruzbicycles.com",
+  "tenant": "santacruzbicycles",
+  "wd": "wd1",
+  "site": "santacruzbicycles",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "starlight.ai",
+  "tenant": "starlight",
+  "wd": "wd105",
+  "site": "Starlight_External",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "thetradedesk.com",
+  "tenant": "thetradedesk",
+  "wd": "wd5",
+  "site": "TTDExternalSite",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "tigerconnect.net",
+  "tenant": "tigerconnect",
+  "wd": "wd1",
+  "site": "TC",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "volarisgroup.com",
+  "tenant": "volarisgroup",
+  "wd": "wd3",
+  "site": "Aislelabs",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
+ },
+ {
+  "domain": "wri.com",
+  "tenant": "wri",
+  "wd": "wd501",
+  "site": "WRI_India",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-22"
  }
 ]
