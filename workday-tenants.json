@@ -28428,5 +28428,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "meharrymedicalcollege.com",
+  "tenant": "meharrymedicalcollege",
+  "wd": "wd12",
+  "site": "external",
+  "jobs_seen": 59,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "ig.com",
+  "tenant": "ig",
+  "wd": "wd103",
+  "site": "EXT_IG",
+  "jobs_seen": 57,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "assuranceamerica.com",
+  "tenant": "assuranceamerica",
+  "wd": "wd12",
+  "site": "AssuranceAmerica",
+  "jobs_seen": 56,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "amplity.com",
+  "tenant": "amplity",
+  "wd": "wd1",
+  "site": "amplityhealth",
+  "jobs_seen": 54,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
