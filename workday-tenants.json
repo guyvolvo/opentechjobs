@@ -28878,5 +28878,15 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "syfanlogistics.com",
+  "tenant": "syfanlogistics",
+  "wd": "wd12",
+  "site": "Syfan",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
