@@ -20587,3 +20587,10 @@ river-valley.com
 shoura.com
 scott.ai
 victoria.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+digitalsurvivalcompany.com
+tribenl.com
+zetax.co
+wohlbehagen.com
+encon.fr
