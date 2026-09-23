@@ -21818,3 +21818,11 @@ solease.net
 smartqare.com
 viepeople.com
 alem.co
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+blueprint.com
+kindred.co
+3iq.io
+3fs.io
+3clife.com
+8rivers.com
