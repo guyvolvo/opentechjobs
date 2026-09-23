@@ -22636,3 +22636,20 @@ xchange.ai
 cardiology.org
 gencap.com
 lumerate.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+midwest.ai
+prophetx.co
+ctidigital.com
+kesbath.com
+360privacy.com
+28b.com
+406recovery.com
+98ventures.com
+aacmentors.org
+826boston.com
+abd.com
+aboitiz.com
+aboutenergyuk.com
+accessreproductivejustice.com
+accesssupportnetwork.com
