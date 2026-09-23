@@ -279,11 +279,17 @@ def _apply() -> int:
     if logos.exists():
         cmd += ["--logos", str(logos)]
     if PRIMARY:
-        # Caps the file instead of letting it grow forever. Needs
-        # --bucket, since archive.py writes the retired rows to S3
-        # before deleting them, and it is paced to once a day by a
-        # marker both appliers would otherwise fight over.
-        cmd += ["--bucket", BUCKET, "--key", "jobs-read.db",
+        # Caps the file instead of letting it grow forever. Paced to
+        # once a day inside archive.py.
+        #
+        # --archive-bucket, never --bucket. --bucket drives the loader's
+        # whole pull-modify-push cycle, so passing it here downloaded
+        # the S3 snapshot over this box's live database on every apply,
+        # replaced the 2.66GB file with the 745MB copy that has the
+        # search index deliberately stripped, and eventually left the
+        # file malformed when the API had it open. load_to_sqlite now
+        # refuses --box with --bucket outright.
+        cmd += ["--archive-bucket", BUCKET,
                 "--archive-closed-days", str(ARCHIVE_CLOSED_DAYS)]
     load = subprocess.run(cmd, capture_output=True, text=True, timeout=1500)
     if load.stderr:

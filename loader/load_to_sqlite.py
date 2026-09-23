@@ -1819,6 +1819,13 @@ def main() -> int:
                           "being listings nobody can apply to. The API downloads this whole file on "
                           "a cold start against a fixed 29s API Gateway ceiling, so that curve ends "
                           "in a wall rather than a slow bill. Needs --bucket; see loader/archive.py.")
+    ap.add_argument("--archive-bucket",
+                    help="bucket archive.py writes retired rows to, when the run must NOT also pull "
+                         "and push the snapshot. --bucket drives the whole pull-modify-push cycle, "
+                         "which is right for a Lambda holding a scratch copy and catastrophic for a "
+                         "box whose local file is the only authority: passing it there downloaded "
+                         "the S3 snapshot over the live database on every apply, took the search "
+                         "index with it, and left the file malformed when a reader had it open.")
     ap.add_argument("--box", action="store_true",
                     help="the file lives on local disk and is never re-uploaded: also fill the category "
                          "column, store posted_at in one canonical form, and build the board's indexes "
@@ -1850,6 +1857,13 @@ def main() -> int:
                           "pass this; known.json stays the merge step's job instead, once it exists, since "
                           "that's the only place with a full, current view of every company again.")
     args = ap.parse_args()
+
+    # The file --box writes is the one being served, and nothing may
+    # overwrite it from S3. --bucket means "pull this, change it, push
+    # it back", which is the opposite. Use --archive-bucket instead.
+    if args.box and args.bucket:
+        ap.error("--box and --bucket are incompatible: --bucket pulls the S3 snapshot over --out "
+                 "before applying. Use --archive-bucket for archive.py's own writes.")
 
     # See s3_push_conditional's own docstring for why this is a retry
     # loop and not a single pull-modify-push. Each attempt re-pulls from
@@ -1904,7 +1918,8 @@ def main() -> int:
                     print(f"released {len(demoted)} companies whose boards have been empty "
                           f"for {args.demote_empty_days}+ days: {', '.join(demoted[:8])}"
                           f"{' ...' if len(demoted) > 8 else ''}", file=sys.stderr)
-            if args.archive_closed_days and args.bucket:
+            archive_bucket = args.archive_bucket or args.bucket
+            if args.archive_closed_days and archive_bucket:
                 # Before update_meta so the recorded totals describe the
                 # snapshot that actually ships, and inside this
                 # transaction so a failure anywhere later rolls the
@@ -1913,8 +1928,8 @@ def main() -> int:
 
                 import archive
                 s3 = boto3.client("s3")
-                if archive.due(s3, args.bucket):
-                    result = archive.prune(conn, s3, args.bucket,
+                if archive.due(s3, archive_bucket):
+                    result = archive.prune(conn, s3, archive_bucket,
                                            args.archive_closed_days,
                                            _fts_supports_rowid_delete(conn))
                     print(f"archive: {json.dumps(result, default=str)}", file=sys.stderr)
