@@ -4273,7 +4273,6 @@ a.hero-account-btn { text-decoration: none; }
   z-index: 9; /* under .topbar's 10 */
   background: var(--white);
   padding: 14px 0 12px;
-  border-bottom: var(--rule) solid var(--black);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -4351,6 +4350,7 @@ a.hero-account-btn { text-decoration: none; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin: 0;
   height: 30px;
   padding: 0 9px;
   border: 1px solid var(--grey-line);
@@ -4382,8 +4382,8 @@ a.hero-account-btn { text-decoration: none; }
 .filter-rail {
   position: sticky;
   top: 145px; /* under the topbar and the filter bar both */
-  max-height: calc(100vh - 145px);
-  max-height: calc(100dvh - 145px);
+  height: calc(100vh - 145px);
+  height: calc(100dvh - 145px);
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--hover-bg);
@@ -4493,6 +4493,14 @@ a.hero-account-btn { text-decoration: none; }
 .rail-more:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
 
 .rail-empty { padding: 2px 4px; font: 400 12.5px var(--font-ui); color: var(--grey); }
+
+/* A group whose counts are still being fetched, at the height of the
+   rows that are coming, so the rail does not resize when they land. */
+.rail-bone { pointer-events: none; }
+.rail-bone .sk-line { width: 100%; height: 11px; border-radius: 2px; }
+.rail-group[aria-busy="true"] .rail-bone:nth-child(2) .sk-line { width: 82%; }
+.rail-group[aria-busy="true"] .rail-bone:nth-child(3) .sk-line { width: 64%; }
+.rail-group[aria-busy="true"] .rail-bone:nth-child(4) .sk-line { width: 73%; }
 
 /* --- location: countries, cities under them ----------------------- */
 
@@ -4629,6 +4637,7 @@ table.jobs tbody tr.skeleton-row {
   align-items: start;
 }
 
+table.jobs thead tr { padding: 0 20px; }
 table.jobs thead th {
   padding: 10px 0 8px;
   font: 700 12px var(--font);
@@ -4843,6 +4852,9 @@ tr:hover .job-title-text { color: var(--green-text); }
   font-variant-numeric: tabular-nums;
 }
 .empty-count span { font: 400 15px var(--font); letter-spacing: normal; color: var(--grey); }
+.empty-count.counting { display: block; }
+.empty-count.counting .sk-line { display: block; width: 62%; height: 30px; border-radius: 3px; }
+.empty-stat-value .sk-line { display: block; width: 70%; height: 20px; border-radius: 3px; }
 .empty-summary { font: 400 13px var(--font); color: var(--grey); opacity: 0.9; }
 
 .empty-stats {

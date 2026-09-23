@@ -28,8 +28,8 @@ from urllib.parse import parse_qs
 import boto3
 from boto3.dynamodb.conditions import Key
 
-from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
-                        has_board_filters, search_companies)
+from aggregates import (FACET_SCOPE_DROPS, compute_facets, compute_scoped_stats,
+                        compute_stats, has_board_filters, search_companies)
 from db import get_connection, status as db_status
 from help_page import HELP_HTML
 import company_page
@@ -1081,7 +1081,61 @@ def route_facets(params: dict) -> dict:
         variant += place
         if isinstance(ready, dict) and variant in ready:
             return ready[variant]
-    return compute_facets(get_connection(), params)
+    return _facets_live(params)
+
+
+def _precomputed_variant_for(params: dict) -> dict | None:
+    """The precomputed facets whose scope matches these params, or None.
+
+    Same two questions route_facets asks above, factored out so the
+    per-facet reuse below can ask them of a reduced parameter set.
+    """
+    variant = _unfiltered_confidence(params)
+    place = ""
+    if variant is None and (params.get("country") or "").strip().upper() == "IL" and not params.get("city"):
+        rest = {k: v for k, v in params.items() if k != "country"}
+        variant = _unfiltered_confidence(rest)
+        place = ":IL"
+    if variant is None:
+        return None
+    if (params.get("roles") or "").lower() == "tech":
+        variant = f"{variant}:tech"
+    variant += place
+    ready = _precomputed_json("facets.json")
+    if isinstance(ready, dict) and variant in ready:
+        return ready[variant]
+    return None
+
+
+def _facets_live(params: dict) -> dict:
+    """Count only the facets no precomputed answer covers.
+
+    Every facet is counted with every OTHER filter applied, so a facet
+    whose own filters are the only ones set has the whole board for its
+    scope, and the whole board is exactly what facets.json already
+    holds. The board hits this constantly: pick two countries and the
+    locations facet still counts every open listing on earth, which
+    measured 10s of a 13s request on the box while the same numbers sat
+    in S3. Reported live as three minutes of skeleton rows, because a
+    handful of those requests fill gunicorn's slots and the job list
+    queues behind them.
+
+    Anything genuinely narrowed by another filter is still counted for
+    real. This only ever hands back an answer whose scope is identical
+    to the one it would have computed.
+    """
+    out: dict = {}
+    todo: list[str] = []
+    for facet, drops in FACET_SCOPE_DROPS.items():
+        scoped = {k: v for k, v in params.items() if k not in drops}
+        ready = _precomputed_variant_for(scoped)
+        if ready is not None and facet in ready:
+            out[facet] = ready[facet]
+        else:
+            todo.append(facet)
+    if todo:
+        out.update(compute_facets(get_connection(), params, tuple(todo)))
+    return out
 
 
 def route_stats(params: dict | None = None) -> dict:

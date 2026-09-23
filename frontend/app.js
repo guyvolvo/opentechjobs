@@ -2679,21 +2679,28 @@ function renderDetailEmpty() {
   const stat = (label, value) =>
     `<div class="empty-stat"><span class="empty-stat-label">${escapeHtml(label)}</span>`
     + `<span class="empty-stat-value">${value}</span></div>`;
-  const num = (v) => (pending || v == null ? '<span class="empty-stat-none">&mdash;</span>' : fmtInt(v));
+  const num = (v) =>
+    pending ? '<span class="skeleton sk-line"></span>'
+    : v == null ? '<span class="empty-stat-none">&mdash;</span>'
+    : fmtInt(v);
 
   panel.innerHTML = `
     <div class="detail-empty">
       <div class="empty-lede">
         <span class="empty-label">Your filters</span>
-        <span class="empty-count">${total == null ? "&mdash;" : fmtInt(total)} <span>${escapeHtml(resultNoun())}</span></span>
+        ${total == null
+          ? '<span class="empty-count counting"><span class="skeleton sk-line"></span></span>'
+          : `<span class="empty-count">${fmtInt(total)} <span>${escapeHtml(resultNoun())}</span></span>`}
         <span class="empty-summary">${escapeHtml(summary)}</span>
       </div>
 
       <div class="empty-stats">
         ${stat("New today", num(scoped?.new_jobs_24h))}
-        ${stat("Median est.", salary?.median ? escapeHtml(fmtShekels(salary.median)) : '<span class="empty-stat-none">&mdash;</span>')}
+        ${stat("Median est.", salary?.median ? escapeHtml(fmtShekels(salary.median))
+          : railFacetsLoaded ? '<span class="empty-stat-none">&mdash;</span>' : '<span class="skeleton sk-line"></span>')}
         ${stat("Companies", num(scoped?.companies_hiring))}
-        ${stat("Remote", remote ? fmtInt(remote.n) : '<span class="empty-stat-none">&mdash;</span>')}
+        ${stat("Remote", remote ? fmtInt(remote.n)
+          : railFacetsLoaded ? '<span class="empty-stat-none">&mdash;</span>' : '<span class="skeleton sk-line"></span>')}
       </div>
 
       ${hiring.length ? `
@@ -3584,6 +3591,13 @@ const RAIL_TOP_N = 4;
 // than merged into the groups above so a refresh replaces it in one
 // assignment and nothing can half-update.
 let railFacets = {};
+// Whether a facets response has ever landed. Until one has, an empty
+// group means "not counted yet", not "nothing to count", and the two
+// have to look different: the first shows bones, the second shows
+// nothing at all. A filtered load asks the API rather than the
+// precomputed file and that can take seconds, during which the rail
+// used to be a blank column with one heading on it.
+let railFacetsLoaded = false;
 // Which groups are showing everything rather than their top four, and
 // which countries are folded. View state: it never reaches the URL or
 // localStorage, and Back has no business re-collapsing a group somebody
@@ -3805,6 +3819,20 @@ function fmtShekels(v) {
   return `₪${k >= 10 || Number.isInteger(k) ? Math.round(k) : k.toFixed(1)}K`;
 }
 
+// A group's shape while its counts are still being fetched: the
+// heading it will have, over rows the size of the rows that are coming.
+// Bones rather than a spinner, for the same reason the job list uses
+// them: the rail does not change size when the answer lands.
+function railGroupSkeleton(group) {
+  return `
+    <section class="rail-group" data-group="${group.key}" aria-busy="true">
+      <h3 class="rail-title">${escapeHtml(group.title)}</h3>
+      <div class="rail-body">
+        ${'<div class="rail-option rail-bone"><span class="skeleton sk-line"></span></div>'.repeat(RAIL_TOP_N)}
+      </div>
+    </section>`;
+}
+
 function renderFilterRail() {
   const host = document.getElementById("rail-groups");
   if (!host) return;
@@ -3816,6 +3844,10 @@ function renderFilterRail() {
 
     if (group.kind === "tree") {
       summary = railLocationSummary();
+      if (!railFacetsLoaded && !(railFacets.locations || []).length) {
+        parts.push(railGroupSkeleton(group));
+        continue;
+      }
       body = railSearchHtml(group) + railCountryBlocks();
     } else if (group.kind === "range") {
       body = railSalaryHtml();
@@ -3824,12 +3856,18 @@ function renderFilterRail() {
       const rows = railVisibleRows(group);
       const picked = railSelected(group);
       const pool = railRows(group);
-      // A facet this snapshot cannot answer yet gets no group at all,
+      // A facet this snapshot cannot answer gets no group at all,
       // rather than a heading over "No matches", which reads as a
       // result and not as an absence. Happens for one merge cycle after
       // a new facet ships, while the precomputed facets.json is still
-      // the version written before it existed.
-      if (!pool.length && !picked.size && !railQueries.get(group.key)) continue;
+      // the version written before it existed. Only once something has
+      // actually been counted, though: before that the same emptiness
+      // means the answer is still coming.
+      if (!pool.length && !picked.size && !railQueries.get(group.key)) {
+        if (railFacetsLoaded) continue;
+        parts.push(railGroupSkeleton(group));
+        continue;
+      }
       body = railSearchHtml(group)
         + (rows.length
           ? rows.map((r) => railOptionHtml({
@@ -4372,6 +4410,7 @@ async function refreshFacetOptions() {
     // top four are the four biggest. The old dropdowns sorted Companies
     // alphabetically, which was right for a list you type into and
     // wrong for one that shows you four and hides the rest.
+    railFacetsLoaded = true;
     railFacets = {
       categories: facets.categories || [],
       seniority: facets.seniority || [],

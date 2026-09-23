@@ -103,7 +103,66 @@ def top_companies_with_logos(conn, limit: int = 30) -> list[dict]:
     return out
 
 
-def compute_facets(conn, params: dict) -> dict:
+# Each facet is counted with every OTHER filter applied, so this is the
+# set each one sets aside before counting. Written down here rather than
+# only inside counts_by/_place_scope so route_facets can ask "would this
+# facet's scope be the whole board?" and answer from the precomputed
+# artifact when it would.
+FACET_SCOPE_DROPS = {
+    "categories": ("department",),
+    "locations": ("country", "city"),
+    "companies": ("company",),
+    "seniority": ("seniority",),
+    "workplace": ("workplace",),
+    "salary": ("salary_min", "salary_max", "salary_known"),
+}
+
+_FACETS_TTL_S = 300.0
+_FACETS_MAX = 64
+_facets_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _facets_key(params: dict) -> str:
+    """Everything that changes the answer, in a stable order."""
+    return "&".join(
+        f"{k}={params[k]}" for k in sorted(params)
+        if params.get(k) not in (None, "", False)
+    )
+
+
+def compute_facets(conn, params: dict, only: tuple[str, ...] | None = None) -> dict:
+    """Cached in front of _compute_facets, which does the work.
+
+    `only` narrows it to the facets the caller could not answer from the
+    precomputed artifact. Counting a facet nobody will read is the
+    single most expensive thing this endpoint used to do: the locations
+    tree alone measured 10s of a 13s request on the box, and for a
+    request filtered by country it was recomputing, row by row, the same
+    whole-board answer already sitting in facets.json.
+
+    Five minutes, because these are counts over a snapshot the applier
+    rewrites every few minutes and a count that is one cycle old is not
+    wrong in any way a reader can act on. The cache is per process and
+    gunicorn runs two of them, so worst case is two cold computes per
+    key rather than one; that is still two instead of one per request.
+    """
+    import time
+
+    key = _facets_key(params) + "|" + ",".join(only or ())
+    now = time.monotonic()
+    hit = _facets_cache.get(key)
+    if hit and hit[0] > now:
+        return hit[1]
+    out = _compute_facets(conn, params, only)
+    if len(_facets_cache) >= _FACETS_MAX:
+        # Cheap and good enough: the board's filters are a small set and
+        # this only ever fires when somebody has been exploring widely.
+        _facets_cache.clear()
+    _facets_cache[key] = (now + _FACETS_TTL_S, out)
+    return out
+
+
+def _compute_facets(conn, params: dict, only: tuple[str, ...] | None = None) -> dict:
 
     def counts_by(column_expr: str, exclude_param: str, limit: int) -> list[dict]:
         scoped = dict(params)
@@ -296,6 +355,8 @@ def compute_facets(conn, params: dict) -> dict:
         # compute_scoped_stats. A mean would be pulled around by the
         # handful of executive ranges; a median of ranges is the number
         # somebody reading "what does this pay" is actually asking for.
+        if known > MEDIAN_ROW_BUDGET:
+            return {"min": int(low), "max": int(high), "known": int(known)}
         mids = [
             r[0] for r in conn.execute(
                 f"""
@@ -311,24 +372,36 @@ def compute_facets(conn, params: dict) -> dict:
         return {"min": int(low), "max": int(high), "known": int(known),
                 "median": int(round(median))}
 
-    out = {
-        "categories": counts_by(category_sql(conn), "department", 20),
-        "locations": location_tree(),
-        "companies": counts_by("company_domain", "company", 500),
-        # Both are closed enums (probe.py's Job.seniority and
-        # Job.workplace_type), so the board has always been able to draw
-        # the options without asking. It could not draw the counts, and
-        # an option list with no counts beside it is the one thing in
-        # the filter rail that cannot tell a reader whether it is worth
-        # clicking.
-        "seniority": counts_by("seniority", "seniority", 20),
-        "workplace": counts_by("workplace_type", "workplace", 10),
-    }
-    if _has_salary_columns(conn):
+    want = (lambda k: only is None or k in only)
+    out = {}
+    if want("categories"):
+        out["categories"] = counts_by(category_sql(conn), "department", 20)
+    if want("locations"):
+        out["locations"] = location_tree()
+    if want("companies"):
+        out["companies"] = counts_by("company_domain", "company", 500)
+    # Both are closed enums (probe.py's Job.seniority and
+    # Job.workplace_type), so the board has always been able to draw the
+    # options without asking. It could not draw the counts, and an
+    # option list with no counts beside it is the one thing in the
+    # filter rail that cannot tell a reader whether it is worth
+    # clicking.
+    if want("seniority"):
+        out["seniority"] = counts_by("seniority", "seniority", 20)
+    if want("workplace"):
+        out["workplace"] = counts_by("workplace_type", "workplace", 10)
+    if want("salary") and _has_salary_columns(conn):
         bounds = salary_bounds()
         if bounds:
             out["salary"] = bounds
     return out
+
+
+# Rows with a figure, past which the median is not worth its sort. The
+# Israeli board carries 1,266 and every filter a reader is likely to set
+# stays far under this; the whole board is 97,085, which is the case
+# this exists to refuse.
+MEDIAN_ROW_BUDGET = 20_000
 
 
 def _has_salary_columns(conn) -> bool:
