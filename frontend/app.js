@@ -2666,8 +2666,13 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
       </div>
     </div>
 
+    <!-- No level badge here. The title already says it most of the
+         time ("Security Research Team Lead" beside a "Lead" chip), and
+         the row you clicked to get here was showing it a moment ago.
+         The badges that stay are the two that warn rather than repeat:
+         a listing scraped from a career page instead of an ATS, and one
+         that has closed. -->
     <h2 class="job-detail-title">${escapeHtml(job.title)}${
-      job.seniority ? ` <span class="badge seniority">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority)}</span>` : ""}${
       job.confidence === "best_effort" ? ' <span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}${
       job.closed_at ? ' <span class="badge closed">Closed</span>' : ""}</h2>
 
