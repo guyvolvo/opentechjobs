@@ -2721,7 +2721,13 @@ function renderDetailEmpty() {
       <div class="empty-lede">
         <span class="empty-label">Your filters</span>
         ${total == null
-          ? '<span class="empty-count counting"><span class="skeleton sk-line"></span></span>'
+          ? (lastJobsResponse
+            // The rows are here and the total is not, which means the
+            // count request failed or was overtaken. Say what is known
+            // rather than sitting on a bone forever: a skeleton that
+            // never resolves reads as a broken page, and this one did.
+            ? `<span class="empty-count">${fmtInt(lastJobsResponse.jobs?.length || 0)}+ <span>${escapeHtml(resultNoun())}</span></span>`
+            : '<span class="empty-count counting"><span class="skeleton sk-line"></span></span>')
           : `<span class="empty-count">${fmtInt(total)} <span>${escapeHtml(resultNoun())}</span></span>`}
         <span class="empty-summary">${escapeHtml(summary)}</span>
       </div>

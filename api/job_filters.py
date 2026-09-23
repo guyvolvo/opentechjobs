@@ -331,10 +331,29 @@ def count_index_hint(params: dict, caps: "SnapshotCaps") -> str:
     Empty string wherever the snapshot has no board indexes, which is
     every Lambda snapshot, since INDEXED BY an index that is not there
     is an error rather than a hint.
+
+    And empty wherever the WHERE does not satisfy the index's own
+    partial predicate. idx_jobs_open_posted is built WHERE closed_at IS
+    NULL AND confidence = 'verified', so a request that does not promise
+    both cannot use it, and INDEXED BY an index SQLite cannot use is not
+    ignored: it is the error "no query solution", a 500 in 2ms.
+
+    That was live. The board sends confidence=all on every single
+    request, so the only thing standing between it and a broken count
+    was roles=tech being in the selective list above and skipping the
+    hint. One click on All roles and every count on the board 500'd,
+    which is why "Showing 1-50 of N" lost its N and the detail pane's
+    headline sat on a skeleton that never resolved. Reported live with a
+    screenshot.
     """
     if not caps.board_indexes:
         return ""
     if any(params.get(p) for p in _SELECTIVE_PARAMS):
+        return ""
+    # The partial index's own two conditions, asked of the request.
+    if (params.get("confidence") or "verified") != "verified":
+        return ""
+    if bool_param(params, "include_closed"):
         return ""
     return " INDEXED BY idx_jobs_open_posted"
 
