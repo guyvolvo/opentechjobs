@@ -832,6 +832,10 @@ def route_geo(event: dict) -> dict:
     return {"country": None, "source": None}
 
 
+# How many clustering warnings /api/health hands back. See route_health.
+HEALTH_WARNING_SAMPLE = 20
+
+
 def route_health() -> dict:
     """Confirms the DB is actually reachable and reports pipeline
     freshness, not just "the Lambda is running." A 200 with ok=True here
@@ -875,7 +879,17 @@ def route_health() -> dict:
     clustering_row = conn.execute(
         "SELECT value FROM meta WHERE key = 'timestamp_clustering_warnings'"
     ).fetchone()
-    clustering_warnings = clustering_row["value"].split("; ") if clustering_row and clustering_row["value"] else []
+    all_warnings = clustering_row["value"].split("; ") if clustering_row and clustering_row["value"] else []
+    # Capped, hard. This is a liveness ping every open tab polls every
+    # two minutes, and the warnings had grown to 8,372 of them, 767KB in
+    # one meta row, which this route was returning in full: measured on
+    # the box at 784,848 bytes and 24.4 seconds per call. A board with a
+    # handful of tabs open was spending the whole machine on it.
+    #
+    # Twenty is enough to see what is happening and the count says how
+    # much more there is. The full list is in the loader's own log,
+    # which is where somebody debugging this actually reads it.
+    clustering_warnings = all_warnings[:HEALTH_WARNING_SAMPLE]
     return {
         "ok": True,
         "db_reachable": True,
@@ -888,6 +902,7 @@ def route_health() -> dict:
         "last_checked": row["last_checked"],
         "minutes_since_check": minutes_since_check,
         "timestamp_clustering_warnings": clustering_warnings,
+        "timestamp_clustering_warning_count": len(all_warnings),
     }
 
 

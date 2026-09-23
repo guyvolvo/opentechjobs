@@ -1358,6 +1358,11 @@ def load_deep(conn: sqlite3.Connection, deep_path: Path) -> None:
             upsert_job(conn, jid, domain, dict(j, ats="best_effort"), confidence="best_effort", ts=ts)
 
 
+# Kept in meta. Everything past this is in the log for the run that
+# found it; a thousand of them in a row all say the same thing.
+MAX_CLUSTERING_WARNINGS = 40
+
+
 def check_timestamp_clustering(conn: sqlite3.Connection) -> list[str]:
     """Detects the exact failure signature both of today's real incidents
     shared (gloat.com's Comeet timestamps stamped with the run's own
@@ -1539,7 +1544,11 @@ def update_meta(conn: sqlite3.Connection) -> None:
         # reads this directly and a falsy-but-present value is easier to
         # branch on there than distinguishing "never checked" from "checked,
         # clean."
-        "timestamp_clustering_warnings": "; ".join(clustering_warnings),
+        # Capped where it is written, not only where it is read. This
+        # row reached 767KB and 8,372 entries on the live snapshot, and
+        # it rides in every snapshot, every restore and every read of
+        # meta. The full set is in this run's own log.
+        "timestamp_clustering_warnings": "; ".join(clustering_warnings[:MAX_CLUSTERING_WARNINGS]),
     }
     for k, v in meta.items():
         conn.execute(
