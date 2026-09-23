@@ -36,6 +36,9 @@ from pathlib import Path
 import boto3
 from boto3.s3.transfer import TransferConfig
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lock import exclusive  # noqa: E402
+
 DB = Path(os.environ.get("DATA_PATH", "/var/lib/otj/jobs.db"))
 BUCKET = os.environ["DATA_BUCKET"]
 KEY = os.environ.get("SNAPSHOT_KEY", "jobs-read.db")
@@ -46,6 +49,16 @@ _TRANSFER = TransferConfig(multipart_chunksize=16 * 1024 * 1024, max_concurrency
 
 
 def main() -> int:
+    with exclusive("snapshot") as got:
+        if not got:
+            # An apply is walking the same file. Skipping costs an hour
+            # of snapshot age; competing costs both jobs their throughput
+            # and drains the instance's IOPS burst (see box/lock.py).
+            return 0
+        return _publish()
+
+
+def _publish() -> int:
     started = time.monotonic()
     OUT.unlink(missing_ok=True)
     conn = sqlite3.connect(f"file:{DB}?mode=ro", uri=True, timeout=60)

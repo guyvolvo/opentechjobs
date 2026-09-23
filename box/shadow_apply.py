@@ -50,6 +50,9 @@ import precompute  # noqa: E402
 import sitemap  # noqa: E402
 from deltas import PREFIX as DELTA_PREFIX, delete_fragments  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lock import exclusive  # noqa: E402
+
 DB = Path(os.environ.get("DATA_PATH", "/var/lib/otj/jobs.db"))
 BUCKET = os.environ["DATA_BUCKET"]
 SPOOL = DB.parent / "deltas"
@@ -228,6 +231,15 @@ def _publish_frontend() -> str:
 
 
 def main() -> int:
+    with exclusive("apply") as got:
+        if not got:
+            # The snapshot job has the disk. The spool keeps filling and
+            # the next tick, a minute from now, picks this up.
+            return 0
+        return _apply()
+
+
+def _apply() -> int:
     started = time.monotonic()
     if not SPOOL.is_dir():
         print("no spool yet, waiting for fetch_fragments")
