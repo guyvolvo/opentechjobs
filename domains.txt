@@ -21116,3 +21116,17 @@ wmfs.net
 saudi.ai
 scic.com
 fpa.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+old.co
+myfirst.com
+adams.io
+commonland.com
+dekkerchrysanten.com
+ecomtrading.com
+hofmannmetallgmbh.com
+hoteldrachten.com
+hotelmons.org
+sonnenschutzdeb1ag.com
+unnunitednewsnetworkgmbh.com
+engineer.ai
