@@ -77,6 +77,10 @@ for (const shot of SHOTS) {
     await page.waitForTimeout(1800);
     await page.screenshot({ path: `${shot.name}-open.png` });
   }
+  // Routes still in flight when a page closes reject inside the route
+  // callback and take the run down with them, which is a bug in this
+  // script rather than in the board.
+  await page.unrouteAll({ behavior: "ignoreErrors" });
   await page.close();
 }
 

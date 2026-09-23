@@ -323,7 +323,140 @@
            behaviour below 1100px, where there is no room for a third
            column, and it is never empty: with nothing selected it
            answers what the current filters add up to. -->
-      <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail"></aside>
+      <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail">
+        <!-- Two children, and only one is ever on screen.
+             #detail-empty is the Statistics column, markup for markup,
+             and it is static: renderScopedMetrics, renderPanels,
+             renderScopedPanels and renderPipelineTile own these grids
+             and paint into them on their own schedule. Rebuilding it as
+             a string on every render would wipe whatever they had just
+             drawn. #detail-body is the open listing, which is a string
+             because it changes with every listing. -->
+        <div id="detail-empty">
+    <aside class="stats-board" id="stats-board">
+      <h2 class="section-title">Statistics</h2>
+      <a class="link stats-more" href="/stats">Explore advanced statistics</a>
+
+      <!-- Three labelled blocks, not one flat stack. Some of these
+           numbers follow the board's filters now and the rest never
+           can, and an unlabelled column gives the reader no way to tell
+           which is which: "GLOBAL OPEN JOBS" over a count of twelve
+           remote Ruby roles in Haifa is the exact failure. The heading
+           of each block says which question it answers. -->
+      <section class="stats-section" aria-labelledby="stats-search-title">
+        <h3 class="stats-section-title" id="stats-search-title">Current search</h3>
+        <p class="stats-scope" id="stats-scope">No filters applied</p>
+
+        <!-- The bones are the real tiles with bones inside, five of them
+             with their real labels, so the grid is the height the numbers
+             will need. Four short placeholder tiles used to sit here and
+             the column grew 280px when the numbers landed, measured live
+             as the board's single largest layout shift. -->
+        <div id="metrics-grid" class="metrics-grid">
+          <span class="visually-hidden" role="status">Loading metrics</span>
+          <div class="metric-card pending" aria-hidden="true">
+            <div class="label">Open roles</div>
+            <div>
+              <div class="value"><span class="skeleton"></span></div>
+              <div class="sub"><span class="skeleton sk-sub"></span></div>
+            </div>
+          </div>
+          <div class="metric-card pending" aria-hidden="true">
+            <div class="label">Companies hiring</div>
+            <div>
+              <div class="value"><span class="skeleton"></span></div>
+              <div class="sub"><span class="skeleton sk-sub"></span></div>
+            </div>
+          </div>
+          <div class="metric-card pending" aria-hidden="true">
+            <div class="label">New listings in 24h</div>
+            <div>
+              <div class="value"><span class="skeleton"></span></div>
+              <div class="sub"><span class="skeleton sk-sub"></span></div>
+            </div>
+          </div>
+          <div class="metric-card pending" aria-hidden="true">
+            <div class="label">Closed in 24h</div>
+            <div>
+              <div class="value"><span class="skeleton"></span></div>
+              <div class="sub"><span class="skeleton sk-sub"></span></div>
+            </div>
+          </div>
+          <div class="metric-card pending" aria-hidden="true">
+            <div class="label">Median open age</div>
+            <div>
+              <div class="value"><span class="skeleton"></span></div>
+              <div class="sub"><span class="skeleton sk-sub"></span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Same idea: the real panel's shape (title, seven company rows,
+             the View-all button), not four bars. renderScopedPanels reads
+             this template for its own pending state. -->
+        <template id="panel-skeleton">
+          <div class="panel sk-panel" aria-hidden="true">
+            <div class="panel-title"><span class="skeleton sk-label"></span></div>
+            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
+            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
+            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
+            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
+            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
+            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
+            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
+            <div class="bar-more sk-more"><span class="skeleton sk-name"></span></div>
+          </div>
+        </template>
+        <div id="scoped-panel-grid" class="panel-grid">
+          <span class="visually-hidden" role="status">Loading companies</span>
+        </div>
+        <script>
+          // Stamped in while the page parses, so the first frame already
+          // holds the panel's height; app.js arrives later.
+          document.getElementById("scoped-panel-grid").prepend(document.getElementById("panel-skeleton").content.cloneNode(true));
+        </script>
+      </section>
+
+      <section class="stats-section" aria-labelledby="stats-market-title">
+        <h3 class="stats-section-title" id="stats-market-title">Market overview</h3>
+        <p class="stats-scope">Global Statistics</p>
+
+        <div id="panel-grid" class="panel-grid stats-grid-solo">
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <div class="panel sk-panel" aria-hidden="true">
+            <span class="skeleton sk-label"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+            <span class="skeleton sk-bar"></span>
+          </div>
+          <span class="visually-hidden" role="status">Loading market panels</span>
+        </div>
+      </section>
+
+      <section class="stats-section" aria-labelledby="stats-pipeline-title">
+        <h3 class="stats-section-title" id="stats-pipeline-title">Pipeline status</h3>
+
+        <div id="pipeline-grid" class="metrics-grid stats-grid-solo">
+          <div class="metric-card pending" aria-hidden="true">
+            <div class="label">Data health</div>
+            <div>
+              <div class="value"><span class="skeleton"></span></div>
+              <div class="sub"><span class="skeleton sk-sub"></span></div>
+            </div>
+          </div>
+          <span class="visually-hidden" role="status">Loading pipeline status</span>
+        </div>
+      </section>
+    </aside>
+        </div>
+        <div id="detail-body" hidden></div>
+      </aside>
       <!-- Dims and catches clicks on the board while the pane is a
            sheet. Inert above 1100px, where the pane is a column. -->
       <div id="job-scrim" aria-hidden="true"></div>
