@@ -2367,97 +2367,6 @@ const EXTERNAL_ARROW_SVG =
   + '<path d="M2.5 7.5 7.5 2.5M3.5 2.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6"'
   + ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function jobMatchHtml(j) {
-  if (!matchedSkills.size) return "";
-  const listed = (j.skills || "").split(",").filter(Boolean);
-  const hits = listed.filter((s) => matchedSkills.has(s));
-  if (!hits.length) return "";
-  const asks = listed.filter((s) => !matchedSkills.has(s));
-  // One line each: fitSkillLines shows at most MATCH_CHIPS_SHOWN matched
-  // skills, hides whatever else does not fit, and counts the rest in a
-  // "+N more" button that opens the line in place.
-  const more = `<button type="button" class="match-more" aria-expanded="false" hidden></button>`;
-  return `<div class="job-match skill-line" data-cap="${MATCH_CHIPS_SHOWN}">`
-    + `<span class="job-match-count">${hits.length} of your ${matchedSkills.size} skills</span>`
-    + hits.map((s) => `<span class="match-chip" data-fit>${escapeHtml(s)}</span>`).join("")
-    + more
-    + `</div>`
-    + (asks.length
-      ? `<div class="job-match-asks skill-line"><span class="job-match-asks-label">Missing skills:</span>`
-        + asks.map((s) => `<span data-fit>${escapeHtml(s)}</span>`).join("")
-        + more + `</div>`
-      : "");
-}
-
-// Three chips, then "+N more". A row listing eleven matched skills read as
-// a wall of green before the title did, so the matched line stops at
-// three and the rest wait behind a button (reported live). When even three
-// do not fit, the measured rule below still applies: skills are hidden
-// from the end until the line fits, always keeping the first one, because
-// the room depends on the title column, the window and whether Statistics
-// is folded. The missing-skills line has no cap, only the measured rule.
-const MATCH_CHIPS_SHOWN = 3;
-
-function fitSkillLine(line) {
-  const items = [...line.querySelectorAll("[data-fit]")];
-  const more = line.querySelector(".match-more");
-  if (!items.length || !more) return;
-  items.forEach((i) => { i.hidden = false; });
-  more.hidden = true;
-  if (line.classList.contains("expanded")) {
-    more.hidden = false;
-    more.textContent = "Show less";
-    more.title = "";
-    more.setAttribute("aria-expanded", "true");
-    return;
-  }
-  more.setAttribute("aria-expanded", "false");
-  const cap = Math.max(1, Number(line.dataset.cap) || items.length);
-  let hidden = 0;
-  const label = () => { more.textContent = `+${hidden} more ›`; };
-  items.forEach((item, k) => {
-    if (k >= cap) { item.hidden = true; hidden += 1; }
-  });
-  if (hidden) { more.hidden = false; label(); }
-  for (let k = Math.min(cap, items.length) - 1; k > 0 && line.scrollWidth > line.clientWidth; k--) {
-    more.hidden = false;
-    items[k].hidden = true;
-    hidden += 1;
-    label();
-  }
-  more.title = items.filter((i) => i.hidden).map((i) => i.textContent).join(", ");
-}
-
-let skillLinesWidth = 0;
-function fitSkillLines(force) {
-  const body = document.getElementById("jobs-body");
-  if (!body) return;
-  const width = body.clientWidth;
-  if (!force && width === skillLinesWidth) return;
-  skillLinesWidth = width;
-  body.querySelectorAll(".skill-line").forEach(fitSkillLine);
-}
-
-// The window, the sheet and the Statistics fold all change the row width
-// without re-rendering the rows.
-let skillLinesFrame = 0;
-function watchSkillLines() {
-  const body = document.getElementById("jobs-body");
-  if (!body) return;
-  // Source Sans arrives after the first rows can render, and its glyphs
-  // are wider than the fallback's, so a line fitted before it loads spills
-  // over without the row changing width.
-  if (document.fonts) {
-    document.fonts.ready.then(() => fitSkillLines(true));
-    document.fonts.addEventListener("loadingdone", () => fitSkillLines(true));
-  }
-  if (typeof ResizeObserver === "undefined") return;
-  new ResizeObserver(() => {
-    cancelAnimationFrame(skillLinesFrame);
-    skillLinesFrame = requestAnimationFrame(() => fitSkillLines(false));
-  }).observe(body);
-}
-
 // Drawn rather than typed, for the reason EXTERNAL_ARROW_SVG spells
 // out: ☆ and ★ render as colour emoji inside a button on iOS unless the
 // font is told otherwise, and they are two different glyph widths, so a
@@ -2466,6 +2375,11 @@ const STAR_SVG =
   '<svg class="star-mark" viewBox="0 0 16 16" aria-hidden="true">'
   + '<path d="M8 1.6l1.95 3.95 4.35.63-3.15 3.07.74 4.33L8 11.53l-3.89 2.05.74-4.33L1.7 6.18l4.35-.63z"'
   + ' fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+
+const MATCH_TICK_SVG =
+  '<svg class="match-tick" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">'
+  + '<path d="M2 5.3 4.1 7.4 8 3.2" fill="none" stroke="currentColor" stroke-width="1.7"'
+  + ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const CLOSE_SVG =
   '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">'
@@ -2508,6 +2422,36 @@ function jobSalaryLine(j) {
     + `${escapeHtml(j.salary_text)}</span>`;
 }
 
+// Best matches puts one line where every other view puts the chip
+// line: the salary first as everywhere else, then the skills this
+// listing shares with the CV, then how many of them and what it asks
+// for that the CV does not have. One row, fixed height, and the summary
+// is what truncates, because the chips carry the specifics.
+//
+// It replaced two lines, a matched one and a "Missing skills" one, each
+// measuring itself and hiding chips from the end until it fitted. That
+// machinery existed because the row could grow. It cannot any more, and
+// the full breakdown is in the detail pane, which is where somebody who
+// wants it has already gone.
+const MATCH_CHIPS_SHOWN = 3;
+
+function jobMatchLine(j) {
+  const listed = (j.skills || "").split(",").filter(Boolean);
+  const hits = listed.filter((sk) => matchedSkills.has(sk));
+  const asks = listed.filter((sk) => !matchedSkills.has(sk));
+  const summary = `${hits.length} of ${matchedSkills.size}`
+    + (asks.length ? ` · missing ${asks.join(", ")}` : "");
+  // Three chips at most. The count is the part that has to survive:
+  // eight of them filled the line and pushed "6 of 8" off the end, so
+  // the row showed which skills matched and never how many. The chips
+  // are the examples, the summary is the answer, and its own title
+  // attribute carries every name either way.
+  return jobSalaryChip(j)
+    + hits.slice(0, MATCH_CHIPS_SHOWN)
+        .map((sk) => `<span class="job-chip skill matched">${MATCH_TICK_SVG}${escapeHtml(sk)}</span>`).join("")
+    + `<span class="job-match-summary" title="${escapeHtml(summary)}">${escapeHtml(summary)}</span>`;
+}
+
 function jobSkillChips(j) {
   return (j.skills || "")
     .split(",")
@@ -2541,7 +2485,11 @@ function renderJobRows(jobs, starred) {
         <td class="logo-cell">${companyLogoImg(j.company_domain, 44, "listing", j.logo_url)}</td>
         <td class="main-cell">
           <div class="job-card-title">
-            <span class="job-title-text">${highlight(j.title)}</span>
+            <!-- title=, because the row is a fixed height and this is
+                 ellipsised. escapeHtml, not highlight(): the visible
+                 span keeps the search highlighting, an attribute cannot
+                 hold markup. -->
+            <span class="job-title-text" title="${escapeHtml(j.title)}">${highlight(j.title)}</span>
             ${j.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[j.seniority] || j.seniority)}</span>` : ""}
             ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
             ${j.closed_at ? '<span class="badge closed" title="This listing is no longer open">Closed</span>' : ""}
@@ -2551,8 +2499,7 @@ function renderJobRows(jobs, starred) {
                needs, and hides on desktop where the column exists.
                Same trick the board used before this layout. -->
           <div class="job-meta">${jobMetaLine(j)}<span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAge(age)}</span></span></div>
-          ${jobMatchHtml(j)}
-          <div class="job-chips">${jobSalaryChip(j)}${jobSkillChips(j)}</div>
+          <div class="job-chips">${matchedSkills.size ? jobMatchLine(j) : jobSalaryChip(j) + jobSkillChips(j)}</div>
           <div class="job-links">
             <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
             <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
@@ -2563,19 +2510,6 @@ function renderJobRows(jobs, starred) {
       </tr>`;
     })
     .join("");
-  fitSkillLines(true);
-
-  // "+N more" opens its line in place and "Show less" folds it back. Not
-  // the row's own click, which opens the listing.
-  document.querySelectorAll("#jobs-body .match-more").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const line = btn.closest(".skill-line");
-      line.classList.toggle("expanded");
-      fitSkillLine(line);
-    });
-    btn.addEventListener("keydown", (e) => e.stopPropagation());
-  });
 
   document.querySelectorAll("[data-star]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
@@ -5647,7 +5581,6 @@ async function boot() {
   renderDetailEmpty();
   wireThemeToggle();
   wireStatsToggle();
-  watchSkillLines();
 
   // Both started together, and neither waits for the other. The prompt
   // renders over a board that is already filling in rather than over an

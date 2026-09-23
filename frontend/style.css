@@ -1557,61 +1557,10 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
   cursor: pointer;
 }
 .skill-chip:hover { color: var(--green-text); text-decoration: underline; }
-/* The skills a CV match put this row on the list for. Not buttons:
-   clicking one would swap the whole match for a single-keyword filter,
-   which is the opposite of what someone reading their matches wants. */
-.job-match {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
-}
-/* One line each; fitSkillLine in app.js hides what does not fit behind
-   the +N. */
-.skill-line {
-  flex-wrap: nowrap;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.match-more:hover { color: var(--black); text-decoration: underline; }
-.match-more:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 4px; }
-.skill-line.expanded {
-  flex-wrap: wrap;
-  overflow: visible;
-  white-space: normal;
-}
-.match-more {
-  flex: none;
-  background: none;
-  border: 0;
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--grey);
-  padding: 1px 2px;
-  cursor: pointer;
-}
+/* The two-line matched/missing markup this styled is gone: Best matches
+   is one line now (see jobMatchLine in app.js), and .job-match-summary
+   beside the chip rules above is what carries it. */
 
-.match-chip {
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--green-text);
-  border: var(--rule) solid var(--green-text);
-  border-radius: 4px;
-  padding: 1px 5px;
-}
-/* + (adjacent sibling), not :not(:last-child) -- .skill-bracket's "]"
-   is the column's real last child now (see jobSkillsHtml), so a
-   last-child check would put a stray "·" on every chip, right before
-   the bracket too. This instead marks every chip preceded by another
-   chip specifically, which the bracket spans never are. */
-.skill-chip + .skill-chip::before { content: "·"; margin-right: 10px; color: var(--grey-line); }
-/* Groups the whole skill list visually, per a live request -- the
-   brackets sit right against the first/last chip (no gap token
-   consumed for them) via negative margins, rather than reading as
-   their own separately-spaced list items. */
 /* All listings / Best matches / Saved: the Explore page's segmented
    control, a touch taller to sit with the filter row above it. */
 .view-switch { margin-bottom: 12px; }
@@ -4651,8 +4600,20 @@ table.jobs thead .th-listing { grid-column: 1 / 4; }
 table.jobs thead .th-age { grid-column: 4; text-align: right; }
 
 table.jobs tbody td { padding: 0; vertical-align: top; }
+/* One height for every row, so fifty of them make a rhythm a reader can
+   scan rather than a ragged column that reflows as titles wrap. Each of
+   the three lines gets exactly one line: 76px of content inside 28px of
+   padding is title (19) + meta (19) + chips (22) + two 8px gaps. */
 table.jobs tbody tr[data-id],
-table.jobs tbody tr.skeleton-row { padding: 14px 20px; position: relative; }
+table.jobs tbody tr.skeleton-row {
+  padding: 14px 20px;
+  position: relative;
+  height: 104px;
+  align-content: start;
+}
+/* Nothing may push the row taller, which is what a wrapped title, a
+   second meta line or a fourth chip row would each do. */
+.main-cell { overflow: hidden; }
 
 table.jobs tbody tr.selected { background: var(--row-selected); }
 /* An inset bar rather than a border, so a selected row is the same
@@ -4693,14 +4654,36 @@ table.jobs tbody tr.selected::before {
 .job-card-title {
   display: flex;
   align-items: baseline;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  min-width: 0;
   font: 600 15px var(--font);
+  line-height: 19px;
   color: var(--black);
 }
+/* The title is what gives way. min-width:0 lets it shrink below its
+   content, which a flex item will not do by default, and the badge
+   beside it keeps its size instead of being the thing that disappears:
+   "Senior" is three characters of information and a truncated title
+   still reads. The full string is in the title attribute (see
+   renderJobRows). */
+.job-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.job-card-title .badge { flex: 0 0 auto; }
 tr:hover .job-title-text { color: var(--green-text); }
 
-.job-meta { font: 400 13px var(--font); color: var(--grey); }
+.job-meta {
+  font: 400 13px var(--font);
+  line-height: 19px;
+  color: var(--grey);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* Three things only a phone shows. The column, the detail pane and the
    chip line carry them at every other width. */
 .meta-age,
@@ -4708,7 +4691,42 @@ tr:hover .job-title-text { color: var(--green-text); }
 .job-salary-line { display: none; }
 .meta-age-value.fresh { color: var(--green-text); }
 
-.job-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+/* One row, and it is the skills that fall off the end of it. The salary
+   chip is first in the markup and never shrinks, so a row that only has
+   space for one thing shows the number rather than a skill tag. */
+.job-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow: hidden;
+  height: 22px;
+}
+.job-chips > * { flex: 0 0 auto; }
+
+/* Best matches. A matched skill is the same chip as any other, with a
+   tick in front, so the eye reads one vocabulary down the column rather
+   than learning a second one for this view. */
+.job-chip.skill.matched {
+  gap: 5px;
+  border-color: var(--green-text);
+  color: var(--green-text);
+}
+.match-tick { flex: 0 0 auto; }
+
+/* The only thing on the line allowed to shrink. The chips are the
+   specifics and keep their size; this is the summary, and a summary
+   that ends in an ellipsis still says what it is. The whole of it,
+   untruncated, is in its own title attribute. */
+.job-match-summary {
+  flex: 0 1 auto;
+  min-width: 0;
+  align-self: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 12px var(--font);
+  color: var(--grey);
+}
 .job-chip {
   display: inline-flex;
   align-items: center;
