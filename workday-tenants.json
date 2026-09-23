@@ -28608,5 +28608,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "airzonecontrol.com",
+  "tenant": "airzonecontrol",
+  "wd": "wd103",
+  "site": "External_Career_Site",
+  "jobs_seen": 31,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "vacu.com",
+  "tenant": "vacu",
+  "wd": "wd1",
+  "site": "VACU_Careers",
+  "jobs_seen": 31,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "ljbtc.com",
+  "tenant": "ljbtc",
+  "wd": "wd501",
+  "site": "LJBTC",
+  "jobs_seen": 29,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "wlu.ai",
+  "tenant": "wlu",
+  "wd": "wd5",
+  "site": "WLUCareers",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
