@@ -47,3 +47,7 @@ _matrix.json
 
 # local precomputed files for scripts/dev_server.py
 loader/precomputed/
+
+# local secrets (box SSH key, hosts); never committed
+.env
+bench-result.json

@@ -60,8 +60,17 @@ from boto3.s3.transfer import TransferConfig
 
 from job_filters import register_functions
 
-DATA_BUCKET = os.environ["DATA_BUCKET"]
-DATA_KEY = os.environ["DATA_KEY"]
+# A local snapshot to serve instead of one pulled from S3. Set on the
+# box, where the applier writes jobs.db in place and nothing downloads
+# it, so everything below about fetching and refreshing goes unused:
+# get_connection() opens this file once and keeps it, and WAL mode means
+# each statement already sees the applier's latest commit. DATA_BUCKET
+# stays set there too, because descriptions and precomputed answers are
+# still read from S3 (handler.py's _description_from_s3 and
+# _precomputed_json).
+DATA_PATH = os.environ.get("DATA_PATH")
+DATA_BUCKET = os.environ.get("DATA_BUCKET", "")
+DATA_KEY = os.environ.get("DATA_KEY", "")
 TMP_DIR = "/tmp"
 LOCAL_PREFIX = "jobs"
 # Re-check S3 for a newer version at most this often, per warm container.
@@ -305,8 +314,26 @@ def _clear_leftovers() -> None:
                 pass
 
 
+def _local_connection() -> sqlite3.Connection:
+    """The box's own file, opened once per process. Under the lock,
+    unlike the Lambda cold start below: gunicorn threads can arrive
+    together, and two connections to the same file would only waste
+    the second one."""
+    global _conn, _path, _loaded_at
+    if _conn is None:
+        with _lock:
+            if _conn is None:
+                conn = _open_readonly(DATA_PATH)
+                _check(conn)
+                _conn, _path, _loaded_at = conn, DATA_PATH, time.time()
+    return _conn
+
+
 def get_connection() -> sqlite3.Connection:
     global _conn, _path, _etag, _loaded_at, _last_checked
+
+    if DATA_PATH:
+        return _local_connection()
 
     now = time.monotonic()
     if _conn is None:
@@ -382,6 +409,22 @@ def get_connection() -> sqlite3.Connection:
 def status() -> dict:
     """What this container is serving and how its refresh is going, for
     /api/health."""
+    if DATA_PATH:
+        # The file's own mtime is when the applier last committed, which
+        # is the freshness a reader of /api/health actually wants.
+        try:
+            st = os.stat(DATA_PATH)
+            size = st.st_size
+            modified = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(st.st_mtime))
+            age = round(time.time() - st.st_mtime)
+        except OSError:
+            size = modified = age = None
+        return {
+            "etag": None, "path": DATA_PATH, "bytes": size,
+            "loaded_at": modified, "age_seconds": age,
+            "refresh": {"state": "local", "etag": None, "seconds": None,
+                        "bytes": 0, "size": size, "error": None, "failures": 0},
+        }
     with _lock:
         return {
             "etag": (_etag or "").strip('"') or None,
