@@ -29158,5 +29158,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "cmh.io",
+  "tenant": "cmh",
+  "wd": "wd1",
+  "site": "CMH",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "ventas.io",
+  "tenant": "ventas",
+  "wd": "wd503",
+  "site": "ventas_careers",
+  "jobs_seen": 2,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]

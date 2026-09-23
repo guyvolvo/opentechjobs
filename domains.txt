@@ -21797,3 +21797,24 @@ fidelity.com
 orascom.com
 fa.com
 the-alternative.net
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+avex.com
+citygreen.com
+canopy.ai
+demercuurmetalspinningpressingbv.com
+cpqd.com
+droptica.com
+egeria.io
+investinternational.com
+hospitainer.com
+newlawbusinessmodel.com
+sofatutor.com
+sportbedrijfdrachten.com
+smametalltechnik.com
+stakesterlimited.com
+stendahls.com
+solease.net
+smartqare.com
+viepeople.com
+alem.co
