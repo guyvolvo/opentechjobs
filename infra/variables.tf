@@ -166,3 +166,9 @@ variable "alerts_from_email" {
   description = "SES sender address for alert digests. Must be on a domain verified in alerts_ses.tf (DNS records added manually in Cloudflare, same pattern as acm.tf)."
   default     = "alerts@guyvoloshin.com"
 }
+
+variable "box_instance_id" {
+  type        = string
+  default     = "i-0e0f6ed693e6b6db3"
+  description = "The EC2 instance serving the API and applying deltas. A variable rather than a resource reference because the box was created by hand during the migration and has not been imported into this state yet; importing a live instance mid-cutover is how you get a plan that wants to replace it. Once it is imported this becomes aws_instance.box.id and the variable goes away."
+}

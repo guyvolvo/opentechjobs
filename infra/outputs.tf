@@ -124,3 +124,13 @@ output "github_actions_role_arns" {
     frontend_deploy           = aws_iam_role.frontend_deploy.arn
   }
 }
+
+output "box_deploy_role_arn" {
+  value       = aws_iam_role.box_deploy.arn
+  description = "Set as the BOX_DEPLOY_ROLE_ARN repository variable for deploy-box.yml, alongside BOX_INSTANCE_ID."
+}
+
+output "box_instance_id" {
+  value       = var.box_instance_id
+  description = "Set as the BOX_INSTANCE_ID repository variable for deploy-box.yml."
+}

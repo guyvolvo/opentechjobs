@@ -1,0 +1,81 @@
+name: deploy-box
+
+# Ships code to the EC2 box that serves the API and applies the deltas.
+#
+# The box runs this repository directly, not a zip: a checkout under
+# /srv/otj/app, a venv beside it, and systemd units pointing at both. So
+# deploying is `git pull` and a restart, and the only question is how to
+# reach a machine with no inbound ports open.
+#
+# SSM RunCommand, not SSH. The instance already carries
+# AmazonSSMManagedInstanceCore for its own sake, the agent holds an
+# outbound connection to Systems Manager, and GitHub authenticates with
+# the same OIDC role it uses everywhere else. No deploy key in CI, no
+# port 22 open to the internet, and every command is recorded in SSM's
+# own history against the role that sent it.
+#
+# Deliberately wider paths than deploy-api.yml: the box runs the API,
+# the loader, the applier and the alert evaluator, so a change to any of
+# them has to reach it. deploy-api.yml keeps shipping the same api/ to
+# Lambda in parallel, which is what makes reverting the Cloudflare rule
+# a real rollback rather than a revert to stale code. It retires when
+# the Lambda does.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "loader/**"
+      - "box/**"
+      - "alerts.py"
+      - "db/schema.sql"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: il-central-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.BOX_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Pull and restart on the box
+        run: |
+          set -euo pipefail
+          CMD=$(aws ssm send-command \
+            --instance-ids "${{ vars.BOX_INSTANCE_ID }}" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy-box ${GITHUB_SHA::7}" \
+            --parameters commands='[
+              "set -euo pipefail",
+              "cd /srv/otj/app",
+              "sudo -u ubuntu git fetch --quiet origin main",
+              "sudo -u ubuntu git reset --quiet --hard origin/main",
+              "sudo -u ubuntu git rev-parse --short HEAD",
+              "sudo systemctl restart otj-api",
+              "sleep 3",
+              "curl -fsS -o /dev/null -w \"health %{http_code} %{time_total}s\\n\" http://127.0.0.1:8000/api/health"
+            ]' \
+            --query Command.CommandId --output text)
+          echo "command $CMD"
+          aws ssm wait command-executed --command-id "$CMD" \
+            --instance-id "${{ vars.BOX_INSTANCE_ID }}" || true
+          aws ssm get-command-invocation --command-id "$CMD" \
+            --instance-id "${{ vars.BOX_INSTANCE_ID }}" \
+            --query "{status:Status,out:StandardOutputContent,err:StandardErrorContent}" \
+            --output text
+          # The wait above is allowed to fail so the output prints either
+          # way; this is what actually decides the job.
+          STATUS=$(aws ssm get-command-invocation --command-id "$CMD" \
+            --instance-id "${{ vars.BOX_INSTANCE_ID }}" \
+            --query Status --output text)
+          test "$STATUS" = "Success"

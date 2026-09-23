@@ -289,6 +289,61 @@ resource "aws_iam_role_policy" "api_deploy" {
   })
 }
 
+# box-deploy: used by deploy-box.yml. Tell the box to pull and restart,
+# and nothing else.
+#
+# SendCommand is scoped to the one instance AND the one document, which
+# are separate resources on the same call: without the document ARN the
+# action is denied, and with only the document any instance in the
+# account would be reachable. AWS-RunShellScript is a shell, so this
+# grant is "run anything as root on that box" and its blast radius is
+# exactly the box. That is the same power a deploy key would carry,
+# minus the key.
+#
+# GetCommandInvocation takes no resource condition worth writing, since
+# a command id is only meaningful to whoever created it.
+
+resource "aws_iam_role" "box_deploy" {
+  name = "${var.project_name}-box-deploy"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
+        StringLike   = { "token.actions.githubusercontent.com:sub" = local.github_oidc_sub }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "box_deploy" {
+  name = "${var.project_name}-box-deploy-policy"
+  role = aws_iam_role.box_deploy.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "RunDeployOnTheBox"
+        Effect = "Allow"
+        Action = ["ssm:SendCommand"]
+        Resource = [
+          "arn:aws:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:instance/${var.box_instance_id}",
+          "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript",
+        ]
+      },
+      {
+        Sid      = "ReadBackWhatItDid"
+        Effect   = "Allow"
+        Action   = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations", "ssm:ListCommands"]
+        Resource = "*"
+      },
+    ]
+  })
+}
+
 # scrape-lambda-deploy: used by deploy-scrape-lambda.yml. Update the
 # scrape-fast, scrape-workday, and scrape-maintenance Lambdas' code,
 # nothing else.
