@@ -28868,5 +28868,15 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "yakimacounty.org",
+  "tenant": "yakimacounty",
+  "wd": "wd5",
+  "site": "YakimaCountyWA",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
