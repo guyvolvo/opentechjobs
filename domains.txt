@@ -17410,3 +17410,23 @@ nmims.net
 nami.com
 synlab.com
 tamer-group.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+langham.com
+ut.com
+ipsos.com
+avient.com
+scor.com
+page-not-found.de
+trinet.com
+mas.org
+dallas.com
+beautybarrage.com
+savencia.com
+rottler.com
+mapei.ai
+ef.com
+arconic.com
+suffolk.com
+infiniti.net
+hult-international-business-school.com

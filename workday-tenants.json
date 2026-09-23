@@ -28118,5 +28118,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "sundial.com",
+  "tenant": "sundial",
+  "wd": "wd10",
+  "site": "sndl_careers",
+  "jobs_seen": 193,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "fultonhogan.com",
+  "tenant": "fultonhogan",
+  "wd": "wd3",
+  "site": "Fultonhogan",
+  "jobs_seen": 192,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "zekelman.com",
+  "tenant": "zekelman",
+  "wd": "wd12",
+  "site": "Careers",
+  "jobs_seen": 180,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
