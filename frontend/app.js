@@ -1857,13 +1857,6 @@ async function loadJobs({ background = false } = {}) {
   renderMatchPanel();
   paintViewSwitch();
 
-  // Not awaited, and above the starred_only branch on purpose. The
-  // listings are what the reader came for and the sidebar must never
-  // hold them up, but "Saved" is a client-local view rather than an API
-  // filter, so the Current search block is still answering for whatever
-  // else is selected and would otherwise sit on the previous answer.
-  refreshScopedStats();
-
   if (state.starred_only) {
     // Hands over this call's seq and controller rather than starting
     // its own, so a slow saved fetch loses to a newer view the same way
@@ -2270,7 +2263,13 @@ function renderResultCount(data) {
 let facetsTimer = 0;
 function scheduleFacets() {
   clearTimeout(facetsTimer);
-  facetsTimer = setTimeout(refreshFacetOptions, 400);
+  facetsTimer = setTimeout(() => {
+    refreshFacetOptions();
+    // Last of all, and the heaviest. "Saved" is a client-local view
+    // rather than an API filter, so its own scoped block still answers
+    // for whatever else is selected and is still worth asking for.
+    refreshScopedStats();
+  }, 400);
 }
 
 function renderJobs(data, starred) {
@@ -5654,13 +5653,6 @@ async function boot() {
   wireThemeToggle();
   wireStatsToggle();
   watchSkillLines();
-  loadTicker();
-  // Not awaited. The statistics column is supplementary and this sat in
-  // front of the listings: measured over 50 cold visits, /stats.json
-  // cost the first /api/jobs request 232ms at p90 purely by being ahead
-  // of it in the queue. refreshStats renders from its own cache and
-  // paints itself whenever it lands.
-  refreshStats();
 
   // Both started together, and neither waits for the other. The prompt
   // renders over a board that is already filling in rather than over an
@@ -5675,6 +5667,20 @@ async function boot() {
   const asked = maybeAskCountry();
   loadJobs();
   asked.then((chose) => { if (chose) loadJobs(); });
+
+  // Behind the listings, both of them, because neither is what anybody
+  // opened the board for.
+  //
+  // The comment that used to sit above refreshStats already knew this:
+  // "measured over 50 cold visits, /stats.json cost the first
+  // /api/jobs request 232ms at p90 purely by being ahead of it in the
+  // queue". It was left in front anyway on the grounds that it is not
+  // awaited, which is the same mistake the rail's counts made. Not
+  // awaited is not free: /stats.json is 777KB and on a hard reload it
+  // competes for the same bandwidth as the rows, on a page that now
+  // reads four small numbers out of it.
+  loadTicker();
+  refreshStats();
 
   // ?view=matches opens Best matches directly, for the 404 page and any
   // other link that wants it. Not filter state: setView works out the
