@@ -28848,5 +28848,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "careoregon.com",
+  "tenant": "careoregon",
+  "wd": "wd12",
+  "site": "CO",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "hyva.com",
+  "tenant": "hyva",
+  "wd": "wd3",
+  "site": "HyvaGroup",
+  "jobs_seen": 14,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
