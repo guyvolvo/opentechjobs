@@ -28728,5 +28728,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "aimco.com",
+  "tenant": "aimco",
+  "wd": "wd10",
+  "site": "AIMCoCareers",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "atsg.com",
+  "tenant": "atsg",
+  "wd": "wd108",
+  "site": "XTIUMCareers",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "ww.com",
+  "tenant": "ww",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
