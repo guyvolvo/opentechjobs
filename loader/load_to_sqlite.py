@@ -234,6 +234,12 @@ _NEW_COLUMNS = {
     "salary_text": "TEXT",
     "salary_is_estimate": "INTEGER NOT NULL DEFAULT 0",
     "salary_source": "TEXT",
+    # salary_text as two numbers, so the board's salary filter has
+    # something to compare. Derived after the load by
+    # derive_salary_ranges, not carried through the upsert, for the
+    # reason written there.
+    "salary_min_ils": "INTEGER",
+    "salary_max_ils": "INTEGER",
     # The tech-role verdict (api/role_class.py): tech, adjacent, non-tech
     # or unknown, its score, and the evidence it rests on. Filled by
     # classify_roles after every load, for rows still NULL.
@@ -1095,6 +1101,48 @@ def classify_roles(conn: sqlite3.Connection) -> int:
     return total
 
 
+def derive_salary_ranges(conn: sqlite3.Connection) -> int:
+    """Refill salary_min_ils/salary_max_ils from salary_text.
+
+    Derived here rather than carried through upsert_job, which is the
+    unusual choice and the right one. salary_text reaches a row through
+    eight ON CONFLICT branches that weigh a disclosed figure against an
+    estimate against what is already stored; two more columns would mean
+    two more copies of that ladder, kept in step by hand forever, and
+    the first branch anyone forgot would leave a listing filtering under
+    a salary it no longer shows. The pair is a function of salary_text
+    and nothing else, so it is computed from salary_text and nothing
+    else, after the load has settled what that is.
+
+    Every shekel row is recomputed each pass rather than only the ones
+    with no numbers yet, because a re-estimate changes the text in place
+    and a stale pair would be worse than none. That costs nothing: there
+    are 2,887 of them on the live snapshot against 968,659 open rows,
+    since shekels are the one currency this can read (see
+    salary_range.py). The clearing pass ahead of it is what catches a
+    row that used to be priced in shekels and now is not.
+    """
+    from salary_range import monthly_ils
+
+    cleared = conn.execute(
+        "UPDATE jobs SET salary_min_ils = NULL, salary_max_ils = NULL "
+        "WHERE salary_min_ils IS NOT NULL "
+        "  AND (salary_text IS NULL OR salary_text NOT LIKE '%₪%')"
+    ).rowcount
+    rows = conn.execute(
+        "SELECT id, salary_text FROM jobs WHERE salary_text LIKE '%₪%'"
+    ).fetchall()
+    written = [
+        (parsed[0], parsed[1], jid)
+        for jid, text in rows
+        if (parsed := monthly_ils(text)) is not None
+    ]
+    conn.executemany(
+        "UPDATE jobs SET salary_min_ils = ?, salary_max_ils = ? WHERE id = ?", written
+    )
+    return cleared + len(written)
+
+
 def classify_categories(conn: sqlite3.Connection) -> int:
     """Fill the category column for rows that have none yet. A whole
     snapshot the first time, a few hundred rows on every apply after."""
@@ -1904,6 +1952,9 @@ def main() -> int:
                 n_dates = normalize_posted_at(conn)
                 if n_dates:
                     print(f"posted_at normalized on {n_dates} rows", file=sys.stderr)
+                n_salary = derive_salary_ranges(conn)
+                if n_salary:
+                    print(f"salary ranges derived on {n_salary} rows", file=sys.stderr)
                 ensure_box_indexes(conn)
             if args.deep:
                 load_deep(conn, args.deep)
