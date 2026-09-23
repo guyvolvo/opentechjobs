@@ -22630,3 +22630,9 @@ somniosoftware.com
 weberpackaginggmbh.com
 transport.net
 whofoundation.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+xchange.ai
+cardiology.org
+gencap.com
+lumerate.com
