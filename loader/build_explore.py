@@ -165,6 +165,11 @@ INDEXES = [
 ]
 
 
+# Listings read into memory at once. 50,000 wide rows is roughly 50MB of
+# Python objects, which is the peak this function should ever reach.
+JOB_CHUNK = 50_000
+
+
 def build(snapshot: Path, out: Path) -> dict:
     """Write the explore database. Returns a summary."""
     if out.exists():
@@ -176,45 +181,66 @@ def build(snapshot: Path, out: Path) -> dict:
     dst.executescript(SCHEMA)
 
     now = datetime.now(timezone.utc)
-    rows = src.execute(
-        """SELECT id, company_domain, ats, title, department, seniority, workplace_type,
-                  location, skills, salary_text, salary_source, url, posted_at,
-                  first_seen, last_seen, closed_at
-           FROM jobs WHERE confidence = 'verified'"""
-    ).fetchall()
 
     # Timestamps to the second. The snapshot's carry microseconds and an
     # offset, thirteen bytes a row that would sit in the wide index too.
     short = lambda t: t[:19] if t else t
 
-    job_rows, skills_of = [], {}
-    for r in rows:
-        end = _parse(r["closed_at"]) or now
-        start = _parse(r["first_seen"])
-        days_open = round((end - start).total_seconds() / 86400, 2) if start else None
-        job_rows.append((
-            r["id"], r["company_domain"], r["ats"], r["title"],
-            classify_category(r["department"], r["title"]), r["department"],
-            r["seniority"], r["workplace_type"], r["location"],
-            r["salary_text"], r["salary_source"], r["url"], short(r["posted_at"]),
-            short(r["first_seen"]), short(r["last_seen"]), short(r["closed_at"]), days_open,
-        ))
-        terms = {t.strip().lower() for t in (r["skills"] or "").split(",")}
-        terms.discard("")
-        if terms:
-            skills_of[r["id"]] = (terms, job_rows[-1])
-
-    dst.executemany("INSERT INTO jobs VALUES (%s)" % ",".join("?" * 17), job_rows)
-    rowid_of = dict(dst.execute("SELECT id, rowid FROM jobs").fetchall())
-    skill_rows = [
-        (rowid_of[jid], jid, term, jr[1], jr[2], jr[4], jr[6], jr[7], jr[10], jr[13], jr[15], jr[16])
-        for jid, (terms, jr) in skills_of.items() for term in sorted(terms)
-    ]
-    dst.executemany("INSERT INTO job_skills VALUES (%s)" % ",".join("?" * 12), skill_rows)
+    # A chunk at a time, not the whole table.
+    #
+    # This used to fetchall() every verified job, build a second copy as
+    # tuples, a dict of id -> (skills, row) for most of them, a dict of
+    # every id -> rowid, and then a list of every skill row: four or five
+    # complete copies of the corpus alive at once. At 1.1M listings that
+    # reached 1,065,568kB and the kernel killed it. Nothing here needs
+    # the whole table at once, so it reads a chunk, writes it, and lets
+    # it go; peak is now one chunk rather than the corpus.
+    #
+    # rowids are assigned sequentially into a table this function just
+    # created and nothing else writes, so the rowid of the nth row
+    # inserted is n. That is what lets the skills rows be written in the
+    # same pass without a second query or a dict of every id: asking
+    # "SELECT id, rowid" back for a chunk would need one bound parameter
+    # per row and SQLite's limit is well under a chunk.
+    cur = src.execute(
+        """SELECT id, company_domain, ats, title, department, seniority, workplace_type,
+                  location, skills, salary_text, salary_source, url, posted_at,
+                  first_seen, last_seen, closed_at
+           FROM jobs WHERE confidence = 'verified'"""
+    )
+    n_jobs = n_skills = 0
+    while True:
+        chunk = cur.fetchmany(JOB_CHUNK)
+        if not chunk:
+            break
+        job_rows, skill_rows = [], []
+        for r in chunk:
+            end = _parse(r["closed_at"]) or now
+            start = _parse(r["first_seen"])
+            days_open = round((end - start).total_seconds() / 86400, 2) if start else None
+            row = (
+                r["id"], r["company_domain"], r["ats"], r["title"],
+                classify_category(r["department"], r["title"]), r["department"],
+                r["seniority"], r["workplace_type"], r["location"],
+                r["salary_text"], r["salary_source"], r["url"], short(r["posted_at"]),
+                short(r["first_seen"]), short(r["last_seen"]), short(r["closed_at"]), days_open,
+            )
+            job_rows.append(row)
+            n_jobs += 1
+            terms = {t.strip().lower() for t in (r["skills"] or "").split(",")}
+            terms.discard("")
+            for term in sorted(terms):
+                skill_rows.append((n_jobs, r["id"], term, row[1], row[2], row[4],
+                                   row[6], row[7], row[10], row[13], row[15], row[16]))
+        dst.executemany("INSERT INTO jobs VALUES (%s)" % ",".join("?" * 17), job_rows)
+        if skill_rows:
+            dst.executemany("INSERT INTO job_skills VALUES (%s)" % ",".join("?" * 12), skill_rows)
+            n_skills += len(skill_rows)
+        dst.commit()
     dst.executemany(
         "INSERT INTO companies VALUES (?, ?, ?, 0)",
-        [(c["domain"], c["company_name"], c["ats"])
-         for c in src.execute("SELECT domain, company_name, ats FROM companies")],
+        ((c["domain"], c["company_name"], c["ats"])
+         for c in src.execute("SELECT domain, company_name, ats FROM companies")),
     )
     # Indexes before the open-count update, not after. As a correlated
     # subquery over an unindexed jobs table this was 3,569 companies
@@ -225,7 +251,7 @@ def build(snapshot: Path, out: Path) -> dict:
     dst.executemany(
         "UPDATE companies SET open_jobs = ? WHERE domain = ?",
         [(n, d) for d, n in dst.execute(
-            "SELECT company, COUNT(*) FROM jobs WHERE closed_at IS NULL GROUP BY company")],
+            "SELECT company, COUNT(*) FROM jobs WHERE closed_at IS NULL GROUP BY company").fetchall()],
     )
 
     # The pickers' values. Computed once here, where it is one grouped
@@ -248,13 +274,15 @@ def build(snapshot: Path, out: Path) -> dict:
            FROM companies WHERE open_jobs > 0"""
     )
 
-    open_jobs = sum(1 for r in job_rows if r[15] is None)
+    # Counted from the file rather than from the lists that built it:
+    # those hold one chunk now, not the corpus.
+    open_jobs = dst.execute("SELECT COUNT(*) FROM jobs WHERE closed_at IS NULL").fetchone()[0]
     meta = {
         "built_at": now.isoformat(),
-        "jobs": str(len(job_rows)),
+        "jobs": str(n_jobs),
         "open_jobs": str(open_jobs),
         "companies": str(dst.execute("SELECT COUNT(*) FROM companies").fetchone()[0]),
-        "skills": str(len(skill_rows)),
+        "skills": str(n_skills),
         "corpus_since": "2026-09-01",
     }
     dst.executemany("INSERT INTO meta VALUES (?, ?)", meta.items())
