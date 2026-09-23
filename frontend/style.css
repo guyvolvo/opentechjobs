@@ -5078,21 +5078,45 @@ tr:hover .job-title-text { color: var(--green-text); }
   .board-list { padding-left: 0; }
   .rail-toggle { display: inline-flex; }
 
+  /* Up from the bottom, not in from the side. A side sheet on a phone
+     is a desktop drawer shrunk: it leaves a dead strip of board beside
+     it, it opens away from the thumb, and the Filters button that
+     summons it is at the top of the screen while the sheet arrives from
+     the left. A bottom sheet comes from where the hand already is and
+     takes the full width, which is what the rail's rows want anyway. */
   .filter-rail {
     position: fixed;
-    top: 0;
+    top: auto;
+    right: 0;
     bottom: 0;
     left: 0;
-    width: min(300px, 86vw);
-    max-height: none;
+    width: 100%;
+    height: auto;
+    max-height: 85vh;
+    max-height: 85dvh;
     z-index: 20;
-    border-right: var(--rule) solid var(--black);
-    padding-top: 14px;
-    padding-bottom: max(28px, env(safe-area-inset-bottom));
-    transform: translateX(-100%);
+    border: 0;
+    border-top: var(--rule) solid var(--black);
+    border-radius: 4px 4px 0 0;
+    padding: 12px 16px max(28px, env(safe-area-inset-bottom));
+    transform: translateY(100%);
     transition: transform 0.25s ease;
   }
   body.rail-open .filter-rail { transform: none; }
+  /* The grab handle every bottom sheet has, so it reads as one. */
+  .filter-rail::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 0 auto 10px;
+    border-radius: 999px;
+    background: var(--grey-line);
+  }
+  /* The board behind must not scroll while the sheet is up: on a phone
+     the sheet covers most of it and a stray drag moved the list instead
+     of the sheet. */
+  body.rail-open { overflow: hidden; }
   body.rail-open #job-scrim { opacity: 1; visibility: visible; }
 
   .rail-head {
