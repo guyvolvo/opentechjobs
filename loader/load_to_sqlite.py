@@ -186,6 +186,14 @@ def open_db(path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(path, timeout=60)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # Cap the WAL where the file is in WAL mode at all, which is the box
+    # and not Lambda (a /tmp snapshot is journal_mode=delete). It is a
+    # per-connection setting, not a property of the file, so it has to
+    # be set on every connection that might checkpoint rather than once.
+    # Left uncapped the WAL reached 839MB beside a 2.3GB database,
+    # because a checkpoint only truncates down to this limit and the
+    # default is no limit at all.
+    conn.execute("PRAGMA journal_size_limit = 67108864")
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
     for name in _retired_indexes(conn):
         # See RETIRED_INDEXES. The schema's CREATE INDEX IF NOT EXISTS
