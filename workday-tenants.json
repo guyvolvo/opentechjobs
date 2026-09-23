@@ -28948,5 +28948,55 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "columbusairports.com",
+  "tenant": "columbusairports",
+  "wd": "wd1",
+  "site": "Columbus_Airports1",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "equisoft.com",
+  "tenant": "equisoft",
+  "wd": "wd10",
+  "site": "External",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "ngsgi.com",
+  "tenant": "ngsgi",
+  "wd": "wd108",
+  "site": "External",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "swib.ai",
+  "tenant": "swib",
+  "wd": "wd12",
+  "site": "EXT",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "yle.com",
+  "tenant": "yle",
+  "wd": "wd502",
+  "site": "External",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
