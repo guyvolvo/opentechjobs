@@ -4701,6 +4701,9 @@ table.jobs tbody tr.selected::before {
 tr:hover .job-title-text { color: var(--green-text); }
 
 .job-meta { font: 400 13px var(--font); color: var(--grey); }
+/* Only a phone shows this; the column carries it everywhere else. */
+.meta-age { display: none; }
+.meta-age-value.fresh { color: var(--green-text); }
 
 .job-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .job-chip {
@@ -5125,16 +5128,21 @@ tr:hover .job-title-text { color: var(--green-text); }
     transform: translateY(100%);
   }
 
-  table.jobs thead tr,
+  table.jobs thead { display: none; }
   table.jobs tbody tr[data-id],
   table.jobs tbody tr.skeleton-row {
-    grid-template-columns: 18px 40px minmax(0, 1fr) auto;
-    gap: 10px;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 0;
   }
-  table.jobs tbody tr[data-id],
-  table.jobs tbody tr.skeleton-row { padding: 12px 0; }
+  /* Hidden rather than dropped from the markup: the row still carries
+     both, and the width they were taking is the width the title
+     needed. */
+  .star-cell,
+  .age-cell { display: none; }
+  .meta-age { display: inline; }
   table.jobs tbody tr.selected::before { left: -8px; }
-  .logo-cell .company-logo.listing { width: 40px; height: 40px; }
+  .logo-cell .company-logo.listing { width: 44px; height: 44px; }
 }
 
 /* The sheets slide, and that is the one moment of motion on this page.

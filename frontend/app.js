@@ -2532,7 +2532,11 @@ function renderJobRows(jobs, starred) {
             ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
             ${j.closed_at ? '<span class="badge closed" title="This listing is no longer open">Closed</span>' : ""}
           </div>
-          <div class="job-meta">${jobMetaLine(j)}</div>
+          <!-- The age rides at the end of the details line on a phone,
+               where its own column would steal the width the title
+               needs, and hides on desktop where the column exists.
+               Same trick the board used before this layout. -->
+          <div class="job-meta">${jobMetaLine(j)}<span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAge(age)}</span></span></div>
           ${jobMatchHtml(j)}
           <div class="job-chips">${jobSalaryChip(j)}${jobSkillChips(j)}</div>
         </td>
