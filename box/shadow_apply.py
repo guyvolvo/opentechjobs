@@ -45,9 +45,6 @@ ROOT = Path(__file__).resolve().parent.parent
 for _p in (ROOT, ROOT / "api", ROOT / "loader"):
     sys.path.insert(0, str(_p))
 
-import build_explore  # noqa: E402
-import precompute  # noqa: E402
-import sitemap  # noqa: E402
 from deltas import PREFIX as DELTA_PREFIX, delete_fragments  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -57,20 +54,38 @@ DB = Path(os.environ.get("DATA_PATH", "/var/lib/otj/jobs.db"))
 BUCKET = os.environ["DATA_BUCKET"]
 SPOOL = DB.parent / "deltas"
 WORK = DB.with_name("delta-resolved.json")
-# Bounded by bytes, like the Lambda, but without its memory ceiling to
-# respect: the box parses into RAM too, and 2GB is the whole machine.
-MAX_APPLY_BYTES = 96 * 1024 * 1024
+# Bounded by bytes, like the Lambda, and lower than it rather than
+# higher.
+#
+# This was 96MB, double the Lambda's 48MB, set on a box with 1.8GB of
+# RAM against the Lambda's 3GB. On 2026-09-23 a 96MB batch reached
+# 1,379,108kB resident and the kernel's OOM killer took the applier,
+# and with it sshd and cloudflared: the machine stopped answering and
+# the site went down until it was rebooted. read_fragments parses the
+# whole batch into Python objects at once and these fragments are
+# mostly long description strings, so the inflation is about 14x, not
+# the 4x a rule of thumb suggests.
+#
+# 48MB, the Lambda's own figure, after 24MB proved too tight: a single
+# fragment is about 19MB now, so a 24MB budget took exactly one per run
+# against a sweep producing roughly 20MB a minute, which is break-even
+# and drained a 70-fragment backlog at one fragment a minute.
+#
+# Measured at this size the process holds about 86MB resident for a
+# 19MB fragment. The much larger number systemd reports for the unit is
+# mostly page cache, which cgroup v2 charges to whichever cgroup faults
+# it in, so reading and writing a 2.7GB database inflates it well past
+# what the program actually allocates. The cgroup limit is still the
+# backstop against a runaway batch; it is just not a reading of this
+# program's own appetite.
+MAX_APPLY_BYTES = 48 * 1024 * 1024
 # Whether this box is the only applier. See the module docstring.
 PRIMARY = os.environ.get("OTJ_PRIMARY") == "1"
-FRONTEND_BUCKET = os.environ.get("FRONTEND_BUCKET", "")
 # Listings closed longer ago than this leave the snapshot for S3. Same
 # number the Lambda applier uses, and for the same reason: every reader
 # of a closed job works inside 14 days. Paced to once a day inside
 # archive.py, not once per apply.
 ARCHIVE_CLOSED_DAYS = 30
-# Kept in step with loader/bootstrap.py's VIEWS, same as the Lambda
-# handler keeps its own copy, and for the same reason: two lines.
-BOOTSTRAP_VIEWS = {"bootstrap.json": {}, "bootstrap-il.json": {"country": "IL"}}
 
 
 def _write_status(phase: str, detail: str = "") -> None:
@@ -183,53 +198,6 @@ def _read(paths: list[Path]) -> list[dict]:
     return out
 
 
-def _publish_frontend() -> str:
-    """bootstrap.json, explore.db and the sitemaps, as the Lambda's own
-    applier writes them (scrape_maintenance_handler._publish_bootstrap
-    and the two publish() calls beside it). Best effort throughout: the
-    site falls back to asking the API whenever one of these is missing
-    or stale-shaped, so none of it is worth failing an apply over.
-
-    Both the explore build and the sitemap pace themselves internally,
-    hourly, so calling them every minute costs a check and nothing
-    more."""
-    if not (PRIMARY and FRONTEND_BUCKET):
-        return ""
-    import boto3
-
-    done = []
-    s3 = boto3.client("s3")
-    for name, filters in BOOTSTRAP_VIEWS.items():
-        out = DB.with_name(name)
-        cmd = [sys.executable, str(ROOT / "loader" / "bootstrap.py"),
-               "--db", str(DB), "--out", str(out)]
-        if filters.get("country"):
-            cmd += ["--country", filters["country"]]
-        try:
-            build = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-            if build.returncode != 0:
-                print(f"{name} build failed (non-fatal): exit {build.returncode}", file=sys.stderr)
-                continue
-            s3.put_object(
-                Bucket=FRONTEND_BUCKET, Key=name, Body=out.read_bytes(),
-                ContentType="application/json",
-                CacheControl="public, max-age=60, s-maxage=300, stale-while-revalidate=600",
-            )
-            done.append(name)
-        except Exception as e:  # noqa: BLE001
-            print(f"{name} publish failed (non-fatal): {e!r}", file=sys.stderr)
-    try:
-        if build_explore.publish(FRONTEND_BUCKET, DB, DB.parent):
-            done.append("explore.db")
-    except Exception as e:  # noqa: BLE001
-        print(f"explore.db publish failed (non-fatal): {e!r}", file=sys.stderr)
-    try:
-        done += sitemap.publish(FRONTEND_BUCKET, DB, DB.parent) or []
-    except Exception as e:  # noqa: BLE001
-        print(f"sitemap publish failed (non-fatal): {e!r}", file=sys.stderr)
-    return f", published {len(done)}" if done else ""
-
-
 def main() -> int:
     with exclusive("apply") as got:
         if not got:
@@ -317,13 +285,14 @@ def _apply() -> int:
     # never touched while the two run side by side. Paced inside
     # publish: it looks at the artifact's age and leaves a fresh one.
     alerts = _run_alerts()
-    _write_status("precomputing", "answering /stats and /facets for the new snapshot")
-    written = precompute.publish(BUCKET, DB, FRONTEND_BUCKET if PRIMARY else "")
-    published = _publish_frontend()
+    # The artifacts the site reads are built by box/publish.py on its own
+    # timer, not here. They are not part of applying deltas, and their
+    # memory used to add to this process's: the sitemap build alone is
+    # 433MB and 392s, which on top of the fragments this already holds
+    # reached the cgroup limit and stopped applies finishing at all.
     print(f"applied {companies} companies from {len(take)} of {len(pending)} spooled fragments "
           f"({total / 1048576:.0f}MB): read {read_s:.1f}s, apply {apply_s:.1f}s, "
-          f"cleared {cleared}, precomputed {len(written)}{published}{alerts}, "
-          f"total {time.monotonic() - started:.1f}s")
+          f"cleared {cleared}{alerts}, total {time.monotonic() - started:.1f}s")
     _write_status("idle", f"last apply: {companies} companies from {len(take)} fragments")
     return 0
 

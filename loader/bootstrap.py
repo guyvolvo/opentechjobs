@@ -33,7 +33,16 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Two layouts to satisfy, the same pair precompute.py describes: in the
+# repo job_filters lives under api/, and in the Lambda package the
+# deploy flattens it one level above this file. Both go on the path so
+# the same import works from a checkout and from a Lambda. Only the
+# flattened one was here, which is why this ran on Lambda for months
+# and failed on the box from the first apply after cutover, quietly,
+# because the caller treats a failed bootstrap as non-fatal.
+_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_ROOT))
+sys.path.insert(0, str(_ROOT / "api"))
 
 from job_filters import build_jobs_where, category_sql, has_places, register_functions  # noqa: E402
 

@@ -57,7 +57,42 @@ MAX_AGE_S = 3600
 # (path, lastmod follows the snapshot?)
 PAGES = [("/", False), ("/board", True), ("/stats", True), ("/api/help", False), ("/contact", False), ("/privacy", False)]
 
+# Tech roles only, which is what the board itself shows by default
+# (frontend/app.js opens on roles=tech) and what the product claims to
+# be. Without it this offered Google 923,794 URLs, of which about
+# 700,000 were roles the default view does not even display.
+#
+# Not a memory fix, though it is one: 102MB of generated XML down to
+# about 24MB, and a build that took 392 seconds and 433MB. The reason
+# is crawl budget. Measured on the live site, Google had indexed 450
+# pages out of 271k submitted, so the constraint is plainly not how
+# many URLs are on offer, and concentrating what little crawling this
+# domain earns onto the 219,224 listings that match the product is the
+# only lever here that could move it.
+#
+# role_class is NULL until classify_roles has read a listing, so this
+# also holds back brand-new rows for a cycle rather than publishing a
+# URL before the board would show it.
 _OPEN = f"closed_at IS NULL AND {FRESH_CLAUSE}"
+_OPEN_TECH = f"closed_at IS NULL AND role_class = 'tech' AND {FRESH_CLAUSE}"
+
+
+def open_clause(conn: sqlite3.Connection) -> str:
+    """The open-listings test, narrowed to tech where the snapshot can.
+
+    Checked rather than assumed, the same way handler.py drops a roles
+    filter against a snapshot that predates the column: a partition or
+    an older file has no role_class, and asking for one is an error
+    rather than an empty sitemap. Falling back to every open listing is
+    the behaviour this had before, which is wrong in the same direction
+    as it always was rather than newly broken.
+    """
+    try:
+        if any(r[1] == "role_class" for r in conn.execute("PRAGMA table_info(jobs)")):
+            return _OPEN_TECH
+    except sqlite3.Error:
+        pass
+    return _OPEN
 
 
 def _w3c(ts: str | None, fallback: str | None = None) -> str | None:
@@ -89,7 +124,7 @@ def pages_sitemap(now: datetime) -> str:
 def job_shards(conn: sqlite3.Connection) -> list[str]:
     """One XML document per shard, in id order so a listing keeps its
     shard between runs and a crawler's per-file bookkeeping stays useful."""
-    rows = conn.execute(f"SELECT id, posted_at, first_seen FROM jobs WHERE {_OPEN} ORDER BY id").fetchall()
+    rows = conn.execute(f"SELECT id, posted_at, first_seen FROM jobs WHERE {open_clause(conn)} ORDER BY id").fetchall()
     shards = []
     for start in range(0, len(rows), SHARD):
         body = "".join(_url(f"{SITE}/job/{r[0]}", _w3c(r[1], r[2])) for r in rows[start:start + SHARD])
@@ -102,7 +137,7 @@ def company_shards(conn: sqlite3.Connection) -> list[str]:
     """Companies with an open listing, at /company/<domain>."""
     rows = conn.execute(
         f"""
-        SELECT company_domain, MAX(first_seen) FROM jobs WHERE {_OPEN}
+        SELECT company_domain, MAX(first_seen) FROM jobs WHERE {open_clause(conn)}
         GROUP BY company_domain ORDER BY company_domain
         """).fetchall()
     shards = []
@@ -129,7 +164,7 @@ def feed(conn: sqlite3.Connection, now: datetime) -> str:
         f"""
         SELECT id, title, company_domain, {name_sql} AS company_name, location, department,
                posted_at, first_seen, substr(COALESCE(description, ''), 1, 400) AS blurb
-        FROM jobs WHERE {_OPEN}
+        FROM jobs WHERE {open_clause(conn)}
         ORDER BY posted_at IS NULL, datetime(posted_at) DESC, id DESC
         LIMIT ?
         """, (FEED_ITEMS,)).fetchall()
