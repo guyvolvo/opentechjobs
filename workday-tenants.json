@@ -28318,5 +28318,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "fmc.com",
+  "tenant": "fmc",
+  "wd": "wd12",
+  "site": "FMC",
+  "jobs_seen": 80,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "wow.org",
+  "tenant": "wow",
+  "wd": "wd503",
+  "site": "wowcareers",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "logsite.com",
+  "tenant": "logsite",
+  "wd": "wd12",
+  "site": "Surefox",
+  "jobs_seen": 77,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "astound.com",
+  "tenant": "astound",
+  "wd": "wd108",
+  "site": "Astound_Careers",
+  "jobs_seen": 71,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
