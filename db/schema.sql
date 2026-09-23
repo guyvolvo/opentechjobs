@@ -128,20 +128,6 @@ CREATE TABLE IF NOT EXISTS jobs (
                                             -- loud. A reader deserves to know whether a number
                                             -- came from the employer or from us.
 
-    salary_min_ils      INTEGER,           -- the same range as salary_text, as monthly gross shekels,
-    salary_max_ils      INTEGER,           -- so the board's salary filter has something to compare.
-                                            -- Derived by loader/salary_range.py, which reads shekel
-                                            -- strings and nothing else: every other currency on the
-                                            -- board would need an exchange rate, and a rate pinned in
-                                            -- the code is a number nobody measured sitting inside a
-                                            -- filter where the reader cannot see it to doubt it.
-                                            -- NULL therefore means "no shekel figure to compare",
-                                            -- which covers a listing with no salary at all, one
-                                            -- priced in dollars, and one quoted per hour alike. The
-                                            -- filter keeps NULL rows unless the caller asks for
-                                            -- salary_known=1, so narrowing the range never silently
-                                            -- deletes the nine listings in ten that say nothing.
-
     description_sha     TEXT,              -- fingerprint of `description`, so a load can tell an
                                             -- unchanged description from a changed one without
                                             -- reading its S3 blob back. Without it every load would

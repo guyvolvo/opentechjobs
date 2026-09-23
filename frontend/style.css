@@ -1116,7 +1116,340 @@ button, input, select {
 
 /* Job board */
 
+/* The list, with the detail sheet and its scrim beside it in the
+   markup. Both are position:fixed, so the list is the only thing here
+   that takes up room. */
+.board-split {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gutter);
+}
+.board-list { flex: 1 1 0; min-width: 0; }
+
+/* A right-hand sheet over the board, on every screen wider than a
+   phone. It used to be an in-flow column beside the list above 1300px,
+   squeezed to clamp(320px, 34%, 420px) between the list and Market
+   Stats. Reported live: the laptop sheet, which covers the statistics
+   column instead, had room for the description and the desktop column
+   read as cramped. So desktop gets the laptop layout. Below 960px it
+   becomes the full-screen bottom sheet (see the responsive block).
+
+   Width is the statistics column (the same clamp .workspace uses) plus
+   260px, which is enough to also cover the Saved and Reset filters at
+   the end of the filter row. Measured: covering Saved takes 677px at a
+   1566px viewport and 697px from 1798px up, where the statistics column
+   stops growing. Asked for as "a little bigger", so no more than that.
+
+   The page behind is not scroll-locked. The wheel scrolls whichever of
+   the two the pointer is over, and overscroll-behavior stops a scroll
+   that reaches the end of the sheet from carrying on into the board. */
+.job-detail {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  width: calc(clamp(360px, 28vw, 460px) + 260px);
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  z-index: 20; /* above .topbar's 10 */
+  background: var(--white);
+  border: 0 solid var(--black);
+  border-left-width: var(--rule);
+  padding: 20px;
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.job-detail.open { transform: none; }
+.job-detail[hidden] { display: none; }
+
+/* Not a shadow and not elevation (see DESIGN.md's No-Shadow Rule),
+   which is why it is a flat tint rather than a gradient falloff. It
+   marks the board as behind the sheet while it is up. The board still
+   scrolls under it, since a wheel event over a fixed element with
+   nothing to scroll falls through to the page. Clicking it closes, the
+   usual escape hatch for anything covering the page.
+   Opacity rather than display carries the fade, since display can't
+   transition. */
+#job-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 19; /* under .job-detail's 20, over .topbar's 10 */
+  background: var(--scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+#job-scrim.open { opacity: 1; pointer-events: auto; }
+
+/* The country prompt, shown once before the board's first load. Same
+   scrim and the same flat surface as the job sheet, so the one overlay
+   language this app has covers both rather than growing a second.
+   z-index above the sheet's 20 because it is answered before anything
+   else can open. */
+.geo-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: var(--scrim);
+}
+.geo-prompt {
+  position: fixed;
+  z-index: 30;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 2 * var(--edge)));
+  background: var(--white);
+  color: var(--black);
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  padding: 20px;
+}
+.geo-prompt h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.1;
+  margin: 0 0 8px;
+}
+.geo-prompt p { margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
+/* What was actually read, said plainly. The country header is the only
+   thing this asks Cloudflare for, and naming it is the difference
+   between a helpful guess and a site that seems to know too much. */
+.geo-evidence {
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+  font-family: "Courier New", monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--grey);
+}
+.geo-evidence b { color: var(--black); font-weight: 700; }
+.geo-actions { display: flex; align-items: center; gap: 12px; }
+/* Neither button shouts. .btn is 700 everywhere else, which on a dialog
+   this small made the accept button the loudest thing on the screen,
+   ahead of the question it answers. The fill still carries the emphasis. */
+.geo-prompt .btn { font-weight: 400; }
+/* Skip is the quiet one. .btn-quiet is scoped to .alert-create, so it
+   does not reach here, and without this both buttons render as the
+   primary and Skip reads as the thing to press. Widening that selector
+   instead would tie the alert form's styling to this prompt. */
+.geo-prompt .btn-quiet {
+  background: none;
+  border-color: transparent;
+  color: var(--grey);
+  font-weight: 400;
+}
+.geo-prompt .btn-quiet:hover { color: var(--black); background: var(--hover-bg); }
+
+.job-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.job-detail-header-actions { display: flex; align-items: flex-start; gap: 8px; flex: 0 0 auto; }
+.job-detail-icon-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.job-detail-icon-btn:hover { background: var(--black); color: var(--white); }
+/* The "Copied" text feedback (see copyToClipboard) doesn't fit a fixed
+   28px square -- briefly relaxes to a small pill instead of clipping,
+   then snaps back once the timeout restores the plain icon. */
+.job-detail-icon-btn.copied {
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--green-text);
+  border-color: var(--green-text);
+  background: var(--white);
+}
+
+.job-detail-title {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+.job-detail-company {
+  color: var(--grey);
+  font-size: 12px;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.job-detail-badges { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+.job-detail-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--black);
+}
+.job-detail-apply {
+  font-family: var(--font-ui);
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 16px;
+  background: var(--green-text);
+  color: var(--white);
+  border: var(--rule) solid var(--green-text);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.job-detail-apply:hover { background: var(--black); border-color: var(--black); }
+/* The drawn arrow on both Apply buttons (see EXTERNAL_ARROW_SVG in
+   app.js). Both buttons are already inline-flex and centred, so the gap
+   is all it needs. */
+.job-detail-apply, .job-links a.apply-link { gap: 5px; }
+.external-arrow { flex: none; display: block; }
+.job-detail-star {
+  border: var(--rule) solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.job-detail-star.on { color: var(--green-text); border-color: var(--green-text); }
+.job-detail-star:hover { border-color: var(--green-text); color: var(--green-text); }
+
+.job-detail-meta { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.job-detail-meta-row { display: flex; gap: 10px; font-size: 12.5px; }
+.job-detail-meta-row .label {
+  flex: 0 0 92px;
+  color: var(--grey);
+  font-size: 12px;
+  padding-top: 1px;
+}
+.job-detail-meta-row .value { overflow-wrap: anywhere; }
+
+.job-detail-description-title {
+  font-size: 12px;
+  color: var(--grey);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.job-detail-description {
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.job-detail-description.empty { color: var(--grey); font-style: normal; }
+.job-detail-desc-heading {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--grey);
+  margin-top: 12px;
+}
+
 table.jobs tbody tr[data-id] { cursor: pointer; }
+
+/* Flex, not a fixed-column grid, so #f-search and the .ms dropdowns can
+   each take a different share of the row. Stays on one line (nowrap) down to 640px
+   of #board's own width, then wraps -- see the @container rule below.
+   width/margin-right: same bleed table.jobs below does (see its own
+   comment) -- without it the filter row stops at the normal content
+   edge while the table bleeds --gutter past it, leaving the row
+   looking short of the table's own right edge, reported live. */
+.filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  /* 12px, matching .stats-board's own top padding -- reported live:
+     removing the "Job Board" heading pulled this column's top flush
+     with #board's own container (which has none), while the
+     Statistics column on the right still starts 12px down into its
+     own padding, so the two columns' content no longer lined up. */
+  margin-top: 12px;
+  margin-bottom: 20px;
+  width: calc(100% + var(--gutter));
+  margin-right: calc(-1 * var(--gutter));
+}
+.filters > *, .filters-sub > * { min-width: 0; } /* form controls have a real intrinsic width too */
+/* The widest thing in the row: it is the only free-text field now, and
+   a search someone typed should stay readable rather than scrolling
+   inside a box sized for a dropdown label. */
+#f-search { flex: 3 1 180px; }
+.filters .ms { flex: 1 1 80px; }
+.filters #f-date-posted,
+.filters #f-sort { flex: 1 1 100px; }
+.filters label.toggle,
+.filters #f-reset { flex: 0 0 auto; }
+
+/* A second flex row nested in the first, not a wrapper div that steps
+   out of the layout -- visually just more items in .filters's own row
+   above the @container breakpoint below, real box only needed so the
+   breakpoint has something to collapse. */
+.filters-sub { display: flex; flex: 1 1 auto; flex-wrap: nowrap; gap: 10px; }
+.filters-toggle { display: none; }
+
+/* Scoped to just the filter bar, per request -- a small radius and a
+   1px (not --rule's 2px) border here only, not a system-wide change to
+   DESIGN.md's rounded:none. Everything outside .filters (buttons,
+   badges, chips, cards, panels) stays sharp-cornered. */
+.filters input[type="text"],
+.filters select {
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  padding: 9px 10px;
+  height: 38px;
+  width: 100%;
+}
+.filters input[type="text"]:focus,
+.filters select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+
+/* The native select arrow sits right against the border by default --
+   reported live as too tight. appearance:none drops it in favor of a
+   hand-drawn chevron with real breathing room from the edge.
+   Reported live: currentColor inside a *referenced* SVG (a data URI
+   used as background-image, as opposed to an inline <svg> in the DOM)
+   doesn't reliably inherit the element's CSS color -- it fell back to
+   black, invisible against dark mode's near-black box fill. Hardcoded
+   per theme instead, same hex as --black's two definitions above (a
+   data URI can't read a custom property, so these two have to be kept
+   in sync with those by hand if that token ever changes). */
+.filters select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2340513b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 10px 6px;
+}
+:root[data-theme="dark"] .filters select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ededec' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
 
 /* Multi-select filter. A native <select multiple> needs ctrl/cmd-click
    to pick more than one, not discoverable, so this is a checkbox-dropdown. */
@@ -1244,6 +1577,24 @@ table.jobs tbody tr[data-id] { cursor: pointer; }
 }
 .ms-clear:hover { border-color: var(--black); color: var(--black); }
 
+/* Sentence case, not uppercase -- DESIGN.md's own type ramp already
+   classifies filters as Body voice, not Label voice (uppercase/tracked
+   is for column headers, panel titles, chip text); this was a real drift
+   from that, not a documented exception. font-family/size fall through
+   from body's var(--font), same as table.jobs' row text -- no separate
+   override needed, the shouty look was purely the uppercase+tracking. */
+.filters label.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  padding: 0 10px;
+  height: 38px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.filters label.toggle input { accent-color: var(--green); }
 /* #f-reset (Reset), not .btn generally -- .btn is used well outside the
    filter bar (Create Alert, Sign Out, etc.), which stays sharp-cornered
    and keeps its uppercase/bold Label-style treatment. This one drops
@@ -1383,7 +1734,8 @@ mark {
    matching negative margin to bleed the table out to the true box edge;
    the last column gets that width back as padding to keep its own inset. */
 table.jobs {
-  width: 100%;
+  width: calc(100% + var(--gutter));
+  margin-right: calc(-1 * var(--gutter));
   border-collapse: collapse;
   font-size: 13px;
   /* Fixed, with the star and Age columns given widths below. Left to
@@ -1394,17 +1746,22 @@ table.jobs {
      widths from the header, so no row's content can move a column. */
   table-layout: fixed;
 }
-/* The rule under the header, on the row rather than on each cell. The
-   header is a grid of two headings over four columns, so a border per
-   cell left a 14px break in the line where the gap between them falls. */
-table.jobs thead tr { border-bottom: var(--rule) solid var(--black); }
+table.jobs thead th:first-child { width: 44px; }
+/* Age is the last column and carries the gutter bleed as padding (see
+   below), so its width includes that padding. */
+table.jobs thead th[data-sort="age"] { width: calc(110px + var(--gutter)); }
 table.jobs thead th {
   text-align: left;
   font-size: 12px;
   color: var(--grey);
+  border-bottom: var(--rule) solid var(--black);
   padding: 0 10px 10px;
   user-select: none;
   white-space: nowrap;
+}
+table.jobs thead th:last-child,
+table.jobs tbody td:last-child {
+  padding-right: calc(10px + var(--gutter));
 }
 /* Only sortable columns get the pointer cursor. */
 table.jobs thead th[data-sort] { cursor: pointer; }
@@ -2138,6 +2495,162 @@ footer {
     transform: translateY(100%);
   }
   #job-scrim { display: none; }
+  table.jobs thead { display: none; }
+  /* Reset the desktop bleed (width:100%+gutter, negative margin) back to
+     plain 100%, meaningless once every cell stacks as its own block. */
+  table.jobs, table.jobs tbody, table.jobs tr, table.jobs td { display: block; width: 100%; margin-right: 0; }
+  /* One class more specific than the blanket "table.jobs td" reset
+     above, so this wins without !important -- logo-left/title-right
+     stays a real card at phone width too, instead of the logo stacking
+     above the text like every other cell here. Desktop's grid columns
+     (see .title-cell above) are meaningless at phone width -- a 15%/30%
+     split of ~350px leaves almost nothing to work with -- so this drops
+     to a plain wrapping flex row instead: logo+body first, then
+     salary/skills wrap to their own line below, sized by their own
+     content rather than a fixed track. */
+  /* Reported live ("the components are not consistent," a screenshot
+     showing the icon on top for some listings, on the side for others):
+     the old `flex-wrap: wrap` here with no basis/shrink rules on either
+     child let the icon and the text column wrap against EACH OTHER
+     depending on title length/badge count -- a short title kept them
+     side by side, a long one pushed the icon onto its own line above.
+     Icon and text now never wrap against each other (nowrap between
+     just those two, via the child rules below); only the salary badge
+     -- deliberately given a 100%-wide basis, the standard "always start
+     a new flex line" trick -- drops to its own row underneath, every
+     time, regardless of content length. */
+  /* A grid on phones, not the wrapping flex row it was. The logo is
+     column one on its own, level with the top of the title, and the salary
+     drops under Apply, starting at Apply's own left edge. Reported live:
+     the salary chip and Apply were both filled green on different left
+     edges; then that the age above the logo and the logo itself shifted
+     with every extra line a title wrapped to. .job-card-body dissolves
+     (display: contents) so the title, meta, match lines and links are
+     direct grid items in column two and flow down it in order; the logo
+     spans the rows beside them from the first. */
+  table.jobs td.title-cell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-auto-flow: row;
+    column-gap: 0;
+    align-items: start;
+  }
+  table.jobs td.title-cell > .company-logo.listing { grid-column: 1; grid-row: 1 / span 7; align-self: start; margin-top: 2px; }
+  /* At phone width the meta line (company, place, age) wraps to two
+     lines on most rows, so the bone reserves two. */
+  .skeleton-row .job-meta { min-height: calc(2 * 1.5 * 13px); }
+  .skeleton-row .sk-meta2 { display: inline-block; }
+  table.jobs td.title-cell > .job-card-body { display: contents; }
+  table.jobs td.title-cell > .job-card-body > *,
+  table.jobs td.title-cell > .job-salary-col { grid-column: 2; }
+  /* basis 0, not auto. With auto the flex base size is the text's own
+     width, so a long title measured wider than the line and wrapped the
+     logo onto a row of its own, while a short title next to it kept the
+     logo beside the text. Exactly the inconsistency the comment above
+     describes, reintroduced the moment the logo grew from 40px to 52px.
+     A basis of zero means this column is always sized by what is left
+     after the logo, so it shrinks and wraps its text instead. */
+  table.jobs .job-salary-col { padding-top: 6px; }
+  /* The age at the end of the details line, "ScaleOps · R&D · Tel Aviv ·
+     1H 14M", in that line's own size and weight; green when the listing
+     is fresh, the line's grey otherwise. It used to sit above the logo,
+     where every extra line of title moved the logo away from it. The
+     stacked Age cell hides. */
+  .meta-age { display: inline; }
+  /* Only the value turns green; the dot before it stays the line's grey,
+     like every other separator in it. */
+  .meta-age-value.fresh { color: var(--green-text); }
+  table.jobs td.age-cell { display: none; }
+  /* The salary as text under Apply, not a second green button: "Est."
+     in the regular grey, the figure in green. Filled green on a phone row
+     is Apply's alone. A disclosed salary keeps its plain bold ink. */
+  table.jobs .job-salary.estimate,
+  table.jobs .job-salary.estimate.estimated {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--green-text);
+    font-weight: 700;
+  }
+  table.jobs .salary-est-label { color: var(--grey); font-weight: 400; }
+  table.jobs .job-skills-col { flex: 0 1 auto; padding-top: 4px; }
+  table.jobs tr { padding: 10px 0; }
+  /* Reported live: redundant at this width -- opening a listing's own
+     drawer has its own Save button (job-detail-star, see app.js), and
+     the column this frees up matters more on a narrow phone than a
+     second way to do the same thing. */
+  table.jobs tr > td:first-child { display: none; }
+  /* Stacked cells need a label to tell them apart. app.js's data-label
+     attribute stands in for the table header that display:none removed. */
+  table.jobs td[data-label] { padding: 4px 10px; }
+  /* The desktop-only centering above (see .age-cell) would put this
+     one stacked field out of step with location/salary/etc., which all
+     stay left-aligned next to their own label here. */
+  .age-cell { text-align: left; }
+  /* The desktop last-column padding (clears the divider) is meaningless
+     stacked full-width, just an oversized gap under one value. */
+  table.jobs tbody td:last-child { padding-right: 10px; }
+  table.jobs td[data-label]::before {
+    content: attr(data-label) ": ";
+    color: var(--grey);
+    font-size: 12px;
+  }
+}
+
+/* #board's own width, not the viewport's -- the two-column workspace
+   grid can leave #board narrower than a viewport-width breakpoint would
+   assume (Market Stats' column eats a variable, viewport-independent
+   share of the row), so this has to react to the container. See
+   #board's container-type rule above.
+   900px, not 640px: measured via headless-Chrome layout, not guessed --
+   the unwrapped row's real minimum content width (every filter field
+   shrunk as far as flex-basis/min-width:0 allow) comes out around
+   810-860px with the current field count, so 640px left a real overflow
+   gap between 640px and ~860px of #board width. */
+@container (max-width: 900px) {
+  /* The table-matching bleed above is a single-line-row alignment
+     trick -- meaningless once .filters wraps to full-width stacked
+     rows below, and left uncanceled would bleed every wrapped row
+     --gutter past the edge too, an overflow, not an alignment. */
+  .filters { flex-wrap: wrap; width: 100%; margin-right: 0; }
+  .filters > * { flex-basis: 100%; } /* #f-search and .filters-toggle each get their own full-width row */
+
+  /* Reported live ("atrocious" on mobile): every sub-filter wrapping
+     onto its own row still left a tall wall of controls between the
+     search box and the actual results. Collapsed behind a single
+     Filters (N) trigger instead -- #filters-toggle's click handler in
+     wireFilters() (app.js) flips .open, and updateFiltersToggleLabel()
+     keeps the button's own count in sync every time loadJobs() runs. */
+  .filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .filters-sub {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .filters-sub.open { display: flex; }
+  /* Column flex now, not the row layout .filters .ms/#f-date-posted/
+     #f-sort's own flex-basis (80/100px) was sized for
+     -- flex-basis there meant a row-axis *width*, so in a column flex
+     container it became a *height* instead, rendering every field as an
+     80-100px-tall box with visible empty space inside it. Reported live
+     as "filters are very spread out." A single `.filters-sub > *`
+     couldn't win that fight (one class' worth of specificity loses to
+     an ID selector like #f-date-posted, gap or no gap),
+     so each one is named explicitly here to out-specificity its own
+     row-layout rule rather than just adding another lower-specificity
+     layer on top of it. */
+  .filters-sub.open .ms,
+  .filters-sub.open #f-date-posted,
+  .filters-sub.open #f-sort,
+  .filters-sub.open label.toggle,
+  .filters-sub.open #f-reset {
+    flex: 0 0 auto;
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -4243,893 +4756,3 @@ a.hero-account-btn { text-decoration: none; }
 .company-jobs li { margin: 0 0 8px; }
 .company-job-meta { display: block; font-size: 13px; color: var(--grey); }
 .company-more { font-size: 13px; }
-
-/* ===== Board: three columns ======================================= */
-
-/* What to narrow by on the left, the listings in the middle, the open
-   one on the right. It replaced a single list under a row of dropdowns,
-   where the row ran out of width around six controls and hid the rest
-   behind a button, and where opening a listing threw a sheet over the
-   board so reading one cost your place in the others.
-
-   The page still scrolls as one page. The rail and the pane are sticky
-   inside their columns rather than fixed panels with their own
-   scrollbars, which is the same thing the Statistics column did before
-   it: the list is what grows, and the footer stays reachable under it. */
-
-.board-shell {
-  padding: 0 var(--gutter) 40px;
-}
-
-/* --- the top bar ------------------------------------------------- */
-
-/* Only what applies to the whole result set. Sticky under the topbar so
-   the search box and the count stay put while the list runs past them:
-   the count is the one number that says whether a filter did anything,
-   and it was scrolling away exactly when someone changed one. */
-.board-bar {
-  position: sticky;
-  top: 57px; /* topbar height plus its 2px rule */
-  z-index: 9; /* under .topbar's 10 */
-  background: var(--white);
-  padding: 14px 0 12px;
-  border-bottom: var(--rule) solid var(--black);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.board-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.board-bar-row > * { min-width: 0; } /* form controls have a real intrinsic width too */
-
-.board-bar #f-search { flex: 1 1 auto; }
-.board-bar #f-date-posted,
-.board-bar #f-sort { flex: 0 0 150px; }
-
-.board-bar input[type="text"],
-.board-bar select {
-  height: 38px;
-  padding: 0 10px;
-  border: 1.5px solid var(--black);
-  border-radius: 4px;
-  background: var(--white);
-  color: var(--black);
-  font: 400 13px var(--font-ui);
-}
-.board-bar input[type="text"]:focus,
-.board-bar select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
-.board-bar input::placeholder { color: var(--grey); opacity: 0.75; }
-
-/* The same chevron the rail's carets use, so the two arrows sitting a
-   few pixels apart match. */
-.board-bar select {
-  appearance: none;
-  padding-right: 28px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2340513b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 10px 6px;
-}
-:root[data-theme="dark"] .board-bar select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ededec' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-
-.board-bar-row-2 { flex-wrap: wrap; row-gap: 8px; }
-.board-bar .view-switch { margin: 0; flex: 0 0 auto; }
-.board-bar #f-reset { flex: 0 0 auto; height: 30px; padding: 0 12px; color: var(--red); }
-.board-bar #f-reset[hidden] { display: none; }
-
-/* Pushed to the far end, and the only thing on the row that is allowed
-   to sit on its own. */
-.board-bar .result-count {
-  margin: 0 0 0 auto;
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.rail-toggle { display: none; } /* a column above 800px; see the sheet rules below */
-
-/* --- active filter chips ----------------------------------------- */
-
-.active-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-width: 0;
-}
-
-/* Outlined, not filled. The chip is a thing to remove, and fifty of the
-   board's own signal green across one row would say "these matter most"
-   about the reader's own filters. */
-.active-chips .chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 9px;
-  border: 1px solid var(--grey-line);
-  border-radius: 4px;
-  background: var(--white);
-  color: var(--black);
-  font: 400 13px var(--font-ui);
-  text-transform: none;
-  letter-spacing: normal;
-  cursor: pointer;
-}
-.active-chips .chip:hover { background: var(--black); border-color: var(--black); color: var(--white); }
-.active-chips .chip:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
-.active-chips .chip-label { max-width: 20ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chip-x { flex: 0 0 auto; opacity: 0.6; }
-.active-chips .chip:hover .chip-x { opacity: 1; }
-
-/* --- the grid ----------------------------------------------------- */
-
-.board-grid {
-  display: grid;
-  grid-template-columns: 236px minmax(0, 1fr) 440px;
-  align-items: start;
-}
-.board-grid > * { min-width: 0; }
-
-/* --- the filter rail ---------------------------------------------- */
-
-.filter-rail {
-  position: sticky;
-  top: 145px; /* under the topbar and the filter bar both */
-  max-height: calc(100vh - 145px);
-  max-height: calc(100dvh - 145px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--hover-bg);
-  border-right: 1px solid var(--grey-line);
-  padding: 18px 16px 28px;
-}
-
-.rail-head { display: none; } /* only the sheet needs a title and a way out */
-
-.rail-groups { display: flex; flex-direction: column; gap: 22px; }
-.rail-group { display: flex; flex-direction: column; gap: 8px; }
-
-.rail-title {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 0;
-  font: 700 14px var(--font);
-  color: var(--black);
-}
-.rail-summary { font-weight: 400; font-size: 12px; color: var(--grey); }
-
-.rail-body { display: flex; flex-direction: column; gap: 2px; }
-
-.rail-search {
-  height: 30px;
-  margin-bottom: 4px;
-  padding: 0 8px 0 26px;
-  border: 1px solid var(--grey-line);
-  border-radius: 4px;
-  background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='6' cy='6' r='4.2' fill='none' stroke='%2340513b' stroke-width='1.5'/%3E%3Cpath d='M9.2 9.2L12.5 12.5' stroke='%2340513b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat 8px center;
-  background-size: 12px 12px;
-  color: var(--black);
-  font: 400 13px var(--font-ui);
-}
-:root[data-theme="dark"] .rail-search {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='6' cy='6' r='4.2' fill='none' stroke='%23ededec' stroke-width='1.5'/%3E%3Cpath d='M9.2 9.2L12.5 12.5' stroke='%23ededec' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-.rail-search:focus { outline: 2px solid var(--green); outline-offset: -2px; }
-
-/* An option row is the whole line, not the 14px box on it: a checkbox
-   is a small target and the label beside it is the thing being read. */
-.rail-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 26px;
-  padding: 2px 4px;
-  border-radius: 4px;
-  cursor: pointer;
-  font: 400 13px var(--font-ui);
-  color: var(--black);
-}
-.rail-option:hover { background: var(--row-hover); }
-.rail-option input { position: absolute; opacity: 0; width: 0; height: 0; }
-.rail-option input:focus-visible + .rail-box { outline: 2px solid var(--green); outline-offset: 1px; }
-
-.rail-box {
-  flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid var(--grey-line);
-  border-radius: 3px;
-  background: var(--white);
-  color: var(--white);
-  display: grid;
-  place-items: center;
-}
-.rail-option.on .rail-box { background: var(--green); border-color: var(--green); }
-.rail-tick { width: 12px; height: 12px; opacity: 0; }
-.rail-option.on .rail-tick { opacity: 1; }
-
-.rail-option-label {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* Ticked reads a step heavier, so the picked options are findable in a
-   list without reading every box. */
-.rail-option.on .rail-option-label { font-weight: 600; }
-
-/* Tabular, and its own element, so a long name is what truncates and
-   never the number. */
-.rail-count {
-  flex: 0 0 auto;
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  color: var(--grey);
-}
-
-.rail-more {
-  align-self: flex-start;
-  margin-top: 2px;
-  padding: 2px 4px;
-  border: 0;
-  background: none;
-  color: var(--green-text);
-  font: 400 12.5px var(--font-ui);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-.rail-more:hover { color: var(--black); }
-.rail-more:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
-
-.rail-empty { padding: 2px 4px; font: 400 12.5px var(--font-ui); color: var(--grey); }
-
-/* --- location: countries, cities under them ----------------------- */
-
-.rail-country + .rail-country { margin-top: 6px; }
-.rail-country-row { display: flex; align-items: center; gap: 2px; }
-.rail-country-row .rail-option { flex: 1 1 auto; min-width: 0; }
-
-.rail-caret {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  background: none;
-  color: var(--grey);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-.rail-caret svg { width: 9px; height: 6px; }
-.rail-country:not(.open) .rail-caret { transform: rotate(-90deg); }
-.rail-caret:hover { color: var(--black); }
-.rail-caret:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; border-radius: 3px; }
-
-/* The connector lines. A vertical run down the left with a short tick
-   into each row, and the last row ends the run at its own middle, so
-   the group closes itself instead of trailing off. Drawn rather than
-   indented alone, because four cities indented under a country read as
-   four more countries at a glance. */
-.rail-cities { margin-left: 25px; position: relative; }
-.rail-city { position: relative; padding-left: 16px; }
-.rail-city::before,
-.rail-city::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  background: var(--grey-line);
-}
-.rail-city::before { top: 0; bottom: 0; width: 1px; }
-.rail-city.last::before { bottom: 50%; }
-.rail-city::after { top: 50%; width: 9px; height: 1px; }
-
-.rail-country-note {
-  margin: 2px 0 0 25px;
-  font: 400 12px var(--font-ui);
-  color: var(--grey);
-}
-.rail-more-city { margin-left: 25px; }
-
-/* --- salary range ------------------------------------------------- */
-
-/* Two native range inputs stacked over one track. Native because a
-   hand-rolled pair of handles is a keyboard trap and a screen-reader
-   silence, and these arrive tabbable, arrow-key steppable and labelled
-   for free. Only the thumbs take pointer events, so the input lying
-   over the other one cannot swallow its drag. */
-.rail-range {
-  position: relative;
-  height: 34px;
-  margin: 6px 2px 0;
-}
-.rail-range-track {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 10px;
-  height: 4px;
-  border-radius: 4px;
-  background: var(--grey-line);
-}
-.rail-range-fill {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: var(--green);
-  border-radius: 4px;
-}
-.rail-range-input {
-  position: absolute;
-  left: 0;
-  top: 4px;
-  width: 100%;
-  height: 16px;
-  margin: 0;
-  appearance: none;
-  background: none;
-  pointer-events: none;
-}
-.rail-range-input:focus { outline: none; }
-.rail-range-input::-webkit-slider-thumb {
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid var(--green);
-  border-radius: 50%;
-  background: var(--white);
-  pointer-events: auto;
-  cursor: grab;
-}
-.rail-range-input::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid var(--green);
-  border-radius: 50%;
-  background: var(--white);
-  pointer-events: auto;
-  cursor: grab;
-}
-.rail-range-input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--green); outline-offset: 2px; }
-.rail-range-input:focus-visible::-moz-range-thumb { outline: 2px solid var(--green); outline-offset: 2px; }
-
-.rail-range-ends {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 20px;
-  display: flex;
-  justify-content: space-between;
-  font: 400 12px var(--font-ui);
-  font-variant-numeric: tabular-nums;
-  color: var(--grey);
-}
-
-/* --- the list ----------------------------------------------------- */
-
-.board-list { padding: 0 0 0 20px; min-width: 0; }
-
-table.jobs thead tr,
-table.jobs tbody tr[data-id],
-table.jobs tbody tr.skeleton-row {
-  display: grid;
-  grid-template-columns: 18px 44px minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: start;
-}
-
-table.jobs thead th {
-  padding: 10px 0 8px;
-  font: 700 12px var(--font);
-  color: var(--grey);
-  text-align: left;
-}
-/* Two headings over a four-column grid: the star and the logo are not
-   columns anybody sorts by, so Listing spans them rather than two empty
-   cells carrying a border. */
-table.jobs thead .th-listing { grid-column: 1 / 4; }
-table.jobs thead .th-age { grid-column: 4; text-align: right; }
-
-table.jobs tbody td { padding: 0; vertical-align: top; }
-table.jobs tbody tr[data-id],
-table.jobs tbody tr.skeleton-row { padding: 14px 20px; position: relative; }
-
-table.jobs tbody tr.selected { background: var(--row-selected); }
-/* An inset bar rather than a border, so a selected row is the same
-   height as every other one and the list does not shuffle as the
-   selection moves. */
-table.jobs tbody tr.selected::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--green-text);
-}
-
-.star-cell { display: flex; justify-content: center; padding-top: 2px; }
-.star-btn {
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  background: none;
-  color: var(--grey);
-  opacity: 0.55;
-  cursor: pointer;
-}
-.star-btn:hover { opacity: 1; color: var(--green-text); }
-.star-btn.on { opacity: 1; color: var(--green-text); }
-.star-btn.on .star-mark { fill: currentColor; }
-.star-mark { width: 16px; height: 16px; }
-.star-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; border-radius: 3px; }
-
-.logo-cell .company-logo.listing { width: 44px; height: 44px; border-radius: 4px; }
-
-.main-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-
-.job-card-title {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px;
-  font: 600 15px var(--font);
-  color: var(--black);
-}
-tr:hover .job-title-text { color: var(--green-text); }
-
-.job-meta { font: 400 13px var(--font); color: var(--grey); }
-
-.job-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.job-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 22px;
-  padding: 0 7px;
-  border: 1px solid var(--grey-line);
-  border-radius: 4px;
-  background: none;
-  color: var(--grey);
-  font: 400 12px var(--font-ui);
-  white-space: nowrap;
-}
-.job-chip.skill { cursor: pointer; }
-.job-chip.skill:hover { border-color: var(--black); color: var(--black); }
-.job-chip.skill:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
-/* The one number on the row worth colour. "Est." stays in the row's own
-   ink so the qualifier does not read as part of the figure. */
-.job-chip.salary { color: var(--black); }
-.job-chip.salary .salary-range { color: var(--green-text); font-variant-numeric: tabular-nums; }
-.salary-est-label { color: var(--grey); }
-
-.age-cell {
-  font: 400 12.5px var(--font);
-  font-variant-numeric: tabular-nums;
-  color: var(--grey);
-  text-align: right;
-  white-space: nowrap;
-  padding-top: 1px;
-}
-.age-cell.fresh { color: var(--green-text); font-weight: 600; }
-
-/* --- the detail pane ---------------------------------------------- */
-
-.job-detail {
-  position: sticky;
-  top: 145px;
-  max-height: calc(100vh - 145px);
-  max-height: calc(100dvh - 145px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--white);
-  border-left: 1px solid var(--grey-line);
-  padding: 28px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.job-detail[hidden] { display: none; }
-
-.job-detail-close {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: 1.5px solid var(--grey-line);
-  border-radius: 4px;
-  background: var(--white);
-  color: var(--grey);
-  cursor: pointer;
-}
-.job-detail-close:hover { background: var(--black); border-color: var(--black); color: var(--white); }
-.job-detail-close:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
-
-.job-detail-company { display: flex; align-items: center; gap: 12px; padding-right: 36px; }
-.job-detail-company .company-logo.detail { width: 56px; height: 56px; border-radius: 4px; flex: 0 0 auto; }
-.job-detail-company-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.job-detail-company-name { font: 700 14px var(--font); color: var(--black); }
-.job-detail-company-place { font: 400 13px var(--font); color: var(--grey); opacity: 0.9; }
-
-.job-detail-title {
-  margin: 0;
-  font: 400 24px/1.15 var(--font-display);
-  letter-spacing: -0.01em;
-  color: var(--black);
-  text-wrap: balance;
-}
-
-.job-detail-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.job-detail-star {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 14px;
-  border: 1.5px solid var(--black);
-  border-radius: 4px;
-  background: var(--white);
-  color: var(--black);
-  font: 400 13px var(--font-ui);
-  cursor: pointer;
-}
-.job-detail-star:hover { border-color: var(--green-text); color: var(--green-text); }
-.job-detail-star.on { color: var(--green-text); border-color: var(--green-text); }
-.job-detail-star.on .star-mark { fill: currentColor; }
-.job-detail-permalink {
-  border: 0;
-  background: none;
-  padding: 0;
-  font: 400 13px var(--font-ui);
-  cursor: pointer;
-}
-
-/* Four facts in a square, divided by hairlines drawn as gaps in the
-   grid's own ground rather than as borders on each cell, so the two
-   inner lines meet instead of doubling up where they cross. */
-.job-detail-facts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--grey-line);
-  border: 1px solid var(--grey-line);
-  border-radius: 4px;
-  overflow: hidden;
-}
-.fact { background: var(--white); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.fact-label { font: 700 11.5px var(--font); color: var(--grey); opacity: 0.85; }
-.fact-value { font: 400 13.5px var(--font); color: var(--black); overflow-wrap: anywhere; }
-.fact-value .salary-range { color: var(--green-text); font-variant-numeric: tabular-nums; }
-/* An absence, said as an absence rather than left blank. Quieter than
-   a fact by a step of weight, not by an opacity that took it under the
-   4.5:1 body text needs (measured at 3.60:1 before this). */
-.fact-absent { color: var(--grey); }
-
-.job-detail-section-title { font: 700 12px var(--font); color: var(--grey); }
-.job-detail-description { font: 400 13.5px/1.6 var(--font); color: var(--black); white-space: pre-wrap; }
-.job-detail-description.empty { color: var(--grey); }
-.skeleton-desc { display: flex; flex-direction: column; gap: 9px; }
-.skeleton-desc .sk-line { height: 11px; width: 100%; border-radius: 2px; }
-.skeleton-desc .sk-line.short { width: 62%; }
-
-/* --- the empty state ---------------------------------------------- */
-
-/* What the filters add up to, in the space the open listing would take.
-   This is where the Statistics column went. */
-.detail-empty { display: flex; flex-direction: column; gap: 22px; }
-
-.empty-lede { display: flex; flex-direction: column; gap: 4px; }
-.empty-label { font: 700 11.5px var(--font); color: var(--grey); opacity: 0.85; }
-.empty-count {
-  font: 400 38px/1 var(--font-display);
-  letter-spacing: -0.02em;
-  color: var(--black);
-  font-variant-numeric: tabular-nums;
-}
-.empty-count span { font: 400 15px var(--font); letter-spacing: normal; color: var(--grey); }
-.empty-summary { font: 400 13px var(--font); color: var(--grey); opacity: 0.9; }
-
-.empty-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--grey-line);
-  border: 1px solid var(--grey-line);
-  border-radius: 4px;
-  overflow: hidden;
-}
-.empty-stat { background: var(--white); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; }
-.empty-stat-label { font: 700 11.5px var(--font); color: var(--grey); opacity: 0.85; }
-.empty-stat-value { font: 800 22px var(--font); font-variant-numeric: tabular-nums; color: var(--black); }
-.empty-stat-none { color: var(--grey); font-weight: 400; }
-
-.empty-hiring { display: flex; flex-direction: column; gap: 2px; }
-.empty-hiring .empty-label { margin-bottom: 4px; }
-.empty-hiring-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 6px;
-  border: 0;
-  border-radius: 4px;
-  background: none;
-  color: var(--black);
-  font: 400 13px var(--font-ui);
-  cursor: pointer;
-  text-align: left;
-}
-.empty-hiring-row:hover { background: var(--row-hover); }
-.empty-hiring-row:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
-.empty-hiring-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.empty-hiring-n { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: var(--grey); font-size: 12px; }
-
-/* Dashed, because it is the one box on the page that is waiting to be
-   filled rather than holding something. */
-.empty-hint {
-  margin-top: auto;
-  padding: 16px;
-  border: 1px dashed var(--grey-line);
-  border-radius: 4px;
-  text-align: center;
-  font: 400 13px var(--font-ui);
-  color: var(--grey);
-  opacity: 0.85;
-}
-
-/* Recovered with the three-column rewrite: the geolocation prompt, the
-   Apply button and the description's own headings all sat in the block
-   that held the old board layout, and none of the three is about
-   layout. */
-
-/* The country prompt, shown once before the board's first load. Same
-   scrim and the same flat surface as the job sheet, so the one overlay
-   language this app has covers both rather than growing a second.
-   z-index above the sheet's 20 because it is answered before anything
-   else can open. */
-.geo-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 29;
-  background: var(--scrim);
-}
-.geo-prompt {
-  position: fixed;
-  z-index: 30;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(420px, calc(100vw - 2 * var(--edge)));
-  background: var(--white);
-  color: var(--black);
-  border: var(--rule) solid var(--black);
-  border-radius: 4px;
-  padding: 20px;
-}
-.geo-prompt h2 {
-  font-family: var(--font-display);
-  font-size: 24px;
-  line-height: 1.1;
-  margin: 0 0 8px;
-}
-.geo-prompt p { margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
-/* What was actually read, said plainly. The country header is the only
-   thing this asks Cloudflare for, and naming it is the difference
-   between a helpful guess and a site that seems to know too much. */
-.geo-evidence {
-  border: 1px solid var(--grey-line);
-  border-radius: 4px;
-  padding: 10px 12px;
-  margin: 0 0 16px;
-  font-family: "Courier New", monospace;
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: var(--grey);
-}
-.geo-evidence b { color: var(--black); font-weight: 700; }
-.geo-actions { display: flex; align-items: center; gap: 12px; }
-/* Neither button shouts. .btn is 700 everywhere else, which on a dialog
-   this small made the accept button the loudest thing on the screen,
-   ahead of the question it answers. The fill still carries the emphasis. */
-.geo-prompt .btn { font-weight: 400; }
-/* Skip is the quiet one. .btn-quiet is scoped to .alert-create, so it
-   does not reach here, and without this both buttons render as the
-   primary and Skip reads as the thing to press. Widening that selector
-   instead would tie the alert form's styling to this prompt. */
-.geo-prompt .btn-quiet {
-  background: none;
-  border-color: transparent;
-  color: var(--grey);
-  font-weight: 400;
-}
-.geo-prompt .btn-quiet:hover { color: var(--black); background: var(--hover-bg); }
-.job-detail-apply {
-  font-family: var(--font-ui);
-  display: inline-flex;
-  align-items: center;
-  height: 38px;
-  padding: 0 16px;
-  background: var(--green-text);
-  color: var(--white);
-  border: var(--rule) solid var(--green-text);
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.job-detail-apply:hover { background: var(--black); border-color: var(--black); }
-/* The drawn arrow on both Apply buttons (see EXTERNAL_ARROW_SVG in
-   app.js). Both buttons are already inline-flex and centred, so the gap
-   is all it needs. */
-.job-detail-apply { gap: 5px; }
-.external-arrow { flex: none; display: block; }
-.job-detail-desc-heading {
-  display: block;
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--grey);
-  margin-top: 12px;
-}
-
-/* ===== Board: narrower ============================================ */
-
-/* Under about 1100px the pane has no column to sit in and comes over
-   the list as a sheet, which is what it did at every width before this
-   layout. Under about 800px the rail goes the same way, behind the
-   Filters button, and the chips stay on the bar so what is on is still
-   readable with the rail shut. */
-
-@media (max-width: 1100px) {
-  .board-grid { grid-template-columns: 236px minmax(0, 1fr); }
-
-  .job-detail {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: auto;
-    width: min(440px, 100%);
-    max-height: none;
-    z-index: 20; /* above .topbar's 10 */
-    border-left: var(--rule) solid var(--black);
-    padding-right: max(32px, env(safe-area-inset-right));
-    padding-bottom: max(28px, env(safe-area-inset-bottom));
-    transform: translateX(100%);
-    transition: transform 0.25s ease;
-  }
-  .job-detail.open { transform: none; }
-  /* Closed, the pane is off-screen, so the empty state has nothing to
-     say and nothing to say it to. */
-  .job-detail:not(.open) { visibility: hidden; }
-
-  #job-scrim {
-    position: fixed;
-    inset: 0;
-    z-index: 19;
-    background: var(--scrim);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.25s ease, visibility 0.25s;
-  }
-  #job-scrim.open { opacity: 1; visibility: visible; }
-}
-
-/* Above it there is no sheet, so nothing to dim and nothing to catch. */
-@media (min-width: 1101px) {
-  #job-scrim { display: none; }
-}
-
-@media (max-width: 800px) {
-  .board-grid { grid-template-columns: minmax(0, 1fr); }
-  .board-list { padding-left: 0; }
-  .rail-toggle { display: inline-flex; }
-
-  .filter-rail {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: min(300px, 86vw);
-    max-height: none;
-    z-index: 20;
-    border-right: var(--rule) solid var(--black);
-    padding-top: 14px;
-    padding-bottom: max(28px, env(safe-area-inset-bottom));
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-  }
-  body.rail-open .filter-rail { transform: none; }
-  body.rail-open #job-scrim { opacity: 1; visibility: visible; }
-
-  .rail-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 14px;
-  }
-  .rail-head-title { font: 700 14px var(--font); color: var(--black); }
-  .rail-close {
-    width: 28px;
-    height: 28px;
-    display: grid;
-    place-items: center;
-    border: 1.5px solid var(--grey-line);
-    border-radius: 4px;
-    background: var(--white);
-    color: var(--grey);
-    cursor: pointer;
-  }
-  .rail-close::before { content: "\2715"; font-size: 12px; }
-  .rail-close:hover { background: var(--black); border-color: var(--black); color: var(--white); }
-
-  .board-bar .result-count { margin-left: auto; }
-
-  /* Filters and the count share the first line, and the view switch
-     takes the next one whole. Left to wrap on its own the button sat
-     alone on a row of its own with the switch too wide to join it,
-     which read as a stray control rather than the way into the rail.
-     Pairing it with the count puts the thing that narrows the board
-     next to the number saying what it narrowed to. */
-  .board-bar-row-2 .rail-toggle { order: 1; }
-  .board-bar-row-2 .result-count { order: 2; }
-  .board-bar-row-2 .view-switch { order: 3; flex-basis: 100%; }
-  .board-bar-row-2 .active-chips { order: 4; }
-  .board-bar-row-2 #f-reset { order: 5; }
-}
-
-@media (max-width: 640px) {
-  .board-bar { position: static; }
-  .board-bar-row { flex-wrap: wrap; }
-  .board-bar #f-search { flex: 1 1 100%; }
-  .board-bar #f-date-posted,
-  .board-bar #f-sort { flex: 1 1 calc(50% - 5px); }
-
-  .job-detail {
-    /* A phone has no room for a side sheet, so it is the whole screen
-       and swipes down to close (see wireJobDetailSwipe). */
-    width: 100%;
-    top: 0;
-    left: 0;
-    border-left: 0;
-    border-top: var(--rule) solid var(--black);
-    padding: 22px 20px;
-    transform: translateY(100%);
-  }
-
-  table.jobs thead tr,
-  table.jobs tbody tr[data-id],
-  table.jobs tbody tr.skeleton-row {
-    grid-template-columns: 18px 40px minmax(0, 1fr) auto;
-    gap: 10px;
-  }
-  table.jobs tbody tr[data-id],
-  table.jobs tbody tr.skeleton-row { padding: 12px 0; }
-  table.jobs tbody tr.selected::before { left: -8px; }
-  .logo-cell .company-logo.listing { width: 40px; height: 40px; }
-}
-
-/* The sheets slide, and that is the one moment of motion on this page.
-   With reduced motion on they arrive already open rather than not at
-   all: a sheet that cannot be seen to move still has to be seen. */
-@media (prefers-reduced-motion: reduce) {
-  .job-detail,
-  .filter-rail,
-  #job-scrim { transition: none; }
-}
