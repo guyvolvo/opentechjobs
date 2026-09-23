@@ -22613,3 +22613,20 @@ d360.com
 qia.ai
 manserv.com
 forumone.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+hubstaff.com
+appliedcarbon.com
+sourcebioscience.com
+askdante.com
+adhese.com
+allright.com
+americanlibraryinparis.org
+becosoft.com
+ecochain.com
+metrocaring.org
+paiqo.com
+somniosoftware.com
+weberpackaginggmbh.com
+transport.net
+whofoundation.com

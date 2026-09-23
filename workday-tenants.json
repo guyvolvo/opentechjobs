@@ -29178,5 +29178,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "fhlb.de",
+  "tenant": "fhlb",
+  "wd": "wd1",
+  "site": "FHLB_Careers",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "illimitybank.com",
+  "tenant": "illimitybank",
+  "wd": "wd3",
+  "site": "Illimity",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "ocpgroup.com",
+  "tenant": "ocpgroup",
+  "wd": "wd103",
+  "site": "ocpcareers",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "tjh.com",
+  "tenant": "tjh",
+  "wd": "wd12",
+  "site": "TJH_External_Career_Site",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
