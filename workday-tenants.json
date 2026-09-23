@@ -28908,5 +28908,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "bcone.com",
+  "tenant": "bcone",
+  "wd": "wd1",
+  "site": "Bristlecone",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "biamp.com",
+  "tenant": "biamp",
+  "wd": "wd12",
+  "site": "Biamp",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
