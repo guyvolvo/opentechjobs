@@ -17394,3 +17394,19 @@ lcc.ai
 uva.com
 dnv.com
 mauser.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+station.ai
+baptist-health.com
+first.com
+soprema.com
+newmark.co
+abtaba.com
+gallifordtry.com
+infoblox.com
+linamar.com
+powell.ai
+nmims.net
+nami.com
+synlab.com
+tamer-group.com

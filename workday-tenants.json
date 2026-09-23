@@ -28078,5 +28078,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "electrolux.com",
+  "tenant": "electrolux",
+  "wd": "wd3",
+  "site": "ElectroluxCareerSite",
+  "jobs_seen": 248,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "tempurpedic.de",
+  "tenant": "tempurpedic",
+  "wd": "wd108",
+  "site": "Tempur-Sealy-Careers",
+  "jobs_seen": 220,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "aligneddc.com",
+  "tenant": "aligneddc",
+  "wd": "wd12",
+  "site": "aligneddc",
+  "jobs_seen": 210,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "pacelabs.com",
+  "tenant": "pacelabs",
+  "wd": "wd108",
+  "site": "Careers",
+  "jobs_seen": 210,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
