@@ -11,6 +11,7 @@ so the same import line works in both.
 """
 
 import re
+from datetime import datetime, timedelta, timezone
 
 # IL_KEYWORDS moved to countries.py, where the resolver that has to
 # agree with it lives. Re-exported so every caller is unchanged.
@@ -136,6 +137,28 @@ BOARD_MAX_AGE_DAYS = 365
 FRESH_CLAUSE = f"(posted_at IS NULL OR julianday('now') - julianday(posted_at) <= {BOARD_MAX_AGE_DAYS})"
 
 
+def fresh_clause(caps: "SnapshotCaps") -> tuple[str, list]:
+    """FRESH_CLAUSE, or its indexable twin when the snapshot allows it.
+
+    julianday() on every row is a full scan, and it was half of every
+    /api/jobs call: 0.54s to count 736k open rows on the box. Once
+    posted_at is stored in one canonical UTC form (posted_at_utc in
+    meta, set by the loader's --box pass) a plain string comparison
+    against a cutoff computed here is the same test, and it runs off the
+    posted_at index. The julianday form stays for snapshots that still
+    carry mixed offsets, where string order would lie.
+    """
+    if caps.posted_at_utc:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=BOARD_MAX_AGE_DAYS)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        # The unary + keeps the IS NULL half out of index planning. Left
+        # bare, SQLite answers the OR with two index probes and a
+        # 723k-rowid union to deduplicate them, 2.3s measured, where
+        # walking one partial index with the OR as a row filter is
+        # 0.2s and the ordered page off that index is under 5ms.
+        return "(+posted_at IS NULL OR posted_at >= ?)", [cutoff]
+    return FRESH_CLAUSE, []
+
+
 def bool_param(params: dict, name: str) -> bool:
     return params.get(name, "").lower() in ("1", "true", "yes")
 
@@ -190,20 +213,111 @@ def has_role_class(conn) -> bool:
         return False
 
 
-def has_fts_index(conn) -> bool:
-    """Whether this database carries the jobs_fts index.
+class SnapshotCaps:
+    """What the snapshot in hand can do, read from the file itself.
 
-    Callers pass the result into build_jobs_where. Checked rather than
-    assumed because the same function serves the merged snapshot and the
-    per-shard partitions, and those gain the index at different times.
+    Returned by has_fts_index() in place of the bool it used to be, and
+    truthy exactly when the full-text index is usable, so every
+    `if has_fts:` and every build_jobs_where(params, has_fts_index(conn))
+    call site reads as before. The extra fields let the query layer use
+    what the box's loader adds (a category column, canonical posted_at)
+    without a second signature to keep in step across the API, the
+    alert evaluator and bootstrap.py.
+
+    fts is usable only when the loader has marked the index complete
+    (meta fts_complete = 1). Existence is not enough: after the outage
+    fix the table came back empty and refilled with only the rows that
+    changed since, and search answered from 1.9% of the corpus while
+    claiming to search all of it. Not marked means not used.
     """
+
+    __slots__ = ("fts", "fts_full", "category_col", "posted_at_utc")
+
+    def __init__(self, fts: bool = False, fts_full: bool = False,
+                 category_col: str | None = None, posted_at_utc: bool = False):
+        self.fts = fts
+        self.fts_full = fts_full
+        self.category_col = category_col
+        self.posted_at_utc = posted_at_utc
+
+    def __bool__(self) -> bool:
+        return self.fts
+
+    @classmethod
+    def coerce(cls, value) -> "SnapshotCaps":
+        return value if isinstance(value, cls) else cls(fts=bool(value))
+
+
+# Capabilities by connection, kept for a minute. Three schema reads per
+# call is nothing on its own, but compute_scoped_stats asks per clause
+# and the alert evaluator per alert, and the snapshot behind an open
+# connection changes at most once a minute anyway (db.py's own recheck
+# cadence on Lambda; the applier's timer on the box).
+_CAPS_TTL_S = 60.0
+_caps_cache: dict[int, tuple[float, SnapshotCaps]] = {}
+
+
+def has_fts_index(conn) -> SnapshotCaps:
+    """The snapshot's capabilities; truthy when jobs_fts is complete.
+
+    Checked rather than assumed because the same function serves the
+    merged snapshot and the per-shard partitions, and those gain the
+    index at different times. See SnapshotCaps for why a table that
+    merely exists does not count.
+    """
+    import time
+
+    now = time.monotonic()
+    hit = _caps_cache.get(id(conn))
+    if hit and hit[0] > now:
+        return hit[1]
+    caps = _read_caps(conn)
+    if len(_caps_cache) > 64:
+        _caps_cache.clear()
+    _caps_cache[id(conn)] = (now + _CAPS_TTL_S, caps)
+    return caps
+
+
+def _read_caps(conn) -> SnapshotCaps:
+    # One statement, not four: test_scoped_stats budgets the schema
+    # probes per request, and this is the probe the FTS check always
+    # was, just answering more questions. The index's own CREATE text
+    # says which columns it carries.
     try:
-        row = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'jobs_fts'"
+        fts_sql, category, fts_complete, posted_at_utc = conn.execute(
+            "SELECT (SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'jobs_fts'),"
+            " (SELECT COUNT(*) FROM pragma_table_info('jobs') WHERE name = 'category'),"
+            " (SELECT value FROM meta WHERE key = 'fts_complete'),"
+            " (SELECT value FROM meta WHERE key = 'posted_at_utc')"
         ).fetchone()
-        return row is not None
     except Exception:
-        return False
+        return SnapshotCaps()
+    complete = bool(fts_sql) and fts_complete == "1"
+    return SnapshotCaps(
+        fts=complete,
+        fts_full=complete and "title" in (fts_sql or ""),
+        category_col="category" if category else None,
+        posted_at_utc=posted_at_utc == "1",
+    )
+
+
+def category_sql(conn) -> str:
+    """The category expression for a SELECT or GROUP BY on this snapshot.
+
+    The stored column when the loader has filled it (empty string means
+    "no bucket fits", which reads back as NULL here), else the Python
+    callback, which costs a regex per row and made department=Security
+    a 33 second query on 846k rows."""
+    if has_fts_index(conn).category_col:
+        return "NULLIF(category, '')"
+    return "category_of(department, title)"
+
+
+# A term FTS5's tokenizer would mangle. unicode61 drops "+" and "#", so
+# "c++" and "c#" would both become a search for "c". Those go through
+# the substring path instead, where they always worked.
+def fts_safe(term: str) -> bool:
+    return not any(ch in term for ch in "+#")
 
 
 def fts_escape(term: str) -> str:
@@ -370,7 +484,7 @@ RELEVANCE_PHRASE_BONUS = 40
 RELEVANCE_ALL_IN_TITLE_BONUS = 30
 
 
-def relevance_score_sql(params: dict, has_fts: bool = False) -> tuple[str, list]:
+def relevance_score_sql(params: dict, has_fts=False) -> tuple[str, list]:
     """How well each row answers the search, as a SQL expression.
 
     Field-weighted and countable by hand: no hidden model, and a reader
@@ -381,13 +495,20 @@ def relevance_score_sql(params: dict, has_fts: bool = False) -> tuple[str, list]
     terms = search_terms(params.get("search") or "")
     if not terms:
         return "0", []
+    caps = SnapshotCaps.coerce(has_fts)
     parts, args = [], []
     for term in terms:
         like = f"%{term.lower()}%"
         for column, weight in RELEVANCE_WEIGHTS.items():
             parts.append(f"(CASE WHEN LOWER(COALESCE({column}, '')) LIKE ? THEN {weight} ELSE 0 END)")
             args.append(like)
-        if has_fts:
+        if caps.fts_full and fts_safe(term):
+            # Column-scoped, so a term in the title does not also score
+            # as a description hit.
+            parts.append(f"(CASE WHEN jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)"
+                         f" THEN {RELEVANCE_DESCRIPTION} ELSE 0 END)")
+            args.append("description : " + fts_escape(term))
+        elif caps.fts:
             parts.append(f"(CASE WHEN jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)"
                          f" THEN {RELEVANCE_DESCRIPTION} ELSE 0 END)")
             args.append(fts_escape(term))
@@ -549,12 +670,17 @@ def israel_clause(places: bool) -> tuple[str, list]:
             [f"%{kw}%" for kw in IL_KEYWORDS])
 
 
-def build_jobs_where(params: dict, has_fts: bool = False,
+def build_jobs_where(params: dict, has_fts=False,
                      places: bool = True) -> tuple[str, list]:
     """Same WHERE-clause construction route_jobs() uses for /api/jobs,
     minus sort/limit/offset (callers that need a full listing add those
     themselves; the alert evaluator only ever needs WHERE + first_seen).
+
+    has_fts is a SnapshotCaps from has_fts_index(), or the bare bool it
+    used to be; both are accepted so no caller had to change.
     """
+    caps = SnapshotCaps.coerce(has_fts)
+    has_fts = caps.fts
     where = ["1=1"]
     args: list = []
 
@@ -575,7 +701,7 @@ def build_jobs_where(params: dict, has_fts: bool = False,
     # but it now filters on the normalized category_of(department,
     # title), not the raw column -- _add_in_filter just interpolates
     # whatever column expression it's given.
-    _add_in_filter(where, args, params, "department", "category_of(department, title)")
+    _add_in_filter(where, args, params, "department", caps.category_col or "category_of(department, title)")
     _add_in_filter(where, args, params, "seniority", "seniority")
     _add_in_filter(where, args, params, "location", "location")
     _add_in_filter(where, args, params, "workplace", "workplace_type")
@@ -595,7 +721,9 @@ def build_jobs_where(params: dict, has_fts: bool = False,
     # every other filter in this file treats a value it cannot use.
 
     if not bool_param(params, "include_outdated"):
-        where.append(FRESH_CLAUSE)
+        fresh_sql, fresh_args = fresh_clause(caps)
+        where.append(fresh_sql)
+        args.extend(fresh_args)
 
     if params.get("q"):
         q = f"%{params['q'].lower()}%"
@@ -664,12 +792,21 @@ def build_jobs_where(params: dict, has_fts: bool = False,
             # companies table, and this same function runs in the alert
             # evaluator, which queries jobs on its own with no join.
             columns = ("title", "company_domain", "location", "department")
-            parts = [f"LOWER(COALESCE({c}, '')) LIKE ?" for c in columns]
-            term_args = [like] * len(columns)
-            if has_fts:
+            if caps.fts_full and fts_safe(term):
+                # One index lookup across all five columns. Whole words,
+                # which is what the reverted GLOB attempt above was for:
+                # "rust" no longer answers with Trustly, and it costs a
+                # b-tree probe rather than four LIKE scans and a GLOB.
+                parts = ["jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)"]
+                term_args = [fts_escape(term)]
+            elif has_fts:
+                parts = [f"LOWER(COALESCE({c}, '')) LIKE ?" for c in columns]
+                term_args = [like] * len(columns)
                 parts.append("jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)")
                 term_args.append(fts_escape(term))
             else:
+                parts = [f"LOWER(COALESCE({c}, '')) LIKE ?" for c in columns]
+                term_args = [like] * len(columns)
                 # Same fallback as keywords below: a partition written
                 # before the index existed still carries the column.
                 parts.append("LOWER(COALESCE(description, '')) LIKE ?")
@@ -692,7 +829,10 @@ def build_jobs_where(params: dict, has_fts: bool = False,
             if not term:
                 continue
             like = f"%{term.lower()}%"
-            if has_fts:
+            if caps.fts_full and fts_safe(term):
+                where.append("jobs.rowid IN (SELECT rowid FROM jobs_fts WHERE jobs_fts MATCH ?)")
+                args.append(fts_escape(term))
+            elif has_fts:
                 # Descriptions no longer live in this table (see
                 # db/schema.sql's jobs_fts and loader/descriptions.py), so
                 # the text half of this match comes from the full-text

@@ -102,9 +102,19 @@ with tempfile.TemporaryDirectory() as td:
     # Keyed by confidence, because the board always sends one and the API
     # defaults to a different value than the board does. Precomputing
     # only the API's default shipped an artifact the page never used.
-    check("facets are keyed by confidence",
-          sorted(facets) == ["all", "verified"], str(sorted(facets)))
-    for variant in ("verified", "all"):
+    #
+    # Each confidence then carries the views the board actually opens
+    # with: the tech filter (2026-09-21) and Israel (2026-09-23), which
+    # is the one place filter whose own facets cannot be narrowed by it.
+    # Written as "every combination is present" rather than a literal
+    # list, so adding a view is not a test edit, but a missing one still
+    # fails.
+    expected = {f"{c}{r}{p}" for c in ("verified", "all")
+                for r in ("", ":tech") for p in ("", ":IL")}
+    check("facets are keyed by confidence, role view and place",
+          set(facets) == expected, f"missing {sorted(expected - set(facets))}, "
+                                   f"extra {sorted(set(facets) - expected)}")
+    for variant in sorted(expected):
         check(f"the {variant} variant carries all three lists",
               sorted(facets[variant]) == ["categories", "companies", "locations"],
               str(sorted(facets[variant])))

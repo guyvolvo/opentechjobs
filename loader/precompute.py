@@ -22,6 +22,7 @@ that code and this ever running.
 """
 
 import json
+import os
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -38,7 +39,12 @@ sys.path.insert(0, str(_ROOT / "api"))
 from aggregates import compute_facets, compute_scoped_stats, compute_stats, top_companies_with_logos  # noqa: E402
 from job_filters import register_functions  # noqa: E402
 
-PREFIX = "precomputed/"
+# Overridable so a second applier (the box, running beside the Lambda
+# during the migration) publishes under its own prefix and the two
+# never overwrite each other's answers. handler.py reads the same
+# variable, so an API and the applier feeding it agree by env, not by
+# convention.
+PREFIX = os.environ.get("PRECOMPUTED_PREFIX", "precomputed/")
 
 # How stale these are allowed to get before a run recomputes them.
 #
@@ -81,6 +87,15 @@ def build(db_path: Path) -> dict[str, dict]:
         # block of its own, so the plain page load never computes live.
         for c in ("verified", "all"):
             facets[f"{c}:tech"] = compute_facets(conn, {"confidence": c, "roles": "tech"})
+            # The Israeli board, which is the product's first audience
+            # and the one view a place filter cannot be precomputed
+            # away from: its location tree drops the country filter and
+            # so costs a pass over every open row, 10 seconds measured
+            # on 723k of them, on every facets call from every Israeli
+            # visitor. route_facets serves these when country=IL is the
+            # only thing narrowing the board.
+            facets[f"{c}:IL"] = compute_facets(conn, {"confidence": c, "country": "IL"})
+            facets[f"{c}:tech:IL"] = compute_facets(conn, {"confidence": c, "roles": "tech", "country": "IL"})
         stats["scoped_tech"] = compute_scoped_stats(conn, {"confidence": "all", "roles": "tech"})
     finally:
         conn.close()

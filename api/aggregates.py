@@ -19,7 +19,7 @@ wrong for a loader that already has a file open on disk.
 from datetime import datetime, timedelta, timezone
 
 from countries import label_for
-from job_filters import (FRESH_CLAUSE, bool_param, build_jobs_where,
+from job_filters import (FRESH_CLAUSE, bool_param, build_jobs_where, category_sql,
                          has_fts_index, has_places, israel_clause)
 from hot_companies import GOOGLE_FAVICON, HOT_COMPANIES, LOGO_PINS
 
@@ -259,7 +259,7 @@ def compute_facets(conn, params: dict) -> dict:
         ]
 
     return {
-        "categories": counts_by("category_of(department, title)", "department", 20),
+        "categories": counts_by(category_sql(conn), "department", 20),
         "locations": location_tree(),
         "companies": counts_by("company_domain", "company", 500),
     }
@@ -566,13 +566,14 @@ def compute_stats(conn, params: dict | None = None) -> dict:
     # category list derived from it below. category_of() is a Python
     # function called per row, and it is most of what makes this
     # function slow, so the cross-tab must not cost a second pass.
+    category = category_sql(conn)
     category_seniority_rows = conn.execute(
         f"""
-        SELECT category_of(department, title) AS category, seniority, COUNT(*) AS n
+        SELECT {category} AS category, seniority, COUNT(*) AS n
         FROM jobs
         WHERE closed_at IS NULL AND confidence = 'verified' AND {FRESH_CLAUSE}
-          AND category_of(department, title) IS NOT NULL
-        GROUP BY category_of(department, title), seniority
+          AND {category} IS NOT NULL
+        GROUP BY {category}, seniority
         """
     ).fetchall()
     by_category: dict = {}

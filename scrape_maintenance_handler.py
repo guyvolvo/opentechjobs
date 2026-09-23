@@ -235,6 +235,65 @@ def _rebuild_search_index(s3) -> dict:
     return {"ok": True, **result}
 
 
+def _retire_search_index(s3) -> dict:
+    """One-shot: drop jobs_fts from the live snapshot for good.
+
+    The index came back on its own after it was dropped on 2026-09-22,
+    because open_db() applies db/schema.sql on every load and the
+    CREATE VIRTUAL TABLE there says IF NOT EXISTS. It refilled with only
+    the listings whose descriptions changed since, so a day later it was
+    234MB of index over 130,740 of 1,007,133 rows, and /api/jobs was
+    answering description searches from 13% of the board without saying
+    so. Growing about 20MB an hour, toward the 2.4GB that stopped
+    api/db.py pulling the file inside API Gateway's 29 seconds.
+
+    retire_fts() sets a marker in meta that open_db() reads, so this
+    drop is the last one. Description search stays off until the index
+    lives somewhere other than the file every request downloads; the API
+    degrades to title, company, location and department, which
+    has_fts_index() now picks honestly because it refuses an index that
+    is not marked complete.
+
+    Same conditional push as the rebuild above, for the same reason: an
+    ordinary apply landing first wins the race and this changes nothing.
+    """
+    import sqlite3
+
+    from load_to_sqlite import retire_fts, s3_pull, s3_push_conditional
+
+    snapshot = TMP / "jobs-read.db"
+    if snapshot.exists():
+        snapshot.unlink()
+    existed, etag = s3_pull(BUCKET, "jobs-read.db", snapshot)
+    if not existed:
+        return {"ok": False, "error": "no snapshot to retire the index from"}
+
+    before = snapshot.stat().st_size
+    _write_status(s3, "retiring index", "dropping jobs_fts and reclaiming its pages")
+    conn = sqlite3.connect(snapshot)
+    conn.row_factory = sqlite3.Row
+    try:
+        freed_pages = retire_fts(conn)
+        conn.commit()
+        # The pages are only handed back to the file by a VACUUM, and
+        # this file is pushed whole every five minutes, so the rewrite
+        # pays for itself immediately.
+        conn.execute("VACUUM")
+    finally:
+        conn.close()
+
+    after = snapshot.stat().st_size
+    if not s3_push_conditional(BUCKET, "jobs-read.db", snapshot, etag):
+        _write_status(s3, "idle", "index retirement lost a write race, safe to retry")
+        return {"ok": False, "error": "snapshot changed during the drop, nothing written"}
+
+    result = {"ok": True, "bytes_before": before, "bytes_after": after,
+              "freed_pages": freed_pages, "saved": before - after}
+    print(f"search index retired: {json.dumps(result)}")
+    _write_status(s3, "idle", f"search index retired, snapshot {after} bytes")
+    return result
+
+
 def _daily_backup(s3) -> None:
     """One copy of the snapshot a day, kept seven days (a lifecycle rule
     on backups/). This is the rollback the bucket's versioning used to be,
@@ -262,6 +321,10 @@ def lambda_handler(event, context):
     #   aws lambda invoke --function-name iljobs-scrape-maintenance     #     --payload '{"rebuild_fts": true}' out.json
     if (event or {}).get("rebuild_fts"):
         return _rebuild_search_index(boto3.client("s3"))
+    #   aws lambda invoke --function-name iljobs-scrape-maintenance \
+    #     --payload '{"retire_fts": true}' out.json
+    if (event or {}).get("retire_fts"):
+        return _retire_search_index(boto3.client("s3"))
 
     """Apply pending delta fragments to the live snapshot.
 

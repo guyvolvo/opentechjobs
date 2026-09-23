@@ -24,12 +24,25 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from descriptions import description_sha, put_many
+from descriptions import description_sha, get_one, put_many
+
+_s3_client = None
+
+
+def _s3_reader():
+    """One S3 client for the description reads a metadata change needs,
+    made on first use so a run that needs none never pays for it."""
+    global _s3_client
+    if _s3_client is None:
+        import boto3
+        _s3_client = boto3.client("s3")
+    return _s3_client
 from localtime import israel_local_to_utc
 
 # countries.py is one definition shared by the tagger, the loader and the
@@ -110,11 +123,80 @@ def _create_schema(conn: sqlite3.Connection, sql: str) -> None:
         conn.executescript(sql.replace(FTS_DELETE_OPTION, ""))
 
 
+def _retired_indexes(conn: sqlite3.Connection) -> list[str]:
+    try:
+        row = conn.execute("SELECT value FROM meta WHERE key = 'retired_indexes'").fetchone()
+    except sqlite3.Error:
+        return []   # a fresh file: no meta table yet, nothing retired
+    return [n for n in (row[0] if row else "").split(",") if n]
+
+
+def _fts_retired(conn: sqlite3.Connection) -> bool:
+    """Whether this file has given up on carrying a search index.
+
+    Set by retire_fts() and never unset except by a run that builds a
+    complete index (loader/fts_full.py). It exists because the index
+    cannot half-exist usefully: schema.sql creates jobs_fts on every
+    open, so dropping the table put it straight back, empty, and
+    index_description refilled it with only the listings that changed
+    since. Measured on the live snapshot 2026-09-23, a day after the
+    drop: 234MB of index over 130,740 of 1,007,133 rows, 13% of the
+    board, growing about 20MB an hour toward the 2.4GB that stopped
+    api/db.py pulling the file inside API Gateway's 29 seconds.
+
+    api/job_filters.has_fts_index() refuses an index that is not marked
+    complete, so the API degrades to title, company, location and
+    department rather than searching a thirteenth of the corpus and
+    reporting it as the whole.
+    """
+    try:
+        row = conn.execute("SELECT value FROM meta WHERE key = 'fts_retired'").fetchone()
+    except sqlite3.Error:
+        return False
+    return bool(row) and row[0] == "1"
+
+
+def retire_fts(conn: sqlite3.Connection) -> int:
+    """Drop the search index and mark the file so it stays dropped.
+
+    Returns the pages the drop released, counted on the freelist rather
+    than on page_count: DROP TABLE hands its pages back to the file's
+    own free list and the file does not get smaller, so page_count is
+    unchanged and only a VACUUM turns those pages into disk space. The
+    caller decides whether to pay for one, since it rewrites the whole
+    file.
+    """
+    before = conn.execute("PRAGMA freelist_count").fetchone()[0]
+    conn.execute("DROP TABLE IF EXISTS jobs_fts")
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES ('fts_retired', '1')"
+        " ON CONFLICT(key) DO UPDATE SET value = '1'"
+    )
+    conn.execute("DELETE FROM meta WHERE key = 'fts_complete'")
+    return conn.execute("PRAGMA freelist_count").fetchone()[0] - before
+
+
 def open_db(path: Path) -> sqlite3.Connection:
-    conn = sqlite3.connect(path)
+    # 60s, not the 5s default. On the box the file is shared with the
+    # API's readers and with Litestream, whose RESTART checkpoint holds
+    # the write lock while it waits for a long read to finish; the first
+    # such wait cost two applies to "database is locked" at the very
+    # first PRAGMA. On Lambda nothing else has the file open and this
+    # never waits.
+    conn = sqlite3.connect(path, timeout=60)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    _create_schema(conn, SCHEMA_PATH.read_text(encoding="utf-8"))
+    schema = SCHEMA_PATH.read_text(encoding="utf-8")
+    for name in _retired_indexes(conn):
+        # See RETIRED_INDEXES. The schema's CREATE INDEX IF NOT EXISTS
+        # would rebuild each one on every open, five seconds apiece.
+        schema = re.sub(rf"CREATE INDEX IF NOT EXISTS {name} ON [^;]+;", "", schema)
+    if _fts_retired(conn):
+        # Likewise, and this one is why _fts_retired exists at all: the
+        # IF NOT EXISTS made dropping the table a no-op that lasted
+        # until the next open.
+        schema = re.sub(r"CREATE VIRTUAL TABLE IF NOT EXISTS jobs_fts [^;]+;", "", schema)
+    _create_schema(conn, schema)
     _migrate(conn)
     # See SCHEMA_VERSION's own comment. Stamped unconditionally on every
     # open, not just a fresh DB, so an existing jobs.db built before this
@@ -150,6 +232,13 @@ _NEW_COLUMNS = {
     "role_class": "TEXT",
     "role_score": "REAL",
     "role_evidence": "TEXT",
+    # The category (api/job_filters.CATEGORIES), stored rather than
+    # computed per row at query time. Empty string means the rules
+    # matched nothing; NULL means not classified yet. Filled by
+    # classify_categories after every load, same shape as role_class.
+    # Measured before it existed: department=Security was a 33 second
+    # query on 846k rows, a regex in Python for every one of them.
+    "category": "TEXT",
 }
 
 
@@ -219,8 +308,15 @@ def _fts_supports_rowid_delete(conn: sqlite3.Connection) -> bool:
     return bool(row) and "contentless_delete" in (row[0] or "")
 
 
+def fts_columns(conn: sqlite3.Connection) -> list[str]:
+    try:
+        return [r[1] for r in conn.execute("PRAGMA table_info(jobs_fts)")]
+    except sqlite3.Error:
+        return []
+
+
 def index_description(conn: sqlite3.Connection, jid: str, new_text: str, old_text: str | None,
-                      rowid_delete: bool) -> None:
+                      rowid_delete: bool, columns: list[str] | None = None) -> None:
     """Keep this job's row in the full-text index current.
 
     Two ways to retire the previous entry, and the first is much better.
@@ -245,6 +341,19 @@ def index_description(conn: sqlite3.Connection, jid: str, new_text: str, old_tex
     elif old_text:
         conn.execute("INSERT INTO jobs_fts(jobs_fts, rowid, description) VALUES('delete', ?, ?)",
                      (rowid, old_text))
+    if columns and "title" in columns:
+        # The five-column index (loader/fts_full.py): the row's own
+        # metadata goes in beside the text, so one MATCH answers the
+        # whole search and "rust" stops meaning Trustly.
+        meta = conn.execute(
+            "SELECT title, company_domain, location, department FROM jobs WHERE rowid = ?", (rowid,)
+        ).fetchone()
+        conn.execute(
+            "INSERT INTO jobs_fts(rowid, title, company_domain, location, department, description)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            (rowid, meta["title"], meta["company_domain"], meta["location"], meta["department"], new_text or ""),
+        )
+        return
     conn.execute("INSERT INTO jobs_fts(rowid, description) VALUES (?, ?)", (rowid, new_text))
 
 
@@ -278,6 +387,13 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
     # Probed once here rather than per job: which delete strategy the FTS
     # table supports is a property of the file, not of a row.
     rowid_delete = _fts_supports_rowid_delete(conn)
+    fts_cols = fts_columns(conn)
+    fts_full = "title" in fts_cols
+    # Why rows were re-indexed this run, printed at the end. The first
+    # profiled apply on the box spent 130s in 9,069 S3 calls, and this
+    # is what says which path asked for them.
+    reindex_why = {"text": 0, "new": 0, "meta": 0, "blob_reads": 0}
+    meta_before: dict[str, tuple] = {}
     # Before the loop, and whether or not this payload mentions them: a
     # duplicate that stopped being polled would otherwise keep its open
     # jobs forever, since only a --batch run ever prunes.
@@ -489,11 +605,14 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
             desc = j.get("description")
             prior_desc = None
             reindex = False
+            row = None
+            if desc or fts_full:
+                row = conn.execute(
+                    "SELECT description_sha, description, title, location, department"
+                    " FROM jobs WHERE id = ?", (jid,)
+                ).fetchone()
             if desc:
                 sha = description_sha(desc)
-                row = conn.execute(
-                    "SELECT description_sha, description FROM jobs WHERE id = ?", (jid,)
-                ).fetchone()
                 # Captured before the upsert below overwrites it: the FTS
                 # delete needs the exact text that was indexed.
                 prior_desc = row["description"] if row else None
@@ -502,13 +621,56 @@ def load_resolved(conn: sqlite3.Connection, resolved_path: Path,
                     reindex = True
                 j["description_sha"] = sha
             upsert_job(conn, jid, domain, j, confidence=job_confidence, ts=ts, already_tracked_company=already_tracked)
-            if reindex:
-                index_description(conn, jid, desc, prior_desc, rowid_delete)
+            if reindex and fts_cols:
+                reindex_why["text"] += 1
+                index_description(conn, jid, desc, prior_desc, rowid_delete, fts_cols)
+            elif fts_full and row is None:
+                # First sight of a listing that carried no text: indexed
+                # on its metadata alone.
+                reindex_why["new"] += 1
+                index_description(conn, jid, "", None, rowid_delete, fts_cols)
+            elif fts_full and jid not in meta_before:
+                # The index carries title, location and department too,
+                # so a change to any of them re-indexes the row. Decided
+                # once per listing at the end of the run, against what is
+                # stored then, not here after each upsert: a Workable
+                # posting open in five cities arrives as five entries
+                # sharing one id, each overwriting the location, and
+                # judged per entry that read as five changes on every
+                # single apply (1,347 rows and as many S3 reads, measured
+                # on a pass that changed nothing).
+                meta_before[jid] = (row["title"], row["location"], row["department"])
         seen_ids_by_domain[domain] = ids
         if adopted_from:
             _adopt_job_ages(conn, domain, adopted_from)
 
     close_missing_jobs(conn, seen_ids_by_domain, ts)
+
+    if meta_before:
+        changed = []
+        for jid, before in meta_before.items():
+            after = conn.execute(
+                "SELECT title, location, department FROM jobs WHERE id = ?", (jid,)
+            ).fetchone()
+            if after is not None and tuple(after) != before:
+                changed.append(jid)
+        reindex_why["meta"] = len(changed)
+        if changed:
+            # The text lives in S3 and only S3 (descriptions.py), so a
+            # metadata change on a listing whose text did not change has
+            # to read it back to rebuild the row. Concurrently: each read
+            # is a round trip and there can be hundreds.
+            reindex_why["blob_reads"] = len(changed)
+            texts: dict[str, str | None] = {}
+            if DESCRIPTIONS_BUCKET:
+                from concurrent.futures import ThreadPoolExecutor
+                s3 = _s3_reader()
+                with ThreadPoolExecutor(max_workers=16) as pool:
+                    texts = dict(zip(changed, pool.map(lambda j: get_one(DESCRIPTIONS_BUCKET, j, s3), changed)))
+            for jid in changed:
+                index_description(conn, jid, texts.get(jid) or "", None, rowid_delete, fts_cols)
+    if any(reindex_why.values()):
+        print("search index: " + ", ".join(f"{v} {k}" for k, v in reindex_why.items()), file=sys.stderr)
 
     # After the DB work, never during it. Upload first, then clear: once
     # the column is NULL the blob is the only copy, so clearing before
@@ -635,6 +797,7 @@ def upsert_job(conn: sqlite3.Connection, jid: str, domain: str, j: dict, confide
             -- A verdict is about a title and a team; when either moves,
             -- it goes back to NULL and classify_roles reads it again.
             role_class = CASE WHEN title IS NOT excluded.title OR department IS NOT excluded.department THEN NULL ELSE role_class END,
+            category = CASE WHEN title IS NOT excluded.title OR department IS NOT excluded.department THEN NULL ELSE category END,
             -- salary_text needed a stricter guard than "not empty":
             -- reported live -- a Comeet job's discover-pass estimate
             -- (title+description, e.g. a specific "Go Developer" figure)
@@ -922,6 +1085,102 @@ def classify_roles(conn: sqlite3.Connection) -> int:
         total += len(rows)
         _classify_with_company(conn, rows)
     return total
+
+
+def classify_categories(conn: sqlite3.Connection) -> int:
+    """Fill the category column for rows that have none yet. A whole
+    snapshot the first time, a few hundred rows on every apply after."""
+    from job_filters import classify_category
+
+    total = 0
+    while True:
+        rows = conn.execute(
+            "SELECT id, department, title FROM jobs WHERE category IS NULL LIMIT 20000"
+        ).fetchall()
+        if not rows:
+            break
+        total += len(rows)
+        conn.executemany(
+            "UPDATE jobs SET category = ? WHERE id = ?",
+            [(classify_category(dept, title) or "", jid) for jid, dept, title in rows],
+        )
+    return total
+
+
+# The indexes the board's own queries run on. Partial, over the open
+# verified rows every default view starts from, and covering the
+# columns those views filter and sort by, so a count or a page is an
+# index walk and never touches the table. Measured on a 846k-row file:
+# the default board's count went from 0.54s to 0.036s and its page from
+# 0.73s to under a millisecond.
+#
+# Only built where the file lives on a disk (--box). On Lambda the
+# snapshot is re-uploaded whole after every apply, and another 100MB of
+# index in that file is the wrong trade there.
+BOX_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS idx_jobs_open_role_posted ON jobs(role_class, posted_at, id, country)"
+    " WHERE closed_at IS NULL AND confidence = 'verified'",
+    "CREATE INDEX IF NOT EXISTS idx_jobs_open_posted ON jobs(posted_at, id, country)"
+    " WHERE closed_at IS NULL AND confidence = 'verified'",
+    "CREATE INDEX IF NOT EXISTS idx_jobs_open_category ON jobs(category, role_class, posted_at)"
+    " WHERE closed_at IS NULL AND confidence = 'verified'",
+)
+
+
+# Indexes the box does without. Single-column indexes on closed_at and
+# confidence look selective to the planner (no STAT4 in Ubuntu's
+# SQLite, and stat1 averages 288 rows per closed_at value because the
+# closed ones carry distinct timestamps) while closed_at IS NULL is 87%
+# of the table and confidence = 'verified' nearly all of it. With them
+# present the planner chose one for every board query and never
+# reached the partial indexes above; measured: a category count at
+# 0.45s through idx_jobs_closed_at against 0.007s without it. Retired
+# here and recorded in meta, so open_db knows not to create them again
+# on the next apply.
+RETIRED_INDEXES = ("idx_jobs_closed_at", "idx_jobs_confidence")
+
+
+def ensure_box_indexes(conn: sqlite3.Connection) -> None:
+    for sql in BOX_INDEXES:
+        conn.execute(sql)
+    for name in RETIRED_INDEXES:
+        conn.execute(f"DROP INDEX IF EXISTS {name}")
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES ('retired_indexes', ?)"
+        " ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (",".join(RETIRED_INDEXES),),
+    )
+    # Statistics for the planner. ANALYZE over the whole file is 20s;
+    # optimize re-analyzes only what changed enough to matter.
+    conn.execute("PRAGMA optimize")
+
+
+def normalize_posted_at(conn: sqlite3.Connection) -> int:
+    """Store every posted_at as YYYY-MM-DDTHH:MM:SS+00:00, once.
+
+    probe.py has written that form for a while, but older rows carry
+    other offsets and a bare Z, which is why the API sorts on
+    datetime(posted_at) instead of the column and cannot use its index
+    for the board's default order. With one form throughout, the bare
+    column sorts and ranges correctly, and meta posted_at_utc tells the
+    API so (see job_filters.fresh_clause). SQLite's own date parser does
+    the conversion, offsets included; anything it cannot parse is left
+    alone rather than nulled.
+    """
+    done = conn.execute("SELECT value FROM meta WHERE key = 'posted_at_utc'").fetchone()
+    if done and done[0] == "1":
+        return 0
+    canonical = "strftime('%Y-%m-%dT%H:%M:%S', posted_at) || '+00:00'"
+    n = conn.execute(
+        f"UPDATE jobs SET posted_at = {canonical}"
+        f" WHERE posted_at IS NOT NULL AND strftime('%Y-%m-%dT%H:%M:%S', posted_at) IS NOT NULL"
+        f" AND posted_at != {canonical}"
+    ).rowcount
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES ('posted_at_utc', '1')"
+        " ON CONFLICT(key) DO UPDATE SET value = '1'"
+    )
+    return n
 
 
 def _classify_slice(conn: sqlite3.Connection, rows: list) -> None:
@@ -1253,6 +1512,11 @@ def update_meta(conn: sqlite3.Connection) -> None:
             print(f"  {w}", file=sys.stderr)
     meta = {
         "last_loaded": now_iso(),
+        # For /api/health, which used to count the table on every call:
+        # a 2GB file on a box whose RAM cannot hold all of it made that
+        # a 5 to 14 second scan whenever an apply was also running.
+        "jobs_total": conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0],
+        "jobs_open": sum(n for _, n in counts),
         "open_jobs_verified": next((n for c, n in counts if c == "verified"), 0),
         "open_jobs_best_effort": next((n for c, n in counts if c == "best_effort"), 0),
         "companies_total": total_companies,
@@ -1541,6 +1805,10 @@ def main() -> int:
                           "being listings nobody can apply to. The API downloads this whole file on "
                           "a cold start against a fixed 29s API Gateway ceiling, so that curve ends "
                           "in a wall rather than a slow bill. Needs --bucket; see loader/archive.py.")
+    ap.add_argument("--box", action="store_true",
+                    help="the file lives on local disk and is never re-uploaded: also fill the category "
+                         "column, store posted_at in one canonical form, and build the board's indexes "
+                         "(see BOX_INDEXES)")
     ap.add_argument("--skip-vacuum", action="store_true",
                      help="scrape_handler.py's sharded re-poll passes this: VACUUM rewrites the WHOLE DB file "
                           "regardless of how few rows this run touched, so paying that cost on every ~5-minute "
@@ -1601,6 +1869,14 @@ def main() -> int:
             n_roles = classify_roles(conn)
             if n_roles:
                 print(f"role verdicts for {n_roles} rows", file=sys.stderr)
+            if args.box:
+                n_cat = classify_categories(conn)
+                if n_cat:
+                    print(f"categories for {n_cat} rows", file=sys.stderr)
+                n_dates = normalize_posted_at(conn)
+                if n_dates:
+                    print(f"posted_at normalized on {n_dates} rows", file=sys.stderr)
+                ensure_box_indexes(conn)
             if args.deep:
                 load_deep(conn, args.deep)
             if args.prune_stale:

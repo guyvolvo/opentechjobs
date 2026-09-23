@@ -24,6 +24,7 @@ archive would recreate the exact problem this is here to solve.
 """
 
 import gzip
+import sqlite3
 import json
 import sys
 from datetime import datetime, timedelta, timezone
@@ -174,8 +175,17 @@ def prune(conn, s3, bucket: str, retain_days: int = RETAIN_DAYS,
 
     # Entries the runtime could not remove. Inert, but they accumulate at
     # roughly 2.9KB each, so rebuild_fts.py exists to clear them.
-    orphaned = 0 if fts_rowid_delete else conn.execute(
-        "SELECT COUNT(*) FROM jobs_fts_docsize WHERE id NOT IN (SELECT rowid FROM jobs)"
-    ).fetchone()[0]
+    #
+    # Nothing to count where the file carries no index at all (see
+    # load_to_sqlite.retire_fts): the shadow table is gone with it, and
+    # asking for it would fail a prune over a number nobody can act on.
+    orphaned = 0
+    if not fts_rowid_delete:
+        try:
+            orphaned = conn.execute(
+                "SELECT COUNT(*) FROM jobs_fts_docsize WHERE id NOT IN (SELECT rowid FROM jobs)"
+            ).fetchone()[0]
+        except sqlite3.Error:
+            orphaned = 0
     return {"archived": len(rows), "objects": len(written), "months": sorted(by_month),
             "orphaned_index_rows": orphaned}

@@ -39,7 +39,7 @@ from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
 from saved import is_saved_id, job_id_of, saved_id
 from skills import SKILL_TERMS
 from skills import spec as skill_spec
-from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, MAX_SEARCH_TERMS, bool_param,
+from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, MAX_SEARCH_TERMS, bool_param, category_sql,
                          build_jobs_where, has_fts_index, has_places, has_role_class,
                          is_job_id, relevance_score_sql, salary_source_select, search_mode,
                          search_terms, skills_score_sql, wanted_skills)
@@ -192,7 +192,7 @@ def route_job_page(job_id: str):
     row = conn.execute(
         f"""
         SELECT id, company_domain, ats, external_id, title, location, department,
-               category_of(department, title) AS category, seniority, workplace_type,
+               {category_sql(conn)} AS category, seniority, workplace_type,
                {_apply_url_select(conn)}, posted_at, description, first_seen, last_seen, closed_at,
                salary_text, salary_is_estimate, {salary_source_select(conn)}, {place_select},
                {company_name_select}, {logo_select}
@@ -475,7 +475,8 @@ def route_jobs(params: dict) -> dict:
         if _has_company_column(conn, "logo_url") else "NULL AS logo_url"
     )
 
-    where_sql, args = build_jobs_where(params, has_fts_index(conn), has_places(conn))
+    caps = has_fts_index(conn)
+    where_sql, args = build_jobs_where(params, caps, has_places(conn))
 
     # The CV match. build_jobs_where has already narrowed the list to
     # rows carrying at least one of these; this counts how many, so the
@@ -492,7 +493,7 @@ def route_jobs(params: dict) -> dict:
         sort_key = "age"
     # Same rule for relevance: nothing to rank against without a search,
     # so it reads as the default order rather than erroring a shared link.
-    rank_sql, rank_args = relevance_score_sql(params, has_fts_index(conn))
+    rank_sql, rank_args = relevance_score_sql(params, caps)
     if sort_key == "relevance" and rank_sql == "0":
         sort_key = "age"
     if sort_key not in SORT_COLUMNS and sort_key not in ("match", "relevance"):
@@ -528,6 +529,15 @@ def route_jobs(params: dict) -> dict:
     sort_expr = (f"datetime({sort_col})" if sort_key in ("age", "match", "relevance")
                  else f"TRIM({sort_col}) COLLATE NOCASE")
     order_sql = f"{null_order}, {sort_expr} {sort_dir}"
+    if caps.posted_at_utc and sort_key in ("age", "match", "relevance"):
+        # Every posted_at is stored in one canonical UTC form (see
+        # fresh_clause), so the bare column sorts correctly and the
+        # posted_at index can hand back the page in order. Newest first
+        # needs no NULL guard: NULL is the smallest value SQLite knows,
+        # so DESC already puts it last. Oldest first keeps the guard,
+        # and pays for a sort, which nobody asks for by default.
+        order_sql = (f"{sort_col} DESC" if sort_dir == "DESC"
+                     else f"{null_order}, {sort_col} ASC")
     order_args: list = []
     # Overlap first, date second. The ten closest fits are the whole
     # point of asking for a match, and any other order scatters them
@@ -602,7 +612,7 @@ def route_jobs(params: dict) -> dict:
     rows = conn.execute(
         f"""
         SELECT id, company_domain, ats, title, location, department,
-               category_of(department, title) AS category, seniority, workplace_type,
+               {category_sql(conn)} AS category, seniority, workplace_type,
                {_apply_url_select(conn)},
                posted_at, confidence, first_seen, last_seen, closed_at,
                skills, salary_text, salary_is_estimate, {salary_source_select(conn)},
@@ -710,7 +720,7 @@ def route_job_detail(job_id: str) -> dict | None:
     row = conn.execute(
         f"""
         SELECT id, company_domain, ats, external_id, title, location, department,
-               category_of(department, title) AS category, seniority,
+               {category_sql(conn)} AS category, seniority,
                workplace_type, {_apply_url_select(conn)},
                posted_at, description, confidence, first_seen, last_seen, closed_at,
                {company_name_select},
@@ -826,11 +836,22 @@ def route_health() -> dict:
     the query below succeeds and how old last_checked is.
     """
     conn = get_connection()
+    # The job counts come from meta when the loader has written them
+    # (update_meta, since the box), and are counted here otherwise. The
+    # two table scans were the whole cost of this route on a file too
+    # big for the page cache.
+    meta_counts = dict(conn.execute(
+        "SELECT key, value FROM meta WHERE key IN ('jobs_total', 'jobs_open')"
+    ).fetchall())
+    if "jobs_total" in meta_counts and "jobs_open" in meta_counts:
+        counts_sql = f"{int(meta_counts['jobs_total'])} AS jobs_total, {int(meta_counts['jobs_open'])} AS jobs_open,"
+    else:
+        counts_sql = ("(SELECT COUNT(*) FROM jobs) AS jobs_total, "
+                      "(SELECT COUNT(*) FROM jobs WHERE closed_at IS NULL) AS jobs_open,")
     row = conn.execute(
-        """
+        f"""
         SELECT
-          (SELECT COUNT(*) FROM jobs) AS jobs_total,
-          (SELECT COUNT(*) FROM jobs WHERE closed_at IS NULL) AS jobs_open,
+          {counts_sql}
           (SELECT COUNT(*) FROM companies WHERE ats IS NOT NULL) AS companies_resolved,
           (SELECT MAX(last_checked) FROM companies) AS last_checked
         """
@@ -958,6 +979,8 @@ def route_contact(body: dict) -> tuple[int, dict]:
 # clock db.py uses for the snapshot itself, so a request pays at most one
 # S3 read a minute and usually none.
 _PRECOMPUTED_TTL = 60.0
+# Same variable loader/precompute.py publishes under; see its PREFIX.
+PRECOMPUTED_PREFIX = os.environ.get("PRECOMPUTED_PREFIX", "precomputed/")
 _precomputed: dict[str, tuple[float, dict | None]] = {}
 
 
@@ -979,7 +1002,7 @@ def _precomputed_json(name: str) -> dict | None:
     value = None
     if bucket:
         try:
-            body = _status_s3.get_object(Bucket=bucket, Key=f"precomputed/{name}")["Body"].read()
+            body = _status_s3.get_object(Bucket=bucket, Key=f"{PRECOMPUTED_PREFIX}{name}")["Body"].read()
             value = json.loads(body)
         except Exception as e:
             print(f"precomputed/{name} unavailable, computing live: {e!r}")
@@ -1035,6 +1058,14 @@ def route_facets(params: dict) -> dict:
     # every OTHER active filter applied, so only the unfiltered case can
     # be precomputed. That is also the one every page load asks for.
     variant = _unfiltered_confidence(params)
+    place = ""
+    if variant is None and (params.get("country") or "").strip().upper() == "IL" and not params.get("city"):
+        # Israel alone is precomputed too (see precompute.py for why).
+        # Asked the same way: is the board unfiltered once the country
+        # is set aside? Anything else narrowing it means a live answer.
+        rest = {k: v for k, v in params.items() if k != "country"}
+        variant = _unfiltered_confidence(rest)
+        place = ":IL"
     if variant is not None:
         ready = _precomputed_json("facets.json")
         # The tech view is its own variant ("all:tech"), written beside
@@ -1043,6 +1074,7 @@ def route_facets(params: dict) -> dict:
         # and stops being needed one merge after this ships.
         if (params.get("roles") or "").lower() == "tech":
             variant = f"{variant}:tech"
+        variant += place
         if isinstance(ready, dict) and variant in ready:
             return ready[variant]
     return compute_facets(get_connection(), params)

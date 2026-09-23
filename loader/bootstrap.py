@@ -35,7 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from job_filters import build_jobs_where, has_places, register_functions  # noqa: E402
+from job_filters import build_jobs_where, category_sql, has_places, register_functions  # noqa: E402
 
 # Must match what frontend/app.js actually requests for the unfiltered
 # default view: currentFilterParams() with everything empty leaves only
@@ -74,9 +74,10 @@ def params_for(filters: dict) -> str:
 # Same column list as route_jobs. Notably no `description`: the list
 # endpoint doesn't return one either, which is why the whole page is
 # 4.4KB gzipped.
-_COLUMNS = """
+def _columns(conn) -> str:
+    return f"""
     id, company_domain, ats, title, location, department,
-    category_of(department, title) AS category, seniority, workplace_type, url,
+    {category_sql(conn)} AS category, seniority, workplace_type, url,
     posted_at, confidence, first_seen, last_seen, closed_at,
     skills, salary_text, salary_is_estimate
 """
@@ -127,7 +128,7 @@ def build(db_path: Path, filters: dict | None = None) -> dict:
         total = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {where}", args).fetchone()[0]
         rows = conn.execute(
             f"""
-            SELECT {_COLUMNS}, {_salary_source_select(conn)}
+            SELECT {_columns(conn)}, {_salary_source_select(conn)}
             FROM jobs
             WHERE {where}
             -- datetime(), and NULLs last, matching route_jobs exactly:
