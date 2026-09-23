@@ -28678,5 +28678,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "petermillar.com",
+  "tenant": "petermillarllc",
+  "wd": "wd12",
+  "site": "PMI",
+  "jobs_seen": 22,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "bavariannordic.io",
+  "tenant": "bavariannordic",
+  "wd": "wd103",
+  "site": "BavarianNordic",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
