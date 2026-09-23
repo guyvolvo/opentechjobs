@@ -57,7 +57,16 @@ PREFIX = os.environ.get("PRECOMPUTED_PREFIX", "precomputed/")
 # trends, headline counts in the tens of thousands, and facet counts
 # used to populate dropdowns. Fifteen minutes is invisible in all three,
 # and it turns 288 builds a day into 96.
-MAX_AGE_S = 900
+#
+# Thirty, since the box. Measured there on a quiet machine: build()
+# takes 114s against the 26.7s this comment was written about, because
+# the file is 2.66GB rather than 600MB, there are eight facet variants
+# rather than four, and the instance is IO-bound. At fifteen minutes
+# that is a 13% duty cycle of the heaviest IO on the box, held inside
+# an apply. The argument above still holds at thirty: a dropdown count
+# and a 14-day trend do not know the difference, and it halves the
+# cost.
+MAX_AGE_S = 1800
 
 
 def build(db_path: Path) -> dict[str, dict]:
