@@ -407,32 +407,58 @@ drift, noted here so it doesn't get "fixed" back to a token by mistake.
 
 ## Layout
 
-A permanent two-column workspace above 960px, Job Board (flexible,
-`1fr`) beside Market Stats (fixed `clamp(360px, 28vw, 460px)`), never a
-drawer or a toggle; they stack (stats below board) under 960px. No
-`max-width` container anywhere: both the workspace and its inner
-container use `--gutter` (`clamp(20px, 4vw, 64px)`) for side padding, so
-the page keeps scaling with viewport width all the way to ultra-wide
-instead of plateauing inside a fixed box.
+The board is three columns above 1100px: a 236px filter rail, the
+listings at `minmax(0, 1fr)`, and a 440px detail pane, under one filter
+bar that spans all three. No `max-width` container anywhere: the shell
+uses `--gutter` (`clamp(20px, 4vw, 64px)`) for side padding, so the page
+keeps scaling with viewport width all the way to ultra-wide instead of
+plateauing inside a fixed box.
 
-The job detail panel is always a sheet over the board, never in the
-page's flow. Above 960px it slides in from the right, as wide as the
-Market Stats column plus 260px, so it covers the statistics and the
-Saved and Reset filters; below 960px it is full-screen and
-swipe-to-dismiss. Both dim the board with `--scrim` without locking it:
-the wheel scrolls the board when the pointer is over the board and the
-sheet when it is over the sheet. Above 1300px it used to be a sticky
-column squeezed in beside the list, which left the description too
-little room, and before that a stacked panel below the entire list,
-which scrolled the reader to the footer. Being out of the flow is the
-point: the page's height never changes, so there is no jump to correct.
+The page still scrolls as one page. The rail and the pane are sticky
+inside their own columns rather than fixed panels with their own
+scrollbars, so the list is what grows and the footer stays reachable
+under it. The filter bar is sticky too, directly under the topbar: the
+result count is the one number that says whether a filter did anything,
+and it used to scroll away exactly when somebody changed one.
 
-The filter row stays a single line above the mobile breakpoint (flex
-`nowrap`, matching the table's own width), shrinking each field rather
-than wrapping to a second row; below 640px it wraps and every field
-takes a full-width row instead. IL-only lives as a pinned first option
-inside the Locations dropdown rather than as its own filter slot,
-keeping the row to one line without dropping a filter.
+It replaced a two-column workspace, Job Board beside Market Stats, with
+every filter in a row above the list. That row ran out of width around
+six controls and hid the rest behind a Filters button, and each dropdown
+kept its counts one click away, so choosing between Security and Data &
+Analytics meant opening a menu, reading it, closing it, opening another.
+The counts are the reason to pick one filter over another, so they are
+on the page now.
+
+Market Stats is gone from the board. Its headline numbers answer from
+the detail pane while nothing is selected, which is the one moment a
+reader is looking at the board rather than at a job, and the charts and
+market panels it also held live at `/stats`, still linked from the same
+place.
+
+The detail pane is a column, not a sheet, above 1100px. Reading a
+listing used to throw a sheet over the board and cost your place in the
+others; beside the list it costs nothing, and the pane is never empty
+because the empty state is real content. Below 1100px it goes back to
+being a sheet from the right, and below 640px a full-screen one that
+swipes down to dismiss. Both dim the board with `--scrim` without
+locking it: the wheel scrolls whichever of the two the pointer is over.
+
+The rail is a column down to 800px and a sheet from the left below
+that, behind a Filters button. The active-filter chips stay on the bar
+at every width, so what is on is readable with the rail shut, and each
+chip drops one value without opening the group it came from.
+
+A job row is a four-column grid: `18px 44px minmax(0, 1fr) auto` for
+the star, the logo, the listing and its age. Apply and Save left the row
+for the pane, because fifty rows carrying two buttons each is
+ninety-eight buttons for the one listing anybody is reading. An
+estimated salary is an outlined chip with "Est." in the row's own ink
+and the figure in Green Text; a listing with no figure shows nothing
+there at all. It used to say "Undisclosed" on every row, and since nine
+listings in ten have no figure that put the same grey word down the
+whole column, where it read as a property of the board rather than of
+the job. The word survives in the pane, where it answers a question
+somebody asked by opening the listing.
 
 Two dedicated card grids (metrics, market panels) share one motif: white
 cards laid edge-to-edge on a black background with a `2px` (`--rule`)

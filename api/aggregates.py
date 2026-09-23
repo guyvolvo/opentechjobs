@@ -258,11 +258,94 @@ def compute_facets(conn, params: dict) -> dict:
             for c in country_counts(country_limit)
         ]
 
-    return {
+    def salary_bounds() -> dict:
+        """The shekel range the current result set actually occupies.
+
+        The board's salary track needs ends, and a fixed pair written
+        into the frontend would be a guess that goes stale the first
+        time the estimates move. These are measured, with the salary
+        filter itself dropped so dragging a handle cannot walk the track
+        out from under the hand holding it, the same rule every other
+        facet here follows.
+
+        `known` is the count with a figure at all, which is what lets
+        the rail say how much of the board the track can speak for
+        rather than implying it speaks for all of it.
+        """
+        scoped = dict(params)
+        for k in ("salary_min", "salary_max", "salary_known"):
+            scoped.pop(k, None)
+        where_sql, args = build_jobs_where(scoped, has_fts_index(conn), has_places(conn))
+        row = conn.execute(
+            f"""
+            SELECT MIN(salary_min_ils), MAX(salary_max_ils), COUNT(salary_min_ils)
+            FROM jobs WHERE {where_sql}
+            """,
+            args,
+        ).fetchone()
+        low, high, known = row[0], row[1], row[2]
+        if low is None or high is None or not known:
+            # No shekel figures in this result set at all. An empty dict
+            # rather than a zero-width track, so the board can leave the
+            # control out instead of drawing one that cannot move.
+            return {}
+        # The midpoint of each listing's own range, then the middle one.
+        # SQLite has no median, and the sort runs only over rows that
+        # carry a figure, which is a tenth of the board at most, so this
+        # is a far smaller scan than the age median beside it in
+        # compute_scoped_stats. A mean would be pulled around by the
+        # handful of executive ranges; a median of ranges is the number
+        # somebody reading "what does this pay" is actually asking for.
+        mids = [
+            r[0] for r in conn.execute(
+                f"""
+                SELECT (salary_min_ils + salary_max_ils) / 2.0 AS mid
+                FROM jobs WHERE {where_sql} AND salary_min_ils IS NOT NULL
+                ORDER BY mid
+                """,
+                args,
+            ).fetchall()
+        ]
+        half = len(mids) // 2
+        median = mids[half] if len(mids) % 2 else (mids[half - 1] + mids[half]) / 2
+        return {"min": int(low), "max": int(high), "known": int(known),
+                "median": int(round(median))}
+
+    out = {
         "categories": counts_by(category_sql(conn), "department", 20),
         "locations": location_tree(),
         "companies": counts_by("company_domain", "company", 500),
+        # Both are closed enums (probe.py's Job.seniority and
+        # Job.workplace_type), so the board has always been able to draw
+        # the options without asking. It could not draw the counts, and
+        # an option list with no counts beside it is the one thing in
+        # the filter rail that cannot tell a reader whether it is worth
+        # clicking.
+        "seniority": counts_by("seniority", "seniority", 20),
+        "workplace": counts_by("workplace_type", "workplace", 10),
     }
+    if _has_salary_columns(conn):
+        bounds = salary_bounds()
+        if bounds:
+            out["salary"] = bounds
+    return out
+
+
+def _has_salary_columns(conn) -> bool:
+    """Whether this snapshot carries the derived shekel columns.
+
+    A snapshot written before loader/salary_range.py existed does not,
+    and the facets route runs against whatever file is in hand. Asked
+    here rather than read from SnapshotCaps because this module already
+    holds a connection and the answer is one pragma; the query layer's
+    own copy (caps.salary_ils) is what decides whether the filter runs.
+    """
+    try:
+        return bool(conn.execute(
+            "SELECT COUNT(*) FROM pragma_table_info('jobs') WHERE name = 'salary_min_ils'"
+        ).fetchone()[0])
+    except Exception:
+        return False
 
 
 COMPANY_SEARCH_LIMIT = 50

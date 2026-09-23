@@ -114,10 +114,15 @@ with tempfile.TemporaryDirectory() as td:
     check("facets are keyed by confidence, role view and place",
           set(facets) == expected, f"missing {sorted(expected - set(facets))}, "
                                    f"extra {sorted(set(facets) - expected)}")
+    # Every facet the filter rail draws a group from. salary is not in
+    # here: it is a pair of bounds rather than a list, and a result set
+    # with no shekel figures in it has none to report, so the rail leaves
+    # that control out rather than drawing a track that cannot move.
+    required = {"categories", "companies", "locations", "seniority", "workplace"}
     for variant in sorted(expected):
-        check(f"the {variant} variant carries all three lists",
-              sorted(facets[variant]) == ["categories", "companies", "locations"],
-              str(sorted(facets[variant])))
+        check(f"the {variant} variant carries every facet the rail needs",
+              required <= set(facets[variant]),
+              f"missing {sorted(required - set(facets[variant]))}")
     check("facet counts are the unfiltered ones",
           sum(r["n"] for r in facets["verified"]["locations"]) == 10,
           str(facets["verified"]["locations"]))
