@@ -28358,5 +28358,75 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "collaborative.com",
+  "tenant": "collaborative",
+  "wd": "wd1",
+  "site": "allopenings",
+  "jobs_seen": 68,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "hkust.io",
+  "tenant": "hkust",
+  "wd": "wd102",
+  "site": "HKUST",
+  "jobs_seen": 68,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "wsfsbank.com",
+  "tenant": "wsfsbank",
+  "wd": "wd1",
+  "site": "wsfscareers",
+  "jobs_seen": 67,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "veitusa.com",
+  "tenant": "veitusa",
+  "wd": "wd503",
+  "site": "Veit",
+  "jobs_seen": 66,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "docgo.com",
+  "tenant": "docgo",
+  "wd": "wd1",
+  "site": "DocGo",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "siegfried.org",
+  "tenant": "siegfried",
+  "wd": "wd103",
+  "site": "external",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "getec.com",
+  "tenant": "getec",
+  "wd": "wd103",
+  "site": "External_Careers",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
