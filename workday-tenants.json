@@ -28148,5 +28148,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "hkex.com",
+  "tenant": "hkex",
+  "wd": "wd3",
+  "site": "HKEXCareerPage",
+  "jobs_seen": 172,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "schreiberfoods.com",
+  "tenant": "schreiberfoods",
+  "wd": "wd115",
+  "site": "Schreiber_Careers",
+  "jobs_seen": 170,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "valmet.com",
+  "tenant": "valmet",
+  "wd": "wd103",
+  "site": "External",
+  "jobs_seen": 170,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "umb.com",
+  "tenant": "umb",
+  "wd": "wd1",
+  "site": "UMBExternal",
+  "jobs_seen": 159,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]

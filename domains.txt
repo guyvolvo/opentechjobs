@@ -17430,3 +17430,22 @@ arconic.com
 suffolk.com
 infiniti.net
 hult-international-business-school.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+homeserve.de
+s-c.io
+mr.de
+navy.com
+ichor.fr
+1sp.com
+bauer.com
+nordostseeautomobile.com
+dalmia.ai
+aps.com
+dental21.de
+vdot.de
+calgary.ai
+springfield.net
+apelos.de
+perficient.com
+brembo.com
