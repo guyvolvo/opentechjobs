@@ -48,6 +48,9 @@ jobs:
           role-to-assume: ${{ vars.BOX_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      # SSM runs AWS-RunShellScript under /bin/sh, which on Ubuntu is
+      # dash: "set -o pipefail" is a bash builtin and dash exits 2 on it.
+      # The commands below stay POSIX for that reason.
       - name: Pull and restart on the box
         run: |
           set -euo pipefail
@@ -56,7 +59,7 @@ jobs:
             --document-name AWS-RunShellScript \
             --comment "deploy-box ${GITHUB_SHA::7}" \
             --parameters commands='[
-              "set -euo pipefail",
+              "set -eu",
               "cd /srv/otj/app",
               "sudo -u ubuntu git fetch --quiet origin main",
               "sudo -u ubuntu git reset --quiet --hard origin/main",
