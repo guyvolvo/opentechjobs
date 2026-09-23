@@ -2494,6 +2494,16 @@ function jobSalaryChip(j) {
 // chips did and the only thing on a row that narrows the board.
 const ROW_SKILLS_SHOWN = 3;
 
+function jobSalaryLine(j) {
+  if (!j.salary_text) return '<span class="job-salary undisclosed">Undisclosed</span>';
+  const source = j.salary_source || (j.salary_is_estimate ? "table" : "disclosed");
+  const isEstimate = source !== "disclosed";
+  const note = SALARY_SOURCE_NOTE[source] || SALARY_SOURCE_NOTE.estimated;
+  return `<span class="job-salary${isEstimate ? " estimate" : ""}" title="${escapeHtml(note)}">`
+    + `${isEstimate ? '<span class="salary-est-label">Est.</span> ' : ""}`
+    + `${escapeHtml(j.salary_text)}</span>`;
+}
+
 function jobSkillChips(j) {
   return (j.skills || "")
     .split(",")
@@ -2539,6 +2549,11 @@ function renderJobRows(jobs, starred) {
           <div class="job-meta">${jobMetaLine(j)}<span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAge(age)}</span></span></div>
           ${jobMatchHtml(j)}
           <div class="job-chips">${jobSalaryChip(j)}${jobSkillChips(j)}</div>
+          <div class="job-links">
+            <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
+            <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
+          </div>
+          <div class="job-salary-line">${jobSalaryLine(j)}</div>
         </td>
         <td data-label="Age" class="age-cell ${fresh ? "fresh" : ""}">${fmtAge(age)}</td>
       </tr>`;
@@ -2568,6 +2583,13 @@ function renderJobRows(jobs, starred) {
       syncDetailStarButton(btn.dataset.star, s);
       pushStar(btn.dataset.star, on);
       if (state.starred_only) loadJobs();
+    });
+  });
+
+  document.querySelectorAll("[data-copy-url]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation(); // inside a clickable row; copying should not also open it
+      copyToClipboard(btn, btn.dataset.copyUrl);
     });
   });
 
@@ -4136,7 +4158,20 @@ function activeChips() {
   return chips;
 }
 
+function railToggleLabel() {
+  const btn = document.getElementById("rail-toggle");
+  if (!btn) return;
+  let n = 0;
+  for (const key of ["department", "seniority", "company", "workplace"]) {
+    if ((state[key] || []).length) n += 1;
+  }
+  if (state.country.length || state.city.length) n += 1;
+  if (state.max_age_days) n += 1;
+  btn.textContent = n ? `Filters (${n})` : "Filters";
+}
+
 function renderActiveChips() {
+  railToggleLabel();
   const host = document.getElementById("active-chips");
   if (!host) return;
   const chips = activeChips();

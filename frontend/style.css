@@ -4701,8 +4701,11 @@ table.jobs tbody tr.selected::before {
 tr:hover .job-title-text { color: var(--green-text); }
 
 .job-meta { font: 400 13px var(--font); color: var(--grey); }
-/* Only a phone shows this; the column carries it everywhere else. */
-.meta-age { display: none; }
+/* Three things only a phone shows. The column, the detail pane and the
+   chip line carry them at every other width. */
+.meta-age,
+.job-links,
+.job-salary-line { display: none; }
 .meta-age-value.fresh { color: var(--green-text); }
 
 .job-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -5094,19 +5097,34 @@ tr:hover .job-title-text { color: var(--green-text); }
   .rail-close::before { content: "\2715"; font-size: 12px; }
   .rail-close:hover { background: var(--black); border-color: var(--black); color: var(--white); }
 
-  .board-bar .result-count { margin-left: auto; }
-
-  /* Filters and the count share the first line, and the view switch
-     takes the next one whole. Left to wrap on its own the button sat
-     alone on a row of its own with the switch too wide to join it,
-     which read as a stray control rather than the way into the rail.
-     Pairing it with the count puts the thing that narrows the board
-     next to the number saying what it narrowed to. */
-  .board-bar-row-2 .rail-toggle { order: 1; }
-  .board-bar-row-2 .result-count { order: 2; }
-  .board-bar-row-2 .view-switch { order: 3; flex-basis: 100%; }
-  .board-bar-row-2 .active-chips { order: 4; }
-  .board-bar-row-2 #f-reset { order: 5; }
+  /* Each control takes a row of its own, full width, which is what
+     this bar was before the three-column layout. The chips stay behind
+     the Filters button's own count: two rows of them on a 390px screen
+     is most of the first screen, and the count says the same thing in
+     one line. */
+  .board-bar-row-2 { flex-direction: column; align-items: stretch; gap: 10px; }
+  .board-bar-row-2 .rail-toggle {
+    order: 1;
+    width: 100%;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .board-bar-row-2 .view-switch { order: 2; width: 100%; }
+  /* Four labels across 390px. They shrink to fit rather than wrap:
+     "Best matches" on two lines made its segment taller than the three
+     beside it and the whole control lost its baseline. */
+  .board-bar-row-2 .view-switch .seg-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 4px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .board-bar-row-2 .result-count { order: 3; margin: 0; white-space: normal; }
+  .board-bar-row-2 .active-chips { display: none; }
+  .board-bar-row-2 #f-reset { display: none; }
 }
 
 @media (max-width: 640px) {
@@ -5132,17 +5150,72 @@ tr:hover .job-title-text { color: var(--green-text); }
   table.jobs tbody tr[data-id],
   table.jobs tbody tr.skeleton-row {
     grid-template-columns: 44px minmax(0, 1fr);
-    gap: 12px;
-    padding: 12px 0;
+    gap: 14px;
+    padding: 16px 0;
+    align-items: start;
   }
   /* Hidden rather than dropped from the markup: the row still carries
-     both, and the width they were taking is the width the title
-     needed. */
+     all of them, and the width they were taking is the width the title
+     needed. The skills line goes too, for the same reason: on a phone
+     the row is a card somebody reads one of at a time, not a dense
+     line they scan fifty of. */
   .star-cell,
-  .age-cell { display: none; }
+  .age-cell,
+  .job-chips { display: none; }
   .meta-age { display: inline; }
+  .job-links,
+  .job-salary-line { display: flex; }
   table.jobs tbody tr.selected::before { left: -8px; }
   .logo-cell .company-logo.listing { width: 44px; height: 44px; }
+  .logo-cell { padding-top: 4px; }
+
+  .main-cell { gap: 8px; }
+  .job-card-title { font-size: 17px; line-height: 1.25; }
+  .job-meta { font-size: 14px; line-height: 1.45; }
+
+  /* Apply is the one filled control on the row, the way it was before
+     this layout. Save link beside it stays a plain link: they are not
+     the same weight of action. */
+  .job-links { align-items: center; gap: 14px; margin-top: 2px; }
+  .job-links .apply-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 38px;
+    padding: 0 16px;
+    border: 1.5px solid var(--green-text);
+    border-radius: 4px;
+    background: var(--green-text);
+    color: var(--white);
+    font: 700 14px var(--font-ui);
+    text-decoration: none;
+  }
+  .job-links .copy-link-btn {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: var(--grey);
+    font: 400 14px var(--font-ui);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  /* The figure in green with a quiet "Est." in front, or the absence
+     said out loud. Plain text, not the desktop chip: there is one of
+     these per row here and it does not need a box to be found. */
+  .job-salary-line { font: 700 14px var(--font); color: var(--green-text); }
+  /* .job-salary.estimate is a filled green box elsewhere. Here it is a
+     line of text under a green Apply button, and two filled greens
+     stacked read as one control split in half. */
+  .job-salary-line .job-salary.estimate {
+    display: inline;
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--green-text);
+  }
+  .job-salary-line .job-salary.undisclosed { color: var(--grey); font-weight: 400; }
+  .job-salary-line .salary-est-label { color: var(--grey); font-weight: 400; }
 }
 
 /* The sheets slide, and that is the one moment of motion on this page.
