@@ -221,7 +221,12 @@ def main() -> int:
         line.strip() for line in DOMAINS_PATH.read_text(encoding="utf-8-sig").splitlines()
         if line.strip() and not line.strip().startswith("#")
     )
-    new_domains = [d for d in domains if d not in existing]
+    # dict.fromkeys, not a set: one batch can carry the same domain twice
+    # (two candidates resolving to one host), and appending both wrote a
+    # duplicate line that the file's own guard could not catch, because
+    # it only ever compared against what was already on disk. Order is
+    # kept so the file still reads as the batches that produced it.
+    new_domains = list(dict.fromkeys(d for d in domains if d not in existing))
     if new_domains:
         with open(DOMAINS_PATH, "a", encoding="utf-8") as f:
             f.write("\n# Common Crawl discovery batch (merge_discovered_batch.py)\n")

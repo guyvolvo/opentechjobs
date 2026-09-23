@@ -34,7 +34,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "loader"))
 
+import build_explore  # noqa: E402
 import precompute  # noqa: E402
+import sitemap  # noqa: E402
 
 DB = Path(os.environ.get("DATA_PATH", "/var/lib/otj/jobs.db"))
 BUCKET = os.environ["DATA_BUCKET"]
@@ -43,6 +45,19 @@ WORK = DB.with_name("delta-resolved.json")
 # Bounded by bytes, like the Lambda, but without its memory ceiling to
 # respect: the box parses into RAM too, and 2GB is the whole machine.
 MAX_APPLY_BYTES = 96 * 1024 * 1024
+# The frontend bucket, and whether this box may write to it.
+#
+# Off while the box runs in the shadow of the Lambda stack, because
+# these four artifacts are read by the live site: bootstrap.json is its
+# first paint, explore.db is the stats page, and the sitemaps are what
+# Google reads. Two appliers writing them would mean the live site
+# showing whichever one ran last. On at cutover, when the box is the
+# only applier left.
+FRONTEND_BUCKET = os.environ.get("FRONTEND_BUCKET", "")
+PUBLISH_FRONTEND = os.environ.get("OTJ_PUBLISH_FRONTEND") == "1"
+# Kept in step with loader/bootstrap.py's VIEWS, same as the Lambda
+# handler keeps its own copy, and for the same reason: two lines.
+BOOTSTRAP_VIEWS = {"bootstrap.json": {}, "bootstrap-il.json": {"country": "IL"}}
 
 
 def _read(paths: list[Path]) -> list[dict]:
@@ -63,6 +78,53 @@ def _read(paths: list[Path]) -> list[dict]:
             print(f"unreadable, set aside: {p.name}: {e!r}", file=sys.stderr)
             p.rename(p.with_suffix(".bad"))
     return out
+
+
+def _publish_frontend() -> str:
+    """bootstrap.json, explore.db and the sitemaps, as the Lambda's own
+    applier writes them (scrape_maintenance_handler._publish_bootstrap
+    and the two publish() calls beside it). Best effort throughout: the
+    site falls back to asking the API whenever one of these is missing
+    or stale-shaped, so none of it is worth failing an apply over.
+
+    Both the explore build and the sitemap pace themselves internally,
+    hourly, so calling them every minute costs a check and nothing
+    more."""
+    if not (PUBLISH_FRONTEND and FRONTEND_BUCKET):
+        return ""
+    import boto3
+
+    done = []
+    s3 = boto3.client("s3")
+    for name, filters in BOOTSTRAP_VIEWS.items():
+        out = DB.with_name(name)
+        cmd = [sys.executable, str(ROOT / "loader" / "bootstrap.py"),
+               "--db", str(DB), "--out", str(out)]
+        if filters.get("country"):
+            cmd += ["--country", filters["country"]]
+        try:
+            build = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if build.returncode != 0:
+                print(f"{name} build failed (non-fatal): exit {build.returncode}", file=sys.stderr)
+                continue
+            s3.put_object(
+                Bucket=FRONTEND_BUCKET, Key=name, Body=out.read_bytes(),
+                ContentType="application/json",
+                CacheControl="public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+            )
+            done.append(name)
+        except Exception as e:  # noqa: BLE001
+            print(f"{name} publish failed (non-fatal): {e!r}", file=sys.stderr)
+    try:
+        if build_explore.publish(FRONTEND_BUCKET, DB, DB.parent):
+            done.append("explore.db")
+    except Exception as e:  # noqa: BLE001
+        print(f"explore.db publish failed (non-fatal): {e!r}", file=sys.stderr)
+    try:
+        done += sitemap.publish(FRONTEND_BUCKET, DB, DB.parent) or []
+    except Exception as e:  # noqa: BLE001
+        print(f"sitemap publish failed (non-fatal): {e!r}", file=sys.stderr)
+    return f", published {len(done)}" if done else ""
 
 
 def main() -> int:
@@ -118,10 +180,11 @@ def main() -> int:
     # (PRECOMPUTED_PREFIX, see precompute.py) so the Lambda's copies are
     # never touched while the two run side by side. Paced inside
     # publish: it looks at the artifact's age and leaves a fresh one.
-    written = precompute.publish(BUCKET, DB, "")
+    written = precompute.publish(BUCKET, DB, FRONTEND_BUCKET if PUBLISH_FRONTEND else "")
+    published = _publish_frontend()
     print(f"applied {companies} companies from {len(take)} of {len(pending)} spooled fragments "
           f"({total / 1048576:.0f}MB): read {read_s:.1f}s, apply {apply_s:.1f}s, "
-          f"precomputed {len(written)}, total {time.monotonic() - started:.1f}s")
+          f"precomputed {len(written)}{published}, total {time.monotonic() - started:.1f}s")
     return 0
 
 
