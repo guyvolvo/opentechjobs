@@ -28778,5 +28778,55 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "cbecompanies.com",
+  "tenant": "cbecompanies",
+  "wd": "wd1",
+  "site": "CBEcompanies",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "indivior.com",
+  "tenant": "indivior",
+  "wd": "wd3",
+  "site": "Indivior",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "unitedallergyservices.com",
+  "tenant": "unitedallergyservices",
+  "wd": "wd1",
+  "site": "United_Allergy_Services",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "virainsight.com",
+  "tenant": "virainsight",
+  "wd": "wd108",
+  "site": "Vira_Insight",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "sorgenia.com",
+  "tenant": "sorgenia",
+  "wd": "wd103",
+  "site": "SorgeniaCareers",
+  "jobs_seen": 16,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
