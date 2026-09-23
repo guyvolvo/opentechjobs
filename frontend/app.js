@@ -1473,7 +1473,11 @@ function syncUrl() {
 // and dropped the moment someone clicks a real header.
 // "relevance" is in the same position as "match": no column header,
 // chosen from the Sort dropdown, and meaningless without a search.
-const SORTABLE_KEYS = new Set(["age", "title", "match", "relevance"]);
+// "title" is deliberately absent: the Listing header no longer offers
+// it (see board.html) because there is no index on title and the sort
+// is a full pass over every open listing. A link still carrying
+// sort=title falls back to the default rather than hanging the board.
+const SORTABLE_KEYS = new Set(["age", "match", "relevance"]);
 
 function cleanFilterValue(key, value) {
   switch (key) {
@@ -3757,7 +3761,7 @@ function railCountryBlocks() {
     );
     if (!blocks.length && !offered.length) return '<div class="rail-empty">No matches.</div>';
   }
-  if (!blocks.length) return '<div class="rail-empty">Anywhere. Type a country or a city to narrow it.</div>';
+  if (!blocks.length) return "";
   return blocks.join("");
 }
 

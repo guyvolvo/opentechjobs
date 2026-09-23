@@ -253,7 +253,13 @@
         <table class="jobs">
           <thead>
             <tr>
-              <th class="th-listing" data-sort="title">Listing</th>
+              <!-- Not sortable. There is no index on title, so sorting
+                   by it is a full sort of every open listing: measured
+                   on the live board at 19s ascending and 84s
+                   descending, during which the box has nothing left for
+                   anything else. It comes back when there is an index
+                   behind it. -->
+              <th class="th-listing">Listing</th>
               <th class="th-age" data-sort="age">Age</th>
             </tr>
           </thead>
