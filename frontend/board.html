@@ -141,293 +141,193 @@
     <div class="load-bar" id="load-bar" aria-hidden="true"></div>
   </div>
 
-  <div class="workspace">
-    <section class="section" id="board">
-      <div class="container">
-        <div class="board-split">
-          <div class="board-list">
-            <div class="filters">
-              <input type="text" id="f-search" placeholder="Search" title="Every word must appear somewhere in the listing: title, company, location, category or description. &quot;Quote a phrase&quot; to keep it together." />
-              <!-- Collapsed behind #filters-toggle below a certain #board
-                   width (see style.css's @container rule) -- everything
-                   here is a refinement on top of the search box above,
-                   never the only way to find something. Above that
-                   width .filters-sub is just another flex row, visually
-                   identical to before this existed. -->
-              <button type="button" class="btn ghost filters-toggle" id="filters-toggle" aria-expanded="false" aria-controls="filters-sub">Filters</button>
-              <div class="filters-sub" id="filters-sub">
-                <div class="ms" id="ms-department"></div>
-                <div class="ms" id="ms-seniority"></div>
-                <div class="ms" id="ms-company"></div>
-                <div class="ms" id="ms-location"></div>
-                <div class="ms" id="ms-workplace"></div>
-                <select id="f-date-posted" title="Date posted">
-                  <option value="">Date posted</option>
-                  <option value="any">Any time</option>
-                  <option value="1">Past 24 hours</option>
-                  <option value="3">Past 3 days</option>
-                  <option value="7">Past 7 days</option>
-                  <option value="14">Past 14 days</option>
-                  <option value="30">Past 30 days</option>
-                </select>
-                <select id="f-sort" title="Sort">
-                  <option value="">Sort</option>
-                  <option value="match:asc" hidden>Best match</option>
-                  <!-- Relevance ranks by where the search words appear
-                       (see relevance_score_sql). Newest stays the default:
-                       a job board is read by date first. -->
-                  <option value="relevance:asc">Relevance</option>
-                  <option value="age:asc">Newest</option>
-                  <option value="age:desc">Oldest</option>
-                </select>
-                <button class="btn ghost" id="f-reset">Reset</button>
-              </div>
-            </div>
+  <!-- The board is three columns under one filter bar: what to narrow
+       by on the left, the listings in the middle, the open one on the
+       right. It replaced a single list with every filter stacked above
+       it, where the filter row ran out of width around six controls and
+       hid the rest behind a "Filters" button, and where opening a
+       listing threw a sheet over the board so reading one meant losing
+       your place in the others.
 
-            <!-- Which listings the board shows. Saved used to be a checkbox
-                 among the filters, and the CV match a chip that only
-                 appeared once a link from /account had set it, so neither
-                 was something a reader could find. Filters apply in every
-                 view: Best matches orders what they leave, it does not
-                 replace them. -->
-            <div class="view-switch seg" id="view-switch" role="tablist" aria-label="Which listings to show">
-              <button type="button" class="seg-btn active" data-view="tech" role="tab" aria-selected="true">Tech roles</button>
-              <button type="button" class="seg-btn" data-view="all" role="tab" aria-selected="false">All roles</button>
-              <button type="button" class="seg-btn" data-view="matches" role="tab" aria-selected="false">Best matches</button>
-              <button type="button" class="seg-btn" data-view="saved" role="tab" aria-selected="false">★ Saved</button>
-            </div>
+       Market Stats used to be the right-hand column. Its headline
+       numbers now answer from the detail pane while nothing is open
+       (see the empty state in app.js), which is the one moment a reader
+       is looking for them, and the charts and market panels it also
+       held live at /stats, linked from the same place. -->
+  <div class="board-shell">
 
-            <button id="company-chip" class="chip" style="display:none" title="Clear company filter">
-              <span class="chip-label"></span> ✕
-            </button>
-            <!-- Best matches only: the CV skills the order is built from.
-                 A ranked board looks like an unranked one, so this is the
-                 only thing on screen saying what the order means. -->
-            <div class="match-panel" id="match-panel" hidden></div>
-            <!-- What the search did that the result count cannot say:
-                 words past the ten-word cap, or an any-word search. -->
-            <div id="search-notice" class="search-notice" hidden></div>
-            <div id="result-count" class="result-count"></div>
-            <!-- Shown by a background refresh that found new listings while
-                 the reader was further down the list (see loadJobs). -->
-            <div class="new-listings-anchor">
-              <button type="button" class="new-listings" id="new-listings" hidden></button>
-            </div>
+    <!-- Only what applies to the whole result set: what to search, how
+         far back, and in what order. Everything that narrows by a value
+         moved into the rail, where the counts can sit beside the
+         options. -->
+    <div class="board-bar">
+      <div class="board-bar-row">
+        <input type="text" id="f-search" placeholder="Search" title="Every word must appear somewhere in the listing: title, company, location, category or description. &quot;Quote a phrase&quot; to keep it together." />
+        <select id="f-date-posted" title="Date posted">
+          <option value="">Date posted</option>
+          <option value="any">Any time</option>
+          <option value="1">Past 24 hours</option>
+          <option value="3">Past 3 days</option>
+          <option value="7">Past 7 days</option>
+          <option value="14">Past 14 days</option>
+          <option value="30">Past 30 days</option>
+        </select>
+        <select id="f-sort" title="Sort">
+          <option value="">Sort</option>
+          <option value="match:asc" hidden>Best match</option>
+          <!-- Relevance ranks by where the search words appear
+               (see relevance_score_sql). Newest stays the default:
+               a job board is read by date first. -->
+          <option value="relevance:asc">Relevance</option>
+          <option value="age:asc">Newest</option>
+          <option value="age:desc">Oldest</option>
+        </select>
+      </div>
 
-            <!-- Skeleton rows replaced the text loader (see jobsSkeletonHtml
-                 in app.js); this stays as the screen-reader half of that,
-                 since the bones themselves are aria-hidden. -->
-            <div id="jobs-loading" class="visually-hidden" role="status"></div>
-            <div id="jobs-error" class="error-state" style="display:none"></div>
-            <div id="jobs-empty" class="empty-state" style="display:none"><strong>No results</strong><span>No listings match these filters.</span></div>
+      <div class="board-bar-row board-bar-row-2">
+        <!-- Opens the rail as a sheet below 800px, where there is no
+             room for a column. Hidden above it. -->
+        <button type="button" class="btn ghost rail-toggle" id="rail-toggle" aria-expanded="false" aria-controls="filter-rail">Filters</button>
 
-            <table class="jobs">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th data-sort="title">Listing</th>
-                  <th data-sort="age">Age</th>
-                </tr>
-              </thead>
-              <tbody id="jobs-body"></tbody>
-            </table>
-            <!-- One skeleton row, the real row's own markup with bones in
-                 it, so it is the real row's height at every width. The
-                 script stamps sixteen in before app.js has even
-                 downloaded: on a phone an empty table put the statistics
-                 column inside the first screen, and the fifty rows that
-                 followed pushed it 9,000px down. Sixteen is more than a
-                 screen at any width. app.js reads the same template for
-                 every later skeleton, so there is one row shape. -->
-            <template id="skeleton-row">
-              <tr class="skeleton-row" aria-hidden="true">
-                <td><span class="skeleton sk-star"></span></td>
-                <td class="title-cell">
-                  <span class="skeleton sk-logo company-logo listing"></span>
-                  <div class="job-card-body">
-                    <div class="job-card-title"><span class="skeleton sk-line sk-title"></span></div>
-                    <div class="job-meta"><span class="skeleton sk-line sk-meta"></span><span class="skeleton sk-line sk-meta2"></span></div>
-                    <div class="job-links"><span class="skeleton sk-line sk-links"></span></div>
-                  </div>
-                  <div class="job-salary-col"><span class="skeleton sk-line sk-salary"></span></div>
-                </td>
-                <td class="age-cell"><span class="skeleton sk-age"></span></td>
-              </tr>
-            </template>
-            <script>
-              (function () {
-                var tpl = document.getElementById("skeleton-row"), body = document.getElementById("jobs-body");
-                for (var i = 0; i < 16; i++) body.appendChild(tpl.content.cloneNode(true));
-                // The skills panel, for a reader whose last visit ranked
-                // by CV skills. app.js draws the real one from these same
-                // saved filters, in the same shape, so it lands over this
-                // instead of pushing the rows down when the script runs.
-                try {
-                  var saved = JSON.parse(localStorage.getItem("iljobs_filters") || "{}");
-                  var skills = Array.isArray(saved.skills) ? saved.skills : [];
-                  if (skills.length && !saved.starred_only) {
-                    var open = localStorage.getItem("iljobs_match_skills_open") === "1";
-                    // Buttons where the real panel has buttons: a span in
-                    // their place is 2px shorter and that is a shift too.
-                    var el = function (tag, cls, text) { var n = document.createElement(tag); n.className = cls; if (text) n.textContent = text; if (tag === "button") { n.type = "button"; n.tabIndex = -1; } return n; };
-                    var head = el("div", "match-panel-head");
-                    head.appendChild(el("button", "match-panel-toggle", "My skills " + skills.length));
-                    head.appendChild(el("span", "match-panel-label", "Ranked by relevance"));
-                    head.appendChild(el("span", "link match-panel-edit", "Edit skills"));
-                    var wrap = el("div", "match-skills-wrap" + (open ? " open" : ""));
-                    var list = el("div", "match-skills");
-                    for (var k = 0; k < skills.length; k++) list.appendChild(el("button", "match-skill", skills[k] + " ✕"));
-                    wrap.appendChild(list);
-                    var panel = document.getElementById("match-panel");
-                    panel.appendChild(head);
-                    panel.appendChild(wrap);
-                    panel.hidden = false;
-                  }
-                } catch (e) {}
-              })();
-            </script>
+        <!-- Which listings the board shows. Saved used to be a checkbox
+             among the filters, and the CV match a chip that only
+             appeared once a link from /account had set it, so neither
+             was something a reader could find. Filters apply in every
+             view: Best matches orders what they leave, it does not
+             replace them. -->
+        <div class="view-switch seg" id="view-switch" role="tablist" aria-label="Which listings to show">
+          <button type="button" class="seg-btn active" data-view="tech" role="tab" aria-selected="true">Tech roles</button>
+          <button type="button" class="seg-btn" data-view="all" role="tab" aria-selected="false">All roles</button>
+          <button type="button" class="seg-btn" data-view="matches" role="tab" aria-selected="false">Best matches</button>
+          <button type="button" class="seg-btn" data-view="saved" role="tab" aria-selected="false">Saved</button>
+        </div>
 
-            <div class="pagination" id="pagination">
-              <span id="pagination-info"></span>
-              <div class="pages" id="pagination-pages"></div>
-            </div>
-          </div>
+        <!-- One chip per active filter value, each removing just that
+             value. The rail says what is on; this says it again where
+             the reader is looking, and is the only place that can undo
+             a single pick without opening the group it came from. -->
+        <div class="active-chips" id="active-chips" aria-label="Active filters"></div>
 
-          <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail" hidden></aside>
-          <!-- Dims and catches clicks on the board while the job sheet is
-               up. -->
-          <div id="job-scrim" aria-hidden="true"></div>
+        <button class="btn ghost" id="f-reset" hidden>Reset</button>
+
+        <div id="result-count" class="result-count"></div>
+      </div>
+
+      <!-- Best matches only: the CV skills the order is built from.
+           A ranked board looks like an unranked one, so this is the
+           only thing on screen saying what the order means. -->
+      <div class="match-panel" id="match-panel" hidden></div>
+      <!-- What the search did that the result count cannot say:
+           words past the ten-word cap, or an any-word search. -->
+      <div id="search-notice" class="search-notice" hidden></div>
+    </div>
+
+    <div class="board-grid">
+
+      <!-- Every filter that narrows by a value, with its counts. The
+           groups are ordered by how often they get used rather than
+           alphabetically: where, then what kind of work, then how
+           senior, then how it is worked, then who, then what it pays. -->
+      <aside class="filter-rail" id="filter-rail" aria-label="Filters">
+        <div class="rail-head">
+          <span class="rail-head-title">Filters</span>
+          <button type="button" class="rail-close" id="rail-close" aria-label="Close filters"></button>
+        </div>
+        <div class="rail-groups" id="rail-groups"></div>
+      </aside>
+
+      <div class="board-list">
+        <!-- Shown by a background refresh that found new listings while
+             the reader was further down the list (see loadJobs). -->
+        <div class="new-listings-anchor">
+          <button type="button" class="new-listings" id="new-listings" hidden></button>
+        </div>
+
+        <!-- Skeleton rows replaced the text loader (see jobsSkeletonHtml
+             in app.js); this stays as the screen-reader half of that,
+             since the bones themselves are aria-hidden. -->
+        <div id="jobs-loading" class="visually-hidden" role="status"></div>
+        <div id="jobs-error" class="error-state" style="display:none"></div>
+        <div id="jobs-empty" class="empty-state" style="display:none"><strong>No results</strong><span>No listings match these filters.</span></div>
+
+        <table class="jobs">
+          <thead>
+            <tr>
+              <th class="th-listing" data-sort="title">Listing</th>
+              <th class="th-age" data-sort="age">Age</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-body"></tbody>
+        </table>
+        <!-- One skeleton row, the real row's own markup with bones in
+             it, so it is the real row's height at every width. The
+             script stamps sixteen in before app.js has even
+             downloaded: on a phone an empty table put the pagination
+             inside the first screen, and the fifty rows that
+             followed pushed it 9,000px down. Sixteen is more than a
+             screen at any width. app.js reads the same template for
+             every later skeleton, so there is one row shape. -->
+        <template id="skeleton-row">
+          <tr class="skeleton-row" aria-hidden="true">
+            <td class="star-cell"><span class="skeleton sk-star"></span></td>
+            <td class="logo-cell"><span class="skeleton sk-logo company-logo listing"></span></td>
+            <td class="main-cell">
+              <div class="job-card-title"><span class="skeleton sk-line sk-title"></span></div>
+              <div class="job-meta"><span class="skeleton sk-line sk-meta"></span></div>
+              <div class="job-chips"><span class="skeleton sk-line sk-chips"></span></div>
+            </td>
+            <td class="age-cell"><span class="skeleton sk-age"></span></td>
+          </tr>
+        </template>
+        <script>
+          (function () {
+            var tpl = document.getElementById("skeleton-row"), body = document.getElementById("jobs-body");
+            for (var i = 0; i < 16; i++) body.appendChild(tpl.content.cloneNode(true));
+            // The skills panel, for a reader whose last visit ranked
+            // by CV skills. app.js draws the real one from these same
+            // saved filters, in the same shape, so it lands over this
+            // instead of pushing the rows down when the script runs.
+            try {
+              var saved = JSON.parse(localStorage.getItem("iljobs_filters") || "{}");
+              var skills = Array.isArray(saved.skills) ? saved.skills : [];
+              if (skills.length && !saved.starred_only) {
+                var open = localStorage.getItem("iljobs_match_skills_open") === "1";
+                // Buttons where the real panel has buttons: a span in
+                // their place is 2px shorter and that is a shift too.
+                var el = function (tag, cls, text) { var n = document.createElement(tag); n.className = cls; if (text) n.textContent = text; if (tag === "button") { n.type = "button"; n.tabIndex = -1; } return n; };
+                var head = el("div", "match-panel-head");
+                head.appendChild(el("button", "match-panel-toggle", "My skills " + skills.length));
+                head.appendChild(el("span", "match-panel-label", "Ranked by relevance"));
+                head.appendChild(el("span", "link match-panel-edit", "Edit skills"));
+                var wrap = el("div", "match-skills-wrap" + (open ? " open" : ""));
+                var list = el("div", "match-skills");
+                for (var k = 0; k < skills.length; k++) list.appendChild(el("button", "match-skill", skills[k] + " ✕"));
+                wrap.appendChild(list);
+                var panel = document.getElementById("match-panel");
+                panel.appendChild(head);
+                panel.appendChild(wrap);
+                panel.hidden = false;
+              }
+            } catch (e) {}
+          })();
+        </script>
+
+        <div class="pagination" id="pagination">
+          <span id="pagination-info"></span>
+          <div class="pages" id="pagination-pages"></div>
         </div>
       </div>
-    </section>
 
-    <aside class="stats-board" id="stats-board">
-      <!-- Folds the column away to the right. Collapsed, this button is
-           all that stays, as a slim tab. -->
-      <button type="button" class="stats-toggle" id="stats-toggle" aria-expanded="true" aria-controls="stats-board" title="Hide statistics">
-        <span class="stats-toggle-icon" aria-hidden="true">›</span>
-        <span class="stats-toggle-label">Statistics</span>
-      </button>
-      <h2 class="section-title">Statistics</h2>
-      <a class="link stats-more" href="/stats">Explore advanced statistics</a>
-
-      <!-- Three labelled blocks, not one flat stack. Some of these
-           numbers follow the board's filters now and the rest never
-           can, and an unlabelled column gives the reader no way to tell
-           which is which: "GLOBAL OPEN JOBS" over a count of twelve
-           remote Ruby roles in Haifa is the exact failure. The heading
-           of each block says which question it answers. -->
-      <section class="stats-section" aria-labelledby="stats-search-title">
-        <h3 class="stats-section-title" id="stats-search-title">Current search</h3>
-        <p class="stats-scope" id="stats-scope">No filters applied</p>
-
-        <!-- The bones are the real tiles with bones inside, five of them
-             with their real labels, so the grid is the height the numbers
-             will need. Four short placeholder tiles used to sit here and
-             the column grew 280px when the numbers landed, measured live
-             as the board's single largest layout shift. -->
-        <div id="metrics-grid" class="metrics-grid">
-          <span class="visually-hidden" role="status">Loading metrics</span>
-          <div class="metric-card pending" aria-hidden="true">
-            <div class="label">Open roles</div>
-            <div>
-              <div class="value"><span class="skeleton"></span></div>
-              <div class="sub"><span class="skeleton sk-sub"></span></div>
-            </div>
-          </div>
-          <div class="metric-card pending" aria-hidden="true">
-            <div class="label">Companies hiring</div>
-            <div>
-              <div class="value"><span class="skeleton"></span></div>
-              <div class="sub"><span class="skeleton sk-sub"></span></div>
-            </div>
-          </div>
-          <div class="metric-card pending" aria-hidden="true">
-            <div class="label">New listings in 24h</div>
-            <div>
-              <div class="value"><span class="skeleton"></span></div>
-              <div class="sub"><span class="skeleton sk-sub"></span></div>
-            </div>
-          </div>
-          <div class="metric-card pending" aria-hidden="true">
-            <div class="label">Closed in 24h</div>
-            <div>
-              <div class="value"><span class="skeleton"></span></div>
-              <div class="sub"><span class="skeleton sk-sub"></span></div>
-            </div>
-          </div>
-          <div class="metric-card pending" aria-hidden="true">
-            <div class="label">Median open age</div>
-            <div>
-              <div class="value"><span class="skeleton"></span></div>
-              <div class="sub"><span class="skeleton sk-sub"></span></div>
-            </div>
-          </div>
-        </div>
-        <!-- Same idea: the real panel's shape (title, seven company rows,
-             the View-all button), not four bars. renderScopedPanels reads
-             this template for its own pending state. -->
-        <template id="panel-skeleton">
-          <div class="panel sk-panel" aria-hidden="true">
-            <div class="panel-title"><span class="skeleton sk-label"></span></div>
-            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
-            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
-            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
-            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
-            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
-            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
-            <div class="bar-row"><span class="name"><span class="skeleton sk-name"></span></span><span class="bar-track"></span><span class="n"><span class="skeleton sk-n"></span></span></div>
-            <div class="bar-more sk-more"><span class="skeleton sk-name"></span></div>
-          </div>
-        </template>
-        <div id="scoped-panel-grid" class="panel-grid">
-          <span class="visually-hidden" role="status">Loading companies</span>
-        </div>
-        <script>
-          // Stamped in while the page parses, so the first frame already
-          // holds the panel's height; app.js arrives later.
-          document.getElementById("scoped-panel-grid").prepend(document.getElementById("panel-skeleton").content.cloneNode(true));
-        </script>
-      </section>
-
-      <section class="stats-section" aria-labelledby="stats-market-title">
-        <h3 class="stats-section-title" id="stats-market-title">Market overview</h3>
-        <p class="stats-scope">Global Statistics</p>
-
-        <div id="panel-grid" class="panel-grid stats-grid-solo">
-          <div class="panel sk-panel" aria-hidden="true">
-            <span class="skeleton sk-label"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-          </div>
-          <div class="panel sk-panel" aria-hidden="true">
-            <span class="skeleton sk-label"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-            <span class="skeleton sk-bar"></span>
-          </div>
-          <span class="visually-hidden" role="status">Loading market panels</span>
-        </div>
-      </section>
-
-      <section class="stats-section" aria-labelledby="stats-pipeline-title">
-        <h3 class="stats-section-title" id="stats-pipeline-title">Pipeline status</h3>
-
-        <div id="pipeline-grid" class="metrics-grid stats-grid-solo">
-          <div class="metric-card pending" aria-hidden="true">
-            <div class="label">Data health</div>
-            <div>
-              <div class="value"><span class="skeleton"></span></div>
-              <div class="sub"><span class="skeleton sk-sub"></span></div>
-            </div>
-          </div>
-          <span class="visually-hidden" role="status">Loading pipeline status</span>
-        </div>
-      </section>
-    </aside>
+      <!-- Beside the list rather than over it, so reading a listing
+           never costs your place in the others. It keeps the sheet
+           behaviour below 1100px, where there is no room for a third
+           column, and it is never empty: with nothing selected it
+           answers what the current filters add up to. -->
+      <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail"></aside>
+      <!-- Dims and catches clicks on the board while the pane is a
+           sheet. Inert above 1100px, where the pane is a column. -->
+      <div id="job-scrim" aria-hidden="true"></div>
+    </div>
   </div>
 
   <footer>

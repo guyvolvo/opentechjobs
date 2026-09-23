@@ -67,6 +67,19 @@ const state = {
   country: [], // ISO 3166-1 alpha-2 codes; a job can carry several
   city: [], // canonical city names, as the locations facet spells them
   workplace: [], // remote|hybrid|onsite
+  // Monthly gross shekels, from the rail's two-handle track. Shekels
+  // because that is the one currency the snapshot carries numbers for
+  // (see loader/salary_range.py): every other figure on the board is in
+  // the employer's own currency with no rate anywhere to convert it.
+  // "" means that end of the track is at its stop and sends nothing.
+  //
+  // The track keeps listings that quote nothing, which is most of them,
+  // and salary_known is the separate question of whether to. Both are
+  // dropped from the rail entirely when the current result set has no
+  // shekel figures in it at all, rather than drawing a dead control.
+  salary_min: "",
+  salary_max: "",
+  salary_known: false,
   confidence: "all", // no confidence filter in the UI; shown inline via badge instead
   max_age_days: "", // "" = any time; else days-since-posting cutoff, straight into the API param of the same name
   starred_only: false,
@@ -80,6 +93,10 @@ const state = {
 
 // Assigned once in wireFilters(); referenced by refreshFacetOptions() and
 // the market panels' "click a company" handler.
+// Only the alert form on /account builds these now; the board's own
+// filters are the rail (see createFilterRail). Left declared because
+// populateAlertFilterOptions runs on every page app.js is loaded on and
+// checks them before use.
 let msDepartment, msSeniority, msCompany, msLocation, msWorkplace;
 
 // The job detail panel's current selection. Not part of `state` above
@@ -885,6 +902,11 @@ function renderMetrics(stats) {
 // about the selected listings, and lives in its own block below.
 function renderScopedMetrics(stats) {
   const el = document.getElementById("metrics-grid");
+  // /board no longer draws this: the Statistics column became the
+  // detail pane's empty state and /stats. The same function still
+  // runs on any page that does have the grid, and refreshStats
+  // still fetches what feeds it, so nothing here is dead.
+  if (!el) return;
   const mode = currentScopeMode();
   const pending = mode === "pending";
   // Only "scoped" puts filtered numbers on screen. "pending" is about to,
@@ -955,6 +977,11 @@ function renderScopedMetrics(stats) {
 // even if the API offered a way to.
 function renderPipelineTile() {
   const el = document.getElementById("pipeline-grid");
+  // /board no longer draws this: the Statistics column became the
+  // detail pane's empty state and /stats. The same function still
+  // runs on any page that does have the grid, and refreshStats
+  // still fetches what feeds it, so nothing here is dead.
+  if (!el) return;
   const status = apiStatusFields();
   const sub2 = pipelineActivityText();
   // The first paint has to land on the same class the one-second tick
@@ -1102,6 +1129,11 @@ function renderGhostStat(ghost, openJobs) {
 // Every panel in the Market overview block is whole-board.
 function renderPanels(stats) {
   const el = document.getElementById("panel-grid");
+  // /board no longer draws this: the Statistics column became the
+  // detail pane's empty state and /stats. The same function still
+  // runs on any page that does have the grid, and refreshStats
+  // still fetches what feeds it, so nothing here is dead.
+  if (!el) return;
 
   el.innerHTML = `
     <div class="panel">
@@ -1150,6 +1182,11 @@ let companiesExpanded = false;
 // than beside the charts.
 function renderScopedPanels(stats) {
   const el = document.getElementById("scoped-panel-grid");
+  // /board no longer draws this: the Statistics column became the
+  // detail pane's empty state and /stats. The same function still
+  // runs on any page that does have the grid, and refreshStats
+  // still fetches what feeds it, so nothing here is dead.
+  if (!el) return;
   const mode = currentScopeMode();
 
   if (mode === "pending") {
@@ -1199,7 +1236,9 @@ function wireCompanyBarClicks(el) {
       state.company = [row.dataset.company];
       state.starred_only = false;
       state.offset = 0;
-      msCompany.setSelected(state.company);
+      if (msCompany) msCompany.setSelected(state.company);
+      renderFilterRail();
+      renderActiveChips();
       loadJobs();
       loadTicker();
       window.scrollTo({ top: document.getElementById("board").offsetTop - 60, behavior: "smooth" });
@@ -1333,17 +1372,6 @@ async function setView(view) {
   loadTicker();
 }
 
-function renderCompanyChip() {
-  const chip = document.getElementById("company-chip");
-  if (state.company.length === 0) {
-    chip.style.display = "none";
-    return;
-  }
-  chip.style.display = "inline-flex";
-  chip.querySelector(".chip-label").textContent =
-    state.company.length === 1 ? state.company[0] : `${state.company.length} companies`;
-}
-
 // The filter (not sort/pagination) portion of state. Shared by loadJobs
 // and the ticker, so "10 most recent" respects the active filters too.
 function currentFilterParams() {
@@ -1357,6 +1385,9 @@ function currentFilterParams() {
     city: state.city.join(","),
     workplace: state.workplace.join(","),
     skills: state.skills.join(","),
+    salary_min: state.salary_min,
+    salary_max: state.salary_max,
+    salary_known: state.salary_known ? "1" : "",
     confidence: state.confidence,
     max_age_days: state.max_age_days,
     // Not in the Saved view: a listing someone saved stays on their
@@ -1387,6 +1418,9 @@ function buildShareParams() {
   if (state.city.length) p.set("city", state.city.join(","));
   if (state.workplace.length) p.set("workplace", state.workplace.join(","));
   if (state.skills.length) p.set("skills", state.skills.join(","));
+  if (state.salary_min) p.set("salary_min", state.salary_min);
+  if (state.salary_max) p.set("salary_max", state.salary_max);
+  if (state.salary_known) p.set("salary_known", "1");
   if (state.confidence !== "all") p.set("confidence", state.confidence);
   if (state.max_age_days) p.set("max_age_days", state.max_age_days);
   if (state.starred_only) p.set("starred", "1");
@@ -1443,6 +1477,22 @@ const SORTABLE_KEYS = new Set(["age", "title", "match", "relevance"]);
 
 function cleanFilterValue(key, value) {
   switch (key) {
+    case "salary_min":
+    case "salary_max": {
+      // Whole shekels, positive. Dropped rather than clamped, the same
+      // rule max_age_days follows below: quietly turning a bad bound
+      // into a plausible one would show results the URL did not ask
+      // for, and this pair is persisted, so the lie would outlive the
+      // link.
+      if (value === "" || value == null) return "";
+      const s = String(value);
+      return /^\d+$/.test(s) && Number(s) > 0 ? s : undefined;
+    }
+    case "salary_known": {
+      if (value === true || value === "1") return true;
+      if (value === false || value === "" || value === "0" || value == null) return false;
+      return undefined;
+    }
     case "max_age_days": {
       if (value === "" || value == null) return "";
       const s = String(value);
@@ -1487,6 +1537,9 @@ function applyStateFromUrl(search) {
     state.workplace = [];
     state.confidence = "all";
     state.max_age_days = "";
+    state.salary_min = "";
+    state.salary_max = "";
+    state.salary_known = false;
     state.starred_only = false;
   }
   if (p.has("search")) state.search = p.get("search");
@@ -1519,6 +1572,11 @@ function applyStateFromUrl(search) {
   if (p.has("max_age_days")) {
     const v = cleanFilterValue("max_age_days", p.get("max_age_days"));
     if (v !== undefined) state.max_age_days = v;
+  }
+  for (const key of ["salary_min", "salary_max", "salary_known"]) {
+    if (!p.has(key)) continue;
+    const v = cleanFilterValue(key, p.get(key));
+    if (v !== undefined) state[key] = v;
   }
   if (p.has("starred")) state.starred_only = p.get("starred") === "1";
   if (p.has("roles")) state.roles = p.get("roles") === "all" ? "all" : "tech";
@@ -1553,7 +1611,7 @@ const FILTERS_KEY = "iljobs_filters";
 const PERSISTED_FILTER_KEYS = [
   "search", "department", "seniority", "company", "country", "city",
   "workplace", "skills", "confidence", "max_age_days", "starred_only",
-  "sort", "dir", "roles",
+  "sort", "dir", "roles", "salary_min", "salary_max", "salary_known",
 ];
 
 function saveFiltersToStorage() {
@@ -1618,11 +1676,8 @@ function applyStateToFilterUI() {
   document.getElementById("f-search").value = state.search;
   document.getElementById("f-date-posted").value = state.max_age_days || "";
   paintViewSwitch();
-  msDepartment.setSelected(state.department);
-  msSeniority.setSelected(state.seniority);
-  msCompany.setSelected(state.company);
-  msLocation.setSelected(state.country, state.city);
-  msWorkplace.setSelected(state.workplace);
+  renderFilterRail();
+  renderActiveChips();
   setActiveSortHeader(state.sort, state.dir);
 }
 
@@ -1795,11 +1850,10 @@ async function loadJobs({ background = false } = {}) {
   // here covers all of them instead of one at each call site.
   syncUrl();
   saveFiltersToStorage();
-  updateFiltersToggleLabel();
 
   const tbody = document.getElementById("jobs-body");
   const starred = getStarred();
-  renderCompanyChip();
+  renderActiveChips();
   renderMatchPanel();
   paintViewSwitch();
 
@@ -1815,16 +1869,14 @@ async function loadJobs({ background = false } = {}) {
     // its own, so a slow saved fetch loses to a newer view the same way
     // every other request here does.
     renderStarredOnly(starred, seq, inFlight);
+    // Saved is a client-local view, but the rail still describes
+    // whatever else is selected, so its counts are still due.
+    scheduleFacets();
     return;
   }
 
   document.getElementById("jobs-error").style.display = "none";
   document.getElementById("jobs-empty").style.display = "none";
-
-  // Not awaited: the dropdown counts are secondary to the job list
-  // itself, and refreshFacetOptions() has its own non-fatal fallback if
-  // it's slow or fails.
-  refreshFacetOptions();
 
   const params = qs({
     ...currentFilterParams(),
@@ -1899,6 +1951,9 @@ async function loadJobs({ background = false } = {}) {
       renderPagination(data);
     }
     if (deferCount) loadJobCount(params, seq);
+    // Last, and debounced. The rail's counts are the most expensive
+    // thing the API answers and the least urgent thing on screen.
+    scheduleFacets();
   } catch (err) {
     // An abort is this function cancelling itself, not a failure, and a
     // stale rejection belongs to a filter nobody is looking at.
@@ -2194,6 +2249,10 @@ async function loadJobCount(params, seq) {
 // arrives after the rows: this redraws a line instead of the table.
 function renderResultCount(data) {
   const el = document.getElementById("result-count");
+  // The pane's empty state says the same total in words. Drawn from
+  // here so the two cannot disagree, and before the early return, so an
+  // empty result set updates it rather than leaving the last one up.
+  renderDetailEmpty();
   if (!data || !data.jobs || !data.jobs.length) { el.innerHTML = ""; return; }
   const from = state.offset + 1;
   if (data.total === null || data.total === undefined) {
@@ -2204,6 +2263,14 @@ function renderResultCount(data) {
   }
   const to = Math.min(state.offset + data.jobs.length, data.total);
   el.innerHTML = `Showing <b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> ${resultNoun()}`;
+}
+
+// The rail's counts, asked for once the listings are on screen. See the
+// comment on scheduleFacets for why the order matters.
+let facetsTimer = 0;
+function scheduleFacets() {
+  clearTimeout(facetsTimer);
+  facetsTimer = setTimeout(refreshFacetOptions, 400);
 }
 
 function renderJobs(data, starred) {
@@ -2297,32 +2364,6 @@ const EXTERNAL_ARROW_SVG =
   + '<path d="M2.5 7.5 7.5 2.5M3.5 2.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6"'
   + ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function jobSalaryHtml(j) {
-  if (!j.salary_text) return `<span class="job-salary undisclosed">Undisclosed</span>`;
-  const source = j.salary_source || (j.salary_is_estimate ? "table" : "disclosed");
-  const isEstimate = source !== "disclosed";
-  const note = SALARY_SOURCE_NOTE[source] || SALARY_SOURCE_NOTE.estimated;
-  const cls = isEstimate ? `job-salary estimate ${escapeHtml(source)}` : "job-salary";
-  return `<span class="${cls}" data-salary-source="${escapeHtml(source)}" title="${escapeHtml(note)}">`
-    + `${isEstimate ? '<span class="salary-est-label">Est.</span> ' : ""}${escapeHtml(j.salary_text)}</span>`;
-}
-
-// Plain text, no chip/badge container (confirmed live) -- each one
-// still a real button, clicking sets the board's existing `keywords`
-// filter (the same AND-match param /api/jobs already supports) to that
-// one term and reloads, rather than adding a second, parallel filter
-// mechanism just for this.
-// The skills that put this row on the list, shown only while a CV match
-// is on. The full chip list was pulled from rows on request, to give
-// salary the space, and this does not bring it back: a row shows the
-// two or three of your own skills it shares, or nothing at all. Without
-// it a ranked board is indistinguishable from an unranked one, and the
-// order looks arbitrary rather than earned.
-//
-// It says how many, and which of the listing's own skills the CV lacks,
-// as plain counts. No percentage: the ranking is a count of shared skill
-// tags, and a score dressed up as more than that would be the one
-// unexplainable thing on the row.
 function jobMatchHtml(j) {
   if (!matchedSkills.size) return "";
   const listed = (j.skills || "").split(",").filter(Boolean);
@@ -2414,13 +2455,54 @@ function watchSkillLines() {
   }).observe(body);
 }
 
-function jobSkillsHtml(j) {
-  const skills = (j.skills || "").split(",").filter(Boolean);
-  if (!skills.length) return "";
-  const chips = skills
-    .map((s) => `<button class="skill-chip" data-skill="${escapeHtml(s)}" type="button">${escapeHtml(s)}</button>`)
+// Drawn rather than typed, for the reason EXTERNAL_ARROW_SVG spells
+// out: ☆ and ★ render as colour emoji inside a button on iOS unless the
+// font is told otherwise, and they are two different glyph widths, so a
+// row twitched sideways as it was saved.
+const STAR_SVG =
+  '<svg class="star-mark" viewBox="0 0 16 16" aria-hidden="true">'
+  + '<path d="M8 1.6l1.95 3.95 4.35.63-3.15 3.07.74 4.33L8 11.53l-3.89 2.05.74-4.33L1.7 6.18l4.35-.63z"'
+  + ' fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+
+const CLOSE_SVG =
+  '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">'
+  + '<path d="M3 3l8 8M11 3l-8 8" fill="none" stroke="currentColor" stroke-width="1.8"'
+  + ' stroke-linecap="round"/></svg>';
+
+// The board shows an estimate as an outlined chip: "Est." in the row's
+// own ink, the range in green, nothing behind it. Disclosed pay is the
+// employer's own figure and gets no "Est.".
+//
+// A listing with no salary shows nothing here at all. It used to say
+// "Undisclosed" on every row, and since nine listings in ten have no
+// figure that put the same grey word down the whole column, where it
+// read as a property of the board rather than of the job. The word is
+// still in the detail pane, where it answers a question somebody has
+// actually asked by opening the listing.
+function jobSalaryChip(j) {
+  if (!j.salary_text) return "";
+  const source = j.salary_source || (j.salary_is_estimate ? "table" : "disclosed");
+  const isEstimate = source !== "disclosed";
+  const note = SALARY_SOURCE_NOTE[source] || SALARY_SOURCE_NOTE.estimated;
+  return `<span class="job-chip salary" data-salary-source="${escapeHtml(source)}" title="${escapeHtml(note)}">`
+    + `${isEstimate ? '<span class="salary-est-label">Est.</span> ' : ""}`
+    + `<span class="salary-range">${escapeHtml(j.salary_text)}</span></span>`;
+}
+
+// Three, and only three. A row listing eleven skills read as a wall
+// before the title did, and the chip line has to share one row with the
+// salary. Clicking one searches for it, which is what the old skill
+// chips did and the only thing on a row that narrows the board.
+const ROW_SKILLS_SHOWN = 3;
+
+function jobSkillChips(j) {
+  return (j.skills || "")
+    .split(",")
+    .filter(Boolean)
+    .slice(0, ROW_SKILLS_SHOWN)
+    .map((s) => `<button type="button" class="job-chip skill" data-skill="${escapeHtml(s)}"
+                   title="Search for ${escapeHtml(s)}">${escapeHtml(s)}</button>`)
     .join("");
-  return `<span class="skill-bracket">[</span>${chips}<span class="skill-bracket">]</span>`;
 }
 
 function renderJobRows(jobs, starred) {
@@ -2437,33 +2519,23 @@ function renderJobRows(jobs, starred) {
       const fresh = age !== null && age <= 3;
       const isStarred = starred.has(j.id);
       return `
-      <tr data-id="${j.id}" class="${j.id === selectedJobId ? "selected" : ""}">
-        <td>
-          <button class="star-btn ${isStarred ? "on" : ""}" data-star="${j.id}" title="${starTitle}">
-            ${isStarred ? "★" : "☆"}
-          </button>
+      <tr data-id="${j.id}" class="${j.id === selectedJobId ? "selected" : ""}" tabindex="-1">
+        <td class="star-cell">
+          <button class="star-btn ${isStarred ? "on" : ""}" data-star="${j.id}"
+                  title="${starTitle}" aria-pressed="${isStarred}"
+                  aria-label="${isStarred ? "Saved" : "Save"} ${escapeHtml(j.title)}">${STAR_SVG}</button>
         </td>
-        <td class="title-cell">
-          ${companyLogoImg(j.company_domain, 64, "listing", j.logo_url)}
-          <div class="job-card-body">
-            <div class="job-card-title">
-              <a href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">${highlight(j.title)}</a>
-              ${j.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[j.seniority] || j.seniority)}</span>` : ""}
-              ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
-              ${j.closed_at ? '<span class="badge closed" title="This listing is no longer open">Closed</span>' : ""}
-            </div>
-            <div class="job-meta">${jobMetaLine(j)}<span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAge(age)}</span></span></div>
-            ${jobMatchHtml(j)}
-            <div class="job-links">
-              <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
-              <button class="copy-link-btn" data-copy-url="${escapeHtml(j.url || "")}" title="Copy the application link">Save link</button>
-            </div>
+        <td class="logo-cell">${companyLogoImg(j.company_domain, 44, "listing", j.logo_url)}</td>
+        <td class="main-cell">
+          <div class="job-card-title">
+            <span class="job-title-text">${highlight(j.title)}</span>
+            ${j.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[j.seniority] || j.seniority)}</span>` : ""}
+            ${j.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
+            ${j.closed_at ? '<span class="badge closed" title="This listing is no longer open">Closed</span>' : ""}
           </div>
-          <div class="job-salary-col">${jobSalaryHtml(j)}</div>
-          <!-- Skills chips pulled from the UI for now, per request, while
-               salary gets more attention -- jobSkillsHtml/.skill-chip and
-               its click-to-filter wiring are still intact below, just
-               unused, so this is a one-line change to bring back. -->
+          <div class="job-meta">${jobMetaLine(j)}</div>
+          ${jobMatchHtml(j)}
+          <div class="job-chips">${jobSalaryChip(j)}${jobSkillChips(j)}</div>
         </td>
         <td data-label="Age" class="age-cell ${fresh ? "fresh" : ""}">${fmtAge(age)}</td>
       </tr>`;
@@ -2485,18 +2557,15 @@ function renderJobRows(jobs, starred) {
 
   document.querySelectorAll("[data-star]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      e.stopPropagation(); // inside a now-clickable <tr> (opens the detail panel); starring shouldn't also open it
+      e.stopPropagation(); // inside a clickable row; starring shouldn't also open it
       const s = toggleStar(btn.dataset.star);
-      btn.classList.toggle("on", s.has(btn.dataset.star));
-      btn.textContent = s.has(btn.dataset.star) ? "★" : "☆";
+      const on = s.has(btn.dataset.star);
+      btn.classList.toggle("on", on);
+      btn.setAttribute("aria-pressed", String(on));
       syncDetailStarButton(btn.dataset.star, s);
-      pushStar(btn.dataset.star, s.has(btn.dataset.star));
+      pushStar(btn.dataset.star, on);
       if (state.starred_only) loadJobs();
     });
-  });
-
-  document.querySelectorAll("[data-copy-url]").forEach((btn) => {
-    btn.addEventListener("click", () => copyToClipboard(btn, btn.dataset.copyUrl));
   });
 
   document.querySelectorAll("[data-skill]").forEach((btn) => {
@@ -2509,7 +2578,163 @@ function renderJobRows(jobs, starred) {
       document.getElementById("f-search").value = state.search;
       loadJobs();
       loadTicker();
-      window.scrollTo({ top: document.getElementById("board").offsetTop - 60, behavior: "smooth" });
+    });
+  });
+}
+
+// The detail pane
+//
+// Beside the list rather than over it, and never empty: with nothing
+// selected it answers what the current filters add up to (see
+// renderDetailEmpty). Apply and Save live here now rather than on every
+// row, because fifty rows carrying two buttons each is ninety-eight
+// buttons for the one listing anybody is reading.
+
+function jobFact(label, value, cls = "") {
+  return `<div class="fact ${cls}"><span class="fact-label">${escapeHtml(label)}</span>`
+    + `<span class="fact-value">${value}</span></div>`;
+}
+
+function detailSalaryHtml(job) {
+  if (!job.salary_text) return '<span class="fact-absent">Undisclosed</span>';
+  const source = job.salary_source || (job.salary_is_estimate ? "table" : "disclosed");
+  const isEstimate = source !== "disclosed";
+  const note = SALARY_SOURCE_NOTE[source] || SALARY_SOURCE_NOTE.estimated;
+  return `<span title="${escapeHtml(note)}">`
+    + `${isEstimate ? '<span class="salary-est-label">Est.</span> ' : ""}`
+    + `<span class="salary-range">${escapeHtml(job.salary_text)}</span></span>`;
+}
+
+function renderJobDetailBody(job, { descriptionLoading = false, descriptionError = null } = {}) {
+  const age = job.posted_at ? (Date.now() - new Date(job.posted_at).getTime()) / 86400000 : null;
+  const starred = getStarred().has(job.id);
+
+  let descriptionHtml;
+  if (descriptionError) {
+    descriptionHtml = `<div class="error-state">Could not load the full description: ${escapeHtml(descriptionError)}</div>`;
+  } else if (descriptionLoading) {
+    // Lines where the text will be, rather than a spinner. The pane is
+    // already on screen holding the row's own title and company, so a
+    // spinner in the middle of it reads as the whole pane loading when
+    // only the description is.
+    descriptionHtml = '<div class="job-detail-description skeleton-desc" role="status" aria-label="Loading description">'
+      + '<span class="skeleton sk-line"></span><span class="skeleton sk-line"></span>'
+      + '<span class="skeleton sk-line"></span><span class="skeleton sk-line short"></span></div>';
+  } else if (job.description) {
+    descriptionHtml = `<div class="job-detail-description">${renderDescriptionLines(job.description)}</div>`;
+  } else {
+    descriptionHtml = '<div class="job-detail-description empty">No description provided by this listing.</div>';
+  }
+
+  return `
+    <button type="button" class="job-detail-close" title="Close" aria-label="Close job detail">${CLOSE_SVG}</button>
+
+    <div class="job-detail-company">
+      ${companyLogoImg(job.company_domain, 56, "detail", job.logo_url)}
+      <div class="job-detail-company-text">
+        <span class="job-detail-company-name">${escapeHtml(companyLabel(job))}</span>
+        <span class="job-detail-company-place">${escapeHtml(job.location || "-")}</span>
+      </div>
+    </div>
+
+    <h2 class="job-detail-title">${escapeHtml(job.title)}${
+      job.seniority ? ` <span class="badge seniority">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority)}</span>` : ""}${
+      job.confidence === "best_effort" ? ' <span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}${
+      job.closed_at ? ' <span class="badge closed">Closed</span>' : ""}</h2>
+
+    <div class="job-detail-actions">
+      <a class="job-detail-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
+      <button type="button" class="job-detail-star ${starred ? "on" : ""}" data-star="${job.id}" aria-pressed="${starred}">${STAR_SVG}<span>${starred ? "Saved" : "Save"}</span></button>
+      <button type="button" class="link job-detail-permalink" data-copy-permalink="${escapeHtml(jobPermalink(job.id))}" title="Copy a link to this listing">Save link</button>
+    </div>
+
+    <div class="job-detail-facts">
+      ${jobFact("Salary", detailSalaryHtml(job))}
+      ${jobFact("Posted", age !== null ? `${escapeHtml(fmtAge(age))} ago` : '<span class="fact-absent">Unreported</span>')}
+      ${jobFact("Department", job.department ? escapeHtml(job.department) : '<span class="fact-absent">-</span>')}
+      ${jobFact("Workplace", job.workplace_type ? escapeHtml(WORKPLACE_LABELS[job.workplace_type] || job.workplace_type) : '<span class="fact-absent">-</span>')}
+    </div>
+
+    <div class="job-detail-section-title">About the role</div>
+    ${descriptionHtml}`;
+}
+
+// The empty state
+//
+// What the filters currently add up to, in the space the open listing
+// would take. This is where the Statistics column went: its headline
+// numbers answer here, at the one moment a reader is looking at the
+// board rather than at a job, and the charts and market panels it also
+// held live at /stats.
+function renderDetailEmpty() {
+  const panel = document.getElementById("job-detail");
+  if (!panel || selectedJobId !== null) return;
+
+  const mode = currentScopeMode();
+  const scoped = mode === "scoped" ? latestScoped.data : latestStats ? globalScope(latestStats) : null;
+  const total = lastJobsResponse?.total;
+  const hiring = (railFacets.companies || []).slice(0, 4);
+
+  const view = state.roles === "tech" && !state.starred_only ? "Tech roles" : "All roles";
+  const summary = [...activeFilterSummary(), view].join(" · ");
+
+  // A number that is still being counted says so rather than showing
+  // the last filter's answer. A scoped /stats was measured at up to
+  // 2.9s, which is long enough for a stale number to be read as this
+  // one's.
+  const pending = mode === "pending";
+  const stat = (label, value) =>
+    `<div class="empty-stat"><span class="empty-stat-label">${escapeHtml(label)}</span>`
+    + `<span class="empty-stat-value">${value}</span></div>`;
+  const num = (v) =>
+    pending ? '<span class="skeleton sk-line"></span>'
+    : v == null ? '<span class="empty-stat-none">&mdash;</span>'
+    : fmtInt(v);
+
+  panel.innerHTML = `
+    <div class="detail-empty">
+      <div class="empty-lede">
+        <span class="empty-label">Your filters</span>
+        ${total == null
+          ? '<span class="empty-count counting"><span class="skeleton sk-line"></span></span>'
+          : `<span class="empty-count">${fmtInt(total)} <span>${escapeHtml(resultNoun())}</span></span>`}
+        <span class="empty-summary">${escapeHtml(summary)}</span>
+      </div>
+
+      <!-- Four numbers the scoped stats already answer for. The mock
+           asked for a median salary estimate and a remote count, and
+           both need facets that cost too much to compute for a filtered
+           request (see the load test behind PRECOMPUTED_ONLY_FACETS).
+           A tile showing a dash forever is worse than a tile showing
+           something true, so these are the four that are always real.
+           The other two come back when live facets are cheap. -->
+      <div class="empty-stats">
+        ${stat("New today", num(scoped?.new_jobs_24h))}
+        ${stat("New this week", num(scoped?.new_jobs_7d))}
+        ${stat("Companies", num(scoped?.companies_hiring))}
+        ${stat("Median age", scoped?.median_open_days == null
+          ? (pending ? '<span class="skeleton sk-line"></span>' : '<span class="empty-stat-none">&mdash;</span>')
+          : escapeHtml(fmtAge(scoped.median_open_days)))}
+      </div>
+
+      ${hiring.length ? `
+        <div class="empty-hiring">
+          <span class="empty-label">Hiring most</span>
+          ${hiring.map((c) => `
+            <button type="button" class="empty-hiring-row" data-company="${escapeHtml(c.value)}"
+                    title="Show only ${escapeHtml(c.value)}">
+              <span class="empty-hiring-name">${escapeHtml(c.value)}</span>
+              <span class="empty-hiring-n">${fmtInt(c.n)}</span>
+            </button>`).join("")}
+        </div>` : ""}
+
+      <div class="empty-hint">Select a listing to see details</div>
+    </div>`;
+
+  panel.querySelectorAll("[data-company]").forEach((row) => {
+    row.addEventListener("click", () => {
+      state.company = [row.dataset.company];
+      railApply();
     });
   });
 }
@@ -2588,9 +2813,18 @@ function syncDetailStarButton(id, starredSet) {
   if (id !== selectedJobId) return;
   const btn = document.querySelector(".job-detail-star");
   if (!btn) return;
-  const on = starredSet.has(id);
+  paintDetailStar(btn, starredSet.has(id));
+}
+
+// One place that knows what a saved star looks like, because the row
+// and the pane both have to agree and they are drawn by different
+// functions. The mark itself never changes; the fill does, via the
+// class, so the button cannot change width as it is pressed.
+function paintDetailStar(btn, on) {
   btn.classList.toggle("on", on);
-  btn.textContent = on ? "★ Saved" : "☆ Save";
+  btn.setAttribute("aria-pressed", String(on));
+  const label = btn.querySelector("span");
+  if (label) label.textContent = on ? "Saved" : "Save";
 }
 
 // probe.py's _clean_text marks section headings with a leading "## ".
@@ -2621,77 +2855,17 @@ function jobPermalink(id) {
   return `${location.origin}${location.pathname}?job=${encodeURIComponent(id)}`;
 }
 
-function renderJobDetailBody(job, { descriptionLoading = false, descriptionError = null } = {}) {
-  const age = job.posted_at ? (Date.now() - new Date(job.posted_at).getTime()) / 86400000 : null;
-  const starred = getStarred().has(job.id);
-
-  let descriptionHtml;
-  if (descriptionError) {
-    descriptionHtml = `<div class="error-state">Could not load the full description: ${escapeHtml(descriptionError)}</div>`;
-  } else if (descriptionLoading) {
-    // The same turning ring as the Updating status, drawn from its sprite.
-    descriptionHtml = `<div class="loading-state loading-with-spinner" role="status">`
-      + `<svg class="loading-spinner" aria-hidden="true"><use href="#status-updating"></use></svg>`
-      + `Loading description…</div>`;
-  } else if (job.description) {
-    descriptionHtml = `<div class="job-detail-description">${renderDescriptionLines(job.description)}</div>`;
-  } else {
-    descriptionHtml = `<div class="job-detail-description empty">No description provided by this listing.</div>`;
-  }
-
-  return `
-    <div class="job-detail-header">
-      <div>
-        <div class="job-detail-company">${companyLogoImg(job.company_domain, 64, "detail", job.logo_url)}${escapeHtml(companyLabel(job))}</div>
-        <h3 class="job-detail-title">${escapeHtml(job.title)}</h3>
-        <div class="job-detail-badges">
-          ${job.seniority ? `<span class="badge seniority">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority)}</span>` : ""}
-          ${job.workplace_type ? `<span class="badge workplace">${escapeHtml(WORKPLACE_LABELS[job.workplace_type] || job.workplace_type)}</span>` : ""}
-          ${job.confidence === "best_effort" ? '<span class="badge best-effort" title="Scraped from the company\'s own page, not a live ATS API">best_effort</span>' : ""}
-          ${job.closed_at ? '<span class="badge">Closed</span>' : ""}
-        </div>
-      </div>
-      <div class="job-detail-header-actions">
-        <button type="button" class="job-detail-icon-btn" data-copy-permalink="${escapeHtml(jobPermalink(job.id))}" title="Copy link to this job" aria-label="Copy link to this job">${LINK_ICON_SVG}</button>
-        <button type="button" class="job-detail-icon-btn job-detail-close" title="Close" aria-label="Close job detail">✕</button>
-      </div>
-    </div>
-
-    <!-- No copy-link/"Save link" button here anymore -- redundant with
-         the header's own copy-link icon next to ✕ above. The row-level
-         one (renderJobRows) copies something different (the external
-         apply URL, not this page's permalink) and stays. -->
-    <div class="job-detail-actions">
-      <a class="job-detail-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
-      <button type="button" class="job-detail-star ${starred ? "on" : ""}" data-star="${job.id}">${starred ? "★ Saved" : "☆ Save"}</button>
-    </div>
-
-    <div class="job-detail-meta">
-      <div class="job-detail-meta-row"><span class="label">Location</span><span class="value">${escapeHtml(job.location || "-")}</span></div>
-      <div class="job-detail-meta-row"><span class="label">Category</span><span class="value">${escapeHtml(job.category || "-")}</span></div>
-      ${job.department ? `<div class="job-detail-meta-row"><span class="label">Department</span><span class="value">${escapeHtml(job.department)}</span></div>` : ""}
-      <div class="job-detail-meta-row"><span class="label">Seniority</span><span class="value">${escapeHtml(SENIORITY_LABELS[job.seniority] || job.seniority || "-")}</span></div>
-      <div class="job-detail-meta-row"><span class="label">Workplace</span><span class="value">${escapeHtml(WORKPLACE_LABELS[job.workplace_type] || job.workplace_type || "-")}</span></div>
-      <div class="job-detail-meta-row"><span class="label">Posted</span><span class="value">${age !== null ? `${fmtAge(age)} ago` : "-"}</span></div>
-      <div class="job-detail-meta-row"><span class="label">Via</span><span class="value">${escapeHtml(job.ats || "-")}</span></div>
-    </div>
-
-    <div class="job-detail-description-title">Description</div>
-    ${descriptionHtml}`;
-}
-
 function wireJobDetailPanel(job) {
   const panel = document.getElementById("job-detail");
-  panel.querySelector(".job-detail-close").addEventListener("click", closeJobDetailAndSync);
-  panel.querySelector(".job-detail-star").addEventListener("click", (e) => {
+  panel.querySelector(".job-detail-close")?.addEventListener("click", closeJobDetailAndSync);
+  panel.querySelector(".job-detail-star")?.addEventListener("click", (e) => {
     const s = toggleStar(job.id);
     const on = s.has(job.id);
-    e.currentTarget.classList.toggle("on", on);
-    e.currentTarget.textContent = on ? "★ Saved" : "☆ Save";
+    paintDetailStar(e.currentTarget, on);
     const rowBtn = document.querySelector(`[data-star="${job.id}"].star-btn`);
     if (rowBtn) {
       rowBtn.classList.toggle("on", on);
-      rowBtn.textContent = on ? "★" : "☆";
+      rowBtn.setAttribute("aria-pressed", String(on));
     }
     pushStar(job.id, on);
     if (state.starred_only) loadJobs();
@@ -2718,6 +2892,7 @@ async function openJobDetail(id) {
 
   clearTimeout(jobDetailCloseTimer);
   panel.hidden = false;
+  panel.scrollTop = 0; // a new listing starts at its own top, not the last one's
   panel.innerHTML = known
     ? renderJobDetailBody(known, { descriptionLoading: true })
     : `<div class="loading-state">Loading job…</div>`;
@@ -2774,17 +2949,30 @@ function closeJobDetail() {
   const panel = document.getElementById("job-detail");
   panel.classList.remove("open");
   document.getElementById("job-scrim")?.classList.remove("open");
-  // Delayed to match style.css's 0.25s slide-out transition -- an
-  // immediate hidden=true would cut straight to display:none, same as
-  // no animation at all. Cleared by the next openJobDetail (see its
-  // own comment) so switching jobs mid-close can't get yanked shut.
-  jobDetailCloseTimer = setTimeout(() => {
-    panel.hidden = true;
-    panel.innerHTML = "";
-  }, 250);
   document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.remove("selected");
   selectedJobId = null;
   setCanonical("/board");
+  // The pane has a column to itself, so closing a listing does not
+  // leave a hole: it goes back to saying what the filters add up to.
+  // The swap is delayed by the width of the slide-out below 1100px,
+  // where the pane really is a sheet, so the empty state is not drawn
+  // mid-flight across the screen. Cleared by the next openJobDetail so
+  // picking a different listing mid-close cannot get yanked shut.
+  clearTimeout(jobDetailCloseTimer);
+  const settle = () => {
+    panel.scrollTop = 0;
+    renderDetailEmpty();
+  };
+  if (paneIsSheet()) jobDetailCloseTimer = setTimeout(settle, 250);
+  else settle();
+}
+
+// Below this the pane has no column of its own and comes over the list
+// as a sheet, dimming it. Mirrors the real media query in style.css.
+const PANE_SHEET_QUERY = window.matchMedia("(max-width: 1100px)");
+
+function paneIsSheet() {
+  return PANE_SHEET_QUERY.matches;
 }
 
 // The board's canonical follows whichever listing is open. A listing has
@@ -2804,6 +2992,34 @@ function closeJobDetailAndSync() {
   syncUrl();
 }
 
+function wireRailSheet() {
+  const open = () => {
+    document.body.classList.add("rail-open");
+    document.getElementById("rail-toggle")?.setAttribute("aria-expanded", "true");
+    // The first thing in the sheet, so a reader who opened it with the
+    // keyboard is inside it rather than still on the button behind it.
+    document.querySelector("#filter-rail .rail-search")?.focus();
+  };
+  document.getElementById("rail-toggle")?.addEventListener("click", () => {
+    document.body.classList.contains("rail-open") ? closeRailSheet() : open();
+  });
+  document.getElementById("rail-close")?.addEventListener("click", closeRailSheet);
+  // The sheet covers the list, so a tap on what is left of the list is
+  // the nearest way out, same as the job sheet's scrim.
+  document.getElementById("job-scrim")?.addEventListener("click", () => {
+    if (document.body.classList.contains("rail-open")) closeRailSheet();
+  });
+}
+
+function closeRailSheet() {
+  document.body.classList.remove("rail-open");
+  const btn = document.getElementById("rail-toggle");
+  if (btn) {
+    btn.setAttribute("aria-expanded", "false");
+    btn.focus();
+  }
+}
+
 function wireJobDetail() {
   document.getElementById("jobs-body").addEventListener("click", (e) => {
     if (e.target.closest("a, button")) return; // Apply/Save link/star handle their own click
@@ -2811,7 +3027,28 @@ function wireJobDetail() {
     if (row) openJobDetailAndPush(row.dataset.id);
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && selectedJobId !== null) closeJobDetailAndSync();
+    if (e.key === "Escape") {
+      if (document.body.classList.contains("rail-open")) return closeRailSheet();
+      if (selectedJobId !== null) closeJobDetailAndSync();
+      return;
+    }
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    // Not while somebody is typing into the search box or dragging a
+    // salary handle: there the arrows belong to the control.
+    const el = document.activeElement;
+    if (el && el.closest("input, textarea, select, [contenteditable]")) return;
+    const rows = [...document.querySelectorAll("#jobs-body tr[data-id]")];
+    if (!rows.length) return;
+    e.preventDefault();
+    const at = rows.findIndex((r) => r.dataset.id === selectedJobId);
+    // Nothing open yet: down opens the first listing, up opens the
+    // last, so the keyboard can reach the list without a click first.
+    const next = at === -1
+      ? (e.key === "ArrowDown" ? 0 : rows.length - 1)
+      : Math.min(rows.length - 1, Math.max(0, at + (e.key === "ArrowDown" ? 1 : -1)));
+    if (next === at) return;
+    rows[next].scrollIntoView({ block: "nearest" });
+    openJobDetailAndPush(rows[next].dataset.id);
   });
 
   // Clicking the dimmed board closes the sheet. Standard for anything
@@ -3330,6 +3567,621 @@ function createLocationSelect(containerId, { placeholder, onChange }) {
 
 document.addEventListener("click", () => OPEN_MULTISELECTS.forEach((closeOther) => closeOther()));
 
+// The filter rail
+//
+// Every filter that narrows by a value, as groups of checkboxes with
+// their counts beside them, instead of the row of dropdowns this used
+// to be. The dropdowns each held their counts one click away, so
+// choosing between Security (516) and Data & Analytics (842) meant
+// opening a menu, reading it, closing it, opening another. The counts
+// are the whole reason to pick one filter over another, so they are on
+// the page.
+//
+// The rail owns no filter state of its own. It reads `state` and writes
+// `state`, then asks the board to reload, which is what lets a shared
+// link, the Reset button and a click in here all arrive at the same
+// place without three copies of the truth. The only things it does own
+// are what is expanded and what has been typed into a group's search
+// box, neither of which belongs in a URL.
+
+// Group order is how often a group gets used, not the alphabet: where,
+// then what kind of work, then how senior, then how it is worked, then
+// who, then what it pays.
+const RAIL_GROUPS = [
+  { key: "location", title: "Location", kind: "tree", search: "Add a country or city" },
+  { key: "department", title: "Categories", kind: "list", facet: "categories" },
+  { key: "seniority", title: "Levels", kind: "list", facet: "seniority", labels: SENIORITY_LABELS },
+  { key: "workplace", title: "Workplace", kind: "list", facet: "workplace", labels: WORKPLACE_LABELS },
+  { key: "company", title: "Companies", kind: "list", facet: "companies", search: "Search companies", remote: true },
+  { key: "salary", title: "Salary estimate, monthly", kind: "range" },
+];
+
+// Four, then a link. Long enough that the common answer is usually on
+// screen (Israel's four biggest cities are 79% of its listings), short
+// enough that six groups still fit a column without scrolling.
+const RAIL_TOP_N = 4;
+
+// What the facets endpoint last said, by group key. Kept whole rather
+// than merged into the groups above so a refresh replaces it in one
+// assignment and nothing can half-update.
+let railFacets = {};
+// Whether a facets response has ever landed. Until one has, an empty
+// group means "not counted yet", not "nothing to count", and the two
+// have to look different: the first shows bones, the second shows
+// nothing at all. A filtered load asks the API rather than the
+// precomputed file and that can take seconds, during which the rail
+// used to be a blank column with one heading on it.
+let railFacetsLoaded = false;
+// Which groups are showing everything rather than their top four, and
+// which countries are folded. View state: it never reaches the URL or
+// localStorage, and Back has no business re-collapsing a group somebody
+// just opened.
+const railExpanded = new Set();
+const railCollapsed = new Set();
+const railQueries = new Map();
+// Companies found by typing past the top 500 the facet carries, so a
+// name searched for once stays tickable while the reader looks at it.
+const railFound = new Map();
+let railSearchSeq = 0;
+let railSearchTimer = 0;
+
+function railLabel(group, row) {
+  if (group.labels) return group.labels[row.value] || row.value;
+  return row.label || row.value;
+}
+
+// Every value currently ticked in this group, as a Set for the render.
+function railSelected(group) {
+  if (group.key === "location") return new Set(state.country);
+  return new Set(state[group.key] || []);
+}
+
+function railRows(group) {
+  const counted = railFacets[group.facet];
+  if (counted && counted.length) return counted;
+  // No counts for this group in this answer. A closed enum still knows
+  // its own options, so the filter keeps working; only the number
+  // beside it is missing, which is what the dropdowns it replaced
+  // showed for their whole life.
+  if (group.labels) return Object.keys(group.labels).map((value) => ({ value, n: null }));
+  return [];
+}
+
+// The rows a group shows: its search box first, then the top four
+// unless it has been expanded. Anything already ticked is always shown,
+// wherever it sits in the order, because a filter you cannot see is one
+// you cannot turn off. Reported on the old dropdowns: the Companies
+// list is alphabetical over ten thousand names and a reader who had
+// picked five opened it to find none of them.
+function railVisibleRows(group) {
+  const q = (railQueries.get(group.key) || "").trim().toLowerCase();
+  const picked = railSelected(group);
+  const extra = group.remote
+    ? [...railFound.values()].filter((r) => !railRows(group).some((x) => x.value === r.value))
+    : [];
+  const pool = [...railRows(group), ...extra];
+  if (q) return pool.filter((r) => railLabel(group, r).toLowerCase().includes(q));
+  if (railExpanded.has(group.key)) return pool;
+  const top = pool.slice(0, RAIL_TOP_N);
+  const shown = new Set(top.map((r) => r.value));
+  return [...top, ...pool.filter((r) => picked.has(r.value) && !shown.has(r.value))];
+}
+
+const RAIL_CHECK_SVG =
+  '<svg class="rail-tick" viewBox="0 0 12 12" aria-hidden="true">'
+  + '<path d="M2.5 6.3 4.9 8.7 9.5 3.4" fill="none" stroke="currentColor" stroke-width="2"'
+  + ' stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// The indeterminate mark: a country narrowed to some of its cities is
+// neither on nor off, and a half-filled box is the shape a reader
+// already reads as "partly".
+const RAIL_DASH_SVG =
+  '<svg class="rail-tick" viewBox="0 0 12 12" aria-hidden="true">'
+  + '<path d="M3 6h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+function railOptionHtml({ kind, value, label, n, checked, mixed = false, cls = "" }) {
+  // The count gets its own element so a long name is what truncates,
+  // never the number. Reported live on the old dropdown: "United States
+  // (71,7…" with the count cut off.
+  const mark = mixed ? RAIL_DASH_SVG : RAIL_CHECK_SVG;
+  const cnt = n == null ? "" : `<span class="rail-count">${fmtInt(n)}</span>`;
+  return `
+    <label class="rail-option ${cls}${checked || mixed ? " on" : ""}">
+      <input type="checkbox" data-kind="${kind}" value="${escapeHtml(value)}" ${checked ? "checked" : ""} />
+      <span class="rail-box" aria-hidden="true">${mark}</span>
+      <span class="rail-option-label">${escapeHtml(label)}</span>${cnt}
+    </label>`;
+}
+
+function railMoreHtml(group, total) {
+  if (railQueries.get(group.key)) return ""; // typing is a search; a "show all" under it is noise
+  if (total <= RAIL_TOP_N) return "";
+  const open = railExpanded.has(group.key);
+  return `<button type="button" class="rail-more" data-more="${group.key}">`
+    + `${open ? "Show fewer" : `Show all (${fmtInt(total)})`}</button>`;
+}
+
+function railSearchHtml(group) {
+  if (!group.search) return "";
+  const q = railQueries.get(group.key) || "";
+  return `<input type="search" class="rail-search" data-search="${group.key}"
+            placeholder="${escapeHtml(group.search)}" value="${escapeHtml(q)}"
+            aria-label="${escapeHtml(group.search)}" autocomplete="off" />`;
+}
+
+// Location: countries, each with its own cities under it
+//
+// Several countries can be on at once and each is its own block, so
+// "Tel Aviv and Berlin" is one question rather than two filters that
+// have to be reconciled. A ticked country with no cities means the
+// whole country; ticking a city narrows it to that city and leaves the
+// country's own box showing a dash, because it is no longer the whole
+// of anything.
+function railCountryBlocks() {
+  const q = (railQueries.get("location") || "").trim().toLowerCase();
+  const countries = railFacets.locations || [];
+  const picked = new Set(state.country);
+  const cities = new Set(state.city);
+  const blocks = [];
+
+  for (const c of countries) {
+    const all = c.cities || [];
+    const countryHit = !q || (c.label || c.value).toLowerCase().includes(q);
+    const cityHits = q ? all.filter((t) => (t.label || t.value).toLowerCase().includes(q)) : all;
+    if (q && !countryHit && !cityHits.length) continue;
+    // Only a country that is on, or that the reader is actively looking
+    // for, gets a block. The facet lists sixty and a rail that drew all
+    // sixty would be a page of countries with the filters underneath.
+    if (!q && !picked.has(c.value) && !all.some((t) => cities.has(t.value))) continue;
+
+    const mine = all.filter((t) => cities.has(t.value));
+    const open = !railCollapsed.has(c.value);
+    const pool = q && cityHits.length ? cityHits : all;
+    const top = railExpanded.has(`city:${c.value}`) || q ? pool : pool.slice(0, RAIL_TOP_N);
+    const shownValues = new Set(top.map((t) => t.value));
+    const shown = [...top, ...all.filter((t) => cities.has(t.value) && !shownValues.has(t.value))];
+
+    blocks.push(`
+      <div class="rail-country${open ? " open" : ""}">
+        <div class="rail-country-row">
+          <button type="button" class="rail-caret" data-country="${escapeHtml(c.value)}"
+                  aria-expanded="${open}"
+                  aria-label="${open ? "Collapse" : "Expand"} ${escapeHtml(c.label || c.value)}">
+            <svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          ${railOptionHtml({
+            kind: "country", value: c.value, label: c.label || c.value, n: c.n,
+            checked: picked.has(c.value) && !mine.length, mixed: mine.length > 0,
+            cls: "rail-country-option",
+          })}
+        </div>
+        ${open
+          ? `<div class="rail-cities">
+               ${shown.map((t, i) => railOptionHtml({
+                 kind: "city", value: t.value, label: t.label || t.value, n: t.n,
+                 checked: cities.has(t.value),
+                 cls: "rail-city" + (i === shown.length - 1 ? " last" : ""),
+               })).join("")}
+               ${!q && pool.length > RAIL_TOP_N
+                 ? `<button type="button" class="rail-more rail-more-city" data-more="city:${escapeHtml(c.value)}">`
+                   + `${railExpanded.has(`city:${c.value}`) ? "Show fewer" : `Show all (${fmtInt(pool.length)} cities)`}</button>`
+                 : ""}
+             </div>`
+          // Folded, a country still has to say it is doing something,
+          // or the count above the list disagrees with a rail that
+          // looks idle.
+          : mine.length ? `<div class="rail-country-note">${mine.length} ${mine.length === 1 ? "city" : "cities"}</div>` : ""}
+      </div>`);
+  }
+
+  // Typing is how a country gets added, so the box has to answer with
+  // countries the rail is not already showing.
+  if (q) {
+    const offered = countries.filter(
+      (c) => !picked.has(c.value)
+        && !(c.cities || []).some((t) => cities.has(t.value))
+        && ((c.label || c.value).toLowerCase().includes(q)
+            || (c.cities || []).some((t) => (t.label || t.value).toLowerCase().includes(q)))
+    );
+    if (!blocks.length && !offered.length) return '<div class="rail-empty">No matches.</div>';
+  }
+  if (!blocks.length) return '<div class="rail-empty">Anywhere. Type a country or a city to narrow it.</div>';
+  return blocks.join("");
+}
+
+function railLocationSummary() {
+  const n = state.country.length + state.city.length;
+  return n ? `${n} selected` : "Anywhere";
+}
+
+// Salary
+//
+// Two handles over the range the current result set actually occupies,
+// which the facet measures rather than the frontend guessing. The whole
+// group is left out when there is nothing to measure: no shekel figures
+// in this result set means no track, rather than a track that cannot
+// move.
+function railSalaryHtml() {
+  const s = railFacets.salary;
+  if (!s || s.min == null || s.max == null || s.max <= s.min) return "";
+  const lo = Number(state.salary_min) || s.min;
+  const hi = Number(state.salary_max) || s.max;
+  const pct = (v) => ((v - s.min) / (s.max - s.min)) * 100;
+  return `
+    <div class="rail-range" data-min="${s.min}" data-max="${s.max}">
+      <div class="rail-range-track">
+        <div class="rail-range-fill" style="left:${pct(lo)}%;right:${100 - pct(hi)}%"></div>
+      </div>
+      <input type="range" class="rail-range-input lo" min="${s.min}" max="${s.max}" step="1000"
+             value="${lo}" aria-label="Lowest monthly salary" />
+      <input type="range" class="rail-range-input hi" min="${s.min}" max="${s.max}" step="1000"
+             value="${hi}" aria-label="Highest monthly salary" />
+      <div class="rail-range-ends">
+        <span class="rail-range-lo">${fmtShekels(lo)}</span>
+        <span class="rail-range-hi">${fmtShekels(hi)}${hi >= s.max ? "+" : ""}</span>
+      </div>
+    </div>
+    <!-- Two in three Israeli listings quote nothing at all, so the
+         handles leave those alone and this is how somebody asks for the
+         other behaviour. Without it, nudging a handle would answer by
+         deleting most of the board. -->
+    ${railOptionHtml({
+      kind: "salary_known", value: "1", label: "Only with an estimate",
+      n: s.known, checked: state.salary_known,
+    })}`;
+}
+
+// ₪28K, ₪4.5K, ₪900. Thousands because that is how Israeli monthly pay
+// is spoken; the exact shekel under it is noise on a filter handle.
+function fmtShekels(v) {
+  if (v == null) return "";
+  if (v < 1000) return `₪${Math.round(v)}`;
+  const k = v / 1000;
+  return `₪${k >= 10 || Number.isInteger(k) ? Math.round(k) : k.toFixed(1)}K`;
+}
+
+// A group's shape while its counts are still being fetched: the
+// heading it will have, over rows the size of the rows that are coming.
+// Bones rather than a spinner, for the same reason the job list uses
+// them: the rail does not change size when the answer lands.
+function railGroupSkeleton(group) {
+  return `
+    <section class="rail-group" data-group="${group.key}" aria-busy="true">
+      <h3 class="rail-title">${escapeHtml(group.title)}</h3>
+      <div class="rail-body">
+        ${'<div class="rail-option rail-bone"><span class="skeleton sk-line"></span></div>'.repeat(RAIL_TOP_N)}
+      </div>
+    </section>`;
+}
+
+function renderFilterRail() {
+  const host = document.getElementById("rail-groups");
+  if (!host) return;
+  const parts = [];
+
+  for (const group of RAIL_GROUPS) {
+    let body = "";
+    let summary = "";
+
+    if (group.kind === "tree") {
+      summary = railLocationSummary();
+      if (!railFacetsLoaded && !(railFacets.locations || []).length) {
+        parts.push(railGroupSkeleton(group));
+        continue;
+      }
+      body = railSearchHtml(group) + railCountryBlocks();
+    } else if (group.kind === "range") {
+      body = railSalaryHtml();
+      if (!body) continue; // nothing measurable here, so no group at all
+    } else {
+      const rows = railVisibleRows(group);
+      const picked = railSelected(group);
+      const pool = railRows(group);
+      // A facet this snapshot cannot answer gets no group at all,
+      // rather than a heading over "No matches", which reads as a
+      // result and not as an absence. Happens for one merge cycle after
+      // a new facet ships, while the precomputed facets.json is still
+      // the version written before it existed. Only once something has
+      // actually been counted, though: before that the same emptiness
+      // means the answer is still coming.
+      if (!pool.length && !picked.size && !railQueries.get(group.key)) {
+        if (railFacetsLoaded) continue;
+        parts.push(railGroupSkeleton(group));
+        continue;
+      }
+      body = railSearchHtml(group)
+        + (rows.length
+          ? rows.map((r) => railOptionHtml({
+              kind: group.key, value: r.value, label: railLabel(group, r), n: r.n,
+              checked: picked.has(r.value),
+            })).join("")
+          : '<div class="rail-empty">No matches.</div>')
+        + railMoreHtml(group, pool.length);
+    }
+
+    parts.push(`
+      <section class="rail-group" data-group="${group.key}">
+        <h3 class="rail-title">${escapeHtml(group.title)}${
+          summary ? `<span class="rail-summary">${escapeHtml(summary)}</span>` : ""}</h3>
+        <div class="rail-body">${body}</div>
+      </section>`);
+  }
+
+  host.innerHTML = parts.join("");
+}
+
+// One listener on the rail rather than one per control, because the
+// rail redraws itself after every change and per-control listeners
+// would have to be rebound each time.
+function wireFilterRail() {
+  const host = document.getElementById("rail-groups");
+  if (!host) return;
+
+  host.addEventListener("change", (e) => {
+    const box = e.target.closest('input[type="checkbox"]');
+    if (box) return railToggle(box.dataset.kind, box.value, box.checked);
+    const slider = e.target.closest(".rail-range-input");
+    if (slider) return railCommitRange(slider);
+  });
+
+  // Live while dragging: the ends and the filled span follow the handle
+  // so the number under the thumb is the number being chosen. The board
+  // only reloads on release (the change event above), because a request
+  // per pixel is a request per pixel.
+  host.addEventListener("input", (e) => {
+    const slider = e.target.closest(".rail-range-input");
+    if (slider) return railPaintRange(slider);
+    const search = e.target.closest(".rail-search");
+    if (search) return railSearch(search);
+  });
+
+  host.addEventListener("click", (e) => {
+    const more = e.target.closest(".rail-more");
+    if (more) {
+      const key = more.dataset.more;
+      railExpanded.has(key) ? railExpanded.delete(key) : railExpanded.add(key);
+      renderFilterRail();
+      return;
+    }
+    // The caret sits outside the label on purpose: a click anywhere in
+    // a label toggles its checkbox, and folding a country away is not
+    // the same act as filtering by it.
+    const caret = e.target.closest(".rail-caret");
+    if (caret) {
+      const c = caret.dataset.country;
+      railCollapsed.has(c) ? railCollapsed.delete(c) : railCollapsed.add(c);
+      renderFilterRail();
+    }
+  });
+}
+
+function railToggle(kind, value, on) {
+  if (kind === "salary_known") {
+    state.salary_known = on;
+  } else if (kind === "country") {
+    // Clicking a country's own box is a claim about the whole country,
+    // so it clears whatever cities were narrowing it.
+    const home = (railFacets.locations || []).find((c) => c.value === value);
+    const theirs = new Set((home?.cities || []).map((t) => t.value));
+    state.city = state.city.filter((t) => !theirs.has(t));
+    state.country = on ? [...new Set([...state.country, value])] : state.country.filter((v) => v !== value);
+  } else if (kind === "city") {
+    state.city = on ? [...new Set([...state.city, value])] : state.city.filter((v) => v !== value);
+    // A city belongs to its country, and the API ANDs the two, so
+    // picking Tel Aviv without IL asks for nothing. The country goes on
+    // with it and shows a dash rather than a tick.
+    const home = (railFacets.locations || []).find((c) => (c.cities || []).some((t) => t.value === value));
+    if (on && home && !state.country.includes(home.value)) state.country = [...state.country, home.value];
+    if (!on && home) {
+      const left = (home.cities || []).some((t) => state.city.includes(t.value));
+      // The last city out of a country leaves the country itself on,
+      // which is the honest reading of "I was looking here".
+      if (!left && !state.country.includes(home.value)) state.country = [...state.country, home.value];
+    }
+  } else {
+    const next = new Set(state[kind] || []);
+    on ? next.add(value) : next.delete(value);
+    state[kind] = [...next];
+  }
+  railApply();
+}
+
+function railApply() {
+  state.offset = 0;
+  renderFilterRail();
+  renderActiveChips();
+  loadJobs();
+  loadTicker();
+}
+
+function railPaintRange(slider) {
+  const box = slider.closest(".rail-range");
+  const lo = box.querySelector(".lo");
+  const hi = box.querySelector(".hi");
+  // The handles cannot cross. Pushing rather than clamping, so a reader
+  // dragging the low handle past the high one takes the high one along
+  // instead of hitting an invisible wall.
+  if (slider === lo && Number(lo.value) > Number(hi.value)) hi.value = lo.value;
+  if (slider === hi && Number(hi.value) < Number(lo.value)) lo.value = hi.value;
+  const min = Number(box.dataset.min);
+  const max = Number(box.dataset.max);
+  const pct = (v) => ((v - min) / (max - min)) * 100;
+  const fill = box.querySelector(".rail-range-fill");
+  fill.style.left = `${pct(Number(lo.value))}%`;
+  fill.style.right = `${100 - pct(Number(hi.value))}%`;
+  box.querySelector(".rail-range-lo").textContent = fmtShekels(Number(lo.value));
+  box.querySelector(".rail-range-hi").textContent =
+    fmtShekels(Number(hi.value)) + (Number(hi.value) >= max ? "+" : "");
+}
+
+function railCommitRange(slider) {
+  railPaintRange(slider);
+  const box = slider.closest(".rail-range");
+  const min = Number(box.dataset.min);
+  const max = Number(box.dataset.max);
+  const lo = Number(box.querySelector(".lo").value);
+  const hi = Number(box.querySelector(".hi").value);
+  // A handle resting on its stop is not a filter. Sending it anyway
+  // would put salary_min in the URL of every visit that so much as
+  // brushed the track, and would drop every listing that quotes nothing
+  // the moment the reader also ticked "only with an estimate".
+  state.salary_min = lo > min ? String(lo) : "";
+  state.salary_max = hi < max ? String(hi) : "";
+  railApply();
+}
+
+function railSearch(input) {
+  const key = input.dataset.search;
+  railQueries.set(key, input.value);
+  const group = RAIL_GROUPS.find((g) => g.key === key);
+  railRedrawGroup(key);
+
+  if (!group || !group.remote) return;
+  // The facet carries the 500 biggest employers. Typing a name past
+  // that line used to say No matches while the company had listings, so
+  // the box asks the API for the rest, counted under the other active
+  // filters.
+  clearTimeout(railSearchTimer);
+  const q = input.value.trim();
+  if (q.length < 2) return;
+  railSearchTimer = setTimeout(async () => {
+    const seq = ++railSearchSeq;
+    try {
+      const data = await getJSON(`/companies/search?${qs({ ...currentFilterParams(), company: "", name: q })}`);
+      if (seq !== railSearchSeq) return; // a later keystroke has its own answer coming
+      (data.companies || []).forEach((r) => railFound.set(r.value, { value: r.value, n: r.n }));
+      railRedrawGroup(key);
+    } catch {
+      // Non-fatal: the group keeps whatever it already had.
+    }
+  }, 250);
+}
+
+// Only the one group's body, so the search box keeps focus and the
+// caret keeps its place. Redrawing the whole rail on every keystroke
+// took the focus with it and typing a company name was one character
+// per click.
+function railRedrawGroup(key) {
+  const host = document.getElementById("rail-groups");
+  const section = host?.querySelector(`.rail-group[data-group="${key}"] .rail-body`);
+  if (!section) return renderFilterRail();
+  const group = RAIL_GROUPS.find((g) => g.key === key);
+  const search = section.querySelector(".rail-search");
+  const focused = document.activeElement === search;
+  const caret = search ? search.selectionStart : null;
+
+  if (group.kind === "tree") {
+    section.innerHTML = railSearchHtml(group) + railCountryBlocks();
+  } else {
+    const rows = railVisibleRows(group);
+    const picked = railSelected(group);
+    section.innerHTML = railSearchHtml(group)
+      + (rows.length
+        ? rows.map((r) => railOptionHtml({
+            kind: group.key, value: r.value, label: railLabel(group, r), n: r.n,
+            checked: picked.has(r.value),
+          })).join("")
+        : '<div class="rail-empty">No matches.</div>')
+      + railMoreHtml(group, railRows(group).length);
+  }
+  if (focused) {
+    const next = section.querySelector(".rail-search");
+    next.focus();
+    if (caret != null) next.setSelectionRange(caret, caret);
+  }
+}
+
+// Active filter chips
+//
+// The rail says what is on, in six separate groups. This says it again
+// in one line where the reader is already looking, and it is the only
+// place that can drop a single value without opening the group it came
+// from.
+function activeChips() {
+  const chips = [];
+  const label = (group, value) => {
+    const g = RAIL_GROUPS.find((x) => x.key === group);
+    if (g?.labels) return g.labels[value] || value;
+    return value;
+  };
+  // A city names its own place; its country is already implied by it,
+  // so a country only gets a chip when no city has narrowed it.
+  const narrowed = new Set();
+  for (const city of state.city) {
+    const home = (railFacets.locations || []).find((c) => (c.cities || []).some((t) => t.value === city));
+    if (home) narrowed.add(home.value);
+    chips.push({ kind: "city", value: city, text: city });
+  }
+  for (const code of state.country) {
+    if (narrowed.has(code)) continue;
+    const home = (railFacets.locations || []).find((c) => c.value === code);
+    chips.push({ kind: "country", value: code, text: home?.label || countryLabel(code) });
+  }
+  for (const key of ["department", "seniority", "workplace", "company"]) {
+    for (const v of state[key] || []) chips.push({ kind: key, value: v, text: label(key, v) });
+  }
+  if (state.max_age_days) {
+    chips.push({ kind: "max_age_days", value: "", text: `Past ${state.max_age_days} days` });
+  }
+  if (state.salary_min || state.salary_max) {
+    const s = railFacets.salary || {};
+    const lo = Number(state.salary_min) || s.min;
+    const hi = Number(state.salary_max) || s.max;
+    chips.push({ kind: "salary", value: "", text: `${fmtShekels(lo)}–${fmtShekels(hi)}` });
+  }
+  if (state.salary_known) chips.push({ kind: "salary_known", value: "", text: "Has an estimate" });
+  return chips;
+}
+
+function renderActiveChips() {
+  const host = document.getElementById("active-chips");
+  if (!host) return;
+  const chips = activeChips();
+  host.innerHTML = chips
+    .map((c) => `<button type="button" class="chip" data-chip="${escapeHtml(c.kind)}"
+                   data-value="${escapeHtml(c.value)}" title="Remove this filter">
+                   <span class="chip-label">${escapeHtml(c.text)}</span>${CHIP_X_SVG}</button>`)
+    .join("");
+  // Reset appears with the first chip and goes away with the last. A
+  // permanent Reset beside an unfiltered board offers to undo nothing.
+  const reset = document.getElementById("f-reset");
+  if (reset) reset.hidden = !chips.length && !state.search && state.roles === "tech" && !state.starred_only;
+}
+
+// Drawn, not typed. ✕ renders as a colour emoji tile inside a button on
+// iOS unless the font is told otherwise, which is the same bug the
+// Apply arrow hit (see EXTERNAL_ARROW_SVG) and the same fix.
+const CHIP_X_SVG =
+  '<svg class="chip-x" viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">'
+  + '<path d="M2 2l6 6M8 2l-6 6" fill="none" stroke="currentColor" stroke-width="1.6"'
+  + ' stroke-linecap="round"/></svg>';
+
+function wireActiveChips() {
+  const host = document.getElementById("active-chips");
+  if (!host) return;
+  host.addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-chip]");
+    if (!chip) return;
+    const { chip: kind, value } = chip.dataset;
+    if (kind === "max_age_days") {
+      state.max_age_days = "";
+      document.getElementById("f-date-posted").value = "";
+    } else if (kind === "salary") {
+      state.salary_min = "";
+      state.salary_max = "";
+    } else if (kind === "salary_known") {
+      state.salary_known = false;
+    } else if (kind === "country" || kind === "city") {
+      railToggle(kind, value, false);
+      return; // railToggle applies on its own
+    } else {
+      state[kind] = (state[kind] || []).filter((v) => v !== value);
+    }
+    railApply();
+  });
+}
+
+
 // filter wiring
 
 function wireFilters() {
@@ -3353,72 +4205,9 @@ function wireFilters() {
     }, 500)
   );
 
-  msDepartment = createMultiSelect("ms-department", {
-    placeholder: "Categories",
-    onChange: (values) => {
-      state.department = values;
-      state.offset = 0;
-      loadJobs();
-      loadTicker();
-    },
-  });
-
-  msSeniority = createMultiSelect("ms-seniority", {
-    placeholder: "Levels",
-    options: Object.entries(SENIORITY_LABELS).map(([value, label]) => ({ value, label })),
-    onChange: (values) => {
-      state.seniority = values;
-      state.offset = 0;
-      loadJobs();
-      loadTicker();
-    },
-  });
-
-  msCompany = createMultiSelect("ms-company", {
-    placeholder: "Companies",
-    searchable: true,
-    keepSelected: true,
-    // The list holds the 500 biggest employers; typing asks the API for
-    // the rest, counted under the other active filters.
-    remoteSearch: async (name) => {
-      const data = await getJSON(`/companies/search?${qs({ ...currentFilterParams(), company: "", name })}`);
-      return (data.companies || []).map((r) => ({ value: r.value, label: `${r.value} (${r.n})` }));
-    },
-    onChange: (values) => {
-      state.company = values;
-      state.offset = 0;
-      loadJobs();
-      loadTicker();
-    },
-  });
-
-  // One dropdown for both halves of where. Two adjacent location filters
-  // made the reader decide which of them their question belonged in
-  // before they could ask it, and the honest answer was often both.
-  // Always searchable: the facet runs to a few hundred countries and
-  // several thousand cities, and the place you want is one you already
-  // have in mind, so typing beats scrolling.
-  msLocation = createLocationSelect("ms-location", {
-    placeholder: "Locations",
-    onChange: ({ countries, cities }) => {
-      state.country = countries;
-      state.city = cities;
-      state.offset = 0;
-      loadJobs();
-      loadTicker();
-    },
-  });
-
-  msWorkplace = createMultiSelect("ms-workplace", {
-    placeholder: "Workplace",
-    options: Object.entries(WORKPLACE_LABELS).map(([value, label]) => ({ value, label })),
-    onChange: (values) => {
-      state.workplace = values;
-      state.offset = 0;
-      loadJobs();
-      loadTicker();
-    },
-  });
+  renderFilterRail();
+  wireFilterRail();
+  wireActiveChips();
 
   document.getElementById("f-date-posted").addEventListener("change", (e) => {
     if (!e.target.value) return; // the blank "Date posted" placeholder, not a real choice
@@ -3460,6 +4249,9 @@ function wireFilters() {
     state.workplace = [];
     state.skills = [];
     state.max_age_days = "";
+    state.salary_min = "";
+    state.salary_max = "";
+    state.salary_known = false;
     state.starred_only = false;
     state.roles = "tech";
     state.sort = "age";
@@ -3467,20 +4259,14 @@ function wireFilters() {
     state.offset = 0;
     document.getElementById("f-search").value = "";
     document.getElementById("f-date-posted").value = "";
-    msDepartment.reset();
-    msSeniority.reset();
-    msCompany.reset();
-    msLocation.reset();
-    msWorkplace.reset();
+    // What the rail was showing, not what it was filtering by: a reader
+    // who reset while three countries were folded open should get them
+    // folded open and empty, not re-collapsed.
+    railQueries.clear();
+    railFound.clear();
     setActiveSortHeader("age", "asc");
-    loadJobs();
-    loadTicker();
-  });
-
-  document.getElementById("company-chip").addEventListener("click", () => {
-    state.company = [];
-    msCompany.reset();
-    state.offset = 0;
+    renderFilterRail();
+    renderActiveChips();
     loadJobs();
     loadTicker();
   });
@@ -3519,30 +4305,7 @@ function wireFilters() {
     });
   });
 
-  document.getElementById("filters-toggle").addEventListener("click", () => {
-    const sub = document.getElementById("filters-sub");
-    const open = sub.classList.toggle("open");
-    document.getElementById("filters-toggle").setAttribute("aria-expanded", String(open));
-  });
-}
-
-// Only meaningful below the @container breakpoint that collapses
-// .filters-sub in the first place (see style.css) -- harmless to call
-// unconditionally above it too, the button just stays display:none.
-// Counts against #f-search deliberately excluded: it's always visible on
-// its own, never one of the controls this button is hiding.
-function updateFiltersToggleLabel() {
-  let n = 0;
-
-  if (state.department.length) n++;
-  if (state.seniority.length) n++;
-  if (state.company.length) n++;
-  if (state.country.length) n++;
-  if (state.city.length) n++;
-  if (state.workplace.length) n++;
-  if (state.max_age_days) n++;
-  if (state.sort !== "age" || state.dir !== "asc") n++;
-  document.getElementById("filters-toggle").textContent = n ? `Filters (${n})` : "Filters";
+  wireRailSheet();
 }
 
 function setActiveSortHeader(key, dir) {
@@ -3664,15 +4427,27 @@ async function refreshFacetOptions() {
       ? await getJSON(`/facets?${qs(currentFilterParams())}`)
       : await getStaticFacets(state.confidence || "verified");
     if (seq !== facetsRequestSeq) return; // a newer filter is already being counted
-    msDepartment.setOptions(facets.categories.map((r) => ({ value: r.value, label: `${r.value} (${r.n})` })));
-    msLocation.setOptions(normalizeLocationFacets(facets.locations));
-    // Alphabetical, not by count: this list is searchable/typed-into, not
-    // browsed top-down like Category/Location, so a stable, scannable
-    // order matters more here than leading with the biggest hirers.
-    latestCompanyOptions = [...facets.companies]
+    // By count, every group, because the rail's whole rule is that the
+    // top four are the four biggest. The old dropdowns sorted Companies
+    // alphabetically, which was right for a list you type into and
+    // wrong for one that shows you four and hides the rest.
+    railFacetsLoaded = true;
+    railFacets = {
+      categories: facets.categories || [],
+      seniority: facets.seniority || [],
+      workplace: facets.workplace || [],
+      companies: facets.companies || [],
+      locations: normalizeLocationFacets(facets.locations),
+      // Absent on a snapshot written before the columns existed, and on
+      // a result set with no shekel figures in it. Either way the rail
+      // leaves the group out rather than drawing a dead track.
+      salary: facets.salary || null,
+    };
+    latestCompanyOptions = [...(facets.companies || [])]
       .sort((a, b) => a.value.localeCompare(b.value))
       .map((r) => ({ value: r.value, label: `${r.value} (${r.n})` }));
-    msCompany.setOptions(latestCompanyOptions);
+    renderFilterRail();
+    renderActiveChips();
     populateAlertFilterOptions();
   } catch {
     // Non-fatal: worst case the dropdowns keep their previous option set.
@@ -3906,13 +4681,22 @@ async function refreshStats() {
     // over one failed refresh.
     if (!cachedStats) {
       const msg = `<div class="error-state" style="grid-column:1/-1">Could not load /api/stats: ${escapeHtml(err.message)}</div>`;
-      document.getElementById("metrics-grid").innerHTML = msg;
-      document.getElementById("panel-grid").innerHTML = msg;
-      // The other two grids are the same failure, and four copies of one
-      // message are not four times the information. Clear their bones so
-      // nothing sits there pretending to still be loading.
-      document.getElementById("scoped-panel-grid").innerHTML = "";
-      document.getElementById("pipeline-grid").innerHTML = "";
+      // Each guarded, because /board has none of these any more (see
+      // renderScopedMetrics) while /stats has all four. The other two
+      // grids are the same failure, and four copies of one message are
+      // not four times the information, so their bones are cleared
+      // rather than repeating it.
+      const paint = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+      };
+      paint("metrics-grid", msg);
+      paint("panel-grid", msg);
+      paint("scoped-panel-grid", "");
+      paint("pipeline-grid", "");
+      // The board's own failure surface for this is the empty state,
+      // which says what it could not count rather than staying blank.
+      renderDetailEmpty();
     }
   } finally {
     setLoadBar(false);
@@ -4010,10 +4794,12 @@ function renderScopeDependent() {
     // scope line still paints: it is built from state, not from a
     // response, and it is the one thing that can be right immediately.
     renderScopeLine();
+    renderDetailEmpty();
     return;
   }
   renderScopedMetrics(latestStats); // paints the scope line with them
   renderScopedPanels(latestStats);
+  renderDetailEmpty();
 }
 
 // /api/health is a tiny, cheap endpoint built for exactly this: a
@@ -4864,6 +5650,7 @@ async function boot() {
   wireFilters();
   applyStateToFilterUI();
   wireJobDetail();
+  renderDetailEmpty();
   wireThemeToggle();
   wireStatsToggle();
   watchSkillLines();
