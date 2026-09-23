@@ -40,6 +40,7 @@ from saved import is_saved_id, job_id_of, saved_id
 from skills import SKILL_TERMS
 from skills import spec as skill_spec
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, MAX_SEARCH_TERMS, bool_param, category_sql,
+                         count_index_hint,
                          build_jobs_where, has_fts_index, has_places, has_role_class,
                          is_job_id, relevance_score_sql, salary_source_select, search_mode,
                          search_terms, skills_score_sql, wanted_skills)
@@ -604,7 +605,9 @@ def route_jobs(params: dict) -> dict:
     if count_mode == "skip":
         total = None
     else:
-        total = conn.execute(f"SELECT COUNT(*) FROM jobs WHERE {where_sql}", args).fetchone()[0]
+        total = conn.execute(
+            f"SELECT COUNT(*) FROM jobs{count_index_hint(params, caps)} WHERE {where_sql}", args
+        ).fetchone()[0]
         if count_mode == "only":
             return {"jobs": [], "total": total, "limit": 0, "offset": 0,
                     "matched_skills": [], "count_only": True}

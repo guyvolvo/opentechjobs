@@ -231,14 +231,16 @@ class SnapshotCaps:
     claiming to search all of it. Not marked means not used.
     """
 
-    __slots__ = ("fts", "fts_full", "category_col", "posted_at_utc")
+    __slots__ = ("fts", "fts_full", "category_col", "posted_at_utc", "board_indexes")
 
     def __init__(self, fts: bool = False, fts_full: bool = False,
-                 category_col: str | None = None, posted_at_utc: bool = False):
+                 category_col: str | None = None, posted_at_utc: bool = False,
+                 board_indexes: bool = False):
         self.fts = fts
         self.fts_full = fts_full
         self.category_col = category_col
         self.posted_at_utc = posted_at_utc
+        self.board_indexes = board_indexes
 
     def __bool__(self) -> bool:
         return self.fts
@@ -284,11 +286,12 @@ def _read_caps(conn) -> SnapshotCaps:
     # was, just answering more questions. The index's own CREATE text
     # says which columns it carries.
     try:
-        fts_sql, category, fts_complete, posted_at_utc = conn.execute(
+        fts_sql, category, fts_complete, posted_at_utc, board_indexes = conn.execute(
             "SELECT (SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'jobs_fts'),"
             " (SELECT COUNT(*) FROM pragma_table_info('jobs') WHERE name = 'category'),"
             " (SELECT value FROM meta WHERE key = 'fts_complete'),"
-            " (SELECT value FROM meta WHERE key = 'posted_at_utc')"
+            " (SELECT value FROM meta WHERE key = 'posted_at_utc'),"
+            " (SELECT value FROM meta WHERE key = 'board_indexes')"
         ).fetchone()
     except Exception:
         return SnapshotCaps()
@@ -298,7 +301,42 @@ def _read_caps(conn) -> SnapshotCaps:
         fts_full=complete and "title" in (fts_sql or ""),
         category_col="category" if category else None,
         posted_at_utc=posted_at_utc == "1",
+        board_indexes=board_indexes == "1",
     )
+
+
+# Filters that have an index of their own, and so should pick it rather
+# than be handed the one below.
+_SELECTIVE_PARAMS = ("roles", "department", "company", "seniority", "workplace",
+                     "ats", "ids", "search", "keywords", "skills", "q", "name")
+
+
+def count_index_hint(params: dict, caps: "SnapshotCaps") -> str:
+    """`INDEXED BY ...` for the "Showing 1-50 of N" count, or "".
+
+    The count is the one query on the board with no ORDER BY, and
+    without one SQLite has nothing pushing it towards an index: it
+    compares a full scan of the table against a full scan of a covering
+    index and, with no STAT4 in Ubuntu's build, treats them as roughly
+    equal and takes the table. Measured on the box, 862,354 open
+    listings: 11.6s scanning a 1GB table against 0.252s scanning the
+    38MB index that answers the same question, and 26.4s if the
+    freshness test is left to resolve as a two-range OR instead.
+
+    So the index is named. Only for a request that carries no filter
+    with a better index of its own, because naming one forbids the
+    others: department=Security answers from idx_jobs_open_category in
+    7ms and must not be dragged onto this one.
+
+    Empty string wherever the snapshot has no board indexes, which is
+    every Lambda snapshot, since INDEXED BY an index that is not there
+    is an error rather than a hint.
+    """
+    if not caps.board_indexes:
+        return ""
+    if any(params.get(p) for p in _SELECTIVE_PARAMS):
+        return ""
+    return " INDEXED BY idx_jobs_open_posted"
 
 
 def category_sql(conn) -> str:

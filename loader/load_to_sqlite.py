@@ -1158,6 +1158,12 @@ def ensure_box_indexes(conn: sqlite3.Connection) -> None:
         " ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         (",".join(RETIRED_INDEXES),),
     )
+    # Says these indexes are here, so the API can name one in a query.
+    # See job_filters.count_index_hint for the one place that does.
+    conn.execute(
+        "INSERT INTO meta (key, value) VALUES ('board_indexes', '1')"
+        " ON CONFLICT(key) DO UPDATE SET value = '1'"
+    )
     # Statistics for the planner. ANALYZE over the whole file is 20s;
     # optimize re-analyzes only what changed enough to matter.
     conn.execute("PRAGMA optimize")
