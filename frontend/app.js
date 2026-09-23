@@ -2629,21 +2629,79 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
 
 // The empty state
 //
-// The Statistics column, exactly as it was, living in the pane while no
-// listing is open. It is markup in board.html rather than a string
-// here, because renderScopedMetrics, renderPanels, renderScopedPanels
-// and renderPipelineTile own those grids and paint into them on their
-// own schedule: rebuilding the block on every render would wipe
-// whatever they had just drawn. So this only decides which of the
-// pane's two children is on screen.
+// The pane is never blank. With nothing selected it says what the
+// filters currently add up to, which is the one moment a reader is
+// looking at the board rather than at a job.
+//
+// Built as a string here rather than as markup in board.html, unlike
+// the Statistics block it replaced: nothing else paints into it, so
+// there is no half-drawn state for a re-render to wipe.
 function renderDetailEmpty() {
-  const empty = document.getElementById("detail-empty");
-  const body = document.getElementById("detail-body");
-  if (!empty || !body) return;
-  const open = selectedJobId !== null;
-  empty.hidden = open;
-  body.hidden = !open;
-  if (!open) body.innerHTML = "";
+  const panel = document.getElementById("job-detail");
+  if (!panel || selectedJobId !== null) return;
+
+  const mode = currentScopeMode();
+  const scoped = mode === "scoped" ? latestScoped.data : latestStats ? globalScope(latestStats) : null;
+  const total = lastJobsResponse?.total;
+  const hiring = (railFacets.companies || []).slice(0, 4);
+  const remote = (railFacets.workplace || []).find((r) => r.value === "remote");
+  const salary = railFacets.salary;
+
+  const view = state.roles === "tech" && !state.starred_only ? "Tech roles" : "All roles";
+  const summary = [...activeFilterSummary(), view].join(" · ");
+
+  // A number still being counted shows bones, not the last filter's
+  // answer: a scoped /stats was measured at up to 2.9s, long enough for
+  // a stale figure to be read as this one's. A number that came back
+  // genuinely absent shows a dash. The two are not the same thing.
+  const pending = mode === "pending";
+  const bone = '<span class="skeleton sk-line"></span>';
+  const dash = '<span class="empty-stat-none">&mdash;</span>';
+  const stat = (label, value) =>
+    `<div class="empty-stat"><span class="empty-stat-label">${escapeHtml(label)}</span>`
+    + `<span class="empty-stat-value">${value}</span></div>`;
+  const num = (v) => (pending ? bone : v == null ? dash : fmtInt(v));
+
+  panel.innerHTML = `
+    <div class="detail-empty">
+      <div class="empty-lede">
+        <span class="empty-label">Your filters</span>
+        ${total == null
+          ? (lastJobsResponse
+            ? `<span class="empty-count">${fmtInt(lastJobsResponse.jobs?.length || 0)}+ <span>${escapeHtml(resultNoun())}</span></span>`
+            : `<span class="empty-count counting">${bone}</span>`)
+          : `<span class="empty-count">${fmtInt(total)} <span>${escapeHtml(resultNoun())}</span></span>`}
+        <span class="empty-summary">${escapeHtml(summary)}</span>
+      </div>
+
+      <div class="empty-stats">
+        ${stat("New today", num(scoped?.new_jobs_24h))}
+        ${stat("Median est.", salary?.median ? escapeHtml(fmtShekels(salary.median))
+          : railFacetsLoaded ? dash : bone)}
+        ${stat("Companies", num(scoped?.companies_hiring))}
+        ${stat("Remote", remote ? fmtInt(remote.n) : railFacetsLoaded ? dash : bone)}
+      </div>
+
+      ${hiring.length ? `
+        <div class="empty-hiring">
+          <span class="empty-label">Hiring most</span>
+          ${hiring.map((c) => `
+            <button type="button" class="empty-hiring-row" data-company="${escapeHtml(c.value)}"
+                    title="Show only ${escapeHtml(c.value)}">
+              <span class="empty-hiring-name">${escapeHtml(c.value)}</span>
+              <span class="empty-hiring-n">${fmtInt(c.n)}</span>
+            </button>`).join("")}
+        </div>` : ""}
+
+      <div class="empty-hint">Select a listing to see details</div>
+    </div>`;
+
+  panel.querySelectorAll("[data-company]").forEach((row) => {
+    row.addEventListener("click", () => {
+      state.company = [row.dataset.company];
+      railApply();
+    });
+  });
 }
 
 async function copyToClipboard(btn, url) {
@@ -2763,7 +2821,7 @@ function jobPermalink(id) {
 }
 
 function wireJobDetailPanel(job) {
-  const panel = detailBody();
+  const panel = document.getElementById("job-detail");
   panel.querySelector(".job-detail-close")?.addEventListener("click", closeJobDetailAndSync);
   panel.querySelector(".job-detail-star")?.addEventListener("click", (e) => {
     const s = toggleStar(job.id);
@@ -2779,13 +2837,6 @@ function wireJobDetailPanel(job) {
   });
   const permalinkBtn = panel.querySelector("[data-copy-permalink]");
   if (permalinkBtn) permalinkBtn.addEventListener("click", () => copyToClipboard(permalinkBtn, permalinkBtn.dataset.copyPermalink));
-}
-
-// The pane's own scroll box and, inside it, the half that holds a
-// listing. Falls back to the pane itself so nothing here breaks on a
-// page whose markup predates the split.
-function detailBody() {
-  return document.getElementById("detail-body") || document.getElementById("job-detail");
 }
 
 async function openJobDetail(id) {
@@ -2807,8 +2858,7 @@ async function openJobDetail(id) {
   clearTimeout(jobDetailCloseTimer);
   panel.hidden = false;
   panel.scrollTop = 0; // a new listing starts at its own top, not the last one's
-  renderDetailEmpty();   // swaps the Statistics block out for the body
-  detailBody().innerHTML = known
+  panel.innerHTML = known
     ? renderJobDetailBody(known, { descriptionLoading: true })
     : `<div class="loading-state">Loading job…</div>`;
   if (known) wireJobDetailPanel(known);
@@ -2826,25 +2876,25 @@ async function openJobDetail(id) {
   try {
     const full = await getJSON(`/jobs/${encodeURIComponent(id)}`);
     if (selectedJobId !== id) return; // a different row was picked while this was in flight
-    detailBody().innerHTML = renderJobDetailBody(full);
+    panel.innerHTML = renderJobDetailBody(full);
     wireJobDetailPanel(full);
   } catch (err) {
     if (selectedJobId !== id) return;
     if (known) {
-      detailBody().innerHTML = renderJobDetailBody(known, { descriptionError: err.message });
+      panel.innerHTML = renderJobDetailBody(known, { descriptionError: err.message });
       wireJobDetailPanel(known);
     } else if (/no job with that id/i.test(err.message)) {
       // A shared or bookmarked link to a listing that has left the board.
       // It used to read "Could not load this job: no job with that id",
       // which sounds like the site broke rather than the role closing.
-      detailBody().innerHTML = `<div class="job-gone">
+      panel.innerHTML = `<div class="job-gone">
         <p class="job-gone-label">Listing not found</p>
         <p>This listing is no longer on the board. Roles get filled and taken down, so links to them go stale.</p>
         <button type="button" class="btn ghost btn-small" data-gone-close>Back to listings</button>
       </div>`;
-      detailBody().querySelector("[data-gone-close]").addEventListener("click", closeJobDetailAndSync);
+      panel.querySelector("[data-gone-close]").addEventListener("click", closeJobDetailAndSync);
     } else {
-      detailBody().innerHTML = `<div class="error-state">Could not load this job: ${escapeHtml(err.message)}</div>`;
+      panel.innerHTML = `<div class="error-state">Could not load this job: ${escapeHtml(err.message)}</div>`;
     }
   }
 }

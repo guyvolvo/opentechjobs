@@ -4770,31 +4770,12 @@ tr:hover .job-title-text { color: var(--green-text); }
   overscroll-behavior: contain;
   background: var(--white);
   border-left: 1px solid var(--grey-line);
-  padding: 0;
-}
-.job-detail[hidden] { display: none; }
-
-#detail-body {
   padding: 28px 32px;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
-#detail-body[hidden],
-#detail-empty[hidden] { display: none; }
-
-/* The Statistics column, in a pane rather than in a column of its own.
-   It keeps every one of its own styles; what it gives up is being a
-   sticky, separately-scrolling column, because the pane around it
-   already is one. */
-#detail-empty .stats-board {
-  position: static;
-  height: auto;
-  max-height: none;
-  overflow: visible;
-  padding: 24px 24px 40px;
-}
-#detail-empty .stats-toggle { display: none; }
+.job-detail[hidden] { display: none; }
 
 .job-detail-close {
   position: absolute;
