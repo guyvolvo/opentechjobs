@@ -51,3 +51,6 @@ loader/precomputed/
 # local secrets (box SSH key, hosts); never committed
 .env
 bench-result.json
+
+# Claude Design sync output, rebuilt by .design-sync/build.mjs
+ds-bundle/
