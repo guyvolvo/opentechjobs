@@ -17475,3 +17475,27 @@ cafedelsol.com
 fab.com
 at.org
 hapag-lloyd.de
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+401auto.com
+garrett.com
+sew.ai
+amtengineering.com
+amityfdn.org
+andersencorp.net
+bcps.org
+undp.com
+novotech.com
+frontgrade.com
+aldar.com
+ammega.com
+canon.org
+agile-defense.com
+bfsaulhotels.com
+masimo.io
+kb1.com
+orag.org
+sparcareers.com
+foodpeople.co
+friedrich.com
+dexa.com
