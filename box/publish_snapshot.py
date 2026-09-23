@@ -19,6 +19,15 @@ leaves behind, and it never blocks the writer, unlike a plain VACUUM.
 The cost is reading the whole database and writing a compacted one, so
 this runs on its own timer and not inside an apply.
 
+The search index does NOT go with it. jobs_fts is 1.6GB of the box's
+2.5GB and every consumer of this key is one that cannot hold it: a
+rolled-back API Lambda pulls this file inside API Gateway's 29 seconds,
+which is the exact shape of the 2026-09-22 outage, and
+build-salary-matrix.yml reads it from a GitHub runner. So the copy has
+the index dropped and is vacuumed again, which costs a second pass over
+a much smaller file and takes 2.5GB down to about 900MB. The box keeps
+its own index; this is the portable copy, not the authoritative one.
+
 Doubles as a point-in-time backup beside Litestream's continuous WAL
 stream: different mechanism, different failure modes, and this one is a
 plain file anybody can open.
@@ -37,6 +46,8 @@ import boto3
 from boto3.s3.transfer import TransferConfig
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "loader"))
+from load_to_sqlite import retire_fts  # noqa: E402
 from lock import exclusive  # noqa: E402
 
 DB = Path(os.environ.get("DATA_PATH", "/var/lib/otj/jobs.db"))
@@ -66,6 +77,18 @@ def _publish() -> int:
         conn.execute("VACUUM INTO ?", (str(OUT),))
     finally:
         conn.close()
+
+    # Drop the index out of the copy and reclaim its pages. retire_fts
+    # also marks the file, so a loader that opens it does not helpfully
+    # recreate the table from db/schema.sql (see its own comment, and
+    # the outage that made it necessary).
+    lean = sqlite3.connect(OUT, timeout=60)
+    try:
+        freed = retire_fts(lean)
+        lean.commit()
+        lean.execute("VACUUM")
+    finally:
+        lean.close()
     vacuum_s = time.monotonic() - started
 
     check = sqlite3.connect(f"file:{OUT}?mode=ro", uri=True)
@@ -91,7 +114,8 @@ def _publish() -> int:
                    CopySource={"Bucket": BUCKET, "Key": KEY})
     OUT.unlink(missing_ok=True)
     print(f"published {rows:,} rows, {size:,} bytes to s3://{BUCKET}/{KEY} "
-          f"(vacuum {vacuum_s:.0f}s, total {time.monotonic() - started:.0f}s)")
+          f"({freed:,} index pages dropped, vacuum {vacuum_s:.0f}s, "
+          f"total {time.monotonic() - started:.0f}s)")
     return 0
 
 
