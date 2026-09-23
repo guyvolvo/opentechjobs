@@ -1,0 +1,152 @@
+# Cutover runbook
+
+Moving the API and the applier from Lambda to the box. Every command
+here has been run against the real box except the ones marked as the
+cutover itself, and the unit and path names are copied from the machine
+rather than remembered.
+
+The traffic switch is one Cloudflare rule and the rollback is deleting
+it. Everything else is preparation and ordering.
+
+## Order matters, and here is why
+
+The dangerous window is the one where both appliers are live. They read
+the same delta queue and the same alert table, so if both run they both
+delete fragments the other needed and both send every digest. The flag
+`OTJ_PRIMARY` is what stops the box doing those things, so the Lambda
+has to stop *before* the flag goes on, not after.
+
+Traffic moves last. Until the Cloudflare rule exists, the box can be
+fully in charge of the data while the live site still reads the
+Lambda's snapshot, which is a safe place to sit and check things.
+
+## Before you start
+
+    # row parity against the live snapshot
+    sqlite3 /var/lib/otj/jobs.db "select count(*) from jobs;"
+    curl -s https://opentechjobs.org/api/health | python3 -c "import sys,json;print(json.load(sys.stdin)['jobs_total'])"
+
+    # the two rehearsals, both green
+    sudo -u ubuntu bash -c 'set -a; . /etc/otj-api.env; set +a; SNAPSHOT_KEY=backups/test-snapshot.db /srv/otj/venv/bin/python /srv/otj/app/box/publish_snapshot.py'
+    litestream restore -o /tmp/restore-test.db -config /etc/litestream.yml /var/lib/otj/jobs.db
+    sqlite3 /tmp/restore-test.db "pragma quick_check; select count(*) from jobs;"
+
+## 1. Stop the Lambda applier
+
+Disable the schedule, then wait for anything in flight. The function
+stays deployed, which is what makes the rollback in the last section
+possible.
+
+    aws events disable-rule --name iljobs-scrape-maintenance-schedule
+    # wait until no invocation is running
+    aws logs tail /aws/lambda/iljobs-scrape-maintenance --since 10m --format short | tail -3
+
+## 2. Let the box catch up
+
+The fetcher has been spooling all along, so the box already holds every
+fragment the Lambda has not deleted. Give it a few minutes to drain
+before it becomes the only writer.
+
+    ls /var/lib/otj/deltas/*.json | wc -l      # should fall to 0
+    sudo journalctl -u otj-apply -n 5 --no-pager
+
+## 3. Make the box primary
+
+Three env changes, not one. `OTJ_PRIMARY` turns on alerts, fragment
+deletion, archiving and the status files; `FRONTEND_BUCKET` is what the
+bootstrap, explore and sitemap publishers write to; and
+`PRECOMPUTED_PREFIX` has to go, because it currently points at
+`precomputed-box/` so the two appliers could not overwrite each other,
+and from here the box should write the real one.
+
+    sudo sed -i '/^PRECOMPUTED_PREFIX=/d' /etc/otj-api.env
+    printf 'OTJ_PRIMARY=1\nFRONTEND_BUCKET=iljobs-frontend-876913698688\n' | sudo tee -a /etc/otj-api.env
+    sudo systemctl restart otj-api
+    sudo systemctl start otj-apply.service     # force one now rather than waiting for the timer
+    sudo journalctl -u otj-apply -n 20 --no-pager
+
+Expect the apply line to report `cleared N`, `alerts N checked`, and
+`published N`. If it reports `cleared 0` the flag did not take.
+
+## 4. Turn on the snapshot publisher
+
+Hourly during the rollback window, not daily. A rollback restores the
+Lambda to whatever is in `jobs-read.db`, so that file's age is the data
+you would lose, and the deltas that would have filled the gap have been
+deleted by the box. Hourly makes the worst case an hour. Daily is
+correct only once the Lambda is retired.
+
+    sudo mkdir -p /etc/systemd/system/otj-snapshot.timer.d
+    printf '[Timer]\nOnCalendar=\nOnCalendar=hourly\n' | sudo tee /etc/systemd/system/otj-snapshot.timer.d/rollback-window.conf
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now otj-snapshot.timer
+    sudo systemctl start otj-snapshot.service
+    sudo journalctl -u otj-snapshot -n 5 --no-pager
+
+## 5. Move the traffic
+
+A Cloudflare origin rule, on the `opentechjobs.org` zone. The paths the
+box serves:
+
+    /api/*        except /api/auth/*
+    /job/*
+    /company/*
+
+There is no `/api/v1`. The API has never carried a version prefix, and
+a rule written against one matches nothing, which looks exactly like a
+cutover that silently did not happen.
+
+`/api/auth/github/callback` and `/api/auth/email/start` belong to a
+different Lambda behind API Gateway and must keep going to CloudFront.
+Excluding them is the whole reason this stays simple.
+
+Expression:
+
+    (http.host eq "opentechjobs.org" and
+     (starts_with(http.request.uri.path, "/api/") or
+      starts_with(http.request.uri.path, "/job/") or
+      starts_with(http.request.uri.path, "/company/")) and
+     not starts_with(http.request.uri.path, "/api/auth/"))
+
+Origin: `box.opentechjobs.org`.
+
+## 6. Check
+
+    for p in "/api/health" "/api/jobs?limit=5&roles=tech" "/api/jobs?limit=5&search=grpc" "/api/facets?country=IL" "/api/stats"; do
+      curl -s -o /dev/null -w "$p %{http_code} %{time_total}s\n" "https://opentechjobs.org$p&_=$RANDOM"
+    done
+
+`search=grpc` is the one to watch: it returns 0 on the Lambda stack and
+about 1,358 on the box, so it tells you which origin answered without
+looking at a header.
+
+Then sign in on the live site, which exercises `/api/auth/*` going to
+CloudFront and `/api/me/*` going to the box with a Cognito token the
+box verifies itself.
+
+## Rollback
+
+Traffic first, which is instant and fixes the visible thing:
+
+    # delete the Cloudflare origin rule
+
+Then hand the data back:
+
+    sudo sed -i '/^OTJ_PRIMARY=/d' /etc/otj-api.env
+    sudo systemctl restart otj-api
+    aws events enable-rule --name iljobs-scrape-maintenance-schedule
+
+The Lambda resumes from `jobs-read.db`, which the box has been
+publishing hourly, so it starts at most an hour stale and catches up
+from the deltas written since. The box keeps running and keeps
+spooling, so nothing has to be rebuilt to try again.
+
+## After a week
+
+- Retire `iljobs-api` and `iljobs-scrape-maintenance`, and drop the
+  maintenance packaging from `deploy-scrape-lambda.yml`.
+- Retire `deploy-api.yml`; `deploy-box.yml` already covers the same
+  paths.
+- Put the snapshot publisher back on daily by removing the drop-in.
+- Import the box into Terraform and replace `var.box_instance_id` with
+  `aws_instance.box.id`.
