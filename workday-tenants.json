@@ -28028,5 +28028,55 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-23"
+ },
+ {
+  "domain": "hlb.de",
+  "tenant": "hlb",
+  "wd": "wd3",
+  "site": "HLBCareers",
+  "jobs_seen": 500,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "univofky.com",
+  "tenant": "univofky",
+  "wd": "wd108",
+  "site": "UKKD",
+  "jobs_seen": 407,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "vcuhealth.com",
+  "tenant": "vcuhealth",
+  "wd": "wd1",
+  "site": "VCUHealth_careers",
+  "jobs_seen": 398,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "valleyhealthlink.com",
+  "tenant": "valleyhealthlink",
+  "wd": "wd115",
+  "site": "valleyhealthcareers",
+  "jobs_seen": 342,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
+ },
+ {
+  "domain": "zrsmanagement.com",
+  "tenant": "zrsmanagement",
+  "wd": "wd5",
+  "site": "ZRS_Careers",
+  "jobs_seen": 292,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-23"
  }
 ]
