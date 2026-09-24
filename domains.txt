@@ -23749,3 +23749,22 @@ gcc.com
 groupecrit.com
 ri.ai
 baylor.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+ingeteam.com
+youthopportunity.com
+gmg.com
+emilfreypro.fr
+hesperiaworld.com
+imedhospitales.com
+ritchiestransport.com
+archrock.com
+gusglobaluniversitysystems-global-university-systems.com
+centio.com
+honeybirdette.com
+espacevie.fr
+camden.com
+toters.com
+dieseo.de
+rednucleus.ai
+trabaja.net

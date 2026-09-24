@@ -29478,5 +29478,135 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "daw.de",
+  "tenant": "daw",
+  "wd": "wd3",
+  "site": "DAW_Careers",
+  "jobs_seen": 83,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "exactcare.com",
+  "tenant": "exactcare",
+  "wd": "wd1",
+  "site": "AnewHealth_Career_Site",
+  "jobs_seen": 81,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "cartech.com",
+  "tenant": "cartech",
+  "wd": "wd5",
+  "site": "CTCExternal",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "flender.com",
+  "tenant": "flender",
+  "wd": "wd3",
+  "site": "Flender_Global",
+  "jobs_seen": 79,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "cncbinternational.com",
+  "tenant": "cncbinternational",
+  "wd": "wd3",
+  "site": "CNCBIExternalCareerSite",
+  "jobs_seen": 76,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "flywheel.com",
+  "tenant": "flywheel",
+  "wd": "wd5",
+  "site": "Job_Duck_Careers",
+  "jobs_seen": 73,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "elderslimited.com",
+  "tenant": "elderslimited",
+  "wd": "wd3",
+  "site": "Elders",
+  "jobs_seen": 69,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "bcbsnj.com",
+  "tenant": "bcbsnj",
+  "wd": "wd5",
+  "site": "hc",
+  "jobs_seen": 68,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "beneva.com",
+  "tenant": "beneva",
+  "wd": "wd10",
+  "site": "BenevaSite_carriere",
+  "jobs_seen": 66,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "elliottdavis.com",
+  "tenant": "elliottdavis",
+  "wd": "wd5",
+  "site": "ED",
+  "jobs_seen": 64,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "eosenergystorage.com",
+  "tenant": "eosenergystorage",
+  "wd": "wd1",
+  "site": "EoS",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "gh.io",
+  "tenant": "gh",
+  "wd": "wd1",
+  "site": "gh",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "hysteryale.com",
+  "tenant": "hysteryale",
+  "wd": "wd1",
+  "site": "Hyster-YaleCareers",
+  "jobs_seen": 61,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
