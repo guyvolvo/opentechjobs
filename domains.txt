@@ -24606,3 +24606,20 @@ betomorrow.com
 adamsmithinternational1.com
 frontierautoparts.com
 rotaryindustry.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+refugeforwomen.com
+revoltbi.com
+rhubique.com
+rlg.io
+rjcapital.fr
+rogii.com
+saf.com
+sarahsinn.com
+sarssm.org
+rhinolabs.com
+sbxgroup.com
+seamarkranch.com
+searchlight.com
+secondmind.com
+semaphoresolutions.com
