@@ -41,35 +41,32 @@ function setCount(key, n) {
   const badge = $("stat-" + key);
   if (badge) badge.dataset.zero = n > 0 ? "0" : "1";
   paintOverview();
+  paintSectionStatus(document.querySelector(".account-nav-link.active")?.getAttribute("href")?.slice(1) || "overview");
 }
 
 // Which Overview shows is decided here and nowhere else, from the same
 // counts the nav badges use, so the two cannot disagree. All three done
 // retires the steps outright rather than leaving a row of ticks.
 function paintOverview() {
-  const steps = $("acct-steps");
-  if (!steps) return;
   const done = { skills: counts.skills > 0, alerts: counts.alerts > 0, saved: counts.saved > 0 };
-  const started = done.skills || done.alerts || done.saved;
   const all = done.skills && done.alerts && done.saved;
 
-  steps.hidden = all;
-  for (const [key, isDone] of Object.entries(done)) {
-    const card = steps.querySelector(`[data-step="${key}"]`);
-    if (!card) continue;
-    card.classList.toggle("done", isDone);
-    const mark = card.querySelector(".acct-step-n");
-    if (mark) mark.textContent = isDone ? "✓" : mark.dataset.n || mark.textContent;
-    if (mark && !mark.dataset.n && !isDone) mark.dataset.n = mark.textContent;
-  }
+  // The checklist goes when there is nothing left on it. A row of ticks
+  // is a list of things you cannot do any more.
+  const setup = $("acct-setup");
+  if (setup) setup.hidden = all;
 
-  const title = $("overview-title");
-  const lede = $("overview-lede");
-  if (title) title.textContent = started ? "Overview" : "Get the board working for you";
-  if (lede) lede.hidden = started;
-  for (const id of ["account-metrics", "overview-two"]) {
-    const el = $(id);
-    if (el) el.hidden = !started;
+  // A done row reads as struck through at 60%, and only the first one
+  // still outstanding carries a button: three buttons is three
+  // decisions, and the point of a checklist is that there is one.
+  let offered = false;
+  for (const [key, isDone] of Object.entries(done)) {
+    const row = document.querySelector(`.acct-check-row[data-step="${key}"]`);
+    if (!row) continue;
+    row.classList.toggle("done", isDone);
+    const btn = row.querySelector(".acct-check-do");
+    if (btn) btn.hidden = isDone || offered;
+    if (!isDone) offered = true;
   }
 }
 
@@ -185,6 +182,63 @@ function paintChips() {
     });
   });
   paintMatchLink();
+  scheduleMatches();
+}
+
+// The three best matches for the skills on file. This block existed as
+// empty markup and nothing ever filled it, so Overview has been showing
+// a heading over nothing since it was added.
+//
+// The board's own ranking, asked for directly: skills= orders rather
+// than filters, which is why it goes to /jobs with sort=match and why
+// three rows cost the same query the board pays for fifty.
+// Removing a chip repaints, and a match query is the board's ranking
+// sort: 1.8s of real work. Removing four skills should cost one.
+let matchesTimer = 0;
+function scheduleMatches() {
+  clearTimeout(matchesTimer);
+  matchesTimer = setTimeout(loadMatches, 500);
+}
+
+async function loadMatches() {
+  const host = $("acct-matches");
+  if (!host) return;
+  const skills = draft.skills;
+  if (!skills.length) {
+    host.innerHTML = '<p class="acct-matches-empty">Add skills to see matches.</p>';
+    return;
+  }
+  host.innerHTML = '<p class="acct-matches-empty">Looking…</p>';
+  try {
+    const q = new URLSearchParams({
+      skills: skills.join(","), sort: "match", dir: "asc",
+      limit: "3", country: "IL", count: "skip",
+    });
+    const data = await getJSON(`/jobs?${q}`);
+    const jobs = data.jobs || [];
+    if (!jobs.length) {
+      host.innerHTML = '<p class="acct-matches-empty">Nothing matches those skills yet.</p>';
+      return;
+    }
+    const want = new Set(skills);
+    host.innerHTML = jobs.map((j) => {
+      const listed = (j.skills || "").split(",").filter(Boolean);
+      const hit = listed.filter((sk) => want.has(sk)).length;
+      return `
+        <a class="acct-match" href="/job/${encodeURIComponent(j.id)}">
+          <span class="acct-match-text">
+            <span class="acct-match-title">${escapeHtml(j.title)}</span>
+            <span class="acct-match-meta">${escapeHtml(j.company_name || j.company_domain || "")}${
+              j.location ? " · " + escapeHtml(j.location) : ""}</span>
+          </span>
+          <span class="acct-match-score">${hit} of ${want.size} skills</span>
+        </a>`;
+    }).join("");
+  } catch {
+    // One failed panel is not worth an error banner on a page whose
+    // other four sections are fine.
+    host.innerHTML = '<p class="acct-matches-empty">Could not load matches.</p>';
+  }
 }
 
 function paintProfile(profile) {
@@ -312,6 +366,46 @@ function wireProfile() {
 // whole screen until a section is opened, and Back closes it again,
 // which is why the open section can be nothing at all below 960px and
 // never can above it.
+// One head for every section, so the five of them cannot drift out of
+// line with each other. The status line is filled by whatever owns the
+// section; the action is the one primary thing that section offers.
+const SECTION_HEAD = {
+  overview: { title: "Overview" },
+  skills: { title: "Skills", action: '<button type="button" class="btn btn-small" id="acct-do-cv">Scan a CV</button>' },
+  alerts: { title: "Alerts", action: '<a class="btn btn-small" href="#alerts">New alert</a>' },
+  saved: { title: "Saved jobs", action: '<a class="btn ghost btn-small" href="/board">Open the board</a>' },
+  settings: { title: "Settings" },
+};
+
+function paintSectionHead(id) {
+  const spec = SECTION_HEAD[id] || SECTION_HEAD.overview;
+  const title = $("acct-title");
+  const action = $("acct-action");
+  if (title) title.textContent = spec.title;
+  if (action) action.innerHTML = spec.action || "";
+  // Scan a CV is the file input the Skills section already owns, so the
+  // header button forwards to it rather than holding a second one.
+  const cv = $("acct-do-cv");
+  if (cv) cv.addEventListener("click", () => $("cv-file")?.click());
+  paintSectionStatus(id);
+}
+
+// The line under the title: what this section currently holds, in the
+// same words its own count uses.
+function paintSectionStatus(id) {
+  const el = $("acct-status");
+  if (!el) return;
+  const n = (k, one, many) => `${counts[k]} ${counts[k] === 1 ? one : many}`;
+  const text = {
+    overview: "",
+    skills: counts.skills ? n("skills", "skill", "skills") + " matched against every listing" : "No skills yet",
+    alerts: counts.alerts ? n("alerts", "alert", "alerts") : "No alerts yet",
+    saved: counts.saved ? n("saved", "saved job", "saved jobs") : "Nothing saved yet",
+    settings: "",
+  }[id] || "";
+  el.textContent = text;
+}
+
 function wireAccountNav() {
   const layout = $("account-body");
   const page = document.querySelector(".account-shell");
@@ -332,6 +426,7 @@ function wireAccountNav() {
     });
     layout.classList.toggle("section-open", !!open);
     if (page) page.classList.toggle("section-open", !!open);
+    paintSectionHead(open || "overview");
   };
 
   // The hash is the section, so a link to /account#alerts opens there

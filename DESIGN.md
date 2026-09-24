@@ -521,12 +521,14 @@ Three radii, and only three. 4px is the default and carries the whole
 board. The other two exist for one surface each and are listed here so
 they are a decision rather than drift.
 
-**14px, the account page only.** Every box on `/account`: the four panel
-nav buttons on phones, the section panels, the alert-form toggles, the
-metric tiles. The page is a centred column of large, widely spaced
-blocks rather than a dense table, and at 4px those blocks read as
-offcuts of the board rather than as their own surface. Nothing outside
-`.account-page` uses it.
+**14px, and no longer on `/account`.** It used to be every box on that
+page, on the grounds that it was a centred column of large blocks rather
+than a dense table. It is neither now: it is the board's own two-panel
+shell, so it takes the board's 10px on the two outer boxes and 4px on
+everything inside them, and the two pages stop being drawn as if they
+were different products. What still carries 14px is the landing page's
+floating account menu and its primary button, and `/contact`'s form
+panel, none of which sit in a panel grid.
 
 **10px, board panels only.** The two boxes under the board's filter bar:
 the filters-and-listings pair, and the side panel (`.board-box`). Larger

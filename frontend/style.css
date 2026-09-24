@@ -2826,105 +2826,280 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    avatar, the name and the email moved into the sidebar beside the nav:
    as a centred header they were a third of the first screen saying
    something the reader already knew. */
-.account-shell { min-height: calc(100vh - 57px); }
+/* The account page, on the board's panel system: two boxes on the same
+   tinted ground, each with the board's own 64px head. The two pages are
+   the same product and were drawn as if they were not. */
+.account-shell {
+  background: var(--hover-bg);
+  height: calc(100vh - 57px);
+  height: calc(100dvh - 57px);
+  display: flex;
+  flex-direction: column;
+}
 .account-layout {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  align-items: start;
+  gap: 10px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  padding: 12px 28px 28px;
 }
-/* display on a class beats the user agent's [hidden], which is how the
-   signed-out page would otherwise render the whole account under the
-   sign-in dialog. Same trap as .auth-email-form[hidden] above. */
 .account-layout[hidden] { display: none; }
-.account-page > .section-title { text-align: center; }
-.account-main {
-  min-width: 0;
-  max-width: 1040px;
-  padding: 40px 48px 56px;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
+.account-layout > * { min-width: 0; }
 
-/* The sidebar, and the hairline that separates it from the work. */
-.account-side {
-  min-width: 0;
-  padding: 28px 20px;
-  border-right: 1px solid var(--grey-line);
+.acct-box {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  position: sticky;
-  top: 57px;
+  min-height: 0;
+  background: var(--white);
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  overflow: hidden;
 }
-.account-nav { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.account-id {
-  grid-area: id;
+.acct-box-head {
+  flex: none;
+  height: 64px;
+  box-sizing: border-box;
+  padding: 0 20px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-bottom: 10px;
+  gap: 12px;
+  border-bottom: 1px solid var(--grey-line);
 }
-.account-id-mark .hero-avatar { width: 52px; height: 52px; font-size: 24px; }
-.account-email {
-  margin: 0;
-  min-width: 0;
+.acct-box-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--grey-line) transparent;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Sidebar */
+.acct-id-mark { width: 32px; height: 32px; flex: 0 0 auto; }
+.acct-id-mark .hero-avatar,
+.acct-id-mark img { width: 32px; height: 32px; font-size: 14px; }
+.acct-id-text { display: flex; flex-direction: column; min-width: 0; }
+.acct-id-name { font: 400 15px var(--font-display); color: var(--black); }
+.acct-id-email {
+  font-size: 12px;
   color: var(--grey);
-  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.account-nav-list { display: flex; flex-direction: column; gap: 2px; }
+.account-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .account-nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 4px;
+  color: var(--black);
+  font-size: 14px;
+  text-decoration: none;
+}
+.account-nav-link:hover:not(.active) { background: var(--row-hover); }
+.account-nav-link:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+/* The same mark a selected row carries on the board. */
+.account-nav-link.active {
+  background: var(--row-selected);
+  box-shadow: inset 3px 0 0 var(--green-text);
+  font-weight: 700;
+}
+/* A count of nothing is not information. */
+.account-nav-count {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--grey);
+  font-variant-numeric: tabular-nums;
+}
+.account-nav-count[data-zero="1"] { display: none; }
+.account-nav-link.active .account-nav-count { color: var(--green-text); }
+
+.acct-box-foot {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  height: 46px;
-  padding: 0 14px;
-  /* Transparent, not an outline. Four bordered pills made this column
-     read as a separate product standing beside the content, and they
-     were the heaviest thing on a page whose job is to be scanned. The
-     left edge carries the state instead. */
+  padding: 12px 16px;
+  border-top: 1px solid var(--grey-line);
+  font-size: 12px;
+  color: var(--grey);
+}
+.acct-provider { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.acct-provider[hidden] { display: none; }
+.acct-provider svg { flex: none; }
+.acct-signout {
+  /* A button element, so it needs the chrome taken off it explicitly.
+     margin-left:auto keeps it at the right edge when the provider line
+     beside it is empty, which it is unless the token names one. */
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0;
   border: 0;
-  border-left: 2px solid transparent;
-  border-radius: 4px;
   background: none;
-  color: var(--black);
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 400;
-  text-decoration: none;
+  font: 400 12px var(--font);
   cursor: pointer;
 }
-.account-nav-link:hover:not(.active) { background: var(--hover-bg); }
-.account-nav-link:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-.account-nav-count {
-  color: var(--grey);
-  font-family: var(--font-ui);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-/* Which section is open, in the same tint the board gives the row whose
-   listing is open. A filled ink button read as the loudest thing on the
-   page, which is the one thing a local nav must not be. */
-/* A green edge and green text. A whole row of colour was a block of it
-   sitting beside the section it names. */
-.account-nav-link.active {
-  border-left-color: var(--green);
-  background: var(--hover-bg);
-  color: var(--green-text);
-  font-weight: 500;
-}
-.account-nav-link.active .account-nav-count { color: var(--green-text); }
 
-/* Everything in the open section is a form or a list, and both ran the
-   full width of it: six stacked pickers and a full-width green button,
-   all shaped for the 360px panel they were written for on the board.
-   Here they lay out the way the board's own filter bar does. */
+/* One best match: title and where over a count of the skills it hit. */
+.acct-match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 104px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--grey-line);
+  color: var(--black);
+  text-decoration: none;
+}
+.acct-match:last-child { border-bottom: 0; }
+.acct-match:hover { background: var(--row-hover); }
+.acct-match:hover .acct-match-title { color: var(--green-text); }
+.acct-match-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.acct-match-title {
+  font: 600 15px var(--font);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-match-meta {
+  font-size: 13px;
+  color: var(--grey);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.acct-match-score { flex: 0 0 auto; font-size: 12px; color: var(--green-text); font-variant-numeric: tabular-nums; }
+
+/* Main head */
+.acct-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.acct-head-title { font: 500 17px var(--font-display); color: var(--black); }
+.acct-head-status { font-size: 12px; color: var(--grey); }
+.acct-head-action { flex: 0 0 auto; }
+
+/* Section panels inside the main box */
+.acct-panel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.acct-panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--grey-line);
+  font: 500 14px var(--font-display);
+  color: var(--black);
+}
+.acct-panel-title .link { font-size: 12px; font-weight: 400; }
+.acct-row-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.acct-row-lead { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; }
+.acct-row-two > [hidden] { display: none; }
+
+/* Finish setup */
+.acct-check { list-style: none; margin: 0; padding: 0; }
+.acct-check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--grey-line);
+  font-size: 14px;
+}
+.acct-check-row:last-child { border-bottom: 0; }
+.acct-check-mark {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 1.5px solid var(--grey-line);
+  border-radius: 4px;
+}
+.acct-check-label { flex: 1; min-width: 0; }
+.acct-check-row.done { opacity: 0.6; }
+.acct-check-row.done .acct-check-label { text-decoration: line-through; }
+.acct-check-row.done .acct-check-mark {
+  display: grid;
+  place-items: center;
+  border-color: var(--black);
+  background: var(--black);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+}
+.acct-check-row.done .acct-check-mark::after { content: "\2713"; }
+.acct-check-do[hidden] { display: none; }
+
+/* At a glance */
+.acct-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.acct-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 14px 16px;
+  border-right: 1px solid var(--grey-line);
+  color: var(--black);
+  text-decoration: none;
+}
+.acct-tile:last-child { border-right: 0; }
+.acct-tile:hover { background: var(--hover-bg); }
+.acct-tile:hover .acct-tile-value { color: var(--green-text); }
+.acct-tile:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+.acct-tile-value { font: 400 28px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.acct-tile-label { font-size: 13px; }
+.acct-tile-sub { font-size: 12px; color: var(--grey); }
+.acct-tile-sub:empty { display: none; }
+
+/* Skills */
+.acct-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.acct-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  font: 400 12px var(--font-ui);
+  color: var(--black);
+}
+.acct-more { font-size: 12px; color: var(--green-text); text-decoration: none; }
+.acct-more:hover { text-decoration: underline; }
+.acct-tags .acct-none { color: var(--grey); font-size: 13px; }
+.acct-note { margin: 0; font-size: 12px; color: var(--grey); }
+.acct-note[hidden] { display: none; }
+.acct-matches-empty { margin: 0; font-size: 13px; color: var(--grey); }
+
+@media (max-width: 960px) {
+  .acct-row-two,
+  .acct-row-lead { grid-template-columns: minmax(0, 1fr); }
+}
+
 .account-main .alert-create-fields {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2953,7 +3128,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-page .ms-toggle,
 .account-page .ms-menu,
 .account-page .alert-create-fields input[type="text"],
-.account-page .alert-create-fields label.toggle { border-radius: 14px; }
+.account-main .alert-create-fields label.toggle { border-radius: 4px; }
 /* Opening a section, above the breakpoint only. On a phone a section is
    a different screen rather than a panel changing beside a nav that
    stays put, and sliding one screen over another is a transition this
@@ -2976,7 +3151,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
      stay a menu rather than four bars across a tablet. */
   .account-page { max-width: 460px; }
   .account-layout { display: block; }
-  .account-id { padding-right: 0; }
   .account-nav { padding-right: 0; }
   .account-main { padding-left: 0; border-left: 0; min-height: 0; }
   /* "My account" is directly above it here, so the column's own label
@@ -2984,11 +3158,11 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   .account-nav-label { display: none; }
   .account-nav-list { gap: 12px; }
   .account-nav-link {
-    justify-content: center;
-    height: 62px;
-    border: 1.5px solid var(--black);
-    border-radius: 14px;
-    font-size: 24px;
+    justify-content: space-between;
+    height: 48px;
+    border-bottom: 1px solid var(--grey-line);
+    border-radius: 4px;
+    font-size: 17px;
   }
   .account-nav-link.active { border-color: var(--green-text); background: none; }
   .account-nav-count { font-size: 14px; }
@@ -2996,7 +3170,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
      different screen, not a drawer. */
   .account-layout:not(.section-open) .account-main { display: none; }
   .account-layout.section-open .account-nav,
-  .account-layout.section-open .account-id { display: none; }
   .account-page.section-open > .section-title { display: none; }
   .account-back {
     display: inline-flex;
@@ -3053,14 +3226,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-bar .hero-bar-name { display: inline-flex; align-items: center; }
 .account-bar .hero-bar-name:hover { color: var(--green-text); }
 
-.account-id-text { min-width: 0; text-align: left; }
-.account-id-title {
-  margin: 0 0 2px;
-  font-family: var(--font-display);
-  font-size: 34px;
-  font-weight: 400;
-  line-height: 1;
-}
 /* One line saying what the page is for, under the block that names it. */
 .account-lede {
   grid-area: lede;
@@ -3089,38 +3254,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 /* The overview's three counts, built the way the board's Market Stats
    tiles are: paper cells over a hairline ground, so the 2px gaps are
    the grid showing through rather than a border each. */
-.account-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--rule);
-  margin: 0 0 32px;
-  background: var(--grey-line);
-  border: var(--rule) solid var(--grey-line);
-  border-radius: 14px;
-  overflow: hidden;
-}
-.account-metric {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 20px 12px 16px;
-  background: var(--white);
-  color: var(--black);
-  text-decoration: none;
-  text-align: center;
-}
-.account-metric:hover { background: var(--hover-bg); }
-.account-metric:hover .value { color: var(--green-text); }
-.account-metric:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
-.account-metric .value {
-  font-size: 30px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-.account-metric .label { color: var(--grey); font-size: 12px; }
 
 .acct-profile { margin-bottom: 32px; }
 .acct-sub {
@@ -3166,10 +3299,6 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-danger .account-actions { margin-top: 12px; }
 
 @media (max-width: 640px) {
-  .account-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .account-metric { padding: 16px 6px 14px; }
-  .account-metric .value { font-size: 24px; }
-  .account-metric .label { font-size: 11.5px; }
 }
 
 /* Signed out, the sign-in is a dialog in the middle of the window
@@ -3232,7 +3361,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .signin-dialog .auth-provider-btn,
 .signin-dialog .auth-email-form input,
 .signin-dialog .auth-email-form .btn {
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid var(--grey-line);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.07);
 }
@@ -5704,26 +5833,7 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 
 /* Identity: the mark, then the name over the email. The email is the
    line that truncates, because a name is short and an address is not. */
-.account-id { display: flex; align-items: center; gap: 12px; padding: 0 4px; }
-.account-id-mark {
-  width: 44px;
-  height: 44px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font: 400 18px var(--font-display);
-}
-.account-id-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.account-id-name { font: 700 14px var(--font); color: var(--black); }
 .account-id-text .account-email,
-.account-id-text .acct-provider {
-  font: 400 12px var(--font);
-  color: var(--grey);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* A nav row is the whole line. The active one carries an inset bar in
    Green Text rather than a filled block: it marks where you are without
@@ -5759,76 +5869,14 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   letter-spacing: -0.02em;
   color: var(--black);
 }
-.account-head-lede { margin: 0; font: 400 15px/1.45 var(--font); color: var(--black); max-width: 640px; }
 
-/* The first run: three steps, each a card that can be finished. */
-.acct-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-/* display on a class beats the user agent's [hidden], which is how the
-   first-run steps and the populated blocks would otherwise both show.
-   The same trap .account-layout[hidden] above already documents. */
-.acct-steps[hidden],
-.account-metrics[hidden],
-.acct-two[hidden],
-.account-head-lede[hidden] { display: none; }
-.acct-step {
-  border: 1px solid var(--grey-line);
-  border-radius: 14px;
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.acct-step.done { background: var(--row-selected); }
-.acct-step-top { display: flex; justify-content: space-between; align-items: center; }
-.acct-step-n {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 1.5px solid var(--black);
-  display: grid;
-  place-items: center;
-  font: 500 13px var(--font-ui);
-}
-.acct-step.done .acct-step-n { border-color: var(--green-text); color: var(--green-text); }
-.acct-step-title { margin: 0; font: 400 22px/1.1 var(--font-display); color: var(--black); }
-.acct-step-body { margin: 0; flex: 1; font: 400 14px/1.45 var(--font); color: var(--black); }
-.acct-step .btn { align-self: flex-start; }
+/* display on a class beats the user agent's [hidden], which is how a
+   hidden panel would otherwise still show. The same trap
+   .account-layout[hidden] above already documents. */
+.acct-panel[hidden],
+.acct-row-two[hidden],
+.acct-row-lead[hidden] { display: none; }
 
-/* Three counts, one box, each one a way into what it counts. */
-.account-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--grey-line);
-  border-radius: 14px;
-  overflow: hidden;
-}
-.account-metric {
-  padding: 20px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-decoration: none;
-  color: var(--black);
-  border-right: 1px solid var(--grey-line);
-}
-.account-metric:last-child { border-right: 0; }
-.account-metric:hover { background: var(--hover-bg); }
-.account-metric .value { font: 400 36px/1 var(--font-display); }
-.account-metric .label { font: 400 14px var(--font); }
-.account-metric .sub { font: 400 12px var(--font); color: var(--green-text); min-height: 15px; }
-
-.acct-two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: start; }
-.acct-col { display: flex; flex-direction: column; min-width: 0; }
-.acct-col-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--black);
-}
-.acct-col-title { margin: 0; font: 400 20px var(--font-display); color: var(--black); }
-.acct-card { border: 1px solid var(--grey-line); border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
 
 /* Settings: label and description on the left, control on the right. */
 .acct-rows { display: flex; flex-direction: column; }
@@ -5872,16 +5920,10 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
     gap: 0;
     overflow-x: auto;
   }
-  .account-side .account-id { display: none; }
   .account-nav { flex-direction: row; gap: 4px; }
   .account-nav-link { white-space: nowrap; box-shadow: none; }
   .account-nav-link.active { box-shadow: inset 0 -3px 0 var(--green-text); }
-  .account-main { padding: 24px 16px 48px; }
-  .acct-steps,
-  .acct-two,
-  .account-metrics { grid-template-columns: minmax(0, 1fr); }
-  .account-metric { border-right: 0; border-bottom: 1px solid var(--grey-line); }
-  .account-metric:last-child { border-bottom: 0; }
+  .account-main { padding: 0; }
 }
 
 /* Value over label in the listing's facts, the same way round as the

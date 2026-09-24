@@ -117,13 +117,12 @@
           <!-- Who is signed in, beside the nav rather than above it.
                The provider line only fills when the token actually says
                which one signed this reader in (see account.js). -->
-          <aside class="account-side">
-            <div class="account-id">
-              <div class="account-id-mark" id="account-avatar"></div>
-              <div class="account-id-text">
-                <span class="account-id-name" id="account-name"></span>
-                <span class="account-email" id="account-email"></span>
-                <span class="acct-provider" id="account-provider" hidden></span>
+          <aside class="account-side acct-box">
+            <div class="acct-box-head">
+              <div class="acct-id-mark" id="account-avatar"></div>
+              <div class="acct-id-text">
+                <span class="acct-id-name" id="account-name"></span>
+                <span class="acct-id-email" id="account-email"></span>
               </div>
             </div>
 
@@ -133,86 +132,105 @@
                  bookmarkable and already what wireAccountNav drives. -->
             <nav class="account-nav" aria-label="Account sections">
               <a class="account-nav-link" href="#overview">Overview</a>
-              <a class="account-nav-link" href="#skills">Skills<span class="account-nav-count" id="stat-skills">0</span></a>
-              <a class="account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts">0</span></a>
-              <a class="account-nav-link" href="#saved">Saved jobs<span class="account-nav-count" id="stat-saved">0</span></a>
+              <a class="account-nav-link" href="#skills">Skills<span class="account-nav-count" id="stat-skills" data-zero="1">0</span></a>
+              <a class="account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts" data-zero="1">0</span></a>
+              <a class="account-nav-link" href="#saved">Saved jobs<span class="account-nav-count" id="stat-saved" data-zero="1">0</span></a>
               <a class="account-nav-link" href="#settings">Settings</a>
             </nav>
+
+            <!-- Pinned to the bottom of the box. The provider line only
+                 fills when the token actually says which one signed this
+                 reader in, so it is empty rather than guessing. -->
+            <div class="acct-box-foot">
+              <span class="acct-provider" id="account-provider" hidden></span>
+              <button type="button" class="link acct-signout" id="account-signout">Sign out</button>
+            </div>
           </aside>
 
-          <main class="account-main">
-<!-- Phone only. On a wide screen the nav never goes away, so
-                 there is nothing to come back to. -->
-            <button class="account-back" id="account-back" type="button">
-              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 2.5 4.5 8 10 13.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Back
-            </button>
+          <main class="account-main acct-box">
+            <!-- One head for every section, filled by wireAccountNav.
+                 The sections used to carry their own, which meant five
+                 headings that had to be kept level with each other by
+                 hand. -->
+            <div class="acct-box-head">
+              <!-- Phone only. On a wide screen the nav never goes away,
+                   so there is nothing to come back to. -->
+              <button class="account-back" id="account-back" type="button" aria-label="Back to the menu">
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M10 2.5 4.5 8 10 13.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="acct-head-text">
+                <span class="acct-head-title" id="acct-title">Overview</span>
+                <span class="acct-head-status" id="acct-status"></span>
+              </div>
+              <div class="acct-head-action" id="acct-action"></div>
+            </div>
+            <div class="acct-box-body" id="acct-body">
             <!-- The overview. Everything here is already true somewhere else
                  on the page; this is the one screen that says it all at
                  once, which is why it is the section the nav opens on. -->
             <section class="account-block" id="overview">
-              <!-- Empty and populated are the same section. Which one
-                   shows is decided in account.js from the counts it
-                   already keeps, so neither can disagree with the nav. -->
-              <div class="account-head" id="overview-head">
-                <h2 class="account-head-title" id="overview-title">Overview</h2>
-                <p class="account-head-lede" id="overview-lede" hidden>Three things make the board personal. Each takes a minute and can be undone.</p>
-              </div>
 
-              <!-- The first run. Hidden outright once all three are
-                   done, rather than sitting there as a row of ticks. -->
-              <div class="acct-steps" id="acct-steps" hidden>
-                <article class="acct-step" data-step="skills">
-                  <div class="acct-step-top"><span class="acct-step-n">1</span></div>
-                  <h3 class="acct-step-title">Add your skills</h3>
-                  <p class="acct-step-body">Drop your CV. It is read in your browser and never uploaded. Unlocks Best matches.</p>
-                  <a class="btn btn-small" href="#skills">Scan a CV</a>
-                </article>
-                <article class="acct-step" data-step="alerts">
-                  <div class="acct-step-top"><span class="acct-step-n">2</span></div>
-                  <h3 class="acct-step-title">Create an alert</h3>
-                  <p class="acct-step-body">Get an email when a new role matches your filters.</p>
-                  <a class="btn ghost btn-small" href="#alerts">New alert</a>
-                </article>
-                <article class="acct-step" data-step="saved">
-                  <div class="acct-step-top"><span class="acct-step-n">3</span></div>
-                  <h3 class="acct-step-title">Save a job</h3>
-                  <p class="acct-step-body">Star any listing on the board to keep it here.</p>
-                  <a class="btn ghost btn-small" href="/board">Open the board</a>
-                </article>
-              </div>
+              <!-- Row one: what is left to do, and what is already
+                   here. The checklist goes outright once all three are
+                   done rather than sitting there as a row of ticks. -->
+              <div class="acct-row-two">
+                <div class="acct-panel" id="acct-setup">
+                  <h3 class="acct-panel-title">Finish setup</h3>
+                  <ul class="acct-check" id="acct-check">
+                    <li class="acct-check-row" data-step="skills">
+                      <span class="acct-check-mark" aria-hidden="true"></span>
+                      <span class="acct-check-label">Add your skills</span>
+                      <a class="btn ghost btn-small acct-check-do" href="#skills">Scan a CV</a>
+                    </li>
+                    <li class="acct-check-row" data-step="alerts">
+                      <span class="acct-check-mark" aria-hidden="true"></span>
+                      <span class="acct-check-label">Create an alert</span>
+                      <a class="btn ghost btn-small acct-check-do" href="#alerts">New alert</a>
+                    </li>
+                    <li class="acct-check-row" data-step="saved">
+                      <span class="acct-check-mark" aria-hidden="true"></span>
+                      <span class="acct-check-label">Save a job</span>
+                      <a class="btn ghost btn-small acct-check-do" href="/board">Open the board</a>
+                    </li>
+                  </ul>
+                </div>
 
-              <!-- Each count goes where it is counted, and opens it. -->
-              <div class="account-metrics" id="account-metrics" hidden>
-                <a class="account-metric" href="#saved">
-                  <span class="value" id="tile-saved">0</span>
-                  <span class="label">Saved jobs</span>
-                  <span class="sub" id="tile-saved-sub"></span>
-                </a>
-                <a class="account-metric" href="#alerts">
-                  <span class="value" id="tile-alerts">0</span>
-                  <span class="label">Active alerts</span>
-                  <span class="sub" id="tile-alerts-sub"></span>
-                </a>
-                <a class="account-metric" href="#skills">
-                  <span class="value" id="tile-skills">0</span>
-                  <span class="label">Skills</span>
-                  <span class="sub" id="tile-skills-sub"></span>
-                </a>
-              </div>
-
-              <div class="acct-two" id="overview-two" hidden>
-                <div class="acct-col">
-                  <div class="acct-col-head">
-                    <h3 class="acct-col-title">New best matches</h3>
-                    <a class="link" href="/board?view=matches">See all on the board</a>
+                <div class="acct-panel">
+                  <h3 class="acct-panel-title">At a glance</h3>
+                  <!-- Each tile opens the thing it counts. -->
+                  <div class="acct-tiles">
+                    <a class="acct-tile" href="#saved">
+                      <span class="acct-tile-value" id="tile-saved">0</span>
+                      <span class="acct-tile-label">Saved jobs</span>
+                      <span class="acct-tile-sub" id="tile-saved-sub"></span>
+                    </a>
+                    <a class="acct-tile" href="#alerts">
+                      <span class="acct-tile-value" id="tile-alerts">0</span>
+                      <span class="acct-tile-label">Active alerts</span>
+                      <span class="acct-tile-sub" id="tile-alerts-sub"></span>
+                    </a>
+                    <a class="acct-tile" href="#skills">
+                      <span class="acct-tile-value" id="tile-skills">0</span>
+                      <span class="acct-tile-label">Skills</span>
+                      <span class="acct-tile-sub" id="tile-skills-sub"></span>
+                    </a>
                   </div>
+                </div>
+              </div>
+
+              <!-- Row two: the matches those skills buy, and the skills
+                   themselves. -->
+              <div class="acct-row-lead">
+                <div class="acct-panel">
+                  <h3 class="acct-panel-title">New best matches
+                    <a class="link" href="/board?view=matches">See all on the board</a></h3>
                   <div id="acct-matches"></div>
                 </div>
-                <div class="acct-card acct-skills-card">
-                  <h3 class="acct-col-title">Your skills</h3>
+                <div class="acct-panel">
+                  <h3 class="acct-panel-title">Your skills
+                    <a class="link" href="#skills">Edit</a></h3>
                   <div class="acct-tags" id="acct-tags"></div>
-                  <a class="link" href="#skills">Edit skills</a>
+                  <p class="acct-note" id="acct-skills-note" hidden></p>
                 </div>
               </div>
             </section>
@@ -328,6 +346,7 @@
                 </div>
               </div>
             </section>
+            </div>
           </main>
         </div>
   </div>
