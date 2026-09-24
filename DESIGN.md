@@ -11,6 +11,7 @@ colors:
   hover-tint: "#e8e5e2"
   row-hover: "#e6e3df"
   row-selected: "#dce8d4"
+  row-open: "#dedad5"
   green-text: "#3f6f45"
   logo-band: "#edf0ec"
   logo-band-rule: "#d6ded6"
@@ -251,6 +252,11 @@ anything. Dark mode is a plain near-black/white inversion.
   dividers are still `--grey-line`, so a light line sits within a darker
   edge instead of two heavy rules a few pixels apart.
 - **Row Hover** (`#e6e3df`, `--row-hover`; dark mode `#23252b`) and
+  **Row Open** (`#dedad5`, `--row-open`; dark mode `#2b2e35`): the
+  listing you are reading, and the account section you are in. A shade
+  deeper than Row Hover and neutral, with a 3px bar of Ink down the left
+  edge, so the mark inverts with the theme instead of going green. Green
+  would say the row is good; the bar only says it is open.
   **Row Selected** (`#dce8d4`, `--row-selected`; dark mode `#1d3024`):
   job rows only. Hover, and keyboard focus inside a row, is neutral;
   the open listing's row carries the green tint. They used to share the

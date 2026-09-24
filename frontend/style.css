@@ -73,10 +73,15 @@
      told apart by the fill rather than by reading the word "Est.". */
   --salary-fill: #e4ece0;
   /* Row states, apart from --hover-bg (which still tints menu options)
-     so hovering a row and having it open never look the same. Hover is
-     neutral, selected carries the green. The old shared tint was 1.04:1
-     against paper and barely visible; hover is now 1.13:1. */
+     so hovering a row and having it open never look the same. Both are
+     neutral now; the open one is a shade deeper and carries an ink bar
+     down its left edge, the way LinkedIn marks the job you are reading.
+     --row-selected keeps its green for the two things that still point
+     at something: a search match (mark) and a checked filter's tile. The
+     old shared tint was 1.04:1 against paper and barely visible; hover is
+     1.13:1 and open is 1.22:1. */
   --row-hover: #e6e3df;
+  --row-open: #dedad5;
   --row-selected: #dce8d4;
   /* Green for text, and for fills that text sits on. --green is 2.96:1
      on paper, under the 4.5:1 body text needs; this is 5.18:1, and still
@@ -138,6 +143,7 @@
   --panel-line: #4a4c52;
   --salary-fill: #1a2a20;
   --row-hover: #23252b;
+  --row-open: #2b2e35;
   --row-selected: #1d3024;
   --green-text: #2fae60; /* same as --green: already 6.2:1 on #17181c */
   /* The light red is 3.0:1 on #17181c, under the 4.5:1 text needs, so
@@ -1427,7 +1433,7 @@ table.jobs thead th.active::after { content: attr(data-dir); margin-left: 4px; c
 table.jobs tbody tr { border-bottom: 1px solid var(--grey-line); }
 table.jobs tbody tr:hover,
 table.jobs tbody tr:focus-within { background: var(--row-hover); }
-table.jobs tbody tr.selected { background: var(--row-selected); }
+table.jobs tbody tr.selected { background: var(--row-open); }
 table.jobs tbody td { padding: 14px 10px; vertical-align: top; }
 
 /* Card layout: logo, title/meta/actions, salary, skills -- four real
@@ -2824,10 +2830,10 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 }
 .account-nav-link:hover:not(.active) { background: var(--row-hover); }
 .account-nav-link:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
-/* The same mark a selected row carries on the board. */
+/* The same mark an open row carries on the board. */
 .account-nav-link.active {
-  background: var(--row-selected);
-  box-shadow: inset 3px 0 0 var(--green-text);
+  background: var(--row-open);
+  box-shadow: inset 3px 0 0 var(--black);
   font-weight: 700;
 }
 /* A count of nothing is not information. */
@@ -5143,7 +5149,7 @@ table.jobs tbody tr[data-id]:focus-visible { outline: 2px solid var(--green); }
    second meta line or a fourth chip row would each do. */
 .main-cell { overflow: hidden; }
 
-table.jobs tbody tr.selected { background: var(--row-selected); }
+table.jobs tbody tr.selected { background: var(--row-open); }
 /* An inset bar rather than a border, so a selected row is the same
    height as every other one and the list does not shuffle as the
    selection moves. */
@@ -5154,7 +5160,9 @@ table.jobs tbody tr.selected::before {
   top: 0;
   bottom: 0;
   width: 3px;
-  background: var(--green-text);
+  /* Ink, not green: black on paper, white on the dark ground. Green
+     here said "this one is good"; the bar only means "this one is open". */
+  background: var(--black);
 }
 
 /* Not on the desktop row. It was an 18px column of outlines down the
