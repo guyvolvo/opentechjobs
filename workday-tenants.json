@@ -30258,5 +30258,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "muzinich.com",
+  "tenant": "muzinich",
+  "wd": "wd5",
+  "site": "muzinichcareers",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "saif.com",
+  "tenant": "saif",
+  "wd": "wd5",
+  "site": "SAIF",
+  "jobs_seen": 1,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]

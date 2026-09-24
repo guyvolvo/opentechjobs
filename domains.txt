@@ -25173,3 +25173,16 @@ innovaliftab-aritco-lift-ab.com
 interventure.io
 banco.de
 abusix.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+alephalpha.com
+stayai.io
+sandeninternationaleuropegmbh.com
+nastad.org
+blueye.com
+eticor.com
+goodwall.com
+goldrepublic.com
+maastrichtaachenairport.com
+happiestbaby.com
+redcross.ai
