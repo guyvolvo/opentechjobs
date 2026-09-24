@@ -4649,14 +4649,25 @@ table.jobs tbody tr.selected::before {
 
 .logo-cell .company-logo.listing { width: 44px; height: 44px; border-radius: 4px; }
 
-.main-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+/* 8px, and the three lines below are 19 + 19 + 22, which is the row's
+   104 less its 28 of padding exactly. The gap used to be 5 while
+   .job-meta still carried a 3px top margin of its own from the old
+   layout, so the title sat 8px above the company and the company 5px
+   above the chips: one row, two rhythms. */
+.main-cell { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 
+/* Fixed at one text line. The seniority badge is 25px tall against the
+   title's 19, and as a baseline-aligned flex item it dragged the whole
+   line 6px taller, so a row with a badge spaced differently from a row
+   without one. It is centred on the line and overhangs it by 3px each
+   side, which the gap absorbs. */
 .job-card-title {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: nowrap;
   gap: 6px;
   min-width: 0;
+  height: 19px;
   font: 600 15px var(--font);
   line-height: 19px;
   color: var(--black);
@@ -4677,6 +4688,7 @@ table.jobs tbody tr.selected::before {
 tr:hover .job-title-text { color: var(--green-text); }
 
 .job-meta {
+  margin: 0; /* .main-cell's gap owns the spacing now */
   font: 400 13px var(--font);
   line-height: 19px;
   color: var(--grey);
@@ -4684,6 +4696,11 @@ tr:hover .job-title-text { color: var(--green-text); }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The employer as a link to its own page. Underlined only on hover: a
+   permanent rule under one word in the middle of the meta line would
+   compete with the title above it for the first thing the eye lands on. */
+a.job-company { color: var(--black); text-decoration: none; }
+a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 /* Three things only a phone shows. The column, the detail pane and the
    chip line carry them at every other width. */
 .meta-age,

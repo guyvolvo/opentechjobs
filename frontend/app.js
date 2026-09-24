@@ -2327,7 +2327,18 @@ function jobMetaLine(j) {
   // employer read with exactly the same weight as the department it
   // happens to be hiring into, and a reader scanning the column had
   // nothing to land on between the title and the location.
-  const parts = [`<span class="job-company">${highlight(companyLabel(j))}</span>`];
+  //
+  // It is a link to /company/<domain> when the row knows the domain. The
+  // row's own click handler ignores anything inside an <a>, so this
+  // navigates instead of opening the listing. A company with no domain,
+  // or one whose domain is a .invalid placeholder we invented, has no
+  // page to point at, so it stays plain text.
+  const label = highlight(companyLabel(j));
+  const domain = j.company_domain && !/\.invalid$/.test(j.company_domain) ? j.company_domain : "";
+  const parts = [domain
+    ? `<a class="job-company" href="/company/${encodeURIComponent(domain)}"
+          title="Every open role at ${escapeHtml(companyLabel(j))}">${label}</a>`
+    : `<span class="job-company">${label}</span>`];
   if (j.department) parts.push(highlight(j.department));
   if (j.location) parts.push(highlight(j.location));
   let line = parts.join(" · ");
