@@ -23768,3 +23768,19 @@ toters.com
 dieseo.de
 rednucleus.ai
 trabaja.net
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+allenmotorgroup.com
+twe.co
+rngd.com
+helpi.org
+boldteam.io
+vertexca.com
+crimsonacademy.org
+huaweiuk.com
+staff.com
+whca.net
+doktor.co
+waystone.com
+covalto.com
+ecomtradinggroup.com

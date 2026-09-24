@@ -29608,5 +29608,135 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "armacell.com",
+  "tenant": "armacell",
+  "wd": "wd3",
+  "site": "career-armacell",
+  "jobs_seen": 60,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "neogen.ai",
+  "tenant": "neogen",
+  "wd": "wd5",
+  "site": "neogencareers",
+  "jobs_seen": 60,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "echo.com",
+  "tenant": "echo",
+  "wd": "wd1",
+  "site": "Echo_Logistics",
+  "jobs_seen": 58,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "ifg.co",
+  "tenant": "ifg",
+  "wd": "wd1",
+  "site": "KH",
+  "jobs_seen": 56,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "marshallmedical.com",
+  "tenant": "marshallmedical",
+  "wd": "wd1",
+  "site": "MMC",
+  "jobs_seen": 56,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "dalcourmaclaren.com",
+  "tenant": "dalcourmaclaren",
+  "wd": "wd3",
+  "site": "Dalcour-Maclaren-Careers",
+  "jobs_seen": 53,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "uvmhealth.com",
+  "tenant": "uvmhealth",
+  "wd": "wd1",
+  "site": "cvph",
+  "jobs_seen": 53,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "exelixis.com",
+  "tenant": "exelixis",
+  "wd": "wd1",
+  "site": "Exel",
+  "jobs_seen": 52,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "cityyear.com",
+  "tenant": "cityyear",
+  "wd": "wd5",
+  "site": "CityYear",
+  "jobs_seen": 51,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "gables.com",
+  "tenant": "gables",
+  "wd": "wd5",
+  "site": "Gables_Careers",
+  "jobs_seen": 50,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "transmedics.com",
+  "tenant": "transmedics",
+  "wd": "wd1",
+  "site": "TransMedics_Careers",
+  "jobs_seen": 50,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "mwe.com",
+  "tenant": "mwe",
+  "wd": "wd5",
+  "site": "mwe_careers",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "spellmanhv.com",
+  "tenant": "spellmanhv",
+  "wd": "wd1",
+  "site": "SpellmanHVCareers",
+  "jobs_seen": 49,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
