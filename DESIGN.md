@@ -426,6 +426,13 @@ uses `--gutter` (`clamp(20px, 4vw, 64px)`) for side padding, so the page
 keeps scaling with viewport width all the way to ultra-wide instead of
 plateauing inside a fixed box.
 
+Below 800px the two pages part company on the gutter, deliberately. The
+board keeps 8px: it is one dense list, the rows run nearly full bleed,
+and every pixel of width is a job title. The account page is a column of
+cards, so it takes 12px at the sides and 16px between blocks. At 8px its
+cards had less air between them than inside them, which reads as one
+crowded thing rather than four separate ones.
+
 The page still scrolls as one page. The rail and the pane are sticky
 inside their own columns rather than fixed panels with their own
 scrollbars, so the list is what grows and the footer stays reachable

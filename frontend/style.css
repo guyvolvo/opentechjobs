@@ -3212,8 +3212,14 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   .account-layout {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px 8px;
+    /* 16 and 12, not 10 and 8. The 8px gutter came from the board, where
+       the content is one dense list and every pixel of width is a job
+       title. This page is a column of cards, and at 8px they sat almost
+       on the edge of the screen with less air between them than there is
+       inside them, which reads as one crowded thing rather than four
+       separate ones. Reported live 2026-09-24. */
+    gap: 16px;
+    padding: 16px 12px;
     height: auto;
   }
 
@@ -3223,20 +3229,20 @@ body.explore-busy .explore-metric { color: var(--green-text); }
      tabs run the width under both. As a flex column the foot landed
      between the tabs and the content, which is the one place a Sign out
      link should never be. */
+  /* display: contents, so the three parts of the sidebar become items of
+     the page column itself and can be ordered against .account-main. As
+     its own grid the foot could only ever land under the tabs, above the
+     content. The box styling this drops is already off at this width. */
   .account-side {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    border: 0;
-    border-radius: 0;
-    background: none;
-    overflow: visible;
-    gap: 0;
+    display: contents;
   }
-  .account-side .account-nav { grid-column: 1 / -1; }
+  .account-side .acct-box-head { order: 1; }
+  .account-side .account-nav { order: 2; }
+  .account-main { order: 3; }
+  .account-side .acct-box-foot { order: 4; }
   .account-side .acct-box-head {
     height: auto;
-    padding: 4px 8px 12px;
+    padding: 2px 4px 0;
     border-bottom: 0;
   }
   .acct-id-mark { width: 40px; height: 40px; }
@@ -3276,7 +3282,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
     font-weight: 700;
   }
 
-  .acct-box-foot { border: 0; padding: 0 8px 12px; }
+  .acct-box-foot { border: 0; padding: 0 4px 8px; }
 
   /* Every section is a box on the ground, and they are all present:
      the tab decides which one, not whether there is one. */
@@ -3290,7 +3296,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   .acct-box-body {
     overflow: visible;
     padding: 0;
-    gap: 10px;
+    gap: 16px;
   }
   .account-block {
     display: none;
@@ -3302,7 +3308,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   }
   .account-block.is-active { display: block; }
   .acct-row-two,
-  .acct-row-lead { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 0; }
+  .acct-row-lead { grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 0; }
 
   /* A panel inside a section becomes its own box, with the 48px header
      row the spec asks for. */
@@ -3325,7 +3331,7 @@ body.explore-busy .explore-metric { color: var(--green-text); }
      sat against the box edge with nothing between the two. The panel
      rule above only ever covered Overview. */
   .account-block > :not(.acct-panel):not(.acct-row-two):not(.acct-row-lead) {
-    padding: 14px 16px;
+    padding: 16px;
   }
   .account-block > .acct-rows { padding: 0 16px; }
   .account-block > .acct-rows .acct-row:first-child { border-top: 0; }
@@ -5851,7 +5857,7 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 }
 
 @media (max-width: 640px) {
-  .board-bar { position: static; padding: 10px 8px; gap: 8px; }
+  .board-bar { position: static; padding: 12px 8px; gap: 10px; }
   .board-bar-row { flex-wrap: nowrap; gap: 8px; }
   /* Date posted moves into the filter sheet and the sort moves into the
      list head, so neither takes a row here. Search plus Filters is the
