@@ -29,41 +29,41 @@ typography:
     lineHeight: 0.85
     letterSpacing: "-0.02em"
   display-hero-brand:
-    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontFamily: "Urbanist, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "clamp(34px, 6.4vw, 82px)"
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 0.9
     letterSpacing: "-0.04em"
   display-hero-claim:
-    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontFamily: "Urbanist, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "clamp(30px, 4.4vw, 4rem)"
     fontWeight: 400
     lineHeight: 1.02
     letterSpacing: "-0.03em"
   display-feature-lead:
-    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontFamily: "Urbanist, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "clamp(36px, 5.4vw, 5rem)"
     fontWeight: 400
     lineHeight: 1
     letterSpacing: "-0.03em"
   display-api-block:
-    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontFamily: "Urbanist, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "clamp(28px, 3.4vw, 3rem)"
     fontWeight: 400
     lineHeight: 1
     letterSpacing: "-0.03em"
   hero-lede:
-    fontFamily: "Source Sans 3, -apple-system, BlinkMacSystemFont, sans-serif"
+    fontFamily: "Urbanist, -apple-system, BlinkMacSystemFont, sans-serif"
     fontSize: "clamp(16px, 1.2vw, 19px)"
     lineHeight: 1.45
   display-hero:
-    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontFamily: "Urbanist, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "calc(100cqi / 6.1)"
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 0.84
     letterSpacing: "-0.04em"
   display-hero-ticker:
-    fontFamily: "Overused Grotesk, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
+    fontFamily: "Urbanist, \"Helvetica Neue\", Helvetica, Arial, sans-serif"
     fontSize: "clamp(52px, 9vw, 10rem)"
     fontWeight: 400
     lineHeight: 1.04
@@ -319,6 +319,7 @@ blocks. A hardcoded `#fff`/`#000` anywhere breaks that.
 **Display Font:** Overused Grotesk, weight 400 (self-hosted, variable font spanning 300–900), falling back to Helvetica Neue / Helvetica / Arial
 **Body Font:** Helvetica Neue, falling back to Helvetica, Arial, sans-serif
 **UI Font:** Source Sans 3 (self-hosted, variable 200–900) for controls: buttons, inputs, selects, the view switch, chips and badges
+**Landing page:** Urbanist (self-hosted, variable 100–900, OFL) for all three voices on `/` only, at weight 400 throughout. Scoped by the `.hero-page` body class overriding `--font`, `--font-display` and `--font-ui`, so the board and the account page keep the faces above. Regular, never bold: the geometric face reads as itself at 400 and as a different, heavier font at 700.
 
 **Character:** A dense, no-serif system voice everywhere text-heavy
 (tables, filters, panels), broken only at brand moments by one bold,
