@@ -29998,5 +29998,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "dennemeyer.com",
+  "tenant": "dennemeyer",
+  "wd": "wd3",
+  "site": "dennemeyer_careers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "pros.com",
+  "tenant": "pros",
+  "wd": "wd5",
+  "site": "PROS_Careers",
+  "jobs_seen": 13,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
