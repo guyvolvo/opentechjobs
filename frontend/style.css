@@ -3302,6 +3302,19 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   }
   .acct-panel > :not(.acct-panel-title) { padding-left: 16px; padding-right: 16px; }
   .acct-panel > :last-child { padding-bottom: 16px; }
+  /* Sections that are not built from .acct-panel -- Skills, Alerts,
+     Saved, Settings -- put their content straight into the block, so it
+     sat against the box edge with nothing between the two. The panel
+     rule above only ever covered Overview. */
+  .account-block > :not(.acct-panel):not(.acct-row-two):not(.acct-row-lead) {
+    padding: 14px 16px;
+  }
+  .account-block > .acct-rows { padding: 0 16px; }
+  .account-block > .acct-rows .acct-row:first-child { border-top: 0; }
+  /* The chips wrap to five or six rows on a phone, so they need the
+     breathing room more than anything else on the page. */
+  .cv-chips,
+  .acct-tags { row-gap: 8px; }
   .acct-tiles { border: 0; border-radius: 0; }
   .acct-tile { padding: 14px 10px; }
   .acct-tile-value { font-size: 24px; }
