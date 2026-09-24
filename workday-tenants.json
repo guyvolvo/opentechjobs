@@ -30168,5 +30168,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "crowncommercialservice.com",
+  "tenant": "crowncommercialservice",
+  "wd": "wd3",
+  "site": "CCS_Careers",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "ceh.com",
+  "tenant": "ceh",
+  "wd": "wd3",
+  "site": "CEH_Careers",
+  "jobs_seen": 4,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
