@@ -30078,5 +30078,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "galileo.myworkdayjobs.com",
+  "tenant": "galileo",
+  "wd": "wd3",
+  "site": "emlyonfac_career_site",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "groendyke.com",
+  "tenant": "groendyke",
+  "wd": "wd5",
+  "site": "GTI",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "johngore.com",
+  "tenant": "johngore",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 10,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
