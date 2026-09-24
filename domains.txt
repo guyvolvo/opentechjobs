@@ -23659,3 +23659,26 @@ bsf.io
 banglalink.net
 emirates-post-group.com
 heirs.fr
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+oracle.ai
+harmonic-inc.com
+macys.com
+hilton.com
+sbh.com
+autozone.fr
+vertiv.com
+abm.com
+dynamic.com
+clubcorp.net
+adventist-health.net
+vitas.ai
+all.com
+conduent.com
+bdo-usa.com
+american-express.co
+loma-linda.org
+mcdermott.com
+dtcc.com
+sinclair.com
+estes-express.com
