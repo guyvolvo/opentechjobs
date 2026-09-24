@@ -30038,5 +30038,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "brompton.com",
+  "tenant": "brompton",
+  "wd": "wd3",
+  "site": "Brompton",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "d1smfg.com",
+  "tenant": "d1smfg",
+  "wd": "wd1",
+  "site": "DataOne_Careers",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "mgmchina.com",
+  "tenant": "mgmchina",
+  "wd": "wd5",
+  "site": "MGM_2049",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "myrayonieram.com",
+  "tenant": "myrayonieram",
+  "wd": "wd5",
+  "site": "careers",
+  "jobs_seen": 11,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
