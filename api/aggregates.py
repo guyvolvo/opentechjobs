@@ -258,10 +258,23 @@ def compute_facets(conn, params: dict) -> dict:
             for c in country_counts(country_limit)
         ]
 
+    companies = counts_by("company_domain", "company", 500)
+    # The name beside the count, so the rail and the overview's Hiring
+    # most can say "NVIDIA" rather than "nvidia.com". One IN query over
+    # the same companies table the rows read from; guarded on the column
+    # the way every other reader here is, since a snapshot can predate it.
+    if companies and any(c[1] == "company_name" for c in conn.execute("PRAGMA table_info(companies)")):
+        domains = [c["value"] for c in companies]
+        names = {d: n for d, n in conn.execute(
+            f"SELECT domain, company_name FROM companies WHERE domain IN ({','.join('?' * len(domains))})",
+            domains) if n}
+        for c in companies:
+            c["name"] = names.get(c["value"])
+
     return {
         "categories": counts_by(category_sql(conn), "department", 20),
         "locations": location_tree(),
-        "companies": counts_by("company_domain", "company", 500),
+        "companies": companies,
     }
 
 
@@ -296,9 +309,14 @@ def search_companies(conn, params: dict) -> dict:
         has_name = False
     name_clause = (" OR company_domain IN (SELECT domain FROM companies"
                    " WHERE LOWER(company_name) LIKE ? ESCAPE '\\')") if has_name else ""
+    # The resolved name beside the count, so the rail's search results
+    # read the same way its facet rows do. NULL when the snapshot has no
+    # column for it, which is the same guard the LIKE clause takes.
+    name_select = ("(SELECT company_name FROM companies WHERE domain = jobs.company_domain) AS name"
+                   if has_name else "NULL AS name")
     rows = conn.execute(
         f"""
-        SELECT company_domain AS value, COUNT(*) AS n
+        SELECT company_domain AS value, COUNT(*) AS n, {name_select}
         FROM jobs
         WHERE {where_sql}
           AND (LOWER(company_domain) LIKE ? ESCAPE '\\'{name_clause})

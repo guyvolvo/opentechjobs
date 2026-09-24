@@ -2944,7 +2944,7 @@ function companyNameFor(domain) {
   // screen. Reported live: Hiring most read "nvidia.com" and "iai.co.il"
   // on a board whose rows said NVIDIA and IAI, because neither company
   // had a listing in the first page.
-  const facet = (railFacets.companies || []).find((c) => c.domain === domain && c.name);
+  const facet = (railFacets.companies || []).find((c) => c.value === domain && c.name);
   if (facet) return facet.name;
   const rows = (lastJobsResponse && lastJobsResponse.jobs) || [];
   const hit = rows.find((j) => j.company_domain === domain && j.company_name);
@@ -4107,7 +4107,9 @@ let railSearchTimer = 0;
 
 function railLabel(group, row) {
   if (group.labels) return group.labels[row.value] || row.value;
-  return row.label || row.value;
+  // The company facet carries the resolved name beside the count now;
+  // a domain stays the label only for a company that has none yet.
+  return row.label || row.name || row.value;
 }
 
 // Every value currently ticked in this group, as a Set for the render.
@@ -4548,7 +4550,7 @@ function railSearch(input) {
     try {
       const data = await getJSON(`/companies/search?${qs({ ...currentFilterParams(), company: "", name: q })}`);
       if (seq !== railSearchSeq) return; // a later keystroke has its own answer coming
-      (data.companies || []).forEach((r) => railFound.set(r.value, { value: r.value, n: r.n }));
+      (data.companies || []).forEach((r) => railFound.set(r.value, { value: r.value, n: r.n, name: r.name }));
       railRedrawGroup(key);
     } catch {
       // Non-fatal: the group keeps whatever it already had.
