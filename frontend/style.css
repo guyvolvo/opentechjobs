@@ -5871,7 +5871,15 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
     scrollbar-width: none;
   }
   .board-bar-row-2 .view-switch::-webkit-scrollbar { display: none; }
-  .board-bar-row-2 .view-switch .seg-btn { flex: 0 0 auto; }
+  /* Roomier than the desktop's 14px. The labels are the same length on
+     a third of the width, so the same padding reads as the text being
+     pressed against the border. The row scrolls, so the extra width
+     costs nothing. */
+  .board-bar-row-2 .view-switch .seg-btn {
+    flex: 0 0 auto;
+    height: 34px;
+    padding: 0 18px;
+  }
 
   .job-detail {
     /* A phone has no room for a side sheet, so it is the whole screen
