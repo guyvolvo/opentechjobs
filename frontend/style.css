@@ -5902,9 +5902,14 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   .job-links,
   .job-salary-line { display: none; }
   .meta-age { display: inline; }
-  /* The star moves to the end of the row and gets a thumb-sized target
-     without taking a thumb-sized column. */
-  .star-cell { grid-column: 3; justify-self: end; }
+  /* Every cell placed explicitly. The star is first in the DOM and the
+     phone grid wants it last, and naming only its column left the other
+     two to auto-placement: the cursor had already passed column 3, so
+     the logo and the text wrapped onto a second row and the star sat
+     alone above them. Reported as the rows being a mess, and they were. */
+  .logo-cell { grid-column: 1; grid-row: 1; }
+  .main-cell { grid-column: 2; grid-row: 1; }
+  .star-cell { grid-column: 3; grid-row: 1; justify-self: end; }
   .star-btn { width: 36px; height: 36px; margin: -8px -8px 0 0; }
   .job-chips { display: flex; height: 22px; }
   /* Two lines, then the ellipsis. A phone title wraps where a desktop
