@@ -3516,6 +3516,13 @@ body.signin-open .workspace > .section { border-bottom: 0; }
      carries Jobs, and the rule on a phone is that the bar is the three
      rules and nothing else. */
   .account-bar .hero-bar-name,
+  /* The account and contact bars carry their links, sign-in and theme
+     button loose in the row rather than inside .topnav, so each has to
+     be named. Left in, they sat on top of the wordmark once the menu
+     icon took the width. */
+  .topbar-account .topbar-nav,
+  .topbar-account .auth-area,
+  .topbar-account .theme-toggle,
   .topbar .topnav { display: none; }
   /* The panel is a child of the bar, and the bar is a flex row, so
      without this it lands beside the icon instead of under it. */
@@ -4039,70 +4046,198 @@ a.hero-account-btn { text-decoration: none; }
 .hero-foot { padding-bottom: 18px; color: var(--grey); }
 .hero-foot .hero-foot-links { gap: 28px; }
 
-/* The contact page: the landing page's own voice, with two columns
-   under the claim. The form leads and takes the wider column, because
-   writing is what most readers came to do. The links sit beside it,
-   unruled, so four short rows read as a list and not as a table. */
-.contact {
+/* The contact page. Two columns: what this is and how else to reach me
+   on the left, the form on the right in a block of its own. The form is
+   the wider column because writing is what most people came to do. */
+.contact-page { background: var(--white); color: var(--black); }
+
+.contact-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: clamp(32px, 6vw, 96px);
-  padding: clamp(40px, 6vw, 88px) var(--edge) clamp(40px, 6vw, 88px);
-  max-width: 1200px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: clamp(40px, 6vw, 96px);
+  align-items: start;
+  padding: clamp(40px, 6vw, 80px) var(--edge) clamp(48px, 7vw, 96px);
+  max-width: 1320px;
   margin: 0 auto;
 }
-.contact h2 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  /* Both ends are documented display steps: the Statistics column's
-     24px at its smallest, the section title's 34px at its largest, so a
-     heading under the claim never outgrows the claim. */
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 0 0 18px;
+.contact-intro { display: flex; flex-direction: column; gap: 40px; }
+.contact-claim h1 {
+  margin: 0 0 16px;
+  font: 400 clamp(40px, 6vw, 72px)/0.95 var(--font-display);
+  letter-spacing: -0.04em;
+}
+.contact-claim p { margin: 0; max-width: 460px; font-size: 18px; line-height: 1.45; }
+
+/* Four rows under one rule. The heading's rule is ink and the rows'
+   are the line grey, so the list reads as one block with a header
+   rather than four separate things. */
+.contact-direct h2 {
+  margin: 0;
+  padding: 0 8px 10px;
+  border-bottom: 1px solid var(--black);
+  font: 500 14px var(--font-display);
 }
 .contact-way {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 16px;
-  padding: 14px 0;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--grey-line);
   color: var(--black);
   text-decoration: none;
 }
-.contact-way:first-of-type { padding-top: 0; }
-.contact-way:hover .contact-way-value { color: var(--green-text); }
-.contact-way-name { display: inline-flex; align-items: center; }
-/* The platform's own mark, in ink rather than its brand colour, so the
-   row reads as one voice; the name stays for screen readers. */
-.contact-icon { width: 28px; height: 28px; color: var(--black); }
-.contact-way:hover .contact-icon { color: var(--green-text); }
-.contact-way-value { font-family: var(--font-ui); font-size: 14px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
-.contact-form { display: flex; flex-direction: column; align-self: start; }
-.contact-form label { font-family: var(--font-ui); font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
-.contact-form label:first-of-type { margin-top: 0; }
-.contact-req { font-weight: 400; color: var(--grey); }
-.contact-form input, .contact-form textarea {
+.contact-way:hover { background: var(--hover-bg); }
+.contact-way:hover .contact-way-name { color: var(--green-text); }
+.contact-way-icon { width: 20px; height: 20px; color: var(--black); }
+/* LinkedIn's mark is a word, so it is set rather than drawn. */
+.contact-way-in {
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: var(--black);
+  color: var(--white);
+  font: 700 11px var(--font-ui);
+}
+.contact-way-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.contact-way-name { font-size: 14px; font-weight: 700; }
+.contact-way-value { font-size: 14px; overflow-wrap: anywhere; }
+.contact-way-go { font-size: 15px; }
+
+.contact-panel {
+  border: 1px solid var(--grey-line);
+  border-radius: 14px;
+  padding: clamp(20px, 3vw, 32px);
+}
+/* display:flex beats the browser's own [hidden] rule, so the sent panel
+   has to say so itself or the form stays under it. */
+.contact-form { display: flex; flex-direction: column; gap: 20px; }
+.contact-form[hidden] { display: none; }
+
+.contact-topics { margin: 0; padding: 0; border: 0; }
+.contact-topics legend { padding: 0 0 8px; font: 600 14px var(--font-ui); }
+.contact-topic-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.contact-topic {
+  height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--black);
+  font: 600 14px var(--font-ui);
+  cursor: pointer;
+}
+.contact-topic:hover { background: var(--hover-bg); }
+.contact-topic.on { background: var(--black); color: var(--white); }
+
+.contact-bugnote {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  background: var(--hover-bg);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.contact-bugnote[hidden] { display: none; }
+.contact-bugnote svg { width: 20px; height: 20px; flex: 0 0 auto; }
+.contact-bugnote span { flex: 1; }
+.contact-bugnote a { color: var(--black); font: 600 14px var(--font-ui); white-space: nowrap; }
+
+.contact-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.contact-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.contact-field label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font: 600 14px var(--font-ui);
+}
+.contact-hint { font: 400 13px var(--font); color: var(--grey); opacity: 0.75; }
+.contact-hint.near { opacity: 1; color: var(--red); }
+.contact-field input,
+.contact-field textarea {
   width: 100%;
+  box-sizing: border-box;
   border: 1.5px solid var(--black);
   border-radius: 4px;
   background: var(--white);
   color: var(--black);
-  padding: 9px 10px;
-  font: inherit;
-  font-size: 14px;
+  padding: 0 14px;
+  font: 400 15px var(--font-ui);
 }
-.contact-form input { height: 38px; }
-.contact-form textarea { resize: vertical; min-height: 150px; line-height: 1.45; }
-.contact-form input:focus, .contact-form textarea:focus { outline: 2px solid var(--green); outline-offset: -2px; }
+.contact-field input { height: 44px; }
+.contact-field textarea {
+  height: 220px;
+  padding: 12px 14px;
+  line-height: 1.45;
+  resize: vertical;
+}
+.contact-field input:focus,
+.contact-field textarea:focus { outline: 2px solid var(--green); outline-offset: -2px; }
 .contact-trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-.contact-actions { display: flex; align-items: center; gap: 16px; margin-top: 18px; flex-wrap: wrap; }
-.contact-status { margin: 0; font-size: 14px; color: var(--grey); }
-@media (max-width: 720px) {
-  .contact { grid-template-columns: 1fr; gap: 40px; }
-  .contact-way { flex-direction: column; align-items: flex-start; gap: 4px; }
-  .contact-way-value { text-align: left; }
+
+.contact-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.contact-send {
+  height: 44px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--black);
+  color: var(--white);
+  font: 600 15px var(--font-ui);
+  cursor: pointer;
+}
+.contact-send:hover { background: var(--green-text); }
+.contact-send:disabled { opacity: 0.6; cursor: default; }
+.contact-status { margin: 0; font-size: 13px; color: var(--grey); opacity: 0.8; }
+.contact-status.bad { color: var(--red); opacity: 1; }
+
+/* Sent. The same height the form had, so the panel does not jump. */
+.contact-sent {
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 14px;
+}
+.contact-sent[hidden] { display: none; }
+.contact-sent-mark {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--row-selected);
+  color: var(--green-text);
+  font: 600 20px var(--font-ui);
+}
+.contact-sent h2 { margin: 0; font: 400 34px/1 var(--font-display); letter-spacing: -0.02em; }
+.contact-sent p { margin: 0; max-width: 420px; font-size: 15px; line-height: 1.45; }
+.contact-again {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--black);
+  font: 400 14px var(--font);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.contact-again:hover { color: var(--green-text); }
+
+/* One column, form first: the reason to be on this page is to write. */
+@media (max-width: 900px) {
+  .contact-shell { grid-template-columns: 1fr; gap: 40px; }
+  .contact-panel { order: -1; }
+  .contact-sent { min-height: 340px; }
+}
+@media (max-width: 560px) {
+  .contact-pair { grid-template-columns: 1fr; }
+  .contact-bugnote { flex-wrap: wrap; }
+  .contact-bugnote span { flex: 1 1 100%; order: 3; }
 }
 
 /* The one authored motion on the page: each feature row rises and fades in

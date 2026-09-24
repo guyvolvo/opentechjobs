@@ -36,94 +36,224 @@
     }
   </script>
 </head>
-<body class="hero-page">
+<body class="contact-page">
 
-  <header class="hero-bar hero-bar-head">
-    <div class="hero-bar-stack">
-      <a class="hero-bar-name" href="/">opentechjobs.org</a>
-      <a class="hero-bar-name" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">github</a>
-    </div>
-    <!-- Sign in, or My Account with its menu: hero_account.js fills it
-         from the same stored tokens the board and account page use.
-         Hidden on a phone, where mobile_nav.js rebuilds all of this as
-         one vertical list instead. -->
-    <div class="hero-bar-right" id="hero-bar-right">
-      <button type="button" class="hero-theme" id="hero-theme">Dark</button>
-      <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
+  <!-- The board's own bar, with Contact marked as the page you are on.
+       app.js fills #auth-area and owns #theme-toggle, the same pair the
+       board and the account page use; mobile_nav.js finds .topbar and
+       rebuilds all of it as one vertical list on a phone. -->
+  <header class="topbar topbar-account">
+    <div class="container">
+      <a class="topbar-word" href="/">Open<span>Tech</span>Jobs</a>
+      <nav class="topbar-nav" aria-label="Site">
+        <a href="/board">Board</a>
+        <a href="/stats">Statistics</a>
+        <a href="/help">API</a>
+        <a href="/contact" class="current" aria-current="page">Contact</a>
+      </nav>
+      <span class="topbar-gap"></span>
+      <div class="auth-area" id="auth-area"></div>
+      <button type="button" class="theme-toggle hero-theme" id="theme-toggle">Dark</button>
     </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <h1 class="hero-claim">Get in touch</h1>
-      <p class="hero-lede">Questions, feedback, requests, or bug reports.</p>
-    </section>
+  <main class="contact-shell">
+    <section class="contact-intro">
+      <div class="contact-claim">
+        <h1>Get in touch</h1>
+        <p>Questions, feedback, requests, or bug reports.</p>
+      </div>
 
-    <section class="contact" aria-label="Ways to reach me">
-      <form class="contact-form" id="contact-form" novalidate>
-        <label for="contact-name">Name</label>
-        <input id="contact-name" name="name" type="text" maxlength="120" autocomplete="name" />
-        <label for="contact-email">Email <span class="contact-req">for the reply</span></label>
-        <input id="contact-email" name="email" type="email" maxlength="254" autocomplete="email" required />
-        <label for="contact-message">Message</label>
-        <textarea id="contact-message" name="message" rows="7" maxlength="5000" required></textarea>
-        <!-- Never shown; a form filler that fills it is not a person. -->
-        <div class="contact-trap" aria-hidden="true"><label for="contact-website">Website</label><input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
-        <div class="contact-actions">
-          <button class="btn hero-primary" id="contact-send" type="submit">Send <svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          <p class="contact-status" id="contact-status" role="status" aria-live="polite"></p>
-        </div>
-      </form>
-
-      <div class="contact-ways">
-        <h2>Socials and links</h2>
+      <div class="contact-direct">
+        <h2>Or reach me directly</h2>
         <a class="contact-way" href="mailto:guyvoloshin@gmail.com">
-          <span class="contact-way-name"><svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M3 6l9 7 9-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Email</span></span>
-          <span class="contact-way-value">guyvoloshin@gmail.com</span>
+          <svg class="contact-way-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><rect x="2" y="4" width="16" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 5l7.5 6 7.5-6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span class="contact-way-text"><span class="contact-way-name">Email</span><span class="contact-way-value">guyvoloshin@gmail.com</span></span>
+          <span class="contact-way-go" aria-hidden="true">&#8599;</span>
         </a>
         <a class="contact-way" href="https://www.linkedin.com/in/guyvoloshin" target="_blank" rel="noopener">
-          <span class="contact-way-name"><svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.55V9h3.57v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg><span class="visually-hidden">LinkedIn</span></span>
-          <span class="contact-way-value">linkedin.com/in/guyvoloshin</span>
+          <span class="contact-way-icon contact-way-in" aria-hidden="true">in</span>
+          <span class="contact-way-text"><span class="contact-way-name">LinkedIn</span><span class="contact-way-value">linkedin.com/in/guyvoloshin</span></span>
+          <span class="contact-way-go" aria-hidden="true">&#8599;</span>
         </a>
         <a class="contact-way" href="https://github.com/guyvolvo" target="_blank" rel="noopener">
-          <span class="contact-way-name"><svg class="contact-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg><span class="visually-hidden">GitHub</span></span>
-          <span class="contact-way-value">github.com/guyvolvo</span>
+          <svg class="contact-way-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.5 17v-2.5c0-1 .5-1.5 1-1.8-2-.3-3.5-1.2-3.5-3.5 0-.8.3-1.5.8-2-.1-.4-.2-1.2.1-2 0 0 .7-.2 2.1.8a7 7 0 013.8 0c1.4-1 2.1-.8 2.1-.8.3.8.2 1.6.1 2 .5.5.8 1.2.8 2 0 2.3-1.5 3.2-3.5 3.5.5.3 1 .9 1 1.8V17" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          <span class="contact-way-text"><span class="contact-way-name">GitHub</span><span class="contact-way-value">github.com/guyvolvo</span></span>
+          <span class="contact-way-go" aria-hidden="true">&#8599;</span>
         </a>
         <a class="contact-way" href="https://github.com/guyvolvo/opentechjobs/issues" target="_blank" rel="noopener">
-          <span class="contact-way-name"><svg class="contact-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20a5 5 0 0 0 5-5v-4a5 5 0 0 0-10 0v4a5 5 0 0 0 5 5zM8 8a4 4 0 0 1 8 0M3 13h4M17 13h4M4.5 19l3-2M19.5 19l-3-2M4.5 7l3 2M19.5 7l-3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Bugs and ideas</span></span>
-          <span class="contact-way-value">the repository's issues</span>
+          <svg class="contact-way-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><ellipse cx="10" cy="11.5" rx="4" ry="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.5v10M6 11H2.5M17.5 11H14M6.5 7.5L4 5M13.5 7.5L16 5M6.5 15.5L4 18M13.5 15.5L16 18" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          <span class="contact-way-text"><span class="contact-way-name">Bug reports</span><span class="contact-way-value">Open an issue in the repository</span></span>
+          <span class="contact-way-go" aria-hidden="true">&#8599;</span>
         </a>
       </div>
     </section>
-  </main>
 
+    <section class="contact-panel" aria-label="Send a message">
+      <!-- Sent. Replaces the form rather than sitting above it, so the
+           page does not offer to send the same message twice. -->
+      <div class="contact-sent" id="contact-sent" hidden>
+        <span class="contact-sent-mark" aria-hidden="true">&#10003;</span>
+        <h2>Message sent</h2>
+        <p id="contact-sent-where">Thanks. The reply will go to the address you gave.</p>
+        <button type="button" class="contact-again" id="contact-again">Send another message</button>
+      </div>
+
+      <form class="contact-form" id="contact-form" novalidate>
+        <fieldset class="contact-topics">
+          <legend>What's it about?</legend>
+          <!-- Buttons, not radios: there are four, they fit on one line,
+               and the chosen one drives the message placeholder. The
+               value rides in data-topic and is read on submit. -->
+          <div class="contact-topic-row" id="contact-topics" role="radiogroup" aria-label="What's it about?">
+            <button type="button" class="contact-topic on" data-topic="Question" role="radio" aria-checked="true">Question</button>
+            <button type="button" class="contact-topic" data-topic="Feedback" role="radio" aria-checked="false">Feedback</button>
+            <button type="button" class="contact-topic" data-topic="Company request" role="radio" aria-checked="false">Company request</button>
+            <button type="button" class="contact-topic" data-topic="Bug report" role="radio" aria-checked="false">Bug report</button>
+          </div>
+        </fieldset>
+
+        <!-- Only for Bug report. An issue is a better home for a bug than
+             my inbox, so the page says so instead of pretending otherwise. -->
+        <aside class="contact-bugnote" id="contact-bugnote" hidden>
+          <svg class="contact-bugnote-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><ellipse cx="10" cy="11.5" rx="4" ry="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.5v10M6 11H2.5M17.5 11H14M6.5 7.5L4 5M13.5 7.5L16 5M6.5 15.5L4 18M13.5 15.5L16 18" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+          <span>Bugs get fixed faster as a GitHub issue, where others can see it and add to it.</span>
+          <a href="https://github.com/guyvolvo/opentechjobs/issues/new" target="_blank" rel="noopener">Open an issue &#8599;</a>
+        </aside>
+
+        <div class="contact-pair">
+          <div class="contact-field">
+            <label for="contact-name">Name</label>
+            <input id="contact-name" name="name" type="text" maxlength="120" autocomplete="name" />
+          </div>
+          <div class="contact-field">
+            <label for="contact-email">Email <span class="contact-hint">for the reply</span></label>
+            <input id="contact-email" name="email" type="email" maxlength="254" autocomplete="email" required />
+          </div>
+        </div>
+
+        <div class="contact-field contact-field-message">
+          <label for="contact-message">Message <span class="contact-hint" id="contact-count">0 / 2000</span></label>
+          <textarea id="contact-message" name="message" maxlength="2000" required></textarea>
+        </div>
+
+        <!-- Never shown; a form filler that fills it is not a person. -->
+        <div class="contact-trap" aria-hidden="true"><label for="contact-website">Website</label><input id="contact-website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
+
+        <div class="contact-actions">
+          <button class="contact-send" id="contact-send" type="submit">Send message</button>
+          <p class="contact-status" id="contact-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </section>
+  </main>
 
   <script src="/auth.js"></script>
   <script src="/signin_dialog.js"></script>
-  <script src="/hero_account.js"></script>
+  <!-- app.js, not hero_account.js: this page now wears the board's bar,
+       and #auth-area and #theme-toggle are app.js's. -->
+  <script src="/app.js"></script>
   <script>
     // The form posts to /api/contact, which sends it on as one email.
     (function () {
       const form = document.getElementById("contact-form");
       const status = document.getElementById("contact-status");
       const send = document.getElementById("contact-send");
+      const message = document.getElementById("contact-message");
+      const count = document.getElementById("contact-count");
+      const topics = document.getElementById("contact-topics");
+      const bugnote = document.getElementById("contact-bugnote");
+      const sent = document.getElementById("contact-sent");
+      const MAX = 2000;
+
+      // One placeholder per topic. The form asks for the thing that
+      // actually helps: a bug is useless without what you expected, a
+      // company request is useless without the careers page.
+      const PLACEHOLDER = {
+        "Question": "What would you like to know?",
+        "Feedback": "What works, what doesn't?",
+        "Company request": "Company name and careers page URL to add or remove",
+        "Bug report": "What happened, and what did you expect?",
+      };
+      let topic = "Question";
+
+      function paintTopic() {
+        for (const b of topics.querySelectorAll(".contact-topic")) {
+          const on = b.dataset.topic === topic;
+          b.classList.toggle("on", on);
+          b.setAttribute("aria-checked", on ? "true" : "false");
+        }
+        message.placeholder = PLACEHOLDER[topic] || "";
+        bugnote.hidden = topic !== "Bug report";
+      }
+
+      topics.addEventListener("click", (e) => {
+        const b = e.target.closest(".contact-topic");
+        if (!b) return;
+        topic = b.dataset.topic;
+        paintTopic();
+      });
+
+      const paintCount = () => {
+        count.textContent = `${message.value.length} / ${MAX}`;
+        count.classList.toggle("near", message.value.length > MAX - 100);
+      };
+      message.addEventListener("input", paintCount);
+
+      // The name and address of whoever is signed in, from the token this
+      // tab already holds. Nothing is fetched for it and both stay
+      // editable: someone may well want a reply somewhere else.
+      const tokens = typeof getAuthTokens === "function" ? getAuthTokens() : null;
+      if (tokens && tokens.id_token) {
+        const email = decodeJwtEmail(tokens.id_token);
+        const name = decodeJwtName(tokens.id_token);
+        if (email) form.email.value = email;
+        if (name) form.name.value = name;
+        if (email || name) status.textContent = "Name and email filled from your account.";
+      }
+
+      paintTopic();
+      paintCount();
+
+      document.getElementById("contact-again").addEventListener("click", () => {
+        sent.hidden = true;
+        form.hidden = false;
+        message.value = "";
+        paintCount();
+        message.focus();
+      });
+
+      function fail(text, field) {
+        status.textContent = text;
+        status.classList.add("bad");
+        if (field) field.focus();
+      }
+
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
+        status.classList.remove("bad");
         const email = form.email.value.trim();
-        const message = form.message.value.trim();
-        if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)) { status.textContent = "An email address is needed for the reply."; form.email.focus(); return; }
-        if (message.length < 10) { status.textContent = "Say a little more than that."; form.message.focus(); return; }
+        const body = message.value.trim();
+        if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email)) return fail("An email address is needed for the reply.", form.email);
+        if (body.length < 10) return fail("Say a little more than that.", message);
         send.disabled = true;
         status.textContent = "Sending…";
         try {
           const r = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: form.name.value.trim(), email, message, website: form.website.value }) });
-          const body = await r.json().catch(() => ({}));
-          if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
+            // topic rides in the payload and again as the message's first
+            // line: the API ignores the field today, and until it does
+            // not, the line is what carries the topic into the inbox.
+            body: JSON.stringify({ name: form.name.value.trim(), email, topic,
+                                   message: `Topic: ${topic}\n\n${body}`, website: form.website.value }) });
+          const data = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
           form.reset();
-          status.textContent = "Sent. You'll hear back at that address.";
+          paintCount();
+          document.getElementById("contact-sent-where").textContent = `Thanks. The reply will go to ${email}.`;
+          form.hidden = true;
+          sent.hidden = false;
         } catch (err) {
-          status.textContent = `Not sent: ${err.message}. The email address above works too.`;
+          fail(`Not sent: ${err.message}. The email address on the left works too.`);
         } finally {
           send.disabled = false;
         }
