@@ -278,6 +278,11 @@
                 <h2 class="account-head-title">Saved jobs</h2>
               </div>
               <div id="saved-list"><p class="alerts-empty">Loading…</p></div>
+              <!-- Beside the list it describes. This used to write into
+                   #account-status down in Settings, so a failed remove
+                   reported itself on a screen the reader was not looking
+                   at, which reads as the button doing nothing. -->
+              <span class="account-status" id="saved-status" aria-live="polite"></span>
             </section>
 
             <section class="account-block" id="settings">

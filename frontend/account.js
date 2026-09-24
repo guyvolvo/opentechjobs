@@ -547,9 +547,12 @@ function paintSaved(jobs) {
       btn.disabled = true;
       try {
         await authedFetch(`/me/saved/${encodeURIComponent(id)}`, { method: "DELETE" });
-      } catch {
+      } catch (err) {
         btn.disabled = false;
-        setStatus("account-status", "Could not remove that listing.", true);
+        // Next to the list, not in Settings, and it says what happened.
+        // A bare "could not" on a button that looks idle is the same as
+        // silence: the reader clicks it again.
+        setStatus("saved-status", `Could not remove that listing: ${err.message}`, true);
         return;
       }
       // The board reads this same list out of localStorage, so removing
@@ -618,6 +621,25 @@ function wireAccountSignIn() {
   });
 }
 
+// Each block of this page fills itself, and one that cannot must not
+// take the others down with it. bootAccount used to be a straight line
+// of awaits, so a single throw anywhere in it stopped everything below:
+// reported live as Alerts stuck on "Loading...", and in the same breath
+// Saved jobs and Best matches empty, which was one fault wearing three
+// costumes. A block that fails now says so in its own container and the
+// next one still runs. The error goes to the console too, because the
+// message on screen is for the reader and the stack is for me.
+async function block(name, host, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.error(`account: ${name} failed`, err);
+    const el = $(host);
+    if (el) el.innerHTML = `<p class="alerts-empty">This did not load. Reloading the page usually fixes it.</p>`;
+    return null;
+  }
+}
+
 async function bootAccount() {
   const tokens = getAuthTokens();
   if (!tokens?.id_token) {
@@ -645,19 +667,27 @@ async function bootAccount() {
   paintProvider(tokens.id_token);
   paintSkillTags();
 
-  wireLeaving();
-  wireAccountNav();
-  wireSettingsTheme();
+  await block("chrome", null, async () => {
+    wireLeaving();
+    wireAccountNav();
+    wireSettingsTheme();
+  });
+
   // Order matters: the analyser runs on the rules the server returns
   // (skill_spec), so it cannot be wired before they arrive.
   const loaded = await loadProfile();
   skillSpec = loaded.skill_spec || null;
-  wireProfile();
-  paintProfile(loaded.profile);
-  await wireAlerts();
-  // Last, and not awaited by anything above it: two requests that only
-  // fill one block, so nothing else on the page should wait on them.
-  loadSaved();
+  await block("profile", "cv-chips", async () => {
+    wireProfile();
+    paintProfile(loaded.profile);
+  });
+
+  // Not awaited by each other. Alerts is the slow one and saved jobs has
+  // nothing to do with it.
+  await Promise.allSettled([
+    block("alerts", "alerts-list", wireAlerts),
+    block("saved", "saved-list", loadSaved),
+  ]);
 }
 
 bootAccount();
