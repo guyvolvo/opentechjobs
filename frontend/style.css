@@ -1574,7 +1574,30 @@ table.jobs .title-cell a:not(.apply-link):hover { color: var(--green-text); }
 /* All listings / Best matches / Saved: the Explore page's segmented
    control, a touch taller to sit with the filter row above it. */
 .view-switch { margin-bottom: 12px; }
-.view-switch .seg-btn { height: 30px; padding: 0 12px; }
+/* Separate pills rather than a joined segmented control. Four views are
+   four choices, not four halves of one switch, and the phone already
+   drew them this way: one shape for both. */
+.board-bar .view-switch {
+  display: flex;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+.board-bar .view-switch .seg-btn {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--grey-line);
+  border-radius: 999px;
+  background: var(--white);
+  white-space: nowrap;
+}
+.board-bar .view-switch .seg-btn:hover { background: var(--hover-bg); }
+.board-bar .view-switch .seg-btn.active {
+  border-color: var(--black);
+  background: var(--black);
+  color: var(--white);
+}
 
 /* What Best matches is ordered by, each skill removable. The skills fold
    down under "My skills"; grid rows animate to the content's own
@@ -5810,13 +5833,22 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   .board-bar #f-sort,
   .board-bar .search-go,
   .board-bar-gap { display: none; }
-  .rail-toggle { height: 44px; flex: 0 0 auto; }
+  .rail-toggle {
+    height: 44px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 14px;
+    border-radius: 999px;
+    line-height: 1;
+  }
   /* The count on the Filters button, so the sheet is not the only place
      that says anything is on. */
   .rail-toggle[data-count]:not([data-count="0"])::after {
     content: attr(data-count);
     display: inline-grid;
     place-items: center;
+    flex: 0 0 auto;
     min-width: 18px;
     height: 18px;
     margin-left: 7px;
@@ -5834,28 +5866,12 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   .board-bar-row-2 .view-switch {
     order: 0;
     width: auto;
-    display: flex;
-    gap: 8px;
-    border: 0;
-    border-radius: 0;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
   }
   .board-bar-row-2 .view-switch::-webkit-scrollbar { display: none; }
-  .board-bar-row-2 .view-switch .seg-btn {
-    flex: 0 0 auto;
-    height: 32px;
-    padding: 0 14px;
-    border: 1px solid var(--grey-line);
-    border-radius: 999px;
-    white-space: nowrap;
-  }
-  .board-bar-row-2 .view-switch .seg-btn.active {
-    border-color: var(--black);
-    background: var(--black);
-    color: var(--white);
-  }
+  .board-bar-row-2 .view-switch .seg-btn { flex: 0 0 auto; }
 
   .job-detail {
     /* A phone has no room for a side sheet, so it is the whole screen
