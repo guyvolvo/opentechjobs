@@ -52,21 +52,39 @@ before it becomes the only writer.
 
 ## 3. Make the box primary
 
-Three env changes, not one. `OTJ_PRIMARY` turns on alerts, fragment
+Five env changes, not one. `OTJ_PRIMARY` turns on alerts, fragment
 deletion, archiving and the status files; `FRONTEND_BUCKET` is what the
-bootstrap, explore and sitemap publishers write to; and
+bootstrap, explore and sitemap publishers write to;
 `PRECOMPUTED_PREFIX` has to go, because it currently points at
 `precomputed-box/` so the two appliers could not overwrite each other,
 and from here the box should write the real one.
 
+`COGNITO_ISSUER` and `COGNITO_AUDIENCE` are the two the first cutover
+missed, and missing them is silent. The API Gateway used to verify the
+bearer token before the Lambda ever saw it; on the box that job belongs
+to `_claims()` in `api/serve.py`, which returns None the moment either
+is unset. Every `/api/me/*` route then answers 401 with nothing in the
+log, so saved jobs, alerts and the CV analyser all come back empty
+rather than broken, and the pages say so in their own words. It ran
+that way from the cutover until 2026-09-24.
+
     sudo sed -i '/^PRECOMPUTED_PREFIX=/d' /etc/otj-api.env
     printf 'OTJ_PRIMARY=1\nFRONTEND_BUCKET=iljobs-frontend-876913698688\n' | sudo tee -a /etc/otj-api.env
+    printf 'COGNITO_ISSUER=https://cognito-idp.il-central-1.amazonaws.com/il-central-1_0vIcqqXyg\nCOGNITO_AUDIENCE=5021pv23cp3udp1uaq34tp38mb\n' | sudo tee -a /etc/otj-api.env
     sudo systemctl restart otj-api
     sudo systemctl start otj-apply.service     # force one now rather than waiting for the timer
     sudo journalctl -u otj-apply -n 20 --no-pager
 
 Expect the apply line to report `cleared N`, `alerts N checked`, and
 `published N`. If it reports `cleared 0` the flag did not take.
+
+Check the auth separately, because nothing above covers it. Signed in,
+`/api/me/saved` answers 200; the log shows `jwt rejected: ...` for a
+bad token and nothing at all for a good one. A run of 401s with no
+`jwt rejected` line beside them means the two Cognito variables are
+missing again.
+
+    journalctl -u otj-api --since '-1h' | grep '/api/me/' | grep -c ' 401 '
 
 ## 4. Turn on the snapshot publisher
 
