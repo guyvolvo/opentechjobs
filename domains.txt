@@ -24930,3 +24930,11 @@ iesegschoolofmanagementrecrutementadministratif.com
 icgruppen.com
 incision.com
 insidetravelgroup.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+kleinerperkinsfellows.com
+above-roofing.com
+fincoenergies.com
+endterengineeringgmbh.com
+gpvchina.com
+epab.de
