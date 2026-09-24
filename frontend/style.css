@@ -4752,9 +4752,12 @@ a.hero-account-btn { text-decoration: none; }
 .board-box-main > * { min-width: 0; }
 .board-grid > * { min-width: 0; }
 
-/* One head across all three, so the rule under them is a single line
-   the eye reads as the top of the board rather than three lids. The
-   heads stay put; only the bodies under them scroll. */
+/* One height for every head, so the two that remain read as the top of
+   the board rather than as lids of their own. The listings column gave
+   its head up above 1100px, where the panel beside it says the same
+   number: the rows start at the top of the box instead and the first one
+   sits level with the two titles. The heads stay put; only the bodies
+   under them scroll. */
 .col-head {
   flex: none;
   height: 64px;
@@ -5091,6 +5094,14 @@ a.hero-account-btn { text-decoration: none; }
    scroll and the head rides at its top, which keeps the count and the
    sort in reach fifty rows down. */
 .board-list .list-head { position: sticky; top: 0; z-index: 2; }
+/* Only where the overview panel is on screen to say it instead. Above
+   1100px that panel is always beside the list, and once a listing is
+   open the pane head carries "N of TOTAL", so the count was written
+   twice a column apart. Below 1100px the panel is a drawer and this head
+   is the only place the number lives, so it stays. */
+@media (min-width: 1101px) {
+  .board-list .list-head { display: none; }
+}
 
 table.jobs tbody tr[data-id],
 table.jobs tbody tr.skeleton-row {

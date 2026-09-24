@@ -261,10 +261,11 @@
            groups are ordered by how often they get used rather than
            alphabetically: where, then what kind of work, then how
            senior, then how it is worked, then who, then what it pays. -->
-      <!-- Each of the three columns opens with a 64px head and they all
-           share one ink rule, so the board reads as one ruled line
-           across rather than three panels that happen to be adjacent.
-           Each head stays put while its own column scrolls. -->
+      <!-- Each column's head is the same 64px, so they read as the top of
+           one board rather than as three panels that happen to be
+           adjacent. Each head stays put while its own column scrolls.
+           The listings column hides its own above 1100px; see
+           .board-list .list-head in style.css for why. -->
       <aside class="filter-rail" id="filter-rail" aria-label="Filters">
         <div class="rail-head col-head">
           <span class="col-head-title">Filters</span>
