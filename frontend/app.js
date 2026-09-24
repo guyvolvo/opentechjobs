@@ -4846,7 +4846,16 @@ async function refreshScopedStats({ force = false } = {}) {
   }
 
   const held = latestScoped !== null && latestScoped.params === params;
-  if (!force && (held || scopedStatsPending === params)) {
+  // "already being asked" has to mean a request that is actually in
+  // flight. scopedStatsPending is a string, and an aborted request's
+  // finally only clears it when its own sequence is still current, so
+  // the string can outlive the request that set it. Once that happened,
+  // every later call for the same filters took this early return and
+  // never asked anyone, and currentScopeMode stayed "pending" for the
+  // rest of the session: the overview's tiles hold skeletons forever,
+  // which looks exactly like a board that is still loading.
+  const asking = scopedStatsPending === params && scopedStatsInFlight !== null;
+  if (!force && (held || asking)) {
     renderScopeDependent(); // already answered, or already being asked
     return;
   }
@@ -4884,7 +4893,10 @@ async function refreshScopedStats({ force = false } = {}) {
     latestScoped = { params, data: null, degraded: true };
     renderScopeDependent();
   } finally {
-    if (seq === scopedStatsSeq) scopedStatsPending = null;
+    if (seq === scopedStatsSeq) {
+      scopedStatsPending = null;
+      scopedStatsInFlight = null;
+    }
     // Unconditional, unlike loadJobs': the bar is reference counted and
     // this call incremented it exactly once, so skipping the decrement
     // on a superseded request would leave it running forever.
