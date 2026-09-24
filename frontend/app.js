@@ -2032,8 +2032,43 @@ function clearHeldJobs() {
 
 // Every empty state says the same two things: that there is nothing to
 // show, then why.
+// The most recently applied filter, paired with the way to undo it.
+// Order matches the chips, so "the last one" means the one furthest
+// right, which is the one the reader most likely just added.
+function lastAppliedFilter() {
+  const undo = [
+    ["search", () => state.search, () => { state.search = ""; const el = document.getElementById("f-search"); if (el) el.value = ""; }, () => `"${state.search}"`],
+    ["max_age_days", () => state.max_age_days, () => { state.max_age_days = 0; const el = document.getElementById("f-date-posted"); if (el) el.value = ""; }, () => `posted in the last ${state.max_age_days} days`],
+    ["workplace", () => state.workplace.length, () => { state.workplace = []; }, () => state.workplace.map((w) => WORKPLACE_LABELS[w] || w).join(", ")],
+    ["city", () => state.city.length, () => { state.city = []; }, () => state.city.join(", ")],
+    ["country", () => state.country.length, () => { state.country = []; }, () => state.country.map(countryLabel).join(", ")],
+    ["company", () => state.company.length, () => { state.company = []; }, () => state.company.join(", ")],
+    ["seniority", () => state.seniority.length, () => { state.seniority = []; }, () => state.seniority.map((x) => SENIORITY_LABELS[x] || x).join(", ")],
+    ["department", () => state.department.length, () => { state.department = []; }, () => state.department.join(", ")],
+  ];
+  for (const [, has, clear, label] of undo) if (has()) return { label: label(), clear };
+  return null;
+}
+
 function emptyState(line) {
-  return `<strong>No results</strong><span>${line}</span>`;
+  const last = lastAppliedFilter();
+  return `<strong>No roles match</strong><span>${line}</span>`
+    + (last
+      ? `<button type="button" class="btn ghost empty-undo" id="empty-undo">Remove ${escapeHtml(last.label)}</button>`
+      : "");
+}
+
+// Wired after the state is written, because emptyState is a string.
+function wireEmptyUndo() {
+  const btn = document.getElementById("empty-undo");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const last = lastAppliedFilter();
+    if (!last) return;
+    last.clear();
+    state.offset = 0;
+    railApply();
+  });
 }
 
 // The words the current search is matching on, lowercased. Read from
@@ -2089,7 +2124,7 @@ function emptySearchState(data) {
   const mode = (data.search && data.search.mode) || "all";
   const shown = terms.map((t) => `<code>${escapeHtml(t)}</code>`).join(" · ");
   const lines = [
-    `<strong>No results</strong>`,
+    `<strong>No roles match</strong>`,
     `<span>${mode === "any" ? "No listing mentions any of these words" : `No listing has all ${terms.length} of these words`}: ${shown}</span>`,
   ];
   const actions = [];
@@ -2100,6 +2135,12 @@ function emptySearchState(data) {
     }
   }
   actions.push(`<button type="button" class="btn ghost btn-small" data-clear-search>Clear the search</button>`);
+  // The words may not be what emptied it. When something else is on
+  // too, offer that back as well rather than making the reader find it.
+  const other = lastAppliedFilter();
+  if (other && !String(other.label).startsWith('"')) {
+    actions.push(`<button type="button" class="btn ghost btn-small" id="empty-undo">Remove ${escapeHtml(other.label)}</button>`);
+  }
   lines.push(`<span class="empty-actions">${actions.join("")}</span>`);
   return lines.join("");
 }
@@ -2319,6 +2360,7 @@ function renderJobs(data, starred) {
       ? emptySearchState(data)
       : emptyState("No listings match these filters.");
     document.getElementById("jobs-empty").style.display = "block";
+    wireEmptyUndo();
     document.getElementById("jobs-body").innerHTML = "";
     showJobsTable(false);
     document.getElementById("result-count").innerHTML = "";
@@ -2327,6 +2369,21 @@ function renderJobs(data, starred) {
   document.getElementById("jobs-empty").style.display = "none";
   renderJobRows(data.jobs, starred);
   renderResultCount(data);
+  // A filter change redraws every row, which drops the .selected class
+  // with them. The pane is still open on that listing, so the row it
+  // came from is marked again when it survived the change, and the pane
+  // is closed when it did not: a pane describing a listing the filters
+  // have just excluded is the board contradicting itself.
+  if (selectedJobId !== null) {
+    const still = data.jobs.some((j) => j.id === selectedJobId);
+    if (still) {
+      document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.add("selected");
+      paneHead(findKnownJob(selectedJobId));
+      revealSelectedRow();
+    } else {
+      closeJobDetailAndSync();
+    }
+  }
 }
 
 // "Company · Department · Location (Workplace)" -- one scannable line
@@ -2546,6 +2603,23 @@ function dedupeJobs(jobs) {
   });
 }
 
+// Bring the selected row into view inside the list's own scroller.
+// scrollTop rather than scrollIntoView: the latter scrolls every
+// ancestor that can scroll, which on this board means the window and the
+// pane move too. Only nudges when the row is actually out of view, so
+// clicking a row you can already see does not shift the list under you.
+function revealSelectedRow() {
+  const list = document.querySelector(".board-list");
+  const row = selectedJobId === null ? null : document.querySelector(`tr[data-id="${selectedJobId}"]`);
+  if (!list || !row) return;
+  const head = list.querySelector(".list-head");
+  const top = head ? head.getBoundingClientRect().height : 0;
+  const lb = list.getBoundingClientRect();
+  const rb = row.getBoundingClientRect();
+  if (rb.top < lb.top + top) list.scrollTop -= lb.top + top - rb.top + 8;
+  else if (rb.bottom > lb.bottom) list.scrollTop += rb.bottom - lb.bottom + 8;
+}
+
 function renderJobRows(jobs, starred) {
   // The tooltip stopped being true once /me/saved existed. Signed in,
   // the star does follow you, and saying otherwise talks people out of
@@ -2712,7 +2786,11 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
     ${job.skills ? `<div class="job-detail-skills">${jobSkillChips(job)}</div>` : ""}
 
     <div class="job-detail-section-title">About this role</div>
-    ${descriptionHtml}`;
+    ${descriptionHtml}
+
+    <!-- The description here is a copy, and an old one by the time
+         anybody reads it. This is the version that is actually true. -->
+    <a class="job-detail-source" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener">View original posting ${EXTERNAL_ARROW_SVG}</a>`;
 }
 
 // The empty state
@@ -2733,9 +2811,32 @@ function paneHead(job) {
   const head = document.getElementById("pane-head");
   if (!head) return;
   if (job) {
-    head.innerHTML = `<span class="col-head-title">Listing</span>
+    // Where this listing sits in the list behind it, and the way through
+    // them without going back to the column. The position counts from
+    // the page offset, so it is the reader's place in the whole result
+    // set rather than in the fifty rows currently loaded.
+    const rows = (lastJobsResponse && lastJobsResponse.jobs) || [];
+    const i = rows.findIndex((r) => r.id === job.id);
+    const total = lastJobsResponse && lastJobsResponse.total;
+    const at = i < 0 ? null : state.offset + i + 1;
+    const label = at === null ? "Listing"
+      : `${fmtInt(at)} of ${total == null ? `${fmtInt(state.offset + rows.length)}+` : fmtInt(total)}`;
+    head.innerHTML = `
+      <div class="pane-nav">
+        <button type="button" class="pane-step" data-step="-1" aria-label="Previous listing"
+                ${i <= 0 ? "disabled" : ""}>&#8249;</button>
+        <span class="col-head-title pane-pos">${escapeHtml(label)}</span>
+        <button type="button" class="pane-step" data-step="1" aria-label="Next listing"
+                ${i < 0 || i >= rows.length - 1 ? "disabled" : ""}>&#8250;</button>
+      </div>
       <button type="button" class="pane-close job-detail-close" aria-label="Close listing">&#10005;</button>`;
     head.querySelector(".pane-close").addEventListener("click", closeJobDetailAndSync);
+    head.querySelectorAll("[data-step]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const next = rows[i + Number(btn.dataset.step)];
+        if (next) openJobDetailAndPush(next.id);
+      });
+    });
     return;
   }
   const view = state.roles === "tech" && !state.starred_only ? "Tech roles" : "All roles";
@@ -2743,6 +2844,16 @@ function paneHead(job) {
       <span class="col-head-title">Results overview</span>
       <span class="col-head-sub">${escapeHtml([...activeFilterSummary(), view].join(" · "))}</span>
     </div>`;
+}
+
+// The facets count companies by domain, because that is the key the
+// board filters on, but a domain is not what a company is called. The
+// rows on screen already carry both, so the name is looked up there and
+// the domain is only shown when nothing on this page knows better.
+function companyNameFor(domain) {
+  const rows = (lastJobsResponse && lastJobsResponse.jobs) || [];
+  const hit = rows.find((j) => j.company_domain === domain && j.company_name);
+  return hit ? hit.company_name : domainLabel(domain);
 }
 
 function renderDetailEmpty() {
@@ -2795,8 +2906,8 @@ function renderDetailEmpty() {
           <span class="ov-block-title">Hiring most</span>
           ${hiring.map((c) => `
             <button type="button" class="ov-row" data-company="${escapeHtml(c.value)}"
-                    title="Show only ${escapeHtml(c.value)}">
-              <span>${escapeHtml(c.value)}</span>
+                    title="Show only ${escapeHtml(companyNameFor(c.value))}">
+              <span>${escapeHtml(companyNameFor(c.value))}</span>
               <span class="ov-row-n">${fmtInt(c.n)}</span>
             </button>`).join("")}
         </div>` : ""}
@@ -2937,8 +3048,47 @@ function jobPermalink(id) {
   return `${location.origin}${location.pathname}?job=${encodeURIComponent(id)}`;
 }
 
+// The duplicate action bar, shown only while the real one is off screen.
+// An observer rather than a scroll handler: the question is literally
+// "is that element visible inside this scroller", which is what an
+// IntersectionObserver answers without running code on every frame.
+let paneStickyObserver = null;
+
+function wireStickyActions(job) {
+  const bar = document.getElementById("pane-sticky");
+  const body = paneBody();
+  const actions = body && body.querySelector(".job-detail-actions");
+  if (paneStickyObserver) paneStickyObserver.disconnect();
+  if (!bar || !actions) return;
+  const starred = getStarred().has(job.id);
+  bar.innerHTML = `
+    <a class="job-detail-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener">Apply ${EXTERNAL_ARROW_SVG}</a>
+    <button type="button" class="job-detail-star ${starred ? "on" : ""}" data-star="${job.id}"
+            aria-pressed="${starred}">${STAR_SVG}<span>${starred ? "Saved" : "Save"}</span></button>`;
+  bar.querySelector("[data-star]").addEventListener("click", (e) => {
+    const on = toggleStar(job.id).has(job.id);
+    paintDetailStar(e.currentTarget, on);
+    const other = body.querySelector(".job-detail-star");
+    if (other) paintDetailStar(other, on);
+    const rowBtn = document.querySelector(`[data-star="${job.id}"].star-btn`);
+    if (rowBtn) {
+      rowBtn.classList.toggle("on", on);
+      rowBtn.setAttribute("aria-pressed", String(on));
+    }
+    pushStar(job.id, on);
+    if (state.starred_only) loadJobs();
+  });
+  bar.hidden = true;
+  paneStickyObserver = new IntersectionObserver(
+    ([entry]) => { bar.hidden = entry.isIntersecting; },
+    { root: body, threshold: 0 },
+  );
+  paneStickyObserver.observe(actions);
+}
+
 function wireJobDetailPanel(job) {
   const panel = document.getElementById("job-detail");
+  wireStickyActions(job);
   panel.querySelector(".job-detail-close")?.addEventListener("click", closeJobDetailAndSync);
   panel.querySelector(".job-detail-star")?.addEventListener("click", (e) => {
     const s = toggleStar(job.id);
@@ -2971,6 +3121,9 @@ async function openJobDetail(id) {
   setCanonical(`/job/${encodeURIComponent(id)}`);
   document.querySelector(`tr[data-id="${previousId}"]`)?.classList.remove("selected");
   if (known) document.querySelector(`tr[data-id="${id}"]`)?.classList.add("selected");
+  // Opened from the keyboard or from the pane's own prev/next, the row
+  // may be off screen; a selection you cannot see is not one.
+  revealSelectedRow();
 
   clearTimeout(jobDetailCloseTimer);
   panel.hidden = false;
@@ -3772,7 +3925,21 @@ const RAIL_DASH_SVG =
   '<svg class="rail-tick" viewBox="0 0 12 12" aria-hidden="true">'
   + '<path d="M3 6h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 
-function railOptionHtml({ kind, value, label, n, checked, mixed = false, cls = "" }) {
+// The part of a label the reader has actually typed, wrapped so it can
+// be set in bold. Escapes around the match rather than escaping the
+// whole string and hunting for the needle in the markup, which breaks
+// the moment a name contains an ampersand.
+function railMark(label, q) {
+  const text = String(label || "");
+  if (!q) return escapeHtml(text);
+  const i = text.toLowerCase().indexOf(q);
+  if (i < 0) return escapeHtml(text);
+  return escapeHtml(text.slice(0, i))
+    + `<b class="rail-hit">${escapeHtml(text.slice(i, i + q.length))}</b>`
+    + escapeHtml(text.slice(i + q.length));
+}
+
+function railOptionHtml({ kind, value, label, n, checked, mixed = false, cls = "", mark: hit = "" }) {
   // The count gets its own element so a long name is what truncates,
   // never the number. Reported live on the old dropdown: "United States
   // (71,7…" with the count cut off.
@@ -3782,7 +3949,7 @@ function railOptionHtml({ kind, value, label, n, checked, mixed = false, cls = "
     <label class="rail-option ${cls}${checked || mixed ? " on" : ""}">
       <input type="checkbox" data-kind="${kind}" value="${escapeHtml(value)}" ${checked ? "checked" : ""} />
       <span class="rail-box" aria-hidden="true">${mark}</span>
-      <span class="rail-option-label">${escapeHtml(label)}</span>${cnt}
+      <span class="rail-option-label">${railMark(label, hit)}</span>${cnt}
     </label>`;
 }
 
@@ -3828,7 +3995,9 @@ function railCountryBlocks() {
     if (!q && !picked.has(c.value) && !all.some((t) => cities.has(t.value))) continue;
 
     const mine = all.filter((t) => cities.has(t.value));
-    const open = !railCollapsed.has(c.value);
+    // A search opens what it found. Closing a country by hand still
+    // wins, so typing does not fight a reader who just collapsed one.
+    const open = q ? !railCollapsed.has(c.value) || cityHits.length > 0 : !railCollapsed.has(c.value);
     const pool = q && cityHits.length ? cityHits : all;
     const top = railExpanded.has(`city:${c.value}`) || q ? pool : pool.slice(0, RAIL_TOP_N);
     const shownValues = new Set(top.map((t) => t.value));
@@ -3846,14 +4015,14 @@ function railCountryBlocks() {
           ${railOptionHtml({
             kind: "country", value: c.value, label: c.label || c.value, n: c.n,
             checked: picked.has(c.value) && !mine.length, mixed: mine.length > 0,
-            cls: "rail-country-option",
+            cls: "rail-country-option", mark: q,
           })}
         </div>
         ${open
           ? `<div class="rail-cities">
                ${shown.map((t, i) => railOptionHtml({
                  kind: "city", value: t.value, label: t.label || t.value, n: t.n,
-                 checked: cities.has(t.value),
+                 checked: cities.has(t.value), mark: q,
                  cls: "rail-city" + (i === shown.length - 1 ? " last" : ""),
                })).join("")}
                ${!q && pool.length > RAIL_TOP_N

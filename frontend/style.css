@@ -5901,3 +5901,57 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   object-fit: contain;
   padding: 6px;
 }
+
+/* The pane's head is a position and a way through the list, not a word.
+   The count is tabular so the buttons do not shuffle as it changes. */
+.pane-nav { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.pane-pos { font-variant-numeric: tabular-nums; }
+.pane-step {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--black);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.pane-step:hover:not(:disabled) { background: var(--hover-bg); }
+.pane-step:disabled { opacity: 0.35; cursor: default; }
+.pane-step:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+
+/* Apply and Save again at the foot of the pane, once the real pair has
+   scrolled out of it. A rule above rather than a shadow: the board draws
+   with lines, not with depth. */
+.pane-sticky {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--grey-line);
+  background: var(--white);
+}
+.pane-sticky[hidden] { display: none; }
+
+/* The last thing in the pane: the version that is actually current. */
+.job-detail-source {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 13px var(--font-ui);
+  color: var(--green-text);
+  text-decoration: none;
+}
+.job-detail-source:hover { text-decoration: underline; }
+
+/* The way back out of an empty result set. */
+.empty-undo { margin-top: 14px; }
+
+/* The part of a filter option the reader typed. */
+.rail-hit { font-weight: 700; color: var(--green-text); }

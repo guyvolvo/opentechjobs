@@ -346,6 +346,11 @@
       <aside class="job-detail board-box" id="job-detail" role="complementary" aria-label="Job detail">
         <div class="col-head pane-head" id="pane-head"></div>
         <div class="pane-body" id="pane-body"></div>
+        <!-- Apply and Save again, once the real pair has scrolled out of
+             the pane. A long description otherwise puts the only way to
+             act on a listing several screens above where you finish
+             reading it. -->
+        <div class="pane-sticky" id="pane-sticky" hidden></div>
       </aside>
       <!-- Dims and catches clicks on the board while the pane is a
            sheet. Inert above 1100px, where the pane is a column. -->
