@@ -3160,51 +3160,130 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   .account-block.is-active { animation: none; }
 }
 
-@media (max-width: 960px) {
-  /* The nav is the screen, and a section replaces it. Narrow enough to
-     stay a menu rather than four bars across a tablet. */
-  .account-page { max-width: 460px; }
-  .account-layout { display: block; }
-  .account-nav { padding-right: 0; }
-  .account-main { padding-left: 0; border-left: 0; min-height: 0; }
-  /* "My account" is directly above it here, so the column's own label
-     would be saying it twice. */
-  .account-nav-label { display: none; }
-  .account-nav-list { gap: 12px; }
-  .account-nav-link {
-    justify-content: space-between;
-    height: 48px;
-    border-bottom: 1px solid var(--grey-line);
-    border-radius: 4px;
-    font-size: 17px;
+/* Phone and small tablet. The nav stops being a screen of its own and
+   becomes a strip of tabs above the content, which is why
+   .account-layout:not(.section-open) .account-main used to hide
+   everything: with no hash in the URL nothing was open, so the page
+   rendered a menu and nothing under it. Reported as blank content under
+   the tabs, and it was.  */
+@media (max-width: 800px) {
+  .account-shell { height: auto; min-height: 0; background: var(--hover-bg); }
+  .account-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 8px;
+    height: auto;
   }
-  .account-nav-link.active { border-color: var(--green-text); background: none; }
-  .account-nav-count { font-size: 14px; }
-  /* The two states. Nothing animates between them: a section is a
-     different screen, not a drawer. */
-  .account-layout:not(.section-open) .account-main { display: none; }
-  .account-layout.section-open .account-nav,
-  .account-page.section-open > .section-title { display: none; }
-  .account-back {
-    display: inline-flex;
+
+  /* The sidebar box unwraps: identity as a row, nav as the tab strip,
+     and the foot moves to the end of the page. */
+  /* A grid so the identity and the way out share the top row and the
+     tabs run the width under both. As a flex column the foot landed
+     between the tabs and the content, which is the one place a Sign out
+     link should never be. */
+  .account-side {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 6px;
-    height: 36px;
-    margin-bottom: 14px;
-    padding: 0 12px 0 8px;
-    border: var(--rule) solid var(--black);
-    border-radius: 4px;
-    background: var(--white);
-    color: var(--black);
-    font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    overflow: visible;
+    gap: 0;
   }
-  .account-back:hover { background: var(--black); color: var(--white); }
-  .account-back:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-  /* Two across at tablet width, one per row on a phone: a 4-character
-     picker label in a third of 320px is not a control. */
+  .account-side .account-nav { grid-column: 1 / -1; }
+  .account-side .acct-box-head {
+    height: auto;
+    padding: 4px 8px 12px;
+    border-bottom: 0;
+  }
+  .acct-id-mark { width: 40px; height: 40px; }
+  .acct-id-mark .hero-avatar,
+  .acct-id-mark img { width: 40px; height: 40px; font-size: 17px; }
+  .acct-id-name { font-size: 17px; }
+
+  /* Underline tabs, scrolled sideways. No boxes: a row of outlined
+     buttons at this width reads as five separate things to decide
+     between rather than one place you are in. */
+  .account-nav {
+    flex: none;
+    flex-direction: row;
+    gap: 0;
+    padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--grey-line);
+  }
+  .account-nav::-webkit-scrollbar { display: none; }
+  .account-nav-link {
+    flex: 0 0 auto;
+    height: 44px;
+    gap: 6px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    font-size: 15px;
+    white-space: nowrap;
+  }
+  .account-nav-link:hover:not(.active) { background: none; color: var(--green-text); }
+  .account-nav-link.active {
+    background: none;
+    box-shadow: inset 0 -2px 0 var(--green-text);
+    font-weight: 700;
+  }
+
+  .acct-box-foot { border: 0; padding: 0 8px 12px; }
+
+  /* Every section is a box on the ground, and they are all present:
+     the tab decides which one, not whether there is one. */
+  .account-main {
+    border: 0;
+    border-radius: 0;
+    background: none;
+    overflow: visible;
+  }
+  .account-main > .acct-box-head { display: none; }
+  .acct-box-body {
+    overflow: visible;
+    padding: 0;
+    gap: 10px;
+  }
+  .account-block {
+    display: none;
+    padding: 0;
+    background: var(--white);
+    border: 1px solid var(--panel-line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .account-block.is-active { display: block; }
+  .acct-row-two,
+  .acct-row-lead { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 0; }
+
+  /* A panel inside a section becomes its own box, with the 48px header
+     row the spec asks for. */
+  .acct-panel {
+    gap: 0;
+    background: var(--white);
+    border-top: 1px solid var(--grey-line);
+  }
+  .acct-panel:first-child { border-top: 0; }
+  .acct-panel-title {
+    height: 48px;
+    padding: 0 16px;
+    align-items: center;
+    border-bottom: 1px solid var(--grey-line);
+  }
+  .acct-panel > :not(.acct-panel-title) { padding-left: 16px; padding-right: 16px; }
+  .acct-panel > :last-child { padding-bottom: 16px; }
+  .acct-tiles { border: 0; border-radius: 0; }
+  .acct-tile { padding: 14px 10px; }
+  .acct-tile-value { font-size: 24px; }
+
+  .account-back { display: none; }
   .account-main .alert-create-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .account-main .alert-create .btn { width: 100%; }
 }
@@ -5845,32 +5924,11 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 }
 .topbar-gap { flex: 1; }
 
-/* Identity: the mark, then the name over the email. The email is the
-   line that truncates, because a name is short and an address is not. */
-.account-id-text .account-email,
-
-/* A nav row is the whole line. The active one carries an inset bar in
-   Green Text rather than a filled block: it marks where you are without
-   becoming the loudest thing in the column. */
-.account-nav-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 4px;
-  font: 400 15px var(--font);
-  color: var(--black);
-  text-decoration: none;
-}
-.account-nav-link:hover { background: var(--hover-bg); }
-.account-nav-link.active {
-  background: var(--hover-bg);
-  box-shadow: inset 3px 0 0 var(--green-text);
-  font-weight: 700;
-}
-.account-nav-count { font: 400 12px var(--font); color: var(--grey); }
+/* The nav's own rules live with the rest of the sidebar higher up. A
+   second copy sat here, outside any media query and after the phone
+   block, so it won at every width: it is why the tabs measured 40px
+   with a left-hand bar instead of 44 with an underline, and why an
+   active row on the desktop was tinted rather than filled. */
 /* A count of nothing is not information. */
 .account-nav-count:empty,
 .account-nav-count[data-zero="1"] { display: none; }
@@ -5921,23 +5979,11 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .acct-danger-title { font: 700 15px var(--font); color: var(--red); }
 
 @media (max-width: 800px) {
-  /* The sidebar becomes a scrolling tab row and the identity goes with
-     it: on a phone the avatar and address are a header nobody reads
-     twice, and the nav is what the thumb wants. */
-  .account-layout { grid-template-columns: minmax(0, 1fr); }
-  .account-side {
-    position: static;
-    flex-direction: row;
-    border-right: 0;
-    border-bottom: 1px solid var(--grey-line);
-    padding: 0 16px;
-    gap: 0;
-    overflow-x: auto;
-  }
-  .account-nav { flex-direction: row; gap: 4px; }
-  .account-nav-link { white-space: nowrap; box-shadow: none; }
-  .account-nav-link.active { box-shadow: inset 0 -3px 0 var(--green-text); }
-  .account-main { padding: 0; }
+  /* The account page's own phone rules are in the max-width: 800px
+     block above, which is where the tab strip is defined. This one used
+     to redefine the same four selectors a second time and win on source
+     order, which is how the tabs ended up 40px tall with a 3px
+     underline instead of the 44 and 2 they are drawn at. */
 }
 
 /* Value over label in the listing's facts, the same way round as the

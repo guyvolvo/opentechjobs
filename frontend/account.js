@@ -456,7 +456,10 @@ function wireAccountNav() {
     .filter((p) => p.el);
   if (!panels.length) return;
 
-  const narrow = () => window.matchMedia("(max-width: 960px)").matches;
+  // A section is always open, at every width. The phone used to leave
+  // nothing open and show the nav as a screen of its own; the nav is a
+  // strip of tabs there now, and tabs with nothing under them is the
+  // blank content people reported.
   let open = null;
 
   const paint = () => {
@@ -496,24 +499,17 @@ function wireAccountNav() {
     e.preventDefault();
     show(p.id, true);
   });
-  back.addEventListener("click", () => show(null, true));
+  if (back) back.addEventListener("click", () => show(panels[0].id, true));
 
   addEventListener("popstate", () => {
     const id = location.hash.slice(1);
-    open = panels.some((p) => p.id === id) ? id : null;
-    if (!open && !narrow()) open = panels[0].id;
+    open = panels.some((p) => p.id === id) ? id : panels[0].id;
     paint();
   });
 
-  // Coming back across the breakpoint from the phone's menu, where
-  // nothing is open, into a layout that has no menu to show.
-  addEventListener("resize", () => {
-    if (!open && !narrow()) show(panels[0].id, false);
-  }, { passive: true });
-
   const asked = location.hash.slice(1);
   const landing = panels.find((p) => p.id === asked);
-  show(landing ? landing.id : (narrow() ? null : panels[0].id), false);
+  show(landing ? landing.id : panels[0].id, false);
 }
 
 // Alerts are app.js's own renderAlertsList and wireAlertCreateForm,
