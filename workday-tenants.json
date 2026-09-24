@@ -29738,5 +29738,75 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "goodwinprocter.com",
+  "tenant": "goodwinprocter",
+  "wd": "wd5",
+  "site": "External_Careers",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "nant.com",
+  "tenant": "nant",
+  "wd": "wd5",
+  "site": "ImmunityBio",
+  "jobs_seen": 48,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "brunellocucinelli.ai",
+  "tenant": "brunellocucinelli",
+  "wd": "wd3",
+  "site": "Cucinelli",
+  "jobs_seen": 47,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "hempel.com",
+  "tenant": "hempel",
+  "wd": "wd3",
+  "site": "hempelcareers",
+  "jobs_seen": 47,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "evolito.net",
+  "tenant": "evolito",
+  "wd": "wd3",
+  "site": "Evolito_Career_Site",
+  "jobs_seen": 45,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "marymount.com",
+  "tenant": "marymount",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 44,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "cog.org",
+  "tenant": "cog",
+  "wd": "wd5",
+  "site": "External_Prod",
+  "jobs_seen": 41,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
