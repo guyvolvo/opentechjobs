@@ -180,6 +180,18 @@ function decodeJwtEmail(idToken) {
   }
 }
 
+// The reader's own name, when the provider gave one. Google and GitHub
+// both send it; an email sign-in has none, and the caller falls back to
+// the address rather than inventing something to call them.
+function decodeJwtName(idToken) {
+  try {
+    const payload = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return payload.name || payload.given_name || null;
+  } catch {
+    return null;
+  }
+}
+
 // The reader's Google photo. Cognito maps Google's picture claim onto
 // the user (infra/cognito.tf), so it rides along in the id_token. Email
 // and GitHub sign-ins carry no picture claim at all.

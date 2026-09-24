@@ -28,15 +28,53 @@ const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only:
 // on a tile in the overview. One call writes both, so they cannot drift.
 // They are set wherever the block they count gets filled, rather than by
 // a request that asks for totals.
+const counts = { skills: 0, alerts: 0, saved: 0 };
+
 function setCount(key, n) {
+  counts[key] = n;
   for (const id of ["stat-" + key, "tile-" + key]) {
     const el = $(id);
     if (el) el.textContent = String(n);
   }
+  // A count of nothing is not information, so the nav badge goes away
+  // rather than sitting there as a zero.
+  const badge = $("stat-" + key);
+  if (badge) badge.dataset.zero = n > 0 ? "0" : "1";
+  paintOverview();
+}
+
+// Which Overview shows is decided here and nowhere else, from the same
+// counts the nav badges use, so the two cannot disagree. All three done
+// retires the steps outright rather than leaving a row of ticks.
+function paintOverview() {
+  const steps = $("acct-steps");
+  if (!steps) return;
+  const done = { skills: counts.skills > 0, alerts: counts.alerts > 0, saved: counts.saved > 0 };
+  const started = done.skills || done.alerts || done.saved;
+  const all = done.skills && done.alerts && done.saved;
+
+  steps.hidden = all;
+  for (const [key, isDone] of Object.entries(done)) {
+    const card = steps.querySelector(`[data-step="${key}"]`);
+    if (!card) continue;
+    card.classList.toggle("done", isDone);
+    const mark = card.querySelector(".acct-step-n");
+    if (mark) mark.textContent = isDone ? "✓" : mark.dataset.n || mark.textContent;
+    if (mark && !mark.dataset.n && !isDone) mark.dataset.n = mark.textContent;
+  }
+
+  const title = $("overview-title");
+  const lede = $("overview-lede");
+  if (title) title.textContent = started ? "Overview" : "Get the board working for you";
+  if (lede) lede.hidden = started;
+  for (const id of ["account-metrics", "overview-two"]) {
+    const el = $(id);
+    if (el) el.hidden = !started;
+  }
 }
 
 // A summary, not the whole list. Forty chips made the overview mostly
-// chips; the rest are one click away in Resume Scanner, which is where
+// chips; the rest are one click away in Skills, which is where
 // they can actually be changed.
 const TAGS_SHOWN = 7;
 
@@ -44,7 +82,7 @@ function paintSkillTags() {
   const host = $("acct-tags");
   if (!host) return;
   if (!draft.skills.length) {
-    host.innerHTML = '<span class="acct-none">No skills yet. Read a resume in Resume Scanner.</span>';
+    host.innerHTML = '<span class="acct-none">No skills yet. Read a resume in Skills.</span>';
     return;
   }
   const rest = draft.skills.length - TAGS_SHOWN;
@@ -137,7 +175,7 @@ function paintChips() {
   host.innerHTML = draft.skills.map((s) => `
     <button type="button" class="cv-chip" data-skill="${escapeHtml(s)}" title="Remove">
       ${escapeHtml(s)}<span aria-hidden="true">&times;</span>
-    </button>`).join("") || '<span class="cv-none">No known skills found. The file may be an image scan.</span>';
+    </button>`).join("");
 
   host.querySelectorAll(".cv-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
@@ -185,6 +223,15 @@ async function takeCvFile(file) {
   setStatus("cv-status", "Reading…");
   try {
     const text = await readCv(file);
+    // The rules come down with the profile. When that request failed
+    // there is nothing to match against, and every CV read as empty:
+    // a page whose profile would not load told people their CV had no
+    // skills in it, which is a different and much worse thing to say
+    // than "this did not load". Say which one it is.
+    if (!skillSpec) {
+      setStatus("cv-status", "The skill list did not load, so nothing can be matched. Reload the page and try again.", true);
+      return;
+    }
     const found = skillsIn(text);
     // Merge rather than replace: someone who analyses a second CV, or
     // has already added a skill by hand, should not silently lose it.
@@ -193,7 +240,10 @@ async function takeCvFile(file) {
     paintChips();
     setStatus("cv-status", found.length
       ? `Found ${found.length} skill${found.length === 1 ? "" : "s"}.`
-      : "No known skills found.");
+      // No text at all is a scanned image, not a CV without skills.
+      : text.trim()
+        ? "No known skills found in that file."
+        : "No text in that file. A scanned image cannot be read.");
   } catch (err) {
     setStatus("cv-status", "Could not read that file. PDF or plain text.", true);
   }
@@ -264,7 +314,7 @@ function wireProfile() {
 // never can above it.
 function wireAccountNav() {
   const layout = $("account-body");
-  const page = document.querySelector(".account-page");
+  const page = document.querySelector(".account-shell");
   const back = $("account-back");
   const panels = [...document.querySelectorAll(".account-nav-link")]
     .map((link) => ({ link, id: link.getAttribute("href").slice(1), el: document.querySelector(link.getAttribute("href")) }))
@@ -281,7 +331,7 @@ function wireAccountNav() {
       p.link.setAttribute("aria-current", p.id === open ? "true" : "false");
     });
     layout.classList.toggle("section-open", !!open);
-    page.classList.toggle("section-open", !!open);
+    if (page) page.classList.toggle("section-open", !!open);
   };
 
   // The hash is the section, so a link to /account#alerts opens there
@@ -567,6 +617,14 @@ async function bootAccount() {
   $("account-body").hidden = false;
   const email = decodeJwtEmail(tokens.id_token) || "signed in";
   $("account-email").textContent = email;
+  // The name when the token carries one, the address otherwise. The
+  // sidebar shows both, so the name line must not repeat the email.
+  const name = decodeJwtName(tokens.id_token);
+  const nameEl = $("account-name");
+  if (nameEl) nameEl.textContent = name || email;
+  if (nameEl && !name) $("account-email").hidden = true;
+  const settingsEmail = $("settings-email");
+  if (settingsEmail) settingsEmail.textContent = email;
   // The same mark the board's account menu draws: Google's photo when
   // the token carries one, the first letter when it does not.
   $("account-avatar").innerHTML = avatarHtml(email, tokens.id_token);

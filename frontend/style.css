@@ -2812,27 +2812,15 @@ body.explore-busy .explore-metric { color: var(--green-text); }
    under a 1120px group and then nothing, so the page looked like it had
    lost its second half. There is no footer under it to divide from. */
 .section.account-section { border-bottom: 0; padding-bottom: 64px; }
-.account-page {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding-left: 0;
-  padding-right: 0;
-}
+/* Two columns, a hairline between them, and no banner above them. The
+   avatar, the name and the email moved into the sidebar beside the nav:
+   as a centred header they were a third of the first screen saying
+   something the reader already knew. */
+.account-shell { min-height: calc(100vh - 57px); }
 .account-layout {
   display: grid;
-  /* Wide enough for "Saved listings" at the nav's 24px display size. */
-  grid-template-columns: clamp(240px, 20vw, 300px) minmax(0, 1fr);
-  /* The name and the reader run across the top of both columns and are
-     centred there, by request. The nav and the open section start level
-     underneath. */
-  grid-template-areas:
-    "id    id"
-    "lede  lede"
-    "nav   main";
-  /* The nav's row has to be the tall one. A sticky grid item can only
-     travel inside its own grid area, so giving the last row 1fr is what
-     lets the nav ride down the length of the content beside it. */
-  grid-template-rows: auto auto 1fr;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items: start;
 }
 /* display on a class beats the user agent's [hidden], which is how the
    signed-out page would otherwise render the whole account under the
@@ -2840,19 +2828,26 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .account-layout[hidden] { display: none; }
 .account-page > .section-title { text-align: center; }
 .account-main {
-  grid-area: main;
   min-width: 0;
-  padding-left: var(--gutter);
-  /* The one line that makes the pair read as a box. The same quiet
-     divider the job table puts between rows, not a full ink rule: this
-     separates two halves of one panel, it does not end a section. */
-  border-left: var(--rule) solid var(--grey-line);
-  /* So the divider still has a length behind a short section. */
-  min-height: 440px;
+  max-width: 1040px;
+  padding: 40px 48px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
 
-/* The page's own nav: four buttons, each its own box, spaced apart. */
-.account-nav { grid-area: nav; min-width: 0; padding-right: var(--gutter); }
+/* The sidebar, and the hairline that separates it from the work. */
+.account-side {
+  min-width: 0;
+  padding: 28px 20px;
+  border-right: 1px solid var(--grey-line);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky;
+  top: 57px;
+}
+.account-nav { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .account-id {
   grid-area: id;
   display: flex;
@@ -3331,7 +3326,6 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 .cv-chip:hover { background: var(--black); color: var(--white); }
 .cv-chip:hover span { color: var(--white); }
 .cv-chip:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-.cv-none { color: var(--grey); font-size: 11.5px; }
 /* Each chip is a remove button and at 29px it was a small one for a
    thumb. Height only: the row still wraps the same way. */
 @media (pointer: coarse) {
@@ -5284,4 +5278,203 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   .job-detail,
   .filter-rail,
   #job-scrim { transition: none; }
+}
+
+/* ===== Account: the redesigned shell ============================== */
+
+.topbar-account .container { display: flex; align-items: center; gap: 24px; min-height: 56px; }
+.topbar-word { font: 400 15px var(--font-display); letter-spacing: 0.02em; color: var(--black); text-decoration: none; }
+.topbar-word span { color: var(--green); }
+.topbar-nav { display: flex; gap: 20px; font-size: 14px; }
+.topbar-nav a { color: var(--black); text-decoration: none; }
+.topbar-nav a:hover { color: var(--green-text); }
+/* The page you are on. An inset rule under the word rather than a
+   colour, so it reads as a position in the bar and not as a link in a
+   different state. */
+.topbar-nav a.current {
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--black);
+}
+.topbar-gap { flex: 1; }
+
+/* Identity: the mark, then the name over the email. The email is the
+   line that truncates, because a name is short and an address is not. */
+.account-id { display: flex; align-items: center; gap: 12px; padding: 0 4px; }
+.account-id-mark {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 400 18px var(--font-display);
+}
+.account-id-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.account-id-name { font: 700 14px var(--font); color: var(--black); }
+.account-id-text .account-email,
+.account-id-text .acct-provider {
+  font: 400 12px var(--font);
+  color: var(--grey);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A nav row is the whole line. The active one carries an inset bar in
+   Green Text rather than a filled block: it marks where you are without
+   becoming the loudest thing in the column. */
+.account-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font: 400 15px var(--font);
+  color: var(--black);
+  text-decoration: none;
+}
+.account-nav-link:hover { background: var(--hover-bg); }
+.account-nav-link.active {
+  background: var(--hover-bg);
+  box-shadow: inset 3px 0 0 var(--green-text);
+  font-weight: 700;
+}
+.account-nav-count { font: 400 12px var(--font); color: var(--grey); }
+/* A count of nothing is not information. */
+.account-nav-count:empty,
+.account-nav-count[data-zero="1"] { display: none; }
+
+/* One header pattern for every section. */
+.account-head { display: flex; flex-direction: column; gap: 6px; }
+.account-head-title {
+  margin: 0;
+  font: 400 34px/1 var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--black);
+}
+.account-head-lede { margin: 0; font: 400 15px/1.45 var(--font); color: var(--black); max-width: 640px; }
+
+/* The first run: three steps, each a card that can be finished. */
+.acct-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+/* display on a class beats the user agent's [hidden], which is how the
+   first-run steps and the populated blocks would otherwise both show.
+   The same trap .account-layout[hidden] above already documents. */
+.acct-steps[hidden],
+.account-metrics[hidden],
+.acct-two[hidden],
+.account-head-lede[hidden] { display: none; }
+.acct-step {
+  border: 1px solid var(--grey-line);
+  border-radius: 14px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.acct-step.done { background: var(--row-selected); }
+.acct-step-top { display: flex; justify-content: space-between; align-items: center; }
+.acct-step-n {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--black);
+  display: grid;
+  place-items: center;
+  font: 500 13px var(--font-ui);
+}
+.acct-step.done .acct-step-n { border-color: var(--green-text); color: var(--green-text); }
+.acct-step-title { margin: 0; font: 400 22px/1.1 var(--font-display); color: var(--black); }
+.acct-step-body { margin: 0; flex: 1; font: 400 14px/1.45 var(--font); color: var(--black); }
+.acct-step .btn { align-self: flex-start; }
+
+/* Three counts, one box, each one a way into what it counts. */
+.account-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--grey-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.account-metric {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: var(--black);
+  border-right: 1px solid var(--grey-line);
+}
+.account-metric:last-child { border-right: 0; }
+.account-metric:hover { background: var(--hover-bg); }
+.account-metric .value { font: 400 36px/1 var(--font-display); }
+.account-metric .label { font: 400 14px var(--font); }
+.account-metric .sub { font: 400 12px var(--font); color: var(--green-text); min-height: 15px; }
+
+.acct-two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.acct-col { display: flex; flex-direction: column; min-width: 0; }
+.acct-col-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--black);
+}
+.acct-col-title { margin: 0; font: 400 20px var(--font-display); color: var(--black); }
+.acct-card { border: 1px solid var(--grey-line); border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Settings: label and description on the left, control on the right. */
+.acct-rows { display: flex; flex-direction: column; }
+.acct-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--grey-line);
+}
+.acct-row-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.acct-row-label { font: 700 15px var(--font); color: var(--black); }
+.acct-row-note { font: 400 14px var(--font); color: var(--grey); }
+
+/* Its own block, bordered in the one colour this system reserves for
+   something that cannot be undone. */
+.account-danger {
+  border: 1px solid var(--red);
+  border-radius: 14px;
+  padding: 22px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.acct-danger-title { font: 700 15px var(--font); color: var(--red); }
+
+@media (max-width: 800px) {
+  /* The sidebar becomes a scrolling tab row and the identity goes with
+     it: on a phone the avatar and address are a header nobody reads
+     twice, and the nav is what the thumb wants. */
+  .account-layout { grid-template-columns: minmax(0, 1fr); }
+  .account-side {
+    position: static;
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid var(--grey-line);
+    padding: 0 16px;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .account-side .account-id { display: none; }
+  .account-nav { flex-direction: row; gap: 4px; }
+  .account-nav-link { white-space: nowrap; box-shadow: none; }
+  .account-nav-link.active { box-shadow: inset 0 -3px 0 var(--green-text); }
+  .account-main { padding: 24px 16px 48px; }
+  .acct-steps,
+  .acct-two,
+  .account-metrics { grid-template-columns: minmax(0, 1fr); }
+  .account-metric { border-right: 0; border-bottom: 1px solid var(--grey-line); }
+  .account-metric:last-child { border-bottom: 0; }
 }

@@ -57,19 +57,27 @@
        It stays on screen here when signed in, unlike the landing page,
        where signing in moves the theme into the account menu. This bar
        has no menu to move it into. -->
-  <header class="hero-bar hero-bar-head hero-bar-bare account-bar">
-    <!-- The way back. Taking Explore and API off this bar was right;
-         taking the board off it left the page with no exit on a wide
-         screen, where there is no phone menu to fall back on. -->
-    <a class="hero-bar-name" href="/board">Jobs</a>
-    <div class="hero-bar-right">
-      <button type="button" class="hero-theme" id="theme-toggle">Dark</button>
+  <!-- The board's own bar, so moving between the two is not a change of
+       place. The wordmark, the three destinations, the theme pill and
+       the account mark, and nothing else: this page has a sidebar for
+       its own navigation and does not need a second one up here.
+       #theme-toggle and #auth-area keep their ids, so app.js and
+       mobile_nav.js drive them here exactly as they do on the board. -->
+  <header class="topbar topbar-account">
+    <div class="container">
+      <a class="topbar-word" href="/">Open<span>Tech</span>Jobs</a>
+      <nav class="topbar-nav" aria-label="Site">
+        <a href="/board">Board</a>
+        <a href="/stats">Statistics</a>
+        <a href="/help">API</a>
+      </nav>
+      <span class="topbar-gap"></span>
+      <div class="auth-area" id="auth-area"></div>
+      <button type="button" class="theme-toggle hero-theme" id="theme-toggle">Dark</button>
     </div>
   </header>
 
-  <div class="workspace workspace-solo">
-    <section class="section account-section">
-      <div class="container account-page">
+  <div class="account-shell">
 
         <!-- Signed out: the whole page is one sign-in, because every
              section below needs a token to say anything at all. Its own
@@ -106,34 +114,33 @@
              section replaces it, with Back to come out again. -->
         <div id="account-body" class="account-layout" hidden>
 
-          <!-- The mark, the page's name and the reader, as one block.
-               The title used to sit above a small detached avatar and
-               the two read as unrelated. Centred as a unit. -->
-          <div class="account-id">
-            <div class="account-id-mark" id="account-avatar"></div>
-            <div class="account-id-text">
-              <h2 class="account-id-title">My account</h2>
-              <p class="account-email" id="account-email"></p>
-              <!-- Only filled when the token actually says which provider
-                   signed this reader in. See account.js. -->
-              <p class="acct-provider" id="account-provider" hidden></p>
+          <!-- Who is signed in, beside the nav rather than above it.
+               The provider line only fills when the token actually says
+               which one signed this reader in (see account.js). -->
+          <aside class="account-side">
+            <div class="account-id">
+              <div class="account-id-mark" id="account-avatar"></div>
+              <div class="account-id-text">
+                <span class="account-id-name" id="account-name"></span>
+                <span class="account-email" id="account-email"></span>
+                <span class="acct-provider" id="account-provider" hidden></span>
+              </div>
             </div>
-          </div>
-          <p class="account-lede">Manage your saved jobs, alerts and resume scanning.</p>
 
-          <!-- The page's own nav, not a second global one: it names the
-               four sections and nothing the topbar already carries. -->
-          <nav class="account-nav" aria-label="Account sections">
-            <p class="account-nav-label">Account</p>
-            <div class="account-nav-list">
+            <!-- Hash targets, not paths: /account/skills would need the
+                 Worker's exact-match PAGES map to learn four new
+                 entries, and a hash is already shareable, already
+                 bookmarkable and already what wireAccountNav drives. -->
+            <nav class="account-nav" aria-label="Account sections">
               <a class="account-nav-link" href="#overview">Overview</a>
-              <a class="account-nav-link" href="#cv">Resume Scanner<span class="account-nav-count" id="stat-skills">0</span></a>
+              <a class="account-nav-link" href="#skills">Skills<span class="account-nav-count" id="stat-skills">0</span></a>
               <a class="account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts">0</span></a>
               <a class="account-nav-link" href="#saved">Saved jobs<span class="account-nav-count" id="stat-saved">0</span></a>
-            </div>
-          </nav>
+              <a class="account-nav-link" href="#settings">Settings</a>
+            </nav>
+          </aside>
 
-          <div class="account-main">
+          <main class="account-main">
 <!-- Phone only. On a wide screen the nav never goes away, so
                  there is nothing to come back to. -->
             <button class="account-back" id="account-back" type="button">
@@ -144,53 +151,77 @@
                  on the page; this is the one screen that says it all at
                  once, which is why it is the section the nav opens on. -->
             <section class="account-block" id="overview">
-              <!-- No heading: the identity block above already names the
-                   page, and a second "Account" said it twice. -->
+              <!-- Empty and populated are the same section. Which one
+                   shows is decided in account.js from the counts it
+                   already keeps, so neither can disagree with the nav. -->
+              <div class="account-head" id="overview-head">
+                <h2 class="account-head-title" id="overview-title">Overview</h2>
+                <p class="account-head-lede" id="overview-lede" hidden>Three things make the board personal. Each takes a minute and can be undone.</p>
+              </div>
 
-              <!-- Each count goes where it is counted. They open their
-                   section through the same handler the nav uses. -->
-              <div class="account-metrics">
+              <!-- The first run. Hidden outright once all three are
+                   done, rather than sitting there as a row of ticks. -->
+              <div class="acct-steps" id="acct-steps" hidden>
+                <article class="acct-step" data-step="skills">
+                  <div class="acct-step-top"><span class="acct-step-n">1</span></div>
+                  <h3 class="acct-step-title">Add your skills</h3>
+                  <p class="acct-step-body">Drop your CV. It is read in your browser and never uploaded. Unlocks Best matches.</p>
+                  <a class="btn btn-small" href="#skills">Scan a CV</a>
+                </article>
+                <article class="acct-step" data-step="alerts">
+                  <div class="acct-step-top"><span class="acct-step-n">2</span></div>
+                  <h3 class="acct-step-title">Create an alert</h3>
+                  <p class="acct-step-body">Get an email when a new role matches your filters.</p>
+                  <a class="btn ghost btn-small" href="#alerts">New alert</a>
+                </article>
+                <article class="acct-step" data-step="saved">
+                  <div class="acct-step-top"><span class="acct-step-n">3</span></div>
+                  <h3 class="acct-step-title">Save a job</h3>
+                  <p class="acct-step-body">Star any listing on the board to keep it here.</p>
+                  <a class="btn ghost btn-small" href="/board">Open the board</a>
+                </article>
+              </div>
+
+              <!-- Each count goes where it is counted, and opens it. -->
+              <div class="account-metrics" id="account-metrics" hidden>
                 <a class="account-metric" href="#saved">
                   <span class="value" id="tile-saved">0</span>
                   <span class="label">Saved jobs</span>
+                  <span class="sub" id="tile-saved-sub"></span>
                 </a>
                 <a class="account-metric" href="#alerts">
                   <span class="value" id="tile-alerts">0</span>
                   <span class="label">Active alerts</span>
+                  <span class="sub" id="tile-alerts-sub"></span>
                 </a>
-                <a class="account-metric" href="#cv">
+                <a class="account-metric" href="#skills">
                   <span class="value" id="tile-skills">0</span>
                   <span class="label">Skills</span>
+                  <span class="sub" id="tile-skills-sub"></span>
                 </a>
               </div>
 
-              <div class="acct-profile">
-                <h4 class="acct-sub">Skill profile</h4>
-                <!-- A summary, not the wall. Forty chips here made the
-                     overview mostly chips; the full list lives in CV
-                     matching, which is where they can be changed. -->
-                <div class="acct-tags" id="acct-tags"></div>
-              </div>
-
-              <div class="account-actions">
-                <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
-              </div>
-
-              <!-- Last, and quiet: a hairline and a small heading rather
-                   than a card competing with the workspace. -->
-              <div class="account-danger">
-                <h4 class="acct-danger-title">Danger zone</h4>
-                <p class="acct-danger-note">Deleting your account removes your alerts, saved jobs and skill profile.</p>
-                <div class="account-actions">
-                  <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete account</button>
-                  <button class="btn btn-small btn-danger-solid" id="account-delete-confirm" type="button" hidden>Confirm</button>
-                  <span class="account-status" id="account-status" aria-live="polite"></span>
+              <div class="acct-two" id="overview-two" hidden>
+                <div class="acct-col">
+                  <div class="acct-col-head">
+                    <h3 class="acct-col-title">New best matches</h3>
+                    <a class="link" href="/board?view=matches">See all on the board</a>
+                  </div>
+                  <div id="acct-matches"></div>
+                </div>
+                <div class="acct-card acct-skills-card">
+                  <h3 class="acct-col-title">Your skills</h3>
+                  <div class="acct-tags" id="acct-tags"></div>
+                  <a class="link" href="#skills">Edit skills</a>
                 </div>
               </div>
             </section>
 
-            <section class="account-block" id="cv">
-              <h3 class="account-block-title">Resume Scanner</h3>
+            <section class="account-block" id="skills">
+              <div class="account-head">
+                <h2 class="account-head-title">Skills</h2>
+                <p class="account-head-lede">Your skills rank the board in Best matches and show how many of a job's skills you have.</p>
+              </div>
               <div class="cv-drop" id="cv-drop">
                 <input type="file" id="cv-file" accept=".pdf,.txt,.md,application/pdf,text/plain" hidden />
                 <p class="cv-drop-lead">Drop a CV here</p>
@@ -215,8 +246,10 @@
                  renderAlertsList and wireAlertCreateForm drive this page
                  too rather than a second implementation of the same form. -->
             <section class="account-block" id="alerts">
-              <h3 class="account-block-title">Alerts</h3>
-              <p class="account-block-note">Set alert settings to get an email whenever a new job matching the preferences has been posted.</p>
+              <div class="account-head">
+                <h2 class="account-head-title">Alerts</h2>
+                <p class="account-head-lede">Get an email when a new job matches your filters.</p>
+              </div>
               <div id="alerts-list"><p class="alerts-empty">Loading…</p></div>
 
               <div class="alert-create" id="alert-create">
@@ -241,13 +274,56 @@
                  to live only in one browser's localStorage, so this section
                  could not have existed. -->
             <section class="account-block" id="saved">
-              <h3 class="account-block-title">Saved jobs</h3>
+              <div class="account-head">
+                <h2 class="account-head-title">Saved jobs</h2>
+              </div>
               <div id="saved-list"><p class="alerts-empty">Loading…</p></div>
             </section>
-          </div>
+
+            <section class="account-block" id="settings">
+              <div class="account-head">
+                <h2 class="account-head-title">Settings</h2>
+              </div>
+
+              <div class="acct-rows">
+                <div class="acct-row">
+                  <div class="acct-row-text">
+                    <span class="acct-row-label">Email</span>
+                    <span class="acct-row-note" id="settings-email"></span>
+                  </div>
+                </div>
+                <div class="acct-row">
+                  <div class="acct-row-text">
+                    <span class="acct-row-label">Theme</span>
+                    <span class="acct-row-note">Light or dark, remembered in this browser.</span>
+                  </div>
+                  <!-- The topbar pill is the control. A second one here
+                       would be a second source of truth for one setting. -->
+                  <a class="link" href="#" id="settings-theme">Use the pill in the bar above</a>
+                </div>
+                <div class="acct-row">
+                  <div class="acct-row-text">
+                    <span class="acct-row-label">Sign out</span>
+                    <span class="acct-row-note">You can sign back in anytime.</span>
+                  </div>
+                  <button class="btn ghost btn-small" id="account-signout" type="button">Sign out</button>
+                </div>
+              </div>
+
+              <div class="account-danger">
+                <div class="acct-row-text">
+                  <span class="acct-danger-title">Delete account</span>
+                  <span class="acct-row-note">Removes your alerts, saved jobs and skill profile. This cannot be undone.</span>
+                </div>
+                <div class="account-actions">
+                  <button class="btn ghost btn-small btn-danger" id="account-delete" type="button">Delete account</button>
+                  <button class="btn btn-small btn-danger-solid" id="account-delete-confirm" type="button" hidden>Confirm</button>
+                  <span class="account-status" id="account-status" aria-live="polite"></span>
+                </div>
+              </div>
+            </section>
+          </main>
         </div>
-      </div>
-    </section>
   </div>
 
   <script src="auth.js"></script>
