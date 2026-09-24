@@ -33,9 +33,28 @@ Coverage, measured live 2026-09-09 against real boards:
     comeet           positions                       .company_name
     recruitee        {token}.recruitee.com/api       .company_name
 
-Lever and Workday expose no company name on any endpoint this project
-already talks to, so those stay unnamed and fall back to the domain.
-Between them that is about 1% of tracked companies.
+    lever            job page                        <title> before " - "
+    bamboohr         {token}.bamboohr.com            <title> "Login - X"
+    breezy           {token}.breezy.hr               <title> "%DOC_TITLE%X"
+    jazzhr           {token}.applytojob.com          <title> "X - Career Page"
+    teamtailor       {token}.teamtailor.com          og:site_name
+    personio         {token}.jobs.personio.de        <title> "Jobs at X" / "Jobs bei X"
+    workday          first job's detail              hiringOrganization.name
+
+The last seven were added 2026-09-25. This file used to say Lever and
+Workday were "about 1% of tracked companies" and could stay unnamed;
+that was true on 2026-09-09 and stopped being true when Workday
+discovery grew to 3,028 tenants, which is 64% of every open listing.
+Workday tenants come from workday-tenants.json rather than known.json,
+which holds 33 of them, and the vendor scrapers (Amazon, Apple, Google,
+Microsoft, the Israeli boards) have no endpoint to ask, so STATIC_NAMES
+names them by hand.
+
+Workday's hiringOrganization is the legal entity, which is usually the
+company ("GD Information Technology, Inc.") and occasionally a payroll
+shell ("WVE WVNH EMP LLC"). The legal suffix is stripped and a name that
+is all capitals with a vowelless token is dropped; the domain is better
+than that.
 
 Usage:
     python resolve_company_names.py --bucket $DATA_BUCKET
@@ -43,6 +62,7 @@ Usage:
 """
 
 import argparse
+import html
 import json
 import re
 import sys
@@ -56,6 +76,36 @@ WORKERS = 12
 UA = "Mozilla/5.0 (compatible; OpenTechJobs/1.0; +https://opentechjobs.org)"
 
 NAMES_KEY = "company-names.json"
+
+# Boards with no endpoint that says who they are: the single-vendor
+# scrapers and the Israeli custom boards. Applied without a request, and
+# last, so a wrong resolved name can be corrected here without touching
+# S3 (box/apply_company_names.py reads this too). Counts are open
+# listings on 2026-09-25, which is why these few are worth a hand list.
+STATIC_NAMES = {
+    "amazon.com": "Amazon",                      # 14,453
+    "aws.amazon.com": "Amazon Web Services",     #  8,319
+    "apple.com": "Apple",                        #  4,991
+    "google.com": "Google",                      #  3,243
+    "microsoft.com": "Microsoft",                #  2,434
+    "nvidia.com": "NVIDIA",
+    "elbitsystems.com": "Elbit Systems",         #    579
+    "tevapharm.com": "Teva",                     #    566
+    "clalit.co.il": "Clalit",                    #    559
+    "dell.com": "Dell",                          #    467
+    "akamai.com": "Akamai",                      #    254
+    "ness-tech.co.il": "Ness",                   #    216
+    "one1.co.il": "One1",                        #    157
+    "discountbank.co.il": "Discount Bank",       #     62
+    "pwc.com": "PwC",                            #     51
+    "iai.co.il": "IAI",
+}
+
+LEGAL_SUFFIX = re.compile(
+    r"[\s,]+(inc\.?|incorporated|llc|l\.l\.c\.|ltd\.?|limited|corp\.?|corporation|co\.?|plc|"
+    r"gmbh|ag|s\.?a\.?|s\.?r\.?l\.?|b\.?v\.?|pty\.?|pvt\.?|n\.?v\.?)\s*$",
+    re.I,
+)
 
 # See referral_boards.py. A referral board's own name is "Referral
 # Board", so the resolver below is answering honestly and still getting
@@ -84,6 +134,73 @@ def _json(sess: requests.Session, url: str):
         return r.json()
     except ValueError:
         return None
+
+
+def _html(sess: requests.Session, url: str) -> str | None:
+    try:
+        r = sess.get(url, timeout=TIMEOUT, headers={"Accept": "text/html"})
+    except requests.RequestException:
+        return None
+    return r.text if r.status_code == 200 else None
+
+
+def _title(page: str | None) -> str | None:
+    m = re.search(r"<title[^>]*>(.*?)</title>", page or "", re.I | re.S)
+    return _txt(" ".join(html.unescape(m.group(1)).split())) if m else None
+
+
+def _meta(page: str | None, prop: str) -> str | None:
+    m = re.search(r'<meta[^>]+(?:property|name)=["\']' + re.escape(prop) + r'["\'][^>]+content=["\']([^"\']+)',
+                  page or "", re.I)
+    return _txt(html.unescape(m.group(1))) if m else None
+
+
+_TITLE_NOISE = {"login", "careers", "career page", "career site", "jobs", "job openings",
+                "open positions", "current openings", "welcome", "home", "job board"}
+
+
+def _from_title(t: str | None) -> str | None:
+    """The company out of a board title like "Login - X", "X - Career
+    Page", "Careers at X" or "Jobs bei X": split on the usual separators,
+    drop the pieces that are only the board's own furniture, and keep
+    the longest of what is left. The order and the separator vary by
+    vendor and by locale; the furniture does not."""
+    if not t:
+        return None
+    # "Jobs bei " with nothing after it is a board whose owner never set
+    # a name: the prefix goes whether or not anything follows, and an
+    # empty remainder is no name rather than the prefix itself.
+    t = re.sub(r"^(?:jobs|careers)\s+(?:at|bei|chez|en|presso|@)\s*", "", t, flags=re.I).strip()
+    pieces = [x.strip(" -–—|:·") for x in re.split(r"\s+[-–—|:·]\s+", t)]
+    keep = [x for x in pieces if x and x.lower() not in _TITLE_NOISE]
+    return _txt(max(keep, key=len)) if keep else None
+
+
+def _strip_legal(name: str | None) -> str | None:
+    """"Tenable, Inc." down to "Tenable": one trailing legal suffix off.
+    Applied to every resolver's answer, since Greenhouse and the rest
+    hand back the registered entity as often as Workday does."""
+    if not name:
+        return None
+    return _txt(LEGAL_SUFFIX.sub("", name.strip()).strip(" ,"))
+
+
+def _clean_org(name: str | None) -> str | None:
+    """A Workday hiring organization down to a name a reader would say:
+    the legal suffix off, and the acronym soup a payroll entity carries
+    rejected outright, since the domain is better than that."""
+    name = _strip_legal(name)
+    if not name:
+        return None
+    tokens = name.split()
+    # Two or more tokens, all capitals, none longer than four letters:
+    # "WVE WVNH EMP", "OHE OHNH EMP". A brand that is an acronym is one
+    # token ("IAI", "GDIT"); a run of short ones is a ledger code.
+    if len(tokens) >= 2 and all(t.isupper() and len(t) <= 4 for t in tokens):
+        return None
+    if len(tokens) >= 2 and all(t.isupper() for t in tokens) and any(not re.search(r"[AEIOUY]", t) for t in tokens):
+        return None
+    return name
 
 
 def _greenhouse(sess, token):
@@ -137,8 +254,96 @@ def _recruitee(sess, token):
     return _txt((offers[0] if offers else {}).get("company_name"))
 
 
+def _lever(sess, token):
+    # The board root is an SPA titled "Lever". A posting's own page is
+    # server-rendered as "<Company> - <Job title>", and the API says
+    # which page to ask.
+    posts = _json(sess, f"https://api.lever.co/v0/postings/{token}?mode=json&limit=1")
+    url = posts[0].get("hostedUrl") if isinstance(posts, list) and posts else None
+    t = _title(_html(sess, url)) if url else None
+    return _txt(t.split(" - ", 1)[0]) if t and " - " in t else None
+
+
+def _bamboohr(sess, token):
+    # The root, not /careers: the root is titled "Login - <Company>" and
+    # the careers page is titled by the company, which is sometimes
+    # nothing at all.
+    return _from_title(_title(_html(sess, f"https://{token}.bamboohr.com")))
+
+
+def _breezy(sess, token):
+    t = _title(_html(sess, f"https://{token}.breezy.hr"))
+    return _txt(t.replace("%DOC_TITLE%", "")) if t else None
+
+
+def _jazzhr(sess, token):
+    return _from_title(_title(_html(sess, f"https://{token}.applytojob.com")))
+
+
+def _teamtailor(sess, token):
+    return _meta(_html(sess, f"https://{token}.teamtailor.com"), "og:site_name")
+
+
+def _personio(sess, token):
+    return _from_title(_title(_html(sess, f"https://{token}.jobs.personio.de")))
+
+
+WORKDAY_SAMPLE = 5
+
+
+def _workday(sess, token, domain=None):
+    # token is "tenant:wd:site", the way workday-tenants.json spells it.
+    #
+    # hiringOrganization is per job and is the entity that posted it,
+    # which for a group is often a subsidiary: micron.com's first listing
+    # said "1580 Micron Memory Taiwan". So this reads a handful of jobs,
+    # strips the numeric prefix and the legal suffix from each, and takes
+    # the most common answer, preferring one that contains the domain's
+    # own name when the vote is close. One job is a sample of one.
+    try:
+        tenant, wd, site = token.split(":", 2)
+    except ValueError:
+        return None
+    base = f"https://{tenant}.{wd}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
+    try:
+        r = sess.post(f"{base}/jobs", json={"appliedFacets": {}, "limit": WORKDAY_SAMPLE, "offset": 0, "searchText": ""},
+                      timeout=TIMEOUT, headers={"Accept": "application/json"})
+        posts = (r.json() if r.status_code == 200 else {}).get("jobPostings") or []
+    except (requests.RequestException, ValueError):
+        return None
+    votes: dict[str, int] = {}
+    for post in posts[:WORKDAY_SAMPLE]:
+        path = post.get("externalPath")
+        if not path:
+            continue
+        try:
+            r = sess.get(f"{base}{path}", timeout=TIMEOUT, headers={"Accept": "application/json"})
+            d = r.json() if r.status_code == 200 else {}
+        except (requests.RequestException, ValueError):
+            continue
+        raw = _txt((d.get("hiringOrganization") or {}).get("name"))
+        name = _clean_org(re.sub(r"^\d+\s+", "", raw) if raw else None)
+        if name:
+            votes[name] = votes.get(name, 0) + 1
+    if not votes:
+        return None
+    label = re.sub(r"[^a-z0-9]", "", (domain or "").split(".")[0].lower())
+    def score(item):
+        name, n = item
+        own = 1 if label and label in re.sub(r"[^a-z0-9]", "", name.lower()) else 0
+        return (own, n, -len(name))
+    return max(votes.items(), key=score)[0]
+
+
 RESOLVERS = {
     "greenhouse": _greenhouse,
+    "lever": _lever,
+    "bamboohr": _bamboohr,
+    "breezy": _breezy,
+    "jazzhr": _jazzhr,
+    "teamtailor": _teamtailor,
+    "personio": _personio,
+    "workday": _workday,
     "ashby": _ashby,
     "smartrecruiters": _smartrecruiters,
     "workable": _workable,
@@ -165,9 +370,10 @@ def resolve_one(entry: dict, sess: requests.Session) -> tuple[str, str | None]:
     if not fn or not token:
         return entry["domain"], None
     try:
-        name = fn(sess, token)
+        name = fn(sess, token, entry.get("domain")) if fn is _workday else fn(sess, token)
     except Exception:
         return entry["domain"], None
+    name = _strip_legal(name)
     if name and name.strip().lower() in GENERIC_NAMES:
         return entry["domain"], None
     return entry["domain"], name
@@ -202,6 +408,15 @@ def main() -> int:
     elif args.out and args.out.exists():
         names = json.loads(args.out.read_text(encoding="utf-8"))
 
+    # Workday tenants live in their own registry, keyed the same way the
+    # scraper reads them; known.json carries only a few dozen of them.
+    tenants = Path(__file__).with_name("workday-tenants.json")
+    if tenants.exists():
+        have = {e.get("domain") for e in known if e.get("ats") == "workday"}
+        for t in json.loads(tenants.read_text(encoding="utf-8")):
+            if t.get("domain") and t["domain"] not in have and t.get("tenant") and t.get("wd") and t.get("site"):
+                known.append({"domain": t["domain"], "ats": "workday",
+                              "token": f"{t['tenant']}:{t['wd']}:{t['site']}"})
     todo = [e for e in known
             if e.get("ats") in RESOLVERS and (args.refresh or not names.get(e.get("domain", "")))]
     if args.limit:
@@ -232,6 +447,8 @@ def main() -> int:
           ", ".join(f"{a}={n}" for a, n in sorted(by_ats.items(), key=lambda kv: -kv[1])),
           file=sys.stderr)
 
+    for domain, name in STATIC_NAMES.items():
+        names.setdefault(domain, name)
     body = json.dumps(names, ensure_ascii=False, sort_keys=True).encode("utf-8")
     if args.out:
         args.out.write_bytes(body)

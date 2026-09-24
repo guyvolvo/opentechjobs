@@ -113,6 +113,32 @@ correct only once the Lambda is retired.
     printf '[Timer]\nOnCalendar=\nOnCalendar=hourly\n' | sudo tee /etc/systemd/system/otj-snapshot.timer.d/rollback-window.conf
     sudo systemctl daemon-reload
     sudo systemctl enable --now otj-snapshot.timer
+
+Company names (added 2026-09-25). Names are resolved into
+company-names.json in S3 and were only ever applied by the Lambda merge;
+the box needs its own pass or every name resolved after cutover goes
+nowhere, which is how 89% of listings came to show a bare domain.
+
+    sudo tee /etc/systemd/system/otj-names.service >/dev/null <<'EOF'
+    [Unit]
+    Description=OpenTechJobs: resolve company names and stamp them on the box
+    [Service]
+    Type=oneshot
+    User=ubuntu
+    WorkingDirectory=/srv/otj/app
+    EnvironmentFile=/etc/otj-api.env
+    ExecStart=/bin/sh -c '/srv/otj/venv/bin/python resolve_company_names.py --bucket "$DATA_BUCKET" && /srv/otj/venv/bin/python box/apply_company_names.py'
+    EOF
+    sudo tee /etc/systemd/system/otj-names.timer >/dev/null <<'EOF'
+    [Unit]
+    Description=Daily company-name resolve and apply
+    [Timer]
+    OnCalendar=*-*-* 04:10:00 UTC
+    Persistent=true
+    [Install]
+    WantedBy=timers.target
+    EOF
+    sudo systemctl daemon-reload && sudo systemctl enable --now otj-names.timer
     sudo systemctl start otj-snapshot.service
     sudo journalctl -u otj-snapshot -n 5 --no-pager
 

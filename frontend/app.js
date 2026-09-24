@@ -2938,6 +2938,14 @@ function paneHead(job) {
 // rows on screen already carry both, so the name is looked up there and
 // the domain is only shown when nothing on this page knows better.
 function companyNameFor(domain) {
+  // The facets carry the name beside the count (compute_facets asks the
+  // companies table for it), and they cover every company on the list,
+  // where the fifty loaded rows cover only whichever happen to be on
+  // screen. Reported live: Hiring most read "nvidia.com" and "iai.co.il"
+  // on a board whose rows said NVIDIA and IAI, because neither company
+  // had a listing in the first page.
+  const facet = (railFacets.companies || []).find((c) => c.domain === domain && c.name);
+  if (facet) return facet.name;
   const rows = (lastJobsResponse && lastJobsResponse.jobs) || [];
   const hit = rows.find((j) => j.company_domain === domain && j.company_name);
   return hit ? hit.company_name : domainLabel(domain);
