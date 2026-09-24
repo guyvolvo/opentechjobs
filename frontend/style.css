@@ -4724,7 +4724,15 @@ a.hero-account-btn { text-decoration: none; }
    with the search box. */
 .board-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
+  /* The pane grows with the window and the list gives the width up.
+     420px fixed was fine at 1280 and mean at 1920: a description column
+     narrower than a phone on a screen five times as wide, with the list
+     beside it spending the difference on ellipsised titles. 34vw is 490
+     at 1440 and 600 at 1770 and beyond. The floor is the old fixed
+     width, so from 1100 to 1235 nothing moves: that end was already as
+     tight as the list can stand, and this takes width only where there
+     is width to take. */
+  grid-template-columns: minmax(0, 1fr) clamp(420px, 34vw, 600px);
   gap: 10px;
   align-items: stretch;
   flex: 1;

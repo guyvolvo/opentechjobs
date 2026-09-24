@@ -419,8 +419,12 @@ drift, noted here so it doesn't get "fixed" back to a token by mistake.
 
 ## Layout
 
-The board is three columns above 1100px: a 236px filter rail, the
-listings at `minmax(0, 1fr)`, and a 440px detail pane, under one filter
+The board is three columns above 1100px: a 260px filter rail, the
+listings at `minmax(0, 1fr)`, and a detail pane at `clamp(420px, 34vw,
+600px)`, so it grows with the window and the list gives the width up,
+but only from 1235px up: below that the pane is the 420px it always was.
+Between 800 and 1100 the rail narrows to 236px and the pane becomes a
+440px sheet. All under one filter
 bar that spans all three. No `max-width` container anywhere: the shell
 uses `--gutter` (`clamp(20px, 4vw, 64px)`) for side padding, so the page
 keeps scaling with viewport width all the way to ultra-wide instead of
