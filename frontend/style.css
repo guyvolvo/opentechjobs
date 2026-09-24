@@ -6227,3 +6227,22 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   }
   .pane-sticky[hidden] { display: flex; }
 }
+
+/* The filter bar's controls take the pill radius the view chips under
+   them already have, so the two rows read as one bar rather than a
+   square row above a round one. The extra side padding is not
+   decoration: at 999px the corner eats into the text box, and a
+   placeholder starting under the curve looks clipped. */
+.board-bar input[type="text"],
+.board-bar select,
+.board-bar .search-go,
+.board-bar .rail-toggle {
+  border-radius: 999px;
+}
+.board-bar input[type="text"] { padding-left: 16px; padding-right: 16px; }
+.board-bar select { padding-left: 14px; }
+.board-bar .search-go { padding-left: 20px; padding-right: 20px; }
+/* The active-filter chips share that row with the view pills, so they
+   take the same shape. A 4px chip beside a 999px one reads as a
+   different kind of control rather than the same row. */
+.active-chips .chip { border-radius: 999px; }
