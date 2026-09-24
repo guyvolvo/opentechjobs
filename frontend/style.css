@@ -3804,8 +3804,8 @@ body.signin-open .workspace > .section { border-bottom: 0; }
   .account-bar .hero-bar-name,
   /* The account and contact bars carry their links, sign-in and theme
      button loose in the row rather than inside .topnav, so each has to
-     be named. Left in, they sat on top of the wordmark once the menu
-     icon took the width. */
+     be named. Left in, they sat on top of whatever else the bar held
+     once the menu icon took the width. */
   .topbar-account .topbar-nav,
   .topbar-account .auth-area,
   .topbar-account .theme-toggle,

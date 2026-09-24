@@ -58,7 +58,11 @@ const SKILLS = ["Azure", "Git", "Python", "AWS", "CI/CD", "Terraform", "Linux", 
 const PROFILE = { skills: SKILLS, seniority: null, workplace: [], israel_only: true };
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+// The second argument is the width. The account page is a different
+// layout below 800px and the fault reported on 2026-09-24 only shows
+// there, so the phone is worth running as its own case.
+const WIDTH = Number(process.argv[3]) || 1440;
+const page = await browser.newPage({ viewport: { width: WIDTH, height: WIDTH < 800 ? 844 : 1000 } });
 const errs = [];
 page.on("pageerror", (e) => errs.push(`pageerror: ${e.message}`));
 page.on("console", (m) => { if (m.type() === "error") errs.push(`console: ${m.text()}`); });
@@ -96,7 +100,10 @@ if (SCENARIO === "dead-refresh") {
   }));
 }
 
-await page.goto("https://opentechjobs.org/account", { waitUntil: "domcontentloaded" });
+// The fourth argument is the hash. /account#alerts is a real entry
+// point: it is where every "Manage alerts" link in a digest mail lands.
+const HASH = process.argv[4] || "";
+await page.goto(`https://opentechjobs.org/account${HASH}`, { waitUntil: "domcontentloaded" });
 
 const read = async (label) => {
   const out = await page.evaluate(() => {
@@ -109,6 +116,16 @@ const read = async (label) => {
       // has to be read from the dialog and the body class.
       signedOut: !document.getElementById("account-signedout").hidden
         && document.body.classList.contains("signin-open"),
+      // Structural, not timing-dependent: the header used to inject a
+      // second element for each of these, earlier in the document, and
+      // whichever of the two renderers got there first decided which
+      // copy the page painted.
+      dupes: ["alerts-list", "alert-create", "alert-f-search", "create-alert-btn",
+              "alert-form-title", "create-alert-feedback", "alert-ms-department",
+              "auth-signout"]
+        .map((id) => [id, document.querySelectorAll(`[id="${id}"]`).length])
+        .filter(([, n]) => n > 1),
+      pickers: document.querySelectorAll("#alert-create .ms .ms-toggle, #alert-create .ms select, #alert-create .ms button").length,
       done: [...document.querySelectorAll(".acct-check-row")].filter((r) => r.classList.contains("done")).length,
       tiles: [...document.querySelectorAll(".acct-tile")].map((x) => x.textContent.replace(/\s+/g, " ").trim()),
     };
@@ -125,7 +142,7 @@ await read(`${SCENARIO} t+16s`);
 await page.waitForTimeout(8000);
 await read(`${SCENARIO} t+24s`);
 
-await page.screenshot({ path: `account-${SCENARIO}.png`, fullPage: true });
+await page.screenshot({ path: `account-${SCENARIO}-${WIDTH}.png`, fullPage: true });
 console.log(errs.length ? "console errors:\n  " + errs.join("\n  ") : "no console errors");
 await page.unrouteAll({ behavior: "ignoreErrors" });
 await browser.close();

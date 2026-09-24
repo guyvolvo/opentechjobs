@@ -5453,21 +5453,12 @@ function renderAuthState() {
   // page's bar.
   const barTheme = document.getElementById("theme-toggle");
   if (barTheme) barTheme.hidden = true;
-  area.innerHTML = `
-    <button class="hero-account-btn" id="topbar-account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="topbar-menu">
-      ${avatar}My Account
-    </button>
-    <div class="hero-menu" id="topbar-menu" role="menu" hidden>
-      <div class="hero-menu-head">${avatar}<span class="hero-menu-email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></div>
-      <a role="menuitem" href="/account">${MENU_ICONS.person}My Profile</a>
-      <a role="menuitem" href="/board?starred=1">${MENU_ICONS.bookmark}Saved Jobs</a>
-      <button role="menuitem" type="button" id="topbar-alert-btn">${MENU_ICONS.bell}Alerts</button>
-      <a role="menuitem" href="/stats">${MENU_ICONS.chart}Statistics</a>
-      <a role="menuitem" href="/api/help">${MENU_ICONS.code}API reference</a>
-      <a role="menuitem" href="/contact">${MENU_ICONS.chat}Contact</a>
-      <button role="menuitem" type="button" id="topbar-menu-theme">${isDarkTheme() ? MENU_ICONS.sun : MENU_ICONS.moon}<span>${isDarkTheme() ? "Light mode" : "Dark mode"}</span></button>
-      <button role="menuitem" type="button" class="hero-menu-out" id="auth-signout">${MENU_ICONS.out}Log Out</button>
-    </div>
+  // The alerts panel is the board's. A page that carries the alert ids
+  // itself asks for the menu alone, because two elements with one id put
+  // the second one out of reach: getElementById returns the first in the
+  // document, and the header comes before the page. See account.html.
+  const menuOnly = area.hasAttribute("data-menu-only");
+  const alertsPanel = menuOnly ? "" : `
     <div class="auth-panel alerts-panel" id="auth-panel" hidden>
       <div class="alerts-header alerts-header-row">
         <span>My Alerts</span>
@@ -5492,10 +5483,26 @@ function renderAuthState() {
         <p class="create-alert-feedback" id="create-alert-feedback" hidden></p>
       </div>
 
-      <button class="auth-signout" id="auth-signout" type="button">Sign Out</button>
+      <button class="auth-signout" id="auth-panel-signout" type="button">Sign Out</button>
     </div>`;
+  area.innerHTML = `
+    <button class="hero-account-btn" id="topbar-account-btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="topbar-menu">
+      ${avatar}My Account
+    </button>
+    <div class="hero-menu" id="topbar-menu" role="menu" hidden>
+      <div class="hero-menu-head">${avatar}<span class="hero-menu-email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></div>
+      <a role="menuitem" href="/account">${MENU_ICONS.person}My Profile</a>
+      <a role="menuitem" href="/board?starred=1">${MENU_ICONS.bookmark}Saved Jobs</a>
+      <button role="menuitem" type="button" id="topbar-alert-btn">${MENU_ICONS.bell}Alerts</button>
+      <a role="menuitem" href="/stats">${MENU_ICONS.chart}Statistics</a>
+      <a role="menuitem" href="/api/help">${MENU_ICONS.code}API reference</a>
+      <a role="menuitem" href="/contact">${MENU_ICONS.chat}Contact</a>
+      <button role="menuitem" type="button" id="topbar-menu-theme">${isDarkTheme() ? MENU_ICONS.sun : MENU_ICONS.moon}<span>${isDarkTheme() ? "Light mode" : "Dark mode"}</span></button>
+      <button role="menuitem" type="button" class="hero-menu-out" id="auth-signout">${MENU_ICONS.out}Log Out</button>
+    </div>
+    ${alertsPanel}`;
   wireMenu("topbar-account-btn", "topbar-menu");
-  wireTopbarAlertButton();
+  wireTopbarAlertButton(menuOnly);
   // Repaints its own row rather than re-rendering the menu, which would
   // shut it on the click that opened the change.
   const themeRow = document.getElementById("topbar-menu-theme");
@@ -5507,6 +5514,11 @@ function renderAuthState() {
     });
   }
   document.getElementById("auth-signout").addEventListener("click", signOut);
+  const panelOut = document.getElementById("auth-panel-signout");
+  if (panelOut) panelOut.addEventListener("click", signOut);
+  // The account page wires its own form and fetches its own list, and
+  // doing it here as well was a second /me/alerts on every load.
+  if (menuOnly) return;
   wireAlertCreateForm();
   loadMyAlerts().then(renderAlertsList);
 }
@@ -5545,8 +5557,14 @@ function wireMenu(btnId, menuId) {
 // the panel can also put it away. Rewired on every renderAuthState()
 // re-render like the rest of this panel's internals, since sign-in/out
 // replaces the whole subtree.
-function wireTopbarAlertButton() {
+function wireTopbarAlertButton(menuOnly) {
   const btn = document.getElementById("topbar-alert-btn");
+  if (!btn) return;
+  // With no panel to open, the row is a link to the page's own section.
+  if (menuOnly) {
+    btn.addEventListener("click", () => { location.hash = "#alerts"; });
+    return;
+  }
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const panel = document.getElementById("auth-panel");

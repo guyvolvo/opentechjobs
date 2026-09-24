@@ -58,21 +58,32 @@
        where signing in moves the theme into the account menu. This bar
        has no menu to move it into. -->
   <!-- The board's own bar, so moving between the two is not a change of
-       place. The wordmark, the three destinations, the theme pill and
-       the account mark, and nothing else: this page has a sidebar for
-       its own navigation and does not need a second one up here.
+       place. The three destinations, the theme pill and the account
+       mark, and nothing else: this page has a sidebar for its own
+       navigation and does not need a second one up here. No wordmark,
+       as on the board: on a phone the bar is the menu icon and the
+       wordmark beside it, which is a banner naming the site to someone
+       already three pages into it.
        #theme-toggle and #auth-area keep their ids, so app.js and
-       mobile_nav.js drive them here exactly as they do on the board. -->
+       mobile_nav.js drive them here exactly as they do on the board.
+
+       data-menu-only, because the board's auth slot is two things: the
+       account menu, which this page wants, and an alerts panel carrying
+       #alerts-list and the whole create form, which this page already
+       has further down. Rendering both put a second element with each of
+       those ids in the document, earlier than the page's own, and
+       getElementById returns the first: the alert list painted into a
+       hidden panel in the header while the real one sat on "Loading..."
+       and the create form lost its pickers. Reported live 2026-09-24. -->
   <header class="topbar topbar-account">
     <div class="container">
-      <a class="topbar-word" href="/">Open<span>Tech</span>Jobs</a>
       <nav class="topbar-nav" aria-label="Site">
         <a href="/board">Board</a>
         <a href="/stats">Statistics</a>
         <a href="/help">API</a>
       </nav>
       <span class="topbar-gap"></span>
-      <div class="auth-area" id="auth-area"></div>
+      <div class="auth-area" id="auth-area" data-menu-only></div>
       <button type="button" class="theme-toggle hero-theme" id="theme-toggle">Dark</button>
     </div>
   </header>
