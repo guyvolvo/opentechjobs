@@ -1845,6 +1845,25 @@ let jobCountInFlight = null;
 // did. Only those may hold new rows back (see holdForReader).
 async function loadJobs({ background = false, append: wantAppend = false } = {}) {
   let append = wantAppend;
+  // An infinite list has one starting point. state.offset is where the
+  // NEXT page begins, which loadMoreJobs walks forward, so any load that
+  // replaces the list has to put it back or it fetches from wherever the
+  // reader happened to have scrolled to. Reported live: sign out after
+  // scrolling and the board redrew page four as though it were page one,
+  // leaving the reader parked below the end of a list a fifth the size.
+  if (!append && !background) {
+    state.offset = 0;
+    listReloading = true;
+    // Out of view at once, so the observer has nothing to fire on while
+    // the old rows are still standing.
+    const more = document.getElementById("jobs-more");
+    if (more) more.hidden = true;
+  }
+  // A background refresh of a grown list is not a refresh, it is a
+  // truncation: it asks for one page and the no-flicker comparison then
+  // replaces two hundred rows with fifty. New listings still arrive
+  // through the same banner they always did, on the next real load.
+  if (background && ((lastJobsResponse && lastJobsResponse.jobs) || []).length > PAGE_SIZE) return;
   const seq = ++jobsRequestSeq;
   if (!background) clearHeldJobs();
   // Cancel rather than ignore. Ignoring would still cost the reader's
@@ -1998,6 +2017,7 @@ async function loadJobs({ background = false, append: wantAppend = false } = {})
       errEl.style.display = "block";
     }
   } finally {
+    if (!append && !background) listReloading = false;
     // Always, never gated on the sequence. setLoadBar is reference
     // counted, and an earlier request skipping its decrement leaks the
     // count upward: request two increments before request one's finally
@@ -3032,6 +3052,12 @@ let loadingMore = false;
 // for a different one is a page of the list the reader has already left,
 // and accumulating it produced a count of 300 over a list of 50.
 let listParams = null;
+// True while a load that replaces the list is in flight. The old rows
+// are still on screen for that whole time, so the sentinel at the bottom
+// of them is still in view and the observer will happily ask for "more"
+// of a list that is about to be thrown away. That is how signing out
+// after scrolling ended up appending page four onto a fresh page one.
+let listReloading = false;
 
 function appendJobRows(jobs, starred) {
   const body = document.getElementById("jobs-body");
@@ -3061,7 +3087,7 @@ function paintMoreButton(data) {
 }
 
 async function loadMoreJobs() {
-  if (loadingMore) return;
+  if (loadingMore || listReloading) return;
   const shown = ((lastJobsResponse && lastJobsResponse.jobs) || []).length;
   const total = lastJobsResponse && lastJobsResponse.total;
   if (total != null && shown >= total) return;

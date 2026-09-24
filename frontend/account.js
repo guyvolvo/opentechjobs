@@ -200,6 +200,24 @@ function scheduleMatches() {
   matchesTimer = setTimeout(loadMatches, 500);
 }
 
+// Cached for ten minutes, keyed by the exact question asked. The board's
+// ranking sort is 1.8s of real work over a million rows, and this page
+// was paying it again on every visit and every tab switch for an answer
+// that cannot have changed. sessionStorage, not localStorage: it is a
+// convenience for this sitting, not a record.
+const MATCHES_TTL_MS = 10 * 60 * 1000;
+const MATCHES_KEY = "iljobs_acct_matches";
+
+function cachedMatches(key) {
+  try {
+    const hit = JSON.parse(sessionStorage.getItem(MATCHES_KEY) || "null");
+    if (hit && hit.key === key && Date.now() - hit.at < MATCHES_TTL_MS) return hit.jobs;
+  } catch {
+    // Private browsing, or someone else's JSON in our key.
+  }
+  return null;
+}
+
 async function loadMatches() {
   const host = $("acct-matches");
   if (!host) return;
@@ -208,38 +226,54 @@ async function loadMatches() {
     host.innerHTML = '<p class="acct-matches-empty">Add skills to see matches.</p>';
     return;
   }
+  // Israel-only because the profile says so, not because the CV does.
+  // The analyser reads skills and nothing else: it has never looked for
+  // a location, and this page must not imply that it has.
+  const params = { skills: skills.join(","), sort: "match", dir: "asc", limit: "3", count: "skip" };
+  if (draft.israel_only) params.country = "IL";
+  const q = new URLSearchParams(params).toString();
+
+  const cached = cachedMatches(q);
+  if (cached) return paintMatches(cached, skills);
   host.innerHTML = '<p class="acct-matches-empty">Looking…</p>';
   try {
-    const q = new URLSearchParams({
-      skills: skills.join(","), sort: "match", dir: "asc",
-      limit: "3", country: "IL", count: "skip",
-    });
     const data = await getJSON(`/jobs?${q}`);
     const jobs = data.jobs || [];
-    if (!jobs.length) {
-      host.innerHTML = '<p class="acct-matches-empty">Nothing matches those skills yet.</p>';
-      return;
+    try {
+      sessionStorage.setItem(MATCHES_KEY, JSON.stringify({ key: q, at: Date.now(), jobs }));
+    } catch {
+      // Quota or private browsing. The list still draws.
     }
-    const want = new Set(skills);
-    host.innerHTML = jobs.map((j) => {
-      const listed = (j.skills || "").split(",").filter(Boolean);
-      const hit = listed.filter((sk) => want.has(sk)).length;
-      return `
-        <a class="acct-match" href="/job/${encodeURIComponent(j.id)}">
-          ${companyLogoImg(j.company_domain, 40, "listing", j.logo_url)}
-          <span class="acct-match-text">
-            <span class="acct-match-title">${escapeHtml(j.title)}</span>
-            <span class="acct-match-meta">${escapeHtml(j.company_name || j.company_domain || "")}${
-              j.location ? " · " + escapeHtml(j.location) : ""}</span>
-          </span>
-          <span class="acct-match-score">${hit} of ${want.size} skills</span>
-        </a>`;
-    }).join("");
+    paintMatches(jobs, skills);
   } catch {
     // One failed panel is not worth an error banner on a page whose
     // other four sections are fine.
     host.innerHTML = '<p class="acct-matches-empty">Could not load matches.</p>';
   }
+}
+
+function paintMatches(jobs, skills) {
+  const host = $("acct-matches");
+  if (!host) return;
+  if (!jobs.length) {
+    host.innerHTML = '<p class="acct-matches-empty">Nothing matches those skills yet.</p>';
+    return;
+  }
+  const want = new Set(skills);
+  host.innerHTML = jobs.map((j) => {
+    const listed = (j.skills || "").split(",").filter(Boolean);
+    const hit = listed.filter((sk) => want.has(sk)).length;
+    return `
+      <a class="acct-match" href="/job/${encodeURIComponent(j.id)}">
+        ${companyLogoImg(j.company_domain, 40, "listing", j.logo_url)}
+        <span class="acct-match-text">
+          <span class="acct-match-title">${escapeHtml(j.title)}</span>
+          <span class="acct-match-meta">${escapeHtml(j.company_name || j.company_domain || "")}${
+            j.location ? " · " + escapeHtml(j.location) : ""}</span>
+        </span>
+        <span class="acct-match-score">${hit} of ${want.size} skills</span>
+      </a>`;
+  }).join("");
 }
 
 function paintProfile(profile) {
