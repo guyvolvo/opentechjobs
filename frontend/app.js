@@ -5614,7 +5614,19 @@ async function ensureFreshTokens() {
     const refreshed = { id_token: t.IdToken, access_token: t.AccessToken, refresh_token: tokens.refresh_token };
     setAuthTokens(refreshed);
     return refreshed;
-  } catch {
+  } catch (err) {
+    // A refresh Cognito actively refused is a dead session and the
+    // reader has to sign in again. A timeout or a dropped connection is
+    // not, and signing someone out because their train went into a
+    // tunnel throws away a session that was still good. Fail this one
+    // request instead and leave the tokens where they are.
+    // TimeoutError is what AbortSignal.timeout aborts with; AbortError
+    // is the AbortController fallback; TypeError is fetch's own network
+    // failure.
+    const transient = err && ["TimeoutError", "AbortError", "TypeError"].includes(err.name);
+    if (transient) {
+      throw new Error("Could not reach the sign-in service");
+    }
     signOut();
     return null;
   }
@@ -5625,6 +5637,9 @@ async function authedFetch(path, options = {}) {
   if (!tokens) throw new Error("Signed out");
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    // Same reason as the refresh above. 20s is far longer than any of
+    // these routes takes (they are one DynamoDB query) and still finite.
+    signal: options.signal || abortAfter(20000),
     headers: { "Content-Type": "application/json", ...(options.headers || {}), Authorization: `Bearer ${tokens.id_token}` },
   });
   if (!res.ok) {

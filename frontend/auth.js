@@ -276,9 +276,21 @@ function startGithubSignIn() {
 // Cognito's InitiateAuth/RespondToAuthChallenge are deliberately public,
 // unsigned operations for a user-pool app client -- callable directly
 // from the browser, no backend proxy or AWS SDK needed for this part.
+// fetch has no timeout of its own, and a request that never comes back
+// is the worst shape a failure can take: every caller awaits it forever
+// and nothing in the console says so. Reported live 2026-09-24, as the
+// account page with Alerts and Saved jobs both stuck on "Loading...".
+function abortAfter(ms) {
+  if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 async function cognitoRequest(target, body) {
   const res = await fetch(`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/`, {
     method: "POST",
+    signal: abortAfter(10000),
     headers: {
       "Content-Type": "application/x-amz-json-1.1",
       "X-Amz-Target": `AWSCognitoIdentityProviderService.${target}`,

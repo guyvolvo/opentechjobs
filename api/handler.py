@@ -37,7 +37,6 @@ import job_page
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
 from saved import is_saved_id, job_id_of, saved_id
-from skills import SKILL_TERMS
 from skills import spec as skill_spec
 from job_filters import (FRESH_CLAUSE, IL_KEYWORDS, MAX_SEARCH_TERMS, bool_param, category_sql,
                          count_index_hint,
@@ -1194,15 +1193,18 @@ def route_get_profile(user_id: str) -> dict:
     return {
         "profile": stored,
         "options": {"skills": SKILLS, "seniority": SENIORITY, "workplace": WORKPLACE},
-        # The needles as well as the labels, because the CV analyser runs
-        # in the reader's own browser: the file is never uploaded, so the
-        # matching has to happen there, which means the browser needs the
-        # same terms probe.py tags jobs with. Not secret, and shipping
-        # them is what keeps one vocabulary rather than two.
-        "skill_terms": [{"label": label, "needles": needles} for label, needles in SKILL_TERMS],
-        # The full rules for frontend/cv_skills.js, the same ones probe.py tags
-        # jobs with. skill_terms above is the old shape, kept for an account
-        # page still cached from before, until the next deploy replaces it.
+        # The full rules for frontend/cv_skills.js, the same ones probe.py
+        # tags jobs with. The needles ship as well as the labels because
+        # the CV analyser runs in the reader's own browser: the file is
+        # never uploaded, so the matching has to happen there, and the
+        # browser needs the same terms probe.py uses. Not secret, and
+        # shipping them is what keeps one vocabulary rather than two.
+        #
+        # A second copy of the same data used to ride along under
+        # "skill_terms", in the shape the analyser wanted before
+        # cv_skills.js existed. It was kept for account pages cached from
+        # before that deploy and then never removed: 37KB of a 99KB
+        # response, with nothing in the frontend reading it.
         "skill_spec": skill_spec(),
     }
 

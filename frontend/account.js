@@ -535,7 +535,11 @@ async function wireAlerts() {
   // stats download and the whole create form, so anything slow or stuck
   // in either left "Loading..." on screen with nothing to say why. The
   // list only ever needed its own request.
-  renderAlertsList(await loadMyAlerts());
+  // authedFetch directly, not loadMyAlerts: that one swallows every
+  // error and answers with an empty array, so a request that failed
+  // rendered as "No alerts yet" and told the reader their alerts were
+  // gone. Here the throw belongs to block(), which says so instead.
+  renderAlertsList((await authedFetch("/me/alerts")).alerts || []);
 
   // The form and its pickers after, and their failures are theirs: an
   // alert you cannot create is not a reason to hide the ones you have.
@@ -769,18 +773,38 @@ function wireAccountSignIn() {
 // costumes. A block that fails now says so in its own container and the
 // next one still runs. The error goes to the console too, because the
 // message on screen is for the reader and the stack is for me.
+//
+// A promise that never settles cannot be caught either, and there the
+// reader just sees the loading placeholder forever. After fifteen
+// seconds the container is declared stuck: the work may still land and
+// overwrite the message, which is fine, but silence is not an outcome.
+// The timers are armed when the page opens rather than when each block
+// starts, because a block that never starts is the same failure and the
+// worse one. Reported live 2026-09-24: a stalled token refresh upstream
+// left Alerts and Saved jobs on "Loading..." with no message and nothing
+// in the console, since neither block had been entered.
+const STUCK_MS = 15000;
+const LOADING_HOSTS = ["alerts-list", "saved-list"];
+const stuckTimers = new Map();
+
+function sayStuck(host, why) {
+  const el = $(host);
+  if (!el || !/Loading/i.test(el.textContent)) return;
+  console.error(`account: ${host} ${why}`);
+  el.innerHTML = `<p class="alerts-empty">This is taking longer than it should. Reloading the page usually fixes it.</p>`;
+}
+
+function watchForStuck() {
+  for (const host of LOADING_HOSTS) {
+    stuckTimers.set(host, setTimeout(() => sayStuck(host, "never filled"), STUCK_MS));
+  }
+}
+
 async function block(name, host, fn) {
-  // A promise that never settles cannot be caught, and the reader sees
-  // the loading placeholder forever. After fifteen seconds the block is
-  // declared stuck: the work may still land and overwrite this, which
-  // is fine, but silence is not an outcome.
-  const stuck = host && setTimeout(() => {
-    const el = $(host);
-    if (el && /Loading/i.test(el.textContent)) {
-      console.error(`account: ${name} did not finish`);
-      el.innerHTML = `<p class="alerts-empty">This is taking longer than it should. Reloading the page usually fixes it.</p>`;
-    }
-  }, 15000);
+  // A container this page did not pre-arm gets its timer here.
+  if (host && !stuckTimers.has(host)) {
+    stuckTimers.set(host, setTimeout(() => sayStuck(host, "did not finish"), STUCK_MS));
+  }
   try {
     return await fn();
   } catch (err) {
@@ -789,20 +813,14 @@ async function block(name, host, fn) {
     if (el) el.innerHTML = `<p class="alerts-empty">This did not load. Reloading the page usually fixes it.</p>`;
     return null;
   } finally {
-    clearTimeout(stuck);
+    clearTimeout(stuckTimers.get(host));
+    stuckTimers.delete(host);
   }
 }
 
 async function bootAccount() {
   const tokens = getAuthTokens();
-  if (!tokens?.id_token) {
-    $("account-signedout").hidden = false;
-    // The page behind it has nothing to show without a token, so it
-    // gives up its own rule and heading while the dialog is up.
-    document.body.classList.add("signin-open");
-    wireAccountSignIn();
-    return;
-  }
+  if (!tokens?.id_token) return showSignedOut();
   $("account-body").hidden = false;
   const email = decodeJwtEmail(tokens.id_token) || "signed in";
   $("account-email").textContent = email;
@@ -820,27 +838,50 @@ async function bootAccount() {
   paintProvider(tokens.id_token);
   paintSkillTags();
 
+  watchForStuck();
+
   await block("chrome", null, async () => {
     wireLeaving();
     wireAccountNav();
     wireSettingsTheme();
   });
 
-  // Order matters: the analyser runs on the rules the server returns
-  // (skill_spec), so it cannot be wired before they arrive.
-  const loaded = await loadProfile();
-  skillSpec = loaded.skill_spec || null;
-  await block("profile", "cv-chips", async () => {
-    wireProfile();
-    paintProfile(loaded.profile);
-  });
-
-  // Not awaited by each other. Alerts is the slow one and saved jobs has
-  // nothing to do with it.
+  // Three independent fetches, started together. The profile used to be
+  // awaited here on its own, ahead of the other two, and they need
+  // nothing from it: one stalled request upstream meant the alerts and
+  // saved blocks were never entered at all, so both lists sat on
+  // "Loading..." for as long as the tab stayed open and neither
+  // watchdog armed.
   await Promise.allSettled([
+    block("profile", "cv-chips", async () => {
+      // Order matters inside this block: the analyser runs on the rules
+      // the server returns (skill_spec), so it cannot be wired before
+      // they arrive.
+      const loaded = await loadProfile();
+      skillSpec = loaded.skill_spec || null;
+      wireProfile();
+      paintProfile(loaded.profile);
+    }),
     block("alerts", "alerts-list", wireAlerts),
     block("saved", "saved-list", loadSaved),
   ]);
+
+  // The session can die between opening the page and the first request:
+  // Cognito refusing a refresh token signs the reader out from under us.
+  // Without this the page stayed up with every count at zero and every
+  // list empty, which reads as "my data is gone" rather than "you are
+  // signed out".
+  if (!getAuthTokens()?.id_token) showSignedOut();
+}
+
+function showSignedOut() {
+  const body = $("account-body");
+  if (body) body.hidden = true;
+  $("account-signedout").hidden = false;
+  // The page behind it has nothing to show without a token, so it gives
+  // up its own rule and heading while the dialog is up.
+  document.body.classList.add("signin-open");
+  wireAccountSignIn();
 }
 
 bootAccount();
