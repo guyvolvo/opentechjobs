@@ -65,6 +65,10 @@
   --grey-line: #d2cfcb;
   --red: #b8362c;
   --hover-bg: #e8e5e2; /* neutral too; was the sage #e9efdb at 1.04:1 */
+  /* Board panel outlines, and nothing else. Darker than --grey-line
+     because it has to read against the tinted ground the panels sit on,
+     where the hairline used between two things on paper disappears. */
+  --panel-line: #a7ad9f;
   /* Row states, apart from --hover-bg (which still tints menu options)
      so hovering a row and having it open never look the same. Hover is
      neutral, selected carries the green. The old shared tint was 1.04:1
@@ -129,6 +133,7 @@
   --grey: #9a9a9a;
   --grey-line: #2b2c31;
   --hover-bg: #1e1f24;
+  --panel-line: #4a4c52;
   --row-hover: #23252b;
   --row-selected: #1d3024;
   --green-text: #2fae60; /* same as --green: already 6.2:1 on #17181c */
@@ -4373,6 +4378,7 @@ a.hero-account-btn { text-decoration: none; }
   flex: none;
   z-index: 9; /* under .topbar's 10 */
   background: var(--white);
+  /* No bottom rule: the boxes below start their own edge. */
   padding: 16px var(--gutter) 14px;
   display: flex;
   flex-direction: column;
@@ -4478,25 +4484,39 @@ a.hero-account-btn { text-decoration: none; }
    on its own. The page itself does not scroll here: the board is a tool
    you work inside, and losing the filters because you read to the
    bottom of the list was the thing the old single scroll kept doing. */
+/* Two boxes on a tinted ground. The tint is what separates them, which
+   is why the filter column gave up the tint it used to carry: two
+   tinted surfaces touching read as one, and the box edge had nothing
+   left to do. The same gutter as the bar above, so the boxes line up
+   with the search box. */
 .board-grid {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 420px;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 10px;
   align-items: stretch;
   flex: 1;
   min-height: 0;
-  /* The same gutter the bar above it uses, so the three columns line up
-     with the search box rather than running into the window edges. The
-     rule stays full width: it is the line under the bar, not a border
-     around the columns. */
-  padding: 0 var(--gutter);
-  border-top: 1px solid var(--grey-line);
+  padding: 0 var(--gutter) 28px;
+  background: var(--hover-bg);
 }
-/* Narrow enough that the pane is a sheet and the rail is on its way to
-   being one: the columns need the width more than the margin, and the
-   rows carry 20px of their own padding already. */
-@media (max-width: 1100px) {
-  .board-grid { padding: 0; }
+
+.board-box {
+  min-height: 0;
+  background: var(--white);
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  /* So each column's header row and its scroller are cut to the corner
+     rather than squaring it off. */
+  overflow: hidden;
 }
+/* Filters and listings share a box: one border around the pair and a
+   hairline between them, no gap. */
+.board-box-main {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items: stretch;
+}
+.board-box-main > * { min-width: 0; }
 .board-grid > * { min-width: 0; }
 
 /* One head across all three, so the rule under them is a single line
@@ -4511,10 +4531,11 @@ a.hero-account-btn { text-decoration: none; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid var(--black);
+  /* A light line inside a darker box edge. Ink here made two heavy
+     lines a few pixels apart. */
+  border-bottom: 1px solid var(--grey-line);
   background: var(--white);
 }
-.filter-rail .col-head { background: var(--hover-bg); }
 .col-head-title { font: 500 17px var(--font-display); color: var(--black); }
 .col-head-title b { font-weight: 500; font-variant-numeric: tabular-nums; }
 .col-head-sub { font: 400 12px var(--font); color: var(--black); opacity: 0.75; }
@@ -4549,7 +4570,9 @@ a.hero-account-btn { text-decoration: none; }
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--hover-bg);
+  background: var(--white);
+  /* The divider inside box 1, and the only column border left: the
+     other two were replaced by the box edges. */
   border-right: 1px solid var(--grey-line);
 }
 
@@ -5044,7 +5067,6 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   flex-direction: column;
   min-height: 0;
   background: var(--white);
-  border-left: 1px solid var(--grey-line);
 }
 .pane-body {
   flex: 1;
@@ -5327,7 +5349,11 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
    readable with the rail shut. */
 
 @media (max-width: 1100px) {
-  .board-grid { grid-template-columns: 236px minmax(0, 1fr); }
+  /* Box 2 leaves the grid and becomes the sheet. Box 1 keeps its
+     border, its radius and the inset. */
+  .board-grid { grid-template-columns: minmax(0, 1fr); }
+  .board-box-main { grid-template-columns: 236px minmax(0, 1fr); }
+  .job-detail.board-box { border-radius: 0; border: 0; }
 
   .job-detail {
     position: fixed;
@@ -5367,7 +5393,11 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 }
 
 @media (max-width: 800px) {
-  .board-grid { grid-template-columns: minmax(0, 1fr); }
+  /* No box treatment at all: full bleed, and the filters are a sheet
+     too, so there is nothing left for a border to hold. */
+  .board-grid { grid-template-columns: minmax(0, 1fr); padding: 0; background: var(--white); }
+  .board-box { border: 0; border-radius: 0; }
+  .board-box-main { grid-template-columns: minmax(0, 1fr); }
   .board-list { padding-left: 0; }
   .rail-toggle { display: inline-flex; }
 

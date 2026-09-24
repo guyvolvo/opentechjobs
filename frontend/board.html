@@ -225,6 +225,12 @@
 
     <div class="board-grid">
 
+      <!-- Two boxes on a tinted ground: the filters and the listings
+           share one, the side panel has its own. The pair inside the
+           first box is divided by a hairline rather than a gap, so they
+           read as two halves of one surface. -->
+      <div class="board-box board-box-main">
+
       <!-- Every filter that narrows by a value, with its counts. The
            groups are ordered by how often they get used rather than
            alphabetically: where, then what kind of work, then how
@@ -331,12 +337,14 @@
         </div>
       </div>
 
+      </div><!-- /.board-box-main -->
+
       <!-- Beside the list rather than over it, so reading a listing
            never costs your place in the others. It keeps the sheet
            behaviour below 1100px, where there is no room for a third
            column, and it is never empty: with nothing selected it
            answers what the current filters add up to. -->
-      <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail">
+      <aside class="job-detail board-box" id="job-detail" role="complementary" aria-label="Job detail">
         <div class="col-head pane-head" id="pane-head"></div>
         <div class="pane-body" id="pane-body"></div>
       </aside>

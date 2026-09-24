@@ -237,7 +237,14 @@ anything. Dark mode is a plain near-black/white inversion.
   border was most of why the page read green.
 - **Hover Tint** (`#e8e5e2`, `--hover-bg`; dark mode `#1e1f24`): the one
   soft, non-binary surface in the system, reserved for menu option hover
-  states where a hard color flip would be too loud.
+  states where a hard color flip would be too loud, and for the ground
+  the board's two panels sit on, where it is what separates them.
+- **Panel Line** (`#a7ad9f`, `--panel-line`; dark mode `#4a4c52`): the
+  outline of a board panel, and nothing else. Darker than Hairline Grey
+  because it has to read against the Hover Tint ground rather than
+  against paper, where a hairline simply disappears. Inside a panel the
+  dividers are still `--grey-line`, so a light line sits within a darker
+  edge instead of two heavy rules a few pixels apart.
 - **Row Hover** (`#e6e3df`, `--row-hover`; dark mode `#23252b`) and
   **Row Selected** (`#dce8d4`, `--row-selected`; dark mode `#1d3024`):
   job rows only. Hover, and keyboard focus inside a row, is neutral;
@@ -515,6 +522,13 @@ metric tiles. The page is a centred column of large, widely spaced
 blocks rather than a dense table, and at 4px those blocks read as
 offcuts of the board rather than as their own surface. Nothing outside
 `.account-page` uses it.
+
+**10px, board panels only.** The two boxes under the board's filter bar:
+the filters-and-listings pair, and the side panel (`.board-box`). Larger
+than the 4px default because these are the surfaces everything else on
+the board sits inside, and the same size as everything they contain
+would have made them read as one more box rather than as the ground
+plan. Everything within them (inputs, chips, buttons, badges) stays 4px.
 
 **999px, pill controls only.** The theme toggle on the landing bar
 (`.hero-theme`) and the small count chip beside it. A pill is the shape
