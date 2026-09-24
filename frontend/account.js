@@ -560,7 +560,9 @@ function wireSettingsTheme() {
   const here = $("settings-theme");
   const bar = document.getElementById("theme-toggle");
   if (!here || !bar) return;
-  const sync = () => { here.textContent = bar.textContent; };
+  const sync = () => {
+    here.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "Light" : "Dark";
+  };
   sync();
   here.addEventListener("click", () => bar.click());
   new MutationObserver(sync).observe(document.documentElement, { attributeFilter: ["data-theme"] });

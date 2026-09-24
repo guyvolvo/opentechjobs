@@ -5106,7 +5106,9 @@ function wireThemeToggle() {
   const btn = document.getElementById("theme-toggle");
   const sync = () => {
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    btn.textContent = isDark ? "Light" : "Dark";
+    // A switch, not a labelled button: the CSS draws the side from
+    // :root[data-theme], so the state is all this has to say.
+    btn.setAttribute("aria-checked", String(isDark));
   };
   sync(); // index.html's inline head script already applied the saved theme before this ran
 
@@ -5483,11 +5485,6 @@ function renderAuthState() {
   // Their Google photo when they signed in that way, the first letter
   // of the address otherwise. avatarHtml in auth.js decides which.
   const avatar = avatarHtml(email, tokens.id_token);
-  // The bar's own theme button belongs to the signed-out state, where
-  // there is no menu to carry the row. Same arrangement as the landing
-  // page's bar.
-  const barTheme = document.getElementById("theme-toggle");
-  if (barTheme) barTheme.hidden = true;
   // The alerts panel is the board's. A page that carries the alert ids
   // itself asks for the menu alone, because two elements with one id put
   // the second one out of reach: getElementById returns the first in the
