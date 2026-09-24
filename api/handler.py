@@ -32,6 +32,7 @@ from aggregates import (compute_facets, compute_scoped_stats, compute_stats,
                         has_board_filters, search_companies)
 from db import get_connection, status as db_status
 from help_page import HELP_HTML
+from openapi import spec as openapi_spec
 import company_page
 import job_page
 from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
@@ -259,6 +260,13 @@ def lambda_handler(event, context):
             # the few Lambda invocations it saves on a page almost nobody
             # loads twice.
             return _html_response(200, HELP_HTML, cache_seconds=300)
+        if path == "/openapi.json":
+            # The document /help renders, and a fetchable description in
+            # its own right: a client generator wants this, not the page.
+            # Same 300s as the page, and for the same reason -- both
+            # change on a deploy and an hour of serving the previous
+            # copy is an hour of documenting an API that has moved.
+            return _response(200, json.dumps(openapi_spec()), cache_seconds=300)
         if path == "/jobs":
             return _response(200, json.dumps(route_jobs(params), default=str), cache_seconds=60)
         if path.startswith("/jobs/") and len(path) > len("/jobs/"):
