@@ -30018,5 +30018,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "pegasuslogistics.com",
+  "tenant": "pegasuslogistics",
+  "wd": "wd1",
+  "site": "PLG",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "landsecurities.com",
+  "tenant": "landsecurities",
+  "wd": "wd3",
+  "site": "Landseccareers",
+  "jobs_seen": 12,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
