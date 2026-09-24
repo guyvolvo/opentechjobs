@@ -29918,5 +29918,15 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "stoel.com",
+  "tenant": "stoel",
+  "wd": "wd1",
+  "site": "stoelrivescareers",
+  "jobs_seen": 21,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
