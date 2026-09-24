@@ -76,7 +76,7 @@
     } catch (e) {}
   </script>
 </head>
-<body>
+<body class="board-page">
 
   <!-- Status glyph sprite, defined once and referenced by <use> wherever
        a state is shown. Two places today: the topbar indicator and the
@@ -162,7 +162,12 @@
          options. -->
     <div class="board-bar">
       <div class="board-bar-row">
-        <input type="text" id="f-search" placeholder="Search" title="Every word must appear somewhere in the listing: title, company, location, category or description. &quot;Quote a phrase&quot; to keep it together." />
+        <input type="text" id="f-search" placeholder="Search jobs, companies, skills, or locations" title="Every word must appear somewhere in the listing: title, company, location, category or description. &quot;Quote a phrase&quot; to keep it together." />
+        <!-- The board searches as you type and always has. The button is
+             for the reader who types and then looks for one, and for a
+             phone keyboard's Go: it submits what is already in the box. -->
+        <button type="button" class="btn primary search-go" id="f-search-go">Search</button>
+        <span class="board-bar-gap"></span>
         <select id="f-date-posted" title="Date posted">
           <option value="">Date posted</option>
           <option value="any">Any time</option>
@@ -207,10 +212,6 @@
              the reader is looking, and is the only place that can undo
              a single pick without opening the group it came from. -->
         <div class="active-chips" id="active-chips" aria-label="Active filters"></div>
-
-        <button class="btn ghost" id="f-reset" hidden>Reset</button>
-
-        <div id="result-count" class="result-count"></div>
       </div>
 
       <!-- Best matches only: the CV skills the order is built from.
@@ -228,15 +229,30 @@
            groups are ordered by how often they get used rather than
            alphabetically: where, then what kind of work, then how
            senior, then how it is worked, then who, then what it pays. -->
+      <!-- Each of the three columns opens with a 64px head and they all
+           share one ink rule, so the board reads as one ruled line
+           across rather than three panels that happen to be adjacent.
+           Each head stays put while its own column scrolls. -->
       <aside class="filter-rail" id="filter-rail" aria-label="Filters">
-        <div class="rail-head">
-          <span class="rail-head-title">Filters</span>
+        <div class="rail-head col-head">
+          <span class="col-head-title">Filters</span>
+          <button type="button" class="rail-reset" id="f-reset" hidden>Reset</button>
           <button type="button" class="rail-close" id="rail-close" aria-label="Close filters"></button>
         </div>
         <div class="rail-groups" id="rail-groups"></div>
       </aside>
 
       <div class="board-list">
+        <div class="col-head list-head">
+          <div class="list-head-text">
+            <span class="col-head-title" id="result-count"></span>
+            <span class="col-head-sub" id="result-sub"></span>
+          </div>
+          <!-- The only sortable column left. Title has no index behind
+               it (see the note the old thead carried), so it is not
+               offered rather than offered and slow. -->
+          <button type="button" class="list-head-sort" id="sort-age" data-sort="age">Age</button>
+        </div>
         <!-- Shown by a background refresh that found new listings while
              the reader was further down the list (see loadJobs). -->
         <div class="new-listings-anchor">
@@ -250,19 +266,9 @@
         <div id="jobs-error" class="error-state" style="display:none"></div>
         <div id="jobs-empty" class="empty-state" style="display:none"><strong>No results</strong><span>No listings match these filters.</span></div>
 
+        <!-- The head moved out of the table and into the column head
+             above, which is shared with the other two columns. -->
         <table class="jobs">
-          <thead>
-            <tr>
-              <!-- Not sortable. There is no index on title, so sorting
-                   by it is a full sort of every open listing: measured
-                   on the live board at 19s ascending and 84s
-                   descending, during which the box has nothing left for
-                   anything else. It comes back when there is an index
-                   behind it. -->
-              <th class="th-listing">Listing</th>
-              <th class="th-age" data-sort="age">Age</th>
-            </tr>
-          </thead>
           <tbody id="jobs-body"></tbody>
         </table>
         <!-- One skeleton row, the real row's own markup with bones in
@@ -280,6 +286,7 @@
             <td class="main-cell">
               <div class="job-card-title"><span class="skeleton sk-line sk-title"></span></div>
               <div class="job-meta"><span class="skeleton sk-line sk-meta"></span></div>
+              <div class="job-where"><span class="skeleton sk-line sk-meta"></span></div>
               <div class="job-chips"><span class="skeleton sk-line sk-chips"></span></div>
             </td>
             <td class="age-cell"><span class="skeleton sk-age"></span></td>
@@ -329,7 +336,10 @@
            behaviour below 1100px, where there is no room for a third
            column, and it is never empty: with nothing selected it
            answers what the current filters add up to. -->
-      <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail"></aside>
+      <aside class="job-detail" id="job-detail" role="complementary" aria-label="Job detail">
+        <div class="col-head pane-head" id="pane-head"></div>
+        <div class="pane-body" id="pane-body"></div>
+      </aside>
       <!-- Dims and catches clicks on the board while the pane is a
            sheet. Inert above 1100px, where the pane is a column. -->
       <div id="job-scrim" aria-hidden="true"></div>

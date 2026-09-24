@@ -2244,22 +2244,45 @@ async function loadJobCount(params, seq) {
 
 // The one line above the table. Its own function because the number now
 // arrives after the rows: this redraws a line instead of the table.
+// How long ago the loader last wrote to the database, from /stats. It is
+// the one number on the board that says whether what you are reading is
+// current. Absent until stats land, and the line simply omits it then.
+function updatedAgo() {
+  const iso = latestStats?.freshness?.last_checked || latestStats?.meta?.last_loaded;
+  if (!iso) return "";
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (!Number.isFinite(mins)) return "";
+  if (mins < 1) return "Updated just now";
+  if (mins < 60) return `Updated ${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  return hrs < 48 ? `Updated ${hrs}h ago` : `Updated ${Math.round(hrs / 24)}d ago`;
+}
+
+// The list column's head: the total on the title line, the range and the
+// freshness under it. The old "Showing 1–50 of N" in the filter bar is
+// gone, so the count is said once.
 function renderResultCount(data) {
   const el = document.getElementById("result-count");
-  // The pane's empty state says the same total in words. Drawn from
-  // here so the two cannot disagree, and before the early return, so an
-  // empty result set updates it rather than leaving the last one up.
+  const sub = document.getElementById("result-sub");
+  // The pane's empty state says the same total. Drawn from here so the
+  // two cannot disagree, and before the early return, so an empty
+  // result set updates it rather than leaving the last one up.
   renderDetailEmpty();
-  if (!data || !data.jobs || !data.jobs.length) { el.innerHTML = ""; return; }
-  const from = state.offset + 1;
-  if (data.total === null || data.total === undefined) {
-    // The range is true without the total, and it does not move when the
-    // total lands, so nothing on the line jumps.
-    el.innerHTML = `Showing <b>${from}–${state.offset + data.jobs.length}</b> ${resultNoun()}`;
+  if (!el || !sub) return;
+  if (!data || !data.jobs || !data.jobs.length) {
+    el.textContent = `No ${resultNoun()}`;
+    sub.textContent = updatedAgo();
     return;
   }
-  const to = Math.min(state.offset + data.jobs.length, data.total);
-  el.innerHTML = `Showing <b>${from}–${to}</b> of <b>${fmtInt(data.total)}</b> ${resultNoun()}`;
+  const from = state.offset + 1;
+  const total = data.total;
+  // The range is true without the total, and it does not move when the
+  // total lands, so nothing on the line jumps.
+  const to = total == null ? state.offset + data.jobs.length : Math.min(state.offset + data.jobs.length, total);
+  el.innerHTML = total == null
+    ? `<b>${fmtInt(data.jobs.length)}+</b> ${escapeHtml(resultNoun())}`
+    : `<b>${fmtInt(total)}</b> ${escapeHtml(resultNoun())}`;
+  sub.textContent = [`Showing ${from}–${to}`, updatedAgo()].filter(Boolean).join(" · ");
 }
 
 // The rail's counts, asked for once the listings are on screen. See the
@@ -2344,6 +2367,31 @@ function jobMetaLine(j) {
   let line = parts.join(" · ");
   if (j.workplace_type) line += ` (${escapeHtml(WORKPLACE_LABELS[j.workplace_type] || j.workplace_type)})`;
   return line;
+}
+
+// The row's two middle lines. Who is hiring reads at full ink and where
+// the job is reads muted under it, so a column of fifty rows sorts
+// itself by employer first. One line each, both ellipsised.
+//
+// The design asks for the office or team on the where line, to tell two
+// near-identical listings from one company apart. The jobs table has no
+// such column (title, location, department, country, city and workplace
+// are all of it), so the line is what we have and nothing is invented.
+function jobWhoLine(j) {
+  const label = highlight(companyLabel(j));
+  const domain = j.company_domain && !/\.invalid$/.test(j.company_domain) ? j.company_domain : "";
+  const who = domain
+    ? `<a class="job-company" href="/company/${encodeURIComponent(domain)}"
+          title="Every open role at ${escapeHtml(companyLabel(j))}">${label}</a>`
+    : `<span class="job-company">${label}</span>`;
+  return j.department ? `${who} · ${highlight(j.department)}` : who;
+}
+
+function jobWhereLine(j) {
+  const parts = [];
+  if (j.location) parts.push(highlight(j.location));
+  if (j.workplace_type) parts.push(escapeHtml(WORKPLACE_LABELS[j.workplace_type] || j.workplace_type));
+  return parts.join(" · ");
 }
 
 // What actually stands behind the number, in the reader's own terms.
@@ -2473,13 +2521,27 @@ function jobSkillChips(j) {
     .join("");
 }
 
+// Two rows for one job, which happens when a company is reachable
+// through two ATS tokens and both were crawled. Same URL, same job, and
+// nothing downstream of here can tell them apart, so they are collapsed
+// before anything is drawn rather than deduplicated in the eye.
+function dedupeJobs(jobs) {
+  const seen = new Set();
+  return jobs.filter((j) => {
+    const key = (j.url || "").trim().toLowerCase() || `${j.company_domain}\u0000${j.external_id || j.id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function renderJobRows(jobs, starred) {
   // The tooltip stopped being true once /me/saved existed. Signed in,
   // the star does follow you, and saying otherwise talks people out of
   // using it.
   const starTitle = getAuthTokens() ? "Save to your account" : "Save (this browser only)";
   showJobsTable(true);
-  document.getElementById("jobs-body").innerHTML = jobs
+  document.getElementById("jobs-body").innerHTML = dedupeJobs(jobs)
     .map((j) => {
       const age = j.posted_at
         ? (Date.now() - new Date(j.posted_at).getTime()) / 86400000
@@ -2487,13 +2549,14 @@ function renderJobRows(jobs, starred) {
       const fresh = age !== null && age <= 3;
       const isStarred = starred.has(j.id);
       return `
-      <tr data-id="${j.id}" class="${j.id === selectedJobId ? "selected" : ""}" tabindex="-1">
+      <tr data-id="${j.id}" class="${j.id === selectedJobId ? "selected" : ""}" tabindex="0"
+          role="button" aria-label="${escapeHtml(j.title)}, ${escapeHtml(companyLabel(j))}">
         <td class="star-cell">
           <button class="star-btn ${isStarred ? "on" : ""}" data-star="${j.id}"
                   title="${starTitle}" aria-pressed="${isStarred}"
                   aria-label="${isStarred ? "Saved" : "Save"} ${escapeHtml(j.title)}">${STAR_SVG}</button>
         </td>
-        <td class="logo-cell">${companyLogoImg(j.company_domain, 44, "listing", j.logo_url)}</td>
+        <td class="logo-cell">${companyLogoImg(j.company_domain, 48, "listing", j.logo_url)}</td>
         <td class="main-cell">
           <div class="job-card-title">
             <!-- title=, because the row is a fixed height and this is
@@ -2509,7 +2572,8 @@ function renderJobRows(jobs, starred) {
                where its own column would steal the width the title
                needs, and hides on desktop where the column exists.
                Same trick the board used before this layout. -->
-          <div class="job-meta">${jobMetaLine(j)}<span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAge(age)}</span></span></div>
+          <div class="job-meta">${jobWhoLine(j)}<span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAge(age)}</span></span></div>
+          <div class="job-where">${jobWhereLine(j)}</div>
           <div class="job-chips">${matchedSkills.size ? jobMatchLine(j) : jobSalaryChip(j) + jobSkillChips(j)}</div>
           <div class="job-links">
             <a class="apply-link" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener" title="Open the original listing to apply">Apply ${EXTERNAL_ARROW_SVG}</a>
@@ -2565,8 +2629,8 @@ function renderJobRows(jobs, starred) {
 // buttons for the one listing anybody is reading.
 
 function jobFact(label, value, cls = "") {
-  return `<div class="fact ${cls}"><span class="fact-label">${escapeHtml(label)}</span>`
-    + `<span class="fact-value">${value}</span></div>`;
+  return `<div class="fact ${cls}"><span class="fact-value">${value}</span>`
+    + `<span class="fact-label">${escapeHtml(label)}</span></div>`;
 }
 
 function detailSalaryHtml(job) {
@@ -2600,11 +2664,11 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
     descriptionHtml = '<div class="job-detail-description empty">No description provided by this listing.</div>';
   }
 
+  // No close button here any more: the pane has a head of its own and
+  // the X lives in it, level with the other two columns' heads.
   return `
-    <button type="button" class="job-detail-close" title="Close" aria-label="Close job detail">${CLOSE_SVG}</button>
-
     <div class="job-detail-company">
-      ${companyLogoImg(job.company_domain, 56, "detail", job.logo_url)}
+      ${companyLogoImg(job.company_domain, 52, "detail", job.logo_url)}
       <div class="job-detail-company-text">
         <span class="job-detail-company-name">${escapeHtml(companyLabel(job))}</span>
         <span class="job-detail-company-place">${escapeHtml(job.location || "-")}</span>
@@ -2628,13 +2692,15 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
     </div>
 
     <div class="job-detail-facts">
-      ${jobFact("Salary", detailSalaryHtml(job))}
+      ${jobFact("Monthly salary", detailSalaryHtml(job))}
       ${jobFact("Posted", age !== null ? `${escapeHtml(fmtAge(age))} ago` : '<span class="fact-absent">Unreported</span>')}
       ${jobFact("Department", job.department ? escapeHtml(job.department) : '<span class="fact-absent">-</span>')}
       ${jobFact("Workplace", job.workplace_type ? escapeHtml(WORKPLACE_LABELS[job.workplace_type] || job.workplace_type) : '<span class="fact-absent">-</span>')}
     </div>
 
-    <div class="job-detail-section-title">About the role</div>
+    ${job.skills ? `<div class="job-detail-skills">${jobSkillChips(job)}</div>` : ""}
+
+    <div class="job-detail-section-title">About this role</div>
     ${descriptionHtml}`;
 }
 
@@ -2647,9 +2713,31 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
 // Built as a string here rather than as markup in board.html, unlike
 // the Statistics block it replaced: nothing else paints into it, so
 // there is no half-drawn state for a re-render to wipe.
+// The pane is a head and a body, like the other two columns. The head
+// stays while the body scrolls, and it is the only thing that changes
+// shape between the two states the pane has.
+const paneBody = () => document.getElementById("pane-body");
+
+function paneHead(job) {
+  const head = document.getElementById("pane-head");
+  if (!head) return;
+  if (job) {
+    head.innerHTML = `<span class="col-head-title">Listing</span>
+      <button type="button" class="pane-close job-detail-close" aria-label="Close listing">&#10005;</button>`;
+    head.querySelector(".pane-close").addEventListener("click", closeJobDetailAndSync);
+    return;
+  }
+  const view = state.roles === "tech" && !state.starred_only ? "Tech roles" : "All roles";
+  head.innerHTML = `<div class="list-head-text">
+      <span class="col-head-title">Results overview</span>
+      <span class="col-head-sub">${escapeHtml([...activeFilterSummary(), view].join(" · "))}</span>
+    </div>`;
+}
+
 function renderDetailEmpty() {
   const panel = document.getElementById("job-detail");
   if (!panel || selectedJobId !== null) return;
+  paneHead(null);
 
   const mode = currentScopeMode();
   const scoped = mode === "scoped" ? latestScoped.data : latestStats ? globalScope(latestStats) : null;
@@ -2658,56 +2746,62 @@ function renderDetailEmpty() {
   const remote = (railFacets.workplace || []).find((r) => r.value === "remote");
   const salary = railFacets.salary;
 
-  const view = state.roles === "tech" && !state.starred_only ? "Tech roles" : "All roles";
-  const summary = [...activeFilterSummary(), view].join(" · ");
-
-  // A number still being counted shows bones, not the last filter's
-  // answer: a scoped /stats was measured at up to 2.9s, long enough for
-  // a stale figure to be read as this one's. A number that came back
-  // genuinely absent shows a dash. The two are not the same thing.
+  // Value first, label under it, and a tile is dropped rather than
+  // shown holding a dash: a panel of em dashes says nothing four times.
+  // A number still being counted shows bones, because a scoped /stats
+  // was measured at up to 2.9s and a stale figure read as this one's.
   const pending = mode === "pending";
   const bone = '<span class="skeleton sk-line"></span>';
-  const dash = '<span class="empty-stat-none">&mdash;</span>';
-  const stat = (label, value) =>
-    `<div class="empty-stat"><span class="empty-stat-label">${escapeHtml(label)}</span>`
-    + `<span class="empty-stat-value">${value}</span></div>`;
-  const num = (v) => (pending ? bone : v == null ? dash : fmtInt(v));
+  const tile = (value, label, cls = "") =>
+    `<div class="ov-tile"><span class="ov-value ${cls}">${value}</span>`
+    + `<span class="ov-label">${escapeHtml(label)}</span></div>`;
+  const tiles = [];
+  const add = (value, label, cls) => { if (value !== null) tiles.push(tile(value, label, cls)); };
+  add(total == null ? (pending || !lastJobsResponse ? bone : null) : fmtInt(total), "Matching roles");
+  add(pending ? bone : scoped?.new_jobs_24h == null ? null : `+${fmtInt(scoped.new_jobs_24h)}`,
+      "New today", "ov-new");
+  add(pending ? bone : scoped?.companies_hiring == null ? null : fmtInt(scoped.companies_hiring),
+      "Companies");
+  add(salary?.median ? escapeHtml(fmtShekels(salary.median)) : railFacetsLoaded ? null : bone,
+      "Median estimate");
 
-  panel.innerHTML = `
+  // Search health. The loader's own last write, which is the one number
+  // that says whether this is current. "Sources responding" is in the
+  // design and not in the data: /stats carries pipeline.error_count and
+  // a company total, which is a different question (how many companies
+  // errored, ever) and would be a made-up percentage dressed as a
+  // measurement. The row stays out until something measures it.
+  const freshMins = latestStats?.freshness?.minutes_since_update;
+  const health = updatedAgo();
+
+  paneBody().innerHTML = `
     <div class="detail-empty">
-      <div class="empty-lede">
-        <span class="empty-label">Your filters</span>
-        ${total == null
-          ? (lastJobsResponse
-            ? `<span class="empty-count">${fmtInt(lastJobsResponse.jobs?.length || 0)}+ <span>${escapeHtml(resultNoun())}</span></span>`
-            : `<span class="empty-count counting">${bone}</span>`)
-          : `<span class="empty-count">${fmtInt(total)} <span>${escapeHtml(resultNoun())}</span></span>`}
-        <span class="empty-summary">${escapeHtml(summary)}</span>
-      </div>
-
-      <div class="empty-stats">
-        ${stat("New today", num(scoped?.new_jobs_24h))}
-        ${stat("Median est.", salary?.median ? escapeHtml(fmtShekels(salary.median))
-          : railFacetsLoaded ? dash : bone)}
-        ${stat("Companies", num(scoped?.companies_hiring))}
-        ${stat("Remote", remote ? fmtInt(remote.n) : railFacetsLoaded ? dash : bone)}
-      </div>
+      ${tiles.length ? `<div class="ov-tiles">${tiles.join("")}</div>` : ""}
 
       ${hiring.length ? `
-        <div class="empty-hiring">
-          <span class="empty-label">Hiring most</span>
+        <div class="ov-block">
+          <span class="ov-block-title">Hiring most</span>
           ${hiring.map((c) => `
-            <button type="button" class="empty-hiring-row" data-company="${escapeHtml(c.value)}"
+            <button type="button" class="ov-row" data-company="${escapeHtml(c.value)}"
                     title="Show only ${escapeHtml(c.value)}">
-              <span class="empty-hiring-name">${escapeHtml(c.value)}</span>
-              <span class="empty-hiring-n">${fmtInt(c.n)}</span>
+              <span>${escapeHtml(c.value)}</span>
+              <span class="ov-row-n">${fmtInt(c.n)}</span>
             </button>`).join("")}
         </div>` : ""}
 
-      <div class="empty-hint">Select a listing to see details</div>
+      ${health ? `
+        <div class="ov-block">
+          <span class="ov-block-title">Search health</span>
+          <div class="ov-row static">
+            <span>Last updated</span>
+            <span class="ov-dot-row"><span class="ov-dot ${freshMins != null && freshMins > 120 ? "stale" : ""}"></span>${escapeHtml(health.replace("Updated ", ""))}</span>
+          </div>
+        </div>` : ""}
+
+      <div class="ov-hint">Select a listing to see its details here.</div>
     </div>`;
 
-  panel.querySelectorAll("[data-company]").forEach((row) => {
+  paneBody().querySelectorAll("[data-company]").forEach((row) => {
     row.addEventListener("click", () => {
       state.company = [row.dataset.company];
       railApply();
@@ -2869,7 +2963,8 @@ async function openJobDetail(id) {
   clearTimeout(jobDetailCloseTimer);
   panel.hidden = false;
   panel.scrollTop = 0; // a new listing starts at its own top, not the last one's
-  panel.innerHTML = known
+  paneHead(known);
+  paneBody().innerHTML = known
     ? renderJobDetailBody(known, { descriptionLoading: true })
     : `<div class="loading-state">Loading job…</div>`;
   if (known) wireJobDetailPanel(known);
@@ -2887,12 +2982,13 @@ async function openJobDetail(id) {
   try {
     const full = await getJSON(`/jobs/${encodeURIComponent(id)}`);
     if (selectedJobId !== id) return; // a different row was picked while this was in flight
-    panel.innerHTML = renderJobDetailBody(full);
+    paneHead(full);
+    paneBody().innerHTML = renderJobDetailBody(full);
     wireJobDetailPanel(full);
   } catch (err) {
     if (selectedJobId !== id) return;
     if (known) {
-      panel.innerHTML = renderJobDetailBody(known, { descriptionError: err.message });
+      paneBody().innerHTML = renderJobDetailBody(known, { descriptionError: err.message });
       wireJobDetailPanel(known);
     } else if (/no job with that id/i.test(err.message)) {
       // A shared or bookmarked link to a listing that has left the board.
@@ -3001,6 +3097,16 @@ function wireJobDetail() {
     if (e.target.closest("a, button")) return; // Apply/Save link/star handle their own click
     const row = e.target.closest("tr[data-id]");
     if (row) openJobDetailAndPush(row.dataset.id);
+  });
+  // The rows are focusable now, so Enter has to do what a click does.
+  // Space is left alone: on a focused row it should still scroll.
+  document.getElementById("jobs-body").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    if (e.target.closest("a, button")) return;
+    const row = e.target.closest("tr[data-id]");
+    if (!row) return;
+    e.preventDefault();
+    openJobDetailAndPush(row.dataset.id);
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
@@ -3853,6 +3959,10 @@ function renderFilterRail() {
       const rows = railVisibleRows(group);
       const picked = railSelected(group);
       const pool = railRows(group);
+      // How many of this group's options are on, said beside its
+      // heading, so a collapsed or scrolled-past group still reports
+      // that it is narrowing the list.
+      if (picked.size) summary = `${picked.size} selected`;
       // A facet this snapshot cannot answer gets no group at all,
       // rather than a heading over "No matches", which reads as a
       // result and not as an absence. Happens for one merge cycle after
@@ -4282,7 +4392,7 @@ function wireFilters() {
     loadTicker();
   });
 
-  document.querySelectorAll("th[data-sort]").forEach((th) => {
+  document.querySelectorAll("[data-sort]").forEach((th) => {
     th.addEventListener("click", () => {
       const key = th.dataset.sort;
       const isSameColumn = state.sort === key;
@@ -4300,7 +4410,7 @@ function wireFilters() {
 function setActiveSortHeader(key, dir) {
   state.sort = key;
   state.dir = dir;
-  document.querySelectorAll("th[data-sort]").forEach((h) => {
+  document.querySelectorAll("[data-sort]").forEach((h) => {
     h.classList.remove("active");
     h.removeAttribute("data-dir");
   });
@@ -4308,7 +4418,7 @@ function setActiveSortHeader(key, dir) {
   // else is a stale link or a typo. Threw a TypeError here before,
   // after the rows had already rendered, so the board looked fine while
   // the sort UI was left with nothing marked active.
-  const th = document.querySelector(`th[data-sort="${key}"]`);
+  const th = document.querySelector(`[data-sort="${key}"]`);
   if (th) {
     th.classList.add("active");
     th.setAttribute("data-dir", dir === "desc" ? "↓" : "↑");

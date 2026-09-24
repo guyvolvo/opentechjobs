@@ -4335,8 +4335,32 @@ a.hero-account-btn { text-decoration: none; }
    scrollbars, which is the same thing the Statistics column did before
    it: the list is what grows, and the footer stays reachable under it. */
 
+/* The board fills the window and does not scroll as a page: the bar
+   takes what it needs, the three columns take the rest, and each of them
+   scrolls on its own. Subtracting a fixed topbar height was guesswork
+   the ticker kept breaking, so the topbar simply takes its own height
+   out of a flex column. */
+.board-page {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.board-page > .topbar { flex: none; }
+/* The page footer goes with it. The board is now a full-height app view
+   whose three columns are asked to fill the viewport, and a footer can
+   only take that height from them. Its three links live on every other
+   page on the site. */
+.board-page > .hero-foot,
+.board-page > footer,
+.board-page > .site-footer { display: none; }
 .board-shell {
-  padding: 0 var(--gutter) 40px;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* --- the top bar ------------------------------------------------- */
@@ -4346,11 +4370,10 @@ a.hero-account-btn { text-decoration: none; }
    the count is the one number that says whether a filter did anything,
    and it was scrolling away exactly when someone changed one. */
 .board-bar {
-  position: sticky;
-  top: 57px; /* topbar height plus its 2px rule */
+  flex: none;
   z-index: 9; /* under .topbar's 10 */
   background: var(--white);
-  padding: 14px 0 12px;
+  padding: 16px var(--gutter) 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -4431,9 +4454,12 @@ a.hero-account-btn { text-decoration: none; }
   margin: 0;
   height: 30px;
   padding: 0 9px;
-  border: 1px solid var(--grey-line);
+  /* Filled rather than outlined: a chip is a filter that is on, and the
+     row fill is the same green the rail marks a ticked option with, so
+     the two places a filter shows up agree. */
+  border: 1px solid var(--green-text);
   border-radius: 4px;
-  background: var(--white);
+  background: var(--row-selected);
   color: var(--black);
   font: 400 13px var(--font-ui);
   text-transform: none;
@@ -4448,31 +4474,91 @@ a.hero-account-btn { text-decoration: none; }
 
 /* --- the grid ----------------------------------------------------- */
 
+/* Three columns that fill what is left of the viewport, each scrolling
+   on its own. The page itself does not scroll here: the board is a tool
+   you work inside, and losing the filters because you read to the
+   bottom of the list was the thing the old single scroll kept doing. */
 .board-grid {
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr) 440px;
-  align-items: start;
+  grid-template-columns: 260px minmax(0, 1fr) 420px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--grey-line);
 }
 .board-grid > * { min-width: 0; }
+
+/* One head across all three, so the rule under them is a single line
+   the eye reads as the top of the board rather than three lids. The
+   heads stay put; only the bodies under them scroll. */
+.col-head {
+  flex: none;
+  height: 64px;
+  box-sizing: border-box;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--black);
+  background: var(--white);
+}
+.filter-rail .col-head { background: var(--hover-bg); }
+.col-head-title { font: 500 17px var(--font-display); color: var(--black); }
+.col-head-title b { font-weight: 500; font-variant-numeric: tabular-nums; }
+.col-head-sub { font: 400 12px var(--font); color: var(--black); opacity: 0.75; }
+.list-head-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.list-head-sort {
+  flex: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: 500 13px var(--font-display);
+  color: var(--black);
+  cursor: pointer;
+}
+.list-head-sort::after { content: " " attr(data-dir); }
+.list-head-sort:hover { color: var(--green-text); }
+
+.rail-reset {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: 500 13px var(--font-display);
+  color: var(--red);
+  cursor: pointer;
+}
+.rail-reset[hidden] { display: none; }
+/* Only the sheet needs a way out; above 800px the rail is a column. */
+.rail-close { display: none; }
 
 /* --- the filter rail ---------------------------------------------- */
 
 .filter-rail {
-  position: sticky;
-  top: 145px; /* under the topbar and the filter bar both */
-  height: calc(100vh - 145px);
-  height: calc(100dvh - 145px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: var(--hover-bg);
   border-right: 1px solid var(--grey-line);
-  padding: 18px 16px 28px;
 }
 
-.rail-head { display: none; } /* only the sheet needs a title and a way out */
-
-.rail-groups { display: flex; flex-direction: column; gap: 22px; }
+.rail-groups {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--grey-line) transparent;
+  padding: 20px 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+/* A hairline between groups rather than around each one: the gap does
+   most of the separating and a box around every group turned a quiet
+   column into six panels. */
 .rail-group { display: flex; flex-direction: column; gap: 8px; }
+.rail-group + .rail-group { border-top: 1px solid var(--grey-line); padding-top: 28px; }
 
 .rail-title {
   display: flex;
@@ -4508,30 +4594,35 @@ a.hero-account-btn { text-decoration: none; }
 .rail-option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 26px;
-  padding: 2px 4px;
+  gap: 10px;
+  min-height: 30px;
+  /* The negative margin is what makes the whole row clickable and the
+     checked fill run the width of the column, rather than a pill
+     floating inside it. */
+  padding: 0 8px;
+  margin: 0 -8px;
   border-radius: 4px;
   cursor: pointer;
-  font: 400 13px var(--font-ui);
+  font: 400 14px var(--font-ui);
   color: var(--black);
 }
 .rail-option:hover { background: var(--row-hover); }
+.rail-option.on { background: var(--row-selected); }
 .rail-option input { position: absolute; opacity: 0; width: 0; height: 0; }
 .rail-option input:focus-visible + .rail-box { outline: 2px solid var(--green); outline-offset: 1px; }
 
 .rail-box {
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid var(--grey-line);
-  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
   background: var(--white);
   color: var(--white);
   display: grid;
   place-items: center;
 }
-.rail-option.on .rail-box { background: var(--green); border-color: var(--green); }
+.rail-option.on .rail-box { background: var(--black); border-color: var(--black); }
 .rail-tick { width: 12px; height: 12px; opacity: 0; }
 .rail-option.on .rail-tick { opacity: 1; }
 
@@ -4544,7 +4635,7 @@ a.hero-account-btn { text-decoration: none; }
 }
 /* Ticked reads a step heavier, so the picked options are findable in a
    list without reading every box. */
-.rail-option.on .rail-option-label { font-weight: 600; }
+.rail-option.on .rail-option-label { font-weight: 700; }
 
 /* Tabular, and its own element, so a long name is what truncates and
    never the number. */
@@ -4704,29 +4795,33 @@ a.hero-account-btn { text-decoration: none; }
 
 /* --- the list ----------------------------------------------------- */
 
-.board-list { padding: 0 0 0 20px; min-width: 0; }
+/* The list column: a head that stays and a body that scrolls. The
+   padding moved off the column and onto the rows, so a row's hover and
+   selection fills span the whole column width. */
+.board-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.board-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--grey-line) transparent;
+}
+/* Sticky rather than a sibling of a scroller: the list column is one
+   scroll and the head rides at its top, which keeps the count and the
+   sort in reach fifty rows down. */
+.board-list .list-head { position: sticky; top: 0; z-index: 2; }
 
-table.jobs thead tr,
 table.jobs tbody tr[data-id],
 table.jobs tbody tr.skeleton-row {
   display: grid;
-  grid-template-columns: 18px 44px minmax(0, 1fr) auto;
+  grid-template-columns: 18px 48px minmax(0, 1fr) auto;
   gap: 14px;
   align-items: start;
 }
-
-table.jobs thead tr { padding: 0 20px; }
-table.jobs thead th {
-  padding: 10px 0 8px;
-  font: 700 12px var(--font);
-  color: var(--grey);
-  text-align: left;
-}
-/* Two headings over a four-column grid: the star and the logo are not
-   columns anybody sorts by, so Listing spans them rather than two empty
-   cells carrying a border. */
-table.jobs thead .th-listing { grid-column: 1 / 4; }
-table.jobs thead .th-age { grid-column: 4; text-align: right; }
 
 table.jobs tbody td { padding: 0; vertical-align: top; }
 /* One height for every row, so fifty of them make a rhythm a reader can
@@ -4735,11 +4830,15 @@ table.jobs tbody td { padding: 0; vertical-align: top; }
    padding is title (19) + meta (19) + chips (22) + two 8px gaps. */
 table.jobs tbody tr[data-id],
 table.jobs tbody tr.skeleton-row {
-  padding: 14px 20px;
+  padding: 16px 20px;
   position: relative;
-  height: 104px;
+  height: 124px;
   align-content: start;
+  cursor: pointer;
+  outline-offset: -3px;
 }
+table.jobs tbody tr[data-id]:hover { background: var(--row-hover); }
+table.jobs tbody tr[data-id]:focus-visible { outline: 2px solid var(--green); }
 /* Nothing may push the row taller, which is what a wrapped title, a
    second meta line or a fourth chip row would each do. */
 .main-cell { overflow: hidden; }
@@ -4783,7 +4882,7 @@ table.jobs tbody tr.selected::before {
    .job-meta still carried a 3px top margin of its own from the old
    layout, so the title sat 8px above the company and the company 5px
    above the chips: one row, two rhythms. */
-.main-cell { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.main-cell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
 /* Fixed at one text line. The seniority badge is 25px tall against the
    title's 19, and as a baseline-aligned flex item it dragged the whole
@@ -4840,6 +4939,18 @@ tr:hover .job-title-text { color: var(--green-text); }
    compete with the title above it for the first thing the eye lands on. */
 a.job-company { color: var(--black); text-decoration: none; }
 a.job-company:hover { color: var(--green-text); text-decoration: underline; }
+/* Who is hiring reads at full ink, where the job is reads muted under
+   it, so a column of fifty rows sorts itself by employer first. */
+.job-meta { color: var(--black); }
+.job-where {
+  font: 400 13px var(--font);
+  line-height: 18px;
+  color: var(--black);
+  opacity: 0.75;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* Three things only a phone shows. The column, the detail pane and the
    chip line carry them at every other width. */
 .meta-age,
@@ -4918,19 +5029,38 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 /* --- the detail pane ---------------------------------------------- */
 
 .job-detail {
-  position: sticky;
-  top: 145px;
-  max-height: calc(100vh - 145px);
-  max-height: calc(100dvh - 145px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: var(--white);
   border-left: 1px solid var(--grey-line);
-  padding: 28px 32px;
+}
+.pane-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--grey-line) transparent;
+  padding: 24px 20px 32px;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
+.pane-close {
+  width: 32px;
+  height: 32px;
+  margin-right: -8px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--black);
+  font-size: 15px;
+  cursor: pointer;
+}
+.pane-close:hover { background: var(--hover-bg); }
 .job-detail[hidden] { display: none; }
 
 .job-detail-close {
@@ -5021,69 +5151,66 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 
 /* What the filters add up to, in the space the open listing would take.
    This is where the Statistics column went. */
-.detail-empty { display: flex; flex-direction: column; gap: 22px; }
+.detail-empty { display: flex; flex-direction: column; gap: 24px; min-height: 100%; }
 
-.empty-lede { display: flex; flex-direction: column; gap: 4px; }
-.empty-label { font: 700 11.5px var(--font); color: var(--grey); opacity: 0.85; }
-.empty-count {
-  font: 400 38px/1 var(--font-display);
-  letter-spacing: -0.02em;
-  color: var(--black);
-  font-variant-numeric: tabular-nums;
-}
-.empty-count span { font: 400 15px var(--font); letter-spacing: normal; color: var(--grey); }
-.empty-count.counting { display: block; }
-.empty-count.counting .sk-line { display: block; width: 62%; height: 30px; border-radius: 3px; }
-.empty-stat-value .sk-line { display: block; width: 70%; height: 20px; border-radius: 3px; }
-.empty-summary { font: 400 13px var(--font); color: var(--grey); opacity: 0.9; }
-
-.empty-stats {
+/* Value first, label under it, in a 2x2 that shares its rules. A tile
+   whose number we do not have is left out rather than shown holding a
+   dash, so the grid can be 3 or 2 wide as easily as 4. */
+.ov-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--grey-line);
   border: 1px solid var(--grey-line);
   border-radius: 4px;
   overflow: hidden;
 }
-.empty-stat { background: var(--white); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; }
-.empty-stat-label { font: 700 11.5px var(--font); color: var(--grey); opacity: 0.85; }
-.empty-stat-value { font: 800 22px var(--font); font-variant-numeric: tabular-nums; color: var(--black); }
-.empty-stat-none { color: var(--grey); font-weight: 400; }
+.ov-tile {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-right: 1px solid var(--grey-line);
+  border-bottom: 1px solid var(--grey-line);
+}
+/* The right-hand tile of each pair and the bottom pair give up the rule
+   they would otherwise draw against the container's own border. */
+.ov-tile:nth-child(2n) { border-right: 0; }
+.ov-tile:nth-last-child(-n + 2):nth-child(2n + 1),
+.ov-tile:last-child { border-bottom: 0; }
+.ov-value {
+  font: 400 28px/1 var(--font-display);
+  color: var(--black);
+  font-variant-numeric: tabular-nums;
+}
+.ov-value.ov-new { color: var(--green-text); }
+.ov-value .sk-line { display: block; width: 70%; height: 22px; border-radius: 3px; }
+.ov-label { font: 400 13px var(--font); color: var(--black); }
 
-.empty-hiring { display: flex; flex-direction: column; gap: 2px; }
-.empty-hiring .empty-label { margin-bottom: 4px; }
-.empty-hiring-row {
+.ov-block { display: flex; flex-direction: column; }
+.ov-block-title { font: 500 14px var(--font-display); color: var(--black); padding-bottom: 8px; }
+.ov-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 6px 6px;
+  padding: 9px 0;
   border: 0;
-  border-radius: 4px;
+  border-top: 1px solid var(--grey-line);
   background: none;
   color: var(--black);
-  font: 400 13px var(--font-ui);
-  cursor: pointer;
+  font: 400 14px var(--font);
   text-align: left;
+  cursor: pointer;
 }
-.empty-hiring-row:hover { background: var(--row-hover); }
-.empty-hiring-row:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
-.empty-hiring-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.empty-hiring-n { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: var(--grey); font-size: 12px; }
+.ov-row.static { cursor: default; }
+.ov-row:not(.static):hover { color: var(--green-text); }
+.ov-row:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+.ov-row > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-row-n { flex: 0 0 auto; font-variant-numeric: tabular-nums; opacity: 0.75; }
+.ov-dot-row { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+.ov-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--aws-operational); }
+.ov-dot.stale { background: var(--aws-degraded); }
 
-/* Dashed, because it is the one box on the page that is waiting to be
-   filled rather than holding something. */
-.empty-hint {
-  margin-top: auto;
-  padding: 16px;
-  border: 1px dashed var(--grey-line);
-  border-radius: 4px;
-  text-align: center;
-  font: 400 13px var(--font-ui);
-  color: var(--grey);
-  opacity: 0.85;
-}
+.ov-hint { margin-top: auto; font: 400 13px var(--font); color: var(--black); opacity: 0.7; }
 
 /* Recovered with the three-column rewrite: the geolocation prompt, the
    Apply button and the description's own headings all sat in the block
@@ -5631,3 +5758,8 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   .account-metric { border-right: 0; border-bottom: 1px solid var(--grey-line); }
   .account-metric:last-child { border-bottom: 0; }
 }
+
+/* Value over label in the listing's facts, the same way round as the
+   overview's tiles, so the two states of one pane read alike. */
+.job-detail-facts .fact { display: flex; flex-direction: column; gap: 4px; }
+.job-detail-skills { display: flex; flex-wrap: wrap; gap: 6px; }
