@@ -226,6 +226,7 @@ async function loadMatches() {
       const hit = listed.filter((sk) => want.has(sk)).length;
       return `
         <a class="acct-match" href="/job/${encodeURIComponent(j.id)}">
+          ${companyLogoImg(j.company_domain, 40, "listing", j.logo_url)}
           <span class="acct-match-text">
             <span class="acct-match-title">${escapeHtml(j.title)}</span>
             <span class="acct-match-meta">${escapeHtml(j.company_name || j.company_domain || "")}${
@@ -485,12 +486,6 @@ function wireAccountNav() {
 // location lists, which only the board itself normally fills in, so this
 // page fetches the same stats the board does.
 async function wireAlerts() {
-  try {
-    latestStats = await getStaticOrApi("/stats.json", "/stats");
-  } catch {
-    // Non-fatal: the pickers fall back to whatever they can load on
-    // their own, and the search box still works.
-  }
   // renderAlertsList is app.js's, and it is called again after every
   // create, edit, pause and delete. Counting inside it is the only hook
   // that catches all of those without a second copy of the list here.
@@ -499,8 +494,22 @@ async function wireAlerts() {
     setCount("alerts", (list || []).length);
     paintList(list);
   };
-  wireAlertCreateForm();
+
+  // The list first, and on its own. It used to come last, behind a
+  // stats download and the whole create form, so anything slow or stuck
+  // in either left "Loading..." on screen with nothing to say why. The
+  // list only ever needed its own request.
   renderAlertsList(await loadMyAlerts());
+
+  // The form and its pickers after, and their failures are theirs: an
+  // alert you cannot create is not a reason to hide the ones you have.
+  try {
+    latestStats = await getStaticOrApi("/stats.json", "/stats");
+  } catch {
+    // The pickers fall back to whatever they can load on their own, and
+    // the search box still works.
+  }
+  wireAlertCreateForm();
 }
 
 // The Settings row's theme button. It clicks the topbar's, which owns
@@ -725,6 +734,17 @@ function wireAccountSignIn() {
 // next one still runs. The error goes to the console too, because the
 // message on screen is for the reader and the stack is for me.
 async function block(name, host, fn) {
+  // A promise that never settles cannot be caught, and the reader sees
+  // the loading placeholder forever. After fifteen seconds the block is
+  // declared stuck: the work may still land and overwrite this, which
+  // is fine, but silence is not an outcome.
+  const stuck = host && setTimeout(() => {
+    const el = $(host);
+    if (el && /Loading/i.test(el.textContent)) {
+      console.error(`account: ${name} did not finish`);
+      el.innerHTML = `<p class="alerts-empty">This is taking longer than it should. Reloading the page usually fixes it.</p>`;
+    }
+  }, 15000);
   try {
     return await fn();
   } catch (err) {
@@ -732,6 +752,8 @@ async function block(name, host, fn) {
     const el = $(host);
     if (el) el.innerHTML = `<p class="alerts-empty">This did not load. Reloading the page usually fixes it.</p>`;
     return null;
+  } finally {
+    clearTimeout(stuck);
   }
 }
 

@@ -2977,7 +2977,13 @@ body.explore-busy .explore-metric { color: var(--green-text); }
 .acct-match:last-child { border-bottom: 0; }
 .acct-match:hover { background: var(--row-hover); }
 .acct-match:hover .acct-match-title { color: var(--green-text); }
-.acct-match-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.acct-match .company-logo {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  margin-right: 12px;
+}
+.acct-match-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
 .acct-match-title {
   font: 600 15px var(--font);
   overflow: hidden;
@@ -3013,8 +3019,16 @@ body.explore-busy .explore-metric { color: var(--green-text); }
   color: var(--black);
 }
 .acct-panel-title .link { font-size: 12px; font-weight: 400; }
-.acct-row-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-.acct-row-lead { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; }
+.acct-row-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+/* Its own separation from the row above rather than relying on the
+   body's gap: that gap is measured from the taller of the two panels up
+   there, so under the shorter one it collapsed to a few pixels. */
+.acct-row-lead {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+  margin-top: 16px;
+}
 .acct-row-two > [hidden] { display: none; }
 
 /* Finish setup */
