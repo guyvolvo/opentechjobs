@@ -408,6 +408,20 @@ async function wireAlerts() {
   renderAlertsList(await loadMyAlerts());
 }
 
+// The Settings row's theme button. It clicks the topbar's, which owns
+// the switching and the storage key, and mirrors whatever label that
+// leaves behind. The observer is what keeps the two in step when the
+// theme is changed from the bar instead of from here.
+function wireSettingsTheme() {
+  const here = $("settings-theme");
+  const bar = document.getElementById("theme-toggle");
+  if (!here || !bar) return;
+  const sync = () => { here.textContent = bar.textContent; };
+  sync();
+  here.addEventListener("click", () => bar.click());
+  new MutationObserver(sync).observe(document.documentElement, { attributeFilter: ["data-theme"] });
+}
+
 function wireLeaving() {
   // This page is the one protected view on the site, so signing out
   // here leaves a signed-out reader looking at an account. Everywhere
@@ -633,6 +647,7 @@ async function bootAccount() {
 
   wireLeaving();
   wireAccountNav();
+  wireSettingsTheme();
   // Order matters: the analyser runs on the rules the server returns
   // (skill_spec), so it cannot be wired before they arrive.
   const loaded = await loadProfile();

@@ -295,11 +295,12 @@
                 <div class="acct-row">
                   <div class="acct-row-text">
                     <span class="acct-row-label">Theme</span>
-                    <span class="acct-row-note">Light or dark, remembered in this browser.</span>
                   </div>
-                  <!-- The topbar pill is the control. A second one here
-                       would be a second source of truth for one setting. -->
-                  <a class="link" href="#" id="settings-theme">Use the pill in the bar above</a>
+                  <!-- The control itself, not a sentence pointing at one
+                       elsewhere. It forwards its click to the topbar pill
+                       rather than switching the theme itself, so there is
+                       still one implementation and the two cannot drift. -->
+                  <button type="button" class="hero-theme" id="settings-theme">Dark</button>
                 </div>
                 <div class="acct-row">
                   <div class="acct-row-text">
