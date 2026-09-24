@@ -4198,6 +4198,16 @@ a.hero-account-btn { text-decoration: none; }
   text-decoration: none;
 }
 .hero-api-link:hover { background: #ededec; color: #17181c; }
+/* On the dark theme the page itself is #17181c, so a #17181c block on it
+   had no edges at all: the heading, the button and the code sat loose on
+   the ground as if the container had been forgotten. Reported live. The
+   block keeps its terminal colours in both themes; in the dark one it
+   stands a step lighter than the page and takes the same hairline the
+   board's boxes carry, which is what makes it a box again. */
+:root[data-theme="dark"] .hero-api {
+  background: var(--hover-bg);
+  border: 1px solid var(--panel-line);
+}
 
 .hero-api-code { position: relative; min-width: 0; }
 .hero-api-code pre {
