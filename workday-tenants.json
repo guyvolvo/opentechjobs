@@ -29808,5 +29808,55 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "bcaa.net",
+  "tenant": "bcaa",
+  "wd": "wd3",
+  "site": "bcaacareers",
+  "jobs_seen": 38,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "assetmark.com",
+  "tenant": "assetmark",
+  "wd": "wd5",
+  "site": "AssetMark_Careers",
+  "jobs_seen": 37,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "gable.com",
+  "tenant": "gable",
+  "wd": "wd3",
+  "site": "Careers",
+  "jobs_seen": 34,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "redriver.com",
+  "tenant": "redriver",
+  "wd": "wd5",
+  "site": "redrivercareers",
+  "jobs_seen": 34,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "directv.com",
+  "tenant": "directv",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 34,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
