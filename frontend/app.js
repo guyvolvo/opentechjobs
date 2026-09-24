@@ -2938,6 +2938,10 @@ function companyNameFor(domain) {
 function renderDetailEmpty() {
   const panel = document.getElementById("job-detail");
   if (!panel || selectedJobId !== null) return;
+  // Every route into the empty state goes through here, and the guard
+  // above means this cannot fire while a listing is open, so this is the
+  // one place that has to get the bar right.
+  clearStickyActions();
   paneHead(null);
 
   const mode = currentScopeMode();
@@ -3218,6 +3222,31 @@ function jobPermalink(id) {
 // IntersectionObserver answers without running code on every frame.
 let paneStickyObserver = null;
 
+// Everything the sticky bar is, undone in one place, so "no listing is
+// open" and "the bar is on screen" cannot disagree.
+//
+// The observer has to go with it. It watches .job-detail-actions inside
+// the pane body, and the empty state replaces that body, so the observed
+// node ends up detached: the observer then either reports it as not
+// intersecting, which unhides the bar, or stops reporting at all and
+// leaves it unhidden from before. Either way the bar kept the listing
+// that had just been closed. Reported live 2026-09-24 as "Apply on
+// nvidia.com" sitting under "Select a listing to see its details here",
+// after a filter change dropped the open listing out of the results.
+function clearStickyActions() {
+  if (paneStickyObserver) {
+    paneStickyObserver.disconnect();
+    paneStickyObserver = null;
+  }
+  const bar = document.getElementById("pane-sticky");
+  if (!bar) return;
+  // Emptied as well as hidden: the Apply link inside it is focusable, and
+  // a hidden bar that still holds one is a tab stop leading to the wrong
+  // company.
+  bar.innerHTML = "";
+  bar.hidden = true;
+}
+
 function wireStickyActions(job) {
   const bar = document.getElementById("pane-sticky");
   const body = paneBody();
@@ -3360,6 +3389,10 @@ function closeJobDetail() {
   document.getElementById("job-scrim")?.classList.remove("open");
   document.querySelector(`tr[data-id="${selectedJobId}"]`)?.classList.remove("selected");
   selectedJobId = null;
+  // Now, not in settle() below: on a sheet that is 250ms away, and the
+  // bar must not outlive the listing it belongs to for a quarter of a
+  // second while the pane slides out.
+  clearStickyActions();
   setCanonical("/board");
   // The pane has a column to itself, so closing a listing does not
   // leave a hole: it goes back to saying what the filters add up to.
