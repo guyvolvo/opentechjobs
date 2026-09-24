@@ -239,6 +239,11 @@ anything. Dark mode is a plain near-black/white inversion.
   soft, non-binary surface in the system, reserved for menu option hover
   states where a hard color flip would be too loud, and for the ground
   the board's two panels sit on, where it is what separates them.
+- **Salary Fill** (`#e4ece0`, `--salary-fill`; dark mode `#1a2a20`): behind
+  a salary chip on a board row, and nothing else. Both kinds of chip carry
+  the Green Text outline; the fill is what separates a figure the employer
+  published from one we estimated, so the two are told apart by the shape
+  rather than by reading the word "Est.".
 - **Panel Line** (`#a7ad9f`, `--panel-line`; dark mode `#4a4c52`): the
   outline of a board panel, and nothing else. Darker than Hairline Grey
   because it has to read against the Hover Tint ground rather than

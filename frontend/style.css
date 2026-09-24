@@ -69,6 +69,10 @@
      because it has to read against the tinted ground the panels sit on,
      where the hairline used between two things on paper disappears. */
   --panel-line: #a7ad9f;
+  /* Behind a salary the employer published, and nothing else. An
+     estimate gets the same green outline with no fill, so the two are
+     told apart by the fill rather than by reading the word "Est.". */
+  --salary-fill: #e4ece0;
   /* Row states, apart from --hover-bg (which still tints menu options)
      so hovering a row and having it open never look the same. Hover is
      neutral, selected carries the green. The old shared tint was 1.04:1
@@ -134,6 +138,7 @@
   --grey-line: #2b2c31;
   --hover-bg: #1e1f24;
   --panel-line: #4a4c52;
+  --salary-fill: #1a2a20;
   --row-hover: #23252b;
   --row-selected: #1d3024;
   --green-text: #2fae60; /* same as --green: already 6.2:1 on #17181c */
@@ -4996,7 +5001,7 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .meta-age,
 .job-links,
 .job-salary-line { display: none; }
-.meta-age-value.fresh { color: var(--green-text); }
+.meta-age-value.fresh { color: var(--black); } /* the phone's age, same rule */
 
 /* One row, and it is the skills that fall off the end of it. The salary
    chip is first in the markup and never shrinks, so a row that only has
@@ -5050,10 +5055,24 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .job-chip.skill { cursor: pointer; }
 .job-chip.skill:hover { border-color: var(--black); color: var(--black); }
 .job-chip.skill:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
-/* The one number on the row worth colour. "Est." stays in the row's own
-   ink so the qualifier does not read as part of the figure. */
-.job-chip.salary { color: var(--black); }
+/* The one number on the row worth colour, and now the only green on it:
+   the age gave its green up so nothing competes. The green outline is on
+   both kinds; the fill is what says the employer published this figure
+   rather than us estimating it.
+   4px to the right on top of the chip line's 6px gap, so the number
+   stands off the skills instead of reading as the first of them. */
+.job-chip.salary {
+  border-color: var(--green-text);
+  color: var(--green-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+.job-chip.salary[data-salary-source="disclosed"] { background: var(--salary-fill); }
 .job-chip.salary .salary-range { color: var(--green-text); font-variant-numeric: tabular-nums; }
+/* "Est." is the qualifier, not part of the figure, so it stays in the
+   row's own text colour at the row's own weight. */
+.job-chip.salary .salary-est-label { color: var(--black); font-weight: 400; }
 .salary-est-label { color: var(--grey); }
 
 .age-cell {
@@ -5064,7 +5083,9 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   white-space: nowrap;
   padding-top: 1px;
 }
-.age-cell.fresh { color: var(--green-text); font-weight: 600; }
+/* Ink, not green. A fresh row still reads heavier than the rest, but
+   the colour belongs to the salary now. */
+.age-cell.fresh { color: var(--black); font-weight: 600; }
 
 /* --- the detail pane ---------------------------------------------- */
 
