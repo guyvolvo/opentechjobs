@@ -25193,3 +25193,7 @@ alectrona.com
 air.com
 connexio.ai
 cresst.net
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+independence.com
+canaccordgenuity.com
