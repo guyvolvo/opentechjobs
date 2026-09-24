@@ -30128,5 +30128,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "palig.com",
+  "tenant": "palig",
+  "wd": "wd5",
+  "site": "PALIG",
+  "jobs_seen": 8,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "resolutionlife.com",
+  "tenant": "resolutionlife",
+  "wd": "wd5",
+  "site": "resolutionlife_jobs",
+  "jobs_seen": 8,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
