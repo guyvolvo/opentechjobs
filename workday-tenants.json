@@ -29408,5 +29408,75 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "healthfirst.com",
+  "tenant": "healthfirst",
+  "wd": "wd1",
+  "site": "healthfirst",
+  "jobs_seen": 94,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "endo.com",
+  "tenant": "endo",
+  "wd": "wd1",
+  "site": "External",
+  "jobs_seen": 92,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "bellpartnersinc.com",
+  "tenant": "bellpartnersinc",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 91,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "neosoft.net",
+  "tenant": "neosoft",
+  "wd": "wd3",
+  "site": "neo-soft",
+  "jobs_seen": 89,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "easterseals.com",
+  "tenant": "easterseals",
+  "wd": "wd5",
+  "site": "ESNH_VTcareers",
+  "jobs_seen": 85,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "nandosanz.com",
+  "tenant": "nandosanz",
+  "wd": "wd3",
+  "site": "NandosANZ",
+  "jobs_seen": 84,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "phinia.com",
+  "tenant": "phinia",
+  "wd": "wd5",
+  "site": "PHINIA_Careers",
+  "jobs_seen": 84,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
