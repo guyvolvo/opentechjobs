@@ -30148,5 +30148,15 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "ecc.de",
+  "tenant": "ecc",
+  "wd": "wd5",
+  "site": "CareerOpportunities",
+  "jobs_seen": 7,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]

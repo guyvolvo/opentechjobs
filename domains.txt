@@ -24325,3 +24325,22 @@ fussy.com
 hospitalclinic.org
 hubone.com
 i3works.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+bestlogisticsgroup.com
+regionalgroup.com
+rpmglobal.com
+rockwall.com
+ruralcommunitytransportation.com
+safebound.com
+safepaas.com
+scalepad.com
+schmidandrhodes.com
+sciteam.com
+sflands.com
+silvermaple.com
+sirestoration.com
+sitero.com
+somichcpa.com
+somnomed.com
+spinjoy.com
