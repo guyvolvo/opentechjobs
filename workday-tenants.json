@@ -30188,5 +30188,75 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "aussiebroadband.com",
+  "tenant": "aussiebroadband",
+  "wd": "wd3",
+  "site": "Wholesale-External",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "burnesspaull.com",
+  "tenant": "burnesspaull",
+  "wd": "wd3",
+  "site": "our-vacancies",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "ctran.com",
+  "tenant": "ctran",
+  "wd": "wd5",
+  "site": "C-TRAN_Careers",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "dno.net",
+  "tenant": "dno",
+  "wd": "wd3",
+  "site": "DNO_Careers",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "flymemphis.com",
+  "tenant": "flymemphis",
+  "wd": "wd5",
+  "site": "MSCAAExternalCareerSite",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "ovintiv.com",
+  "tenant": "ovintiv",
+  "wd": "wd3",
+  "site": "ovintivcareers",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "sourcewell.co",
+  "tenant": "sourcewell",
+  "wd": "wd1",
+  "site": "SWCareers",
+  "jobs_seen": 3,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
