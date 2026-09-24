@@ -10,9 +10,7 @@
       list of what stays sharp and why.
    4. Two voices: --font (Helvetica) for everything dense; --font-display
       (Overused Grotesk, bold/extrabold) only for the topbar and the two section
-      titles. The landing page is the one exception: .hero-page sets all
-      three font tokens to Urbanist at regular weight (see the rule by
-      .hero-page below).
+      titles.
    5. Job Board and Statistics are permanent, side by side above the
       mobile breakpoint (where they stack), never a drawer or toggle.
    6. Light/dark both read var(--white)/var(--black), never a literal
@@ -23,17 +21,6 @@
   font-family: "Overused Grotesk";
   src: url("fonts/OverusedGrotesk-VF.woff2") format("woff2-variations");
   font-weight: 300 900;
-  font-display: swap;
-}
-
-/* Urbanist, for the landing page only (see .hero-page below). Self-hosted
-   for the same reason as the other two: no request to Google from a page
-   that promises not to make one. Variable, latin subset, OFL; the licence
-   is beside it in fonts/. */
-@font-face {
-  font-family: "Urbanist";
-  src: url("fonts/Urbanist-VF.woff2") format("woff2-variations");
-  font-weight: 100 900;
   font-display: swap;
 }
 
@@ -3542,15 +3529,6 @@ body.signin-open .workspace > .section { border-bottom: 0; }
    moment the display face exists for. Colours are the board's own tokens,
    so both themes work. */
 .hero-page { background: var(--white); color: var(--black); }
-/* The landing page is set in Urbanist, all three voices, and at regular
-   weight: the geometric face reads as itself at 400 and as a different,
-   heavier font at 700. Scoped to the body class so the board and the
-   account page keep Overused Grotesk and Source Sans. */
-.hero-page {
-  --font: "Urbanist", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-display: "Urbanist", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-ui: "Urbanist", "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
 
 .hero-bar {
   display: flex;
@@ -4194,7 +4172,7 @@ a.hero-account-btn { text-decoration: none; }
   border-radius: 4px;
   background: transparent;
   color: #ededec;
-  font: 400 13px var(--font-ui);
+  font: 600 13px var(--font-ui);
   text-decoration: none;
 }
 .hero-api-link:hover { background: #ededec; color: #17181c; }
