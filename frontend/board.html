@@ -126,6 +126,30 @@
       <div class="ticker" id="ticker" aria-label="Recently posted jobs">
         <div class="ticker-track" id="ticker-track"></div>
       </div>
+      <!-- The two controls that order and bound the whole result set,
+           beside the search rather than on a row of their own. Neither
+           narrows by a value, which is what the rail is for. -->
+      <div class="topbar-sorts">
+        <select id="f-date-posted" title="Date posted">
+          <option value="">Date posted</option>
+          <option value="any">Any time</option>
+          <option value="1">Past 24 hours</option>
+          <option value="3">Past 3 days</option>
+          <option value="7">Past 7 days</option>
+          <option value="14">Past 14 days</option>
+          <option value="30">Past 30 days</option>
+        </select>
+        <select id="f-sort" title="Sort">
+          <option value="">Sort</option>
+          <option value="match:asc" hidden>Best match</option>
+          <!-- Relevance ranks by where the search words appear
+               (see relevance_score_sql). Newest stays the default:
+               a job board is read by date first. -->
+          <option value="relevance:asc">Relevance</option>
+          <option value="age:asc">Newest</option>
+          <option value="age:desc">Oldest</option>
+        </select>
+      </div>
       <nav class="topnav">
         <!-- Populated entirely by app.js's renderAuthState(), same convention as the .ms filter dropdowns below -->
         <div class="auth-area" id="auth-area"></div>
@@ -171,26 +195,6 @@
              room for a column, and sits beside the search because that
              is the row a thumb is already on. Hidden above it. -->
         <button type="button" class="btn ghost rail-toggle" id="rail-toggle" aria-expanded="false" aria-controls="filter-rail">Filters</button>
-        <span class="board-bar-gap"></span>
-        <select id="f-date-posted" title="Date posted">
-          <option value="">Date posted</option>
-          <option value="any">Any time</option>
-          <option value="1">Past 24 hours</option>
-          <option value="3">Past 3 days</option>
-          <option value="7">Past 7 days</option>
-          <option value="14">Past 14 days</option>
-          <option value="30">Past 30 days</option>
-        </select>
-        <select id="f-sort" title="Sort">
-          <option value="">Sort</option>
-          <option value="match:asc" hidden>Best match</option>
-          <!-- Relevance ranks by where the search words appear
-               (see relevance_score_sql). Newest stays the default:
-               a job board is read by date first. -->
-          <option value="relevance:asc">Relevance</option>
-          <option value="age:asc">Newest</option>
-          <option value="age:desc">Oldest</option>
-        </select>
       </div>
 
       <div class="board-bar-row board-bar-row-2">

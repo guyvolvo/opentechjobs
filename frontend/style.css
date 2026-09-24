@@ -6267,3 +6267,30 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
    take the same shape. A 4px chip beside a 999px one reads as a
    different kind of control rather than the same row. */
 .active-chips .chip { border-radius: 999px; }
+
+/* Date posted and Newest live in the top bar. Neither narrows by a
+   value, which is what the rail is for: one bounds the result set and
+   the other orders it, so they belong beside the search rather than on
+   a row with the views. */
+/* flex:none, and the ticker beside it keeps the flex:1 that pushes
+   everything right. margin-left:auto here fought the nav for the same
+   space and the two drew on top of each other. */
+.topbar-sorts { display: flex; align-items: center; gap: 8px; flex: none; }
+.topbar-sorts select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1.5px solid var(--black);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--black);
+  font: 400 13px var(--font-ui);
+}
+.topbar-board .topnav { margin-left: 16px; flex: none; }
+/* The search box stops running the width of the page. It is one control
+   among several now, not the whole row. */
+.board-bar #f-search { flex: 0 1 560px; }
+@media (max-width: 800px) {
+  /* No room for them up there; they go back to the sheet and the bar. */
+  .topbar-sorts { display: none; }
+  .board-bar #f-search { flex: 1; }
+}
