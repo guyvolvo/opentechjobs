@@ -357,6 +357,17 @@ async function exchangeGoogleCode(code) {
   setAuthTokens({ id_token: data.id_token, access_token: data.access_token, refresh_token: data.refresh_token });
 }
 
+// What each auth_error the callback can send back actually means, in
+// the reader's terms. Anything not listed falls back to the raw code,
+// which is still better than the silence this replaced.
+const AUTH_ERRORS = {
+  github_not_configured: "GitHub sign-in is not set up on this site yet. Google and email both work.",
+  github_token_exchange_failed: "GitHub would not confirm that sign-in. Please try again.",
+  no_verified_github_email: "Your GitHub account has no verified primary email, which is what the account here is keyed on.",
+  missing_code: "That sign-in link was incomplete. Please try again.",
+  access_denied: "Sign-in was cancelled.",
+};
+
 // Two unrelated redirect shapes land here, both at /board: Google's
 // via Cognito's own authorization-code flow (?code=... query param,
 // exchanged client-side above; Cognito sends it to /, and the edge
@@ -375,8 +386,21 @@ async function handleAuthRedirect() {
     return;
   }
   if (hash.get("auth_error")) {
-    console.error("Sign-in failed:", hash.get("auth_error"));
+    const code = hash.get("auth_error");
+    console.error("Sign-in failed:", code);
     history.replaceState(null, "", location.pathname + location.search);
+    // On screen, not only in the console. A reader who has just been
+    // through a provider's consent screen and landed back signed out has
+    // earned a sentence about why: without one the board simply looks
+    // like it ignored them, which is how GitHub sign-in stayed broken
+    // without anyone noticing. Reported live 2026-09-24.
+    //
+    // The dialog is reopened because the redirect closed it, and it is
+    // where the error line and the other two ways in already are.
+    setTimeout(() => {
+      if (window.openSignIn) window.openSignIn();
+      authErrorSink(AUTH_ERRORS[code] || `Sign-in failed (${code}).`);
+    }, 0);
     return;
   }
 

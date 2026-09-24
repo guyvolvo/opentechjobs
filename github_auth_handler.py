@@ -90,6 +90,19 @@ def _get_json(url: str, headers: dict) -> object:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def _fail(code: str, detail: str = "") -> dict:
+    """An auth_error redirect, and a log line for it.
+
+    Every one of these used to return in silence. The frontend puts the
+    code in the console and strips it from the URL, so a reader who lands
+    back on the board signed out has nothing to look at, and neither did
+    I: three invocations in CloudWatch with no output at all. The detail
+    is the provider's own words, which is what actually names the fault.
+    """
+    print(f"github auth failed: {code}" + (f" ({detail})" if detail else ""))
+    return _redirect(f"auth_error={code}")
+
+
 def _redirect(fragment: str) -> dict:
     return {
         "statusCode": 302,
@@ -160,11 +173,18 @@ def _handle_email_start(event: dict) -> dict:
 def _handle_callback(event: dict) -> dict:
     params = event.get("queryStringParameters") or {}
     if params.get("error"):
-        return _redirect(f"auth_error={urllib.parse.quote(params['error'])}")
+        return _fail(urllib.parse.quote(params["error"]), params.get("error_description", ""))
+
+    # The switched-off state the variable's own description promises.
+    # Without it an unconfigured deployment still shows the button, still
+    # sends the reader through GitHub's consent screen, and still drops
+    # them back signed out: broken rather than off.
+    if not GITHUB_CLIENT_SECRET:
+        return _fail("github_not_configured", "GITHUB_CLIENT_SECRET is empty")
 
     code = params.get("code")
     if not code:
-        return _redirect("auth_error=missing_code")
+        return _fail("missing_code")
 
     # Exchange the one-time code for a GitHub access token. Single-use,
     # short-lived, tied to our client_id+client_secret+redirect_uri --
@@ -184,7 +204,13 @@ def _handle_callback(event: dict) -> dict:
     )
     access_token = token_resp.get("access_token")
     if not access_token:
-        return _redirect("auth_error=github_token_exchange_failed")
+        # GitHub answers 200 with an error body here, so the body is the
+        # only thing that says which of client id, secret, code or
+        # redirect_uri it objected to. No secret is echoed in it.
+        return _fail(
+            "github_token_exchange_failed",
+            f"{token_resp.get('error')}: {token_resp.get('error_description')}",
+        )
 
     gh_headers = {
         "Authorization": f"Bearer {access_token}",
@@ -201,7 +227,7 @@ def _handle_callback(event: dict) -> dict:
     primary = next((e for e in emails if e.get("primary") and e.get("verified")), None)
     email = primary["email"] if primary else None
     if not email:
-        return _redirect("auth_error=no_verified_github_email")
+        return _fail("no_verified_github_email", f"{len(emails)} address(es), none primary+verified")
 
     username = f"github_{gh_id}"
     pool_id, app_client_id = _pool_and_client_ids()
