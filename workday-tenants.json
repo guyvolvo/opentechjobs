@@ -29958,5 +29958,45 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "anticimex.com",
+  "tenant": "anticimexinc",
+  "wd": "wd1",
+  "site": "Anticimex_Carolinas_External_Careers",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "linklogistics.com",
+  "tenant": "linklogistics",
+  "wd": "wd5",
+  "site": "Link",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "nztagovtnz.com",
+  "tenant": "nztagovtnz",
+  "wd": "wd3",
+  "site": "nztagovtnz",
+  "jobs_seen": 18,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "antares.com",
+  "tenant": "antares",
+  "wd": "wd5",
+  "site": "antares",
+  "jobs_seen": 17,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
