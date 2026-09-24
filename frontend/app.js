@@ -3402,9 +3402,16 @@ function wireRailSheet() {
   const open = () => {
     document.body.classList.add("rail-open");
     document.getElementById("rail-toggle")?.setAttribute("aria-expanded", "true");
-    // The first thing in the sheet, so a reader who opened it with the
+    // Focus goes into the sheet so a reader who opened it with the
     // keyboard is inside it rather than still on the button behind it.
-    document.querySelector("#filter-rail .rail-search")?.focus();
+    // Not into the search box, though: on a phone that summons the
+    // on-screen keyboard the moment the sheet appears, which takes half
+    // the sheet and makes it jump as it opens. The close button is in
+    // the sheet, is the first thing in it, and types nothing.
+    const first = matchMedia("(max-width: 800px)").matches
+      ? document.getElementById("rail-close")
+      : document.querySelector("#filter-rail .rail-search");
+    first?.focus({ preventScroll: true });
   };
   document.getElementById("rail-toggle")?.addEventListener("click", () => {
     document.body.classList.contains("rail-open") ? closeRailSheet() : open();
