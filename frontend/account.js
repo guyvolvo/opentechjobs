@@ -226,12 +226,16 @@ async function loadMatches() {
     host.innerHTML = '<p class="acct-matches-empty">Add skills to see matches.</p>';
     return;
   }
-  // Israel-only because the profile says so, not because the CV does.
-  // The analyser reads skills and nothing else: it has never looked for
-  // a location, and this page must not imply that it has.
-  const params = { skills: skills.join(","), sort: "match", dir: "asc", limit: "3", count: "skip" };
-  if (draft.israel_only) params.country = "IL";
-  const q = new URLSearchParams(params).toString();
+  // No country. The analyser reads skills and nothing else, so nothing
+  // here knows where the reader is, and there is no preference to ask
+  // either: israel_only defaults to true for every profile ever created
+  // and the account page has no control for it, so reading it would
+  // have shown a developer in Germany three Israeli jobs and called
+  // them their best matches. Narrowing by place is the board's job, and
+  // "See all on the board" is the way to it.
+  const q = new URLSearchParams({
+    skills: skills.join(","), sort: "match", dir: "asc", limit: "3", count: "skip",
+  }).toString();
 
   const cached = cachedMatches(q);
   if (cached) return paintMatches(cached, skills);
@@ -300,7 +304,9 @@ function paintMatchLink() {
   if (draft.skills.length) p.set("skills", draft.skills.join(","));
   if (draft.seniority) p.set("seniority", draft.seniority);
   if (draft.workplace.length) p.set("workplace", draft.workplace.join(","));
-  if (draft.israel_only) p.set("israel_only", "1");
+  // Same reasoning as loadMatches: israel_only is a legacy flag with no
+  // control behind it and a default of true, so sending it would filter
+  // every reader's matches to one country none of them chose.
   const link = $("profile-matches");
   if (link) link.href = "/board?" + p.toString();
   setCount("skills", draft.skills.length);
