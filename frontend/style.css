@@ -5115,7 +5115,7 @@ a.hero-account-btn { text-decoration: none; }
 table.jobs tbody tr[data-id],
 table.jobs tbody tr.skeleton-row {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
   gap: 14px;
   align-items: start;
 }
@@ -5187,7 +5187,9 @@ table.jobs tbody tr.selected::before {
 .star-mark { width: 16px; height: 16px; }
 .star-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; border-radius: 3px; }
 
-.logo-cell .company-logo.listing { width: 44px; height: 44px; border-radius: 4px; }
+/* 56px, the same mark the open listing's pane carries, so the logo does
+   not shrink between the row and the thing the row opens. */
+.logo-cell .company-logo.listing { width: 56px; height: 56px; border-radius: 4px; }
 
 /* 8px, and the three lines below are 19 + 19 + 22, which is the row's
    104 less its 28 of padding exactly. The gap used to be 5 while
