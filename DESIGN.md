@@ -184,7 +184,7 @@ flat 4px radius. See Shapes below for exactly what stays sharp instead
 - Depth built entirely from 2px hairline grids, never shadows
 - One bold display face for brand moments; Helvetica for everything data-dense
 - Light and dark are two deliberately tuned palettes, not a hex inversion
-- A live-status vocabulary (the ticker, the status glyph) borrowed from terminals/dashboards and service-health pages, not marketing sites
+- A live-status vocabulary (the landing page's tickers, the status glyph) borrowed from terminals/dashboards and service-health pages, not marketing sites
 
 ## Colors
 
@@ -639,12 +639,20 @@ panel says "Ranked by relevance" and explains the rule in its tooltip.
 
 ### Navigation
 - **Topbar:** Overused Grotesk wordmark, uppercase Helvetica nav links, sticky
-  to viewport top, 2px ink bottom rule. `flex-wrap: nowrap` by design,
-  the scrolling ticker between wordmark and status absorbs all the
-  squeeze via `min-width: 0`, so the whole bar never wraps to multiple
-  lines above the mobile breakpoint.
-- **Mobile:** nav wraps and the ticker hides outright below 960px rather
-  than trying to keep a marquee legible at phone width.
+  to viewport top, 2px ink bottom rule. `flex-wrap: nowrap` by design:
+  one element between the two ends carries `min-width: 0` and absorbs all
+  the squeeze, so the whole bar never wraps to multiple lines above the
+  mobile breakpoint. On the board that element is the search box; on the
+  other pages nothing sits there and the nav holds the right edge alone.
+- **Board search (`.topbar-search`):** a 36px pill in the topbar holding
+  the magnifier, the input and, when the box is empty and unfocused, a
+  `/` key cap. The hotkey focuses it from anywhere on the page; Enter
+  searches without waiting out the 500ms typing timer, Escape empties it
+  before the key reaches the handler that closes an open listing. Below
+  800px the same node moves into the filter bar and drops both the
+  magnifier and the key cap: a phone has no `/` to press, and the
+  placeholder is already cut off at 390px.
+- **Mobile:** nav wraps below 960px.
 
 ### Favicon
 Rounded square (not the system's usual sharp corners, an OS/browser-chrome
@@ -658,17 +666,22 @@ Helvetica/Arial Bold, centered. `favicon.svg` is the source of truth;
 that don't take an SVG icon.
 
 ### The Ticker (signature component)
-A `News headline`-style scrolling marquee between the wordmark and the
-online/offline status, seamlessly looping the board's own most-recent
-matching listings (not a static sitewide list, it re-queries with
-whatever filters are currently active). Built from CSS alone: the item
+A `News headline`-style scrolling marquee, seamlessly looping live board
+numbers and the busiest companies' marks. Built from CSS alone: the item
 list is duplicated once in the DOM, animated `translateX(0)` to
-`translateX(-50%)`, over 70 seconds. It pauses on hover and on keyboard
-focus, and sits at 80% opacity until the pointer or focus is on it, so it
-stays ambient instead of being the first thing on the page anyone
-notices. It keeps moving with reduced motion on: stopping it there left
-the ticker frozen for anyone with Windows animation effects turned off,
-and hover already gives every reader a way to pause it.
+`translateX(-50%)`. It pauses on hover and on keyboard focus, and sits
+below full opacity until the pointer or focus is on it, so it stays
+ambient instead of being the first thing on the page anyone notices. It
+keeps moving with reduced motion on, slower: stopping it there left the
+row frozen for anyone with Windows animation effects turned off, and
+hover already gives every reader a way to pause it.
+
+It lives on the landing page (`.hero-ticker`, two rows thrown in
+opposite directions). The board's topbar carried one too, looping the ten
+newest listings for whatever filters were active, and it was retired on
+2026-09-24 when the search box took that space. It was ambient at best,
+and it cost a second `/jobs` query on every filter change to say what the
+first row of the list said already.
 
 ### The Status Glyph (signature component)
 A 13px outlined mark in the topbar and a 24px one on the Data Health

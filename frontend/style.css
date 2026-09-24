@@ -266,71 +266,90 @@ button, input, select {
   display: flex;
   align-items: center;
   gap: 16px;
-  /* nowrap, deliberately: .ticker has min-width:0 + overflow:hidden so
-     it shrinks to fit instead. flex-wrap here wrapped the whole topbar
-     onto 3 lines at any width short of "everything fits." */
+  /* nowrap, deliberately: .topbar-search has min-width:0 so it shrinks
+     to fit instead. flex-wrap here wrapped the whole topbar onto 3 lines
+     at any width short of "everything fits." */
   flex-wrap: nowrap;
   min-height: 56px;
   padding-top: 10px;
   padding-bottom: 10px;
 }
 .topbar .container > * { min-width: 0; } /* same min-width:auto issue as everywhere else in this file */
-.status-indicator, .topnav { flex: 0 0 auto; } /* natural width; the ticker is the one flexible element between them */
+.status-indicator, .topnav { flex: 0 0 auto; } /* natural width; the search is the one flexible element between them */
 .status-indicator { display: flex; align-items: center; }
 
-/* Topbar ticker: seamless CSS-loop marquee. The item list is duplicated
-   once in the track, animated exactly -50% so the loop has no visible seam. */
+/* The board's search box, when it is in the topbar. Above 800px this is
+   its home; below it the same node sits in the filter bar (the rules at
+   the bottom of this file) and this element is only the carrier, so the
+   field's chrome is on the wrapper and the input inside is bare. */
 
-.ticker {
+.topbar-search {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  height: 20px;
-  /* Ambient, not a headline: slightly faded until the pointer or
-     keyboard focus is on it. Still 4.9:1 in light mode at 0.8. */
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
+  max-width: 560px;
   display: flex;
-  align-items: center; /* .ticker-track's height comes from its own text content, not this 20px window; without this it just sits at the top of the clipped box instead of centered in it */
-  /* Items fade in and out at the ends instead of being cut by a rule,
-     the same mask the landing page's ticker wears (.hero-ticker). */
-  -webkit-mask-image: linear-gradient(90deg, transparent, black 7%, black 93%, transparent);
-  mask-image: linear-gradient(90deg, transparent, black 7%, black 93%, transparent);
-}
-
-.ticker-track {
-  display: flex;
-  width: max-content;
-  animation: ticker-scroll 70s linear infinite; /* fallback; app.js sets 7s per item */
-}
-/* :focus-visible, not :focus-within. Clicking a ticker link opens it in
-   a new tab and leaves focus on the link, and :focus-within kept the
-   ticker paused after the reader came back. Only keyboard focus pauses. */
-.ticker:hover, .ticker:has(:focus-visible) { opacity: 1; }
-.ticker:hover .ticker-track,
-.ticker:has(:focus-visible) .ticker-track { animation-play-state: paused; } /* let a visitor actually read/click one without it sliding away */
-
-@keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
-.ticker-item {
-  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0 20px;
-  font-size: 12px;
-  color: var(--black);
-  text-decoration: none;
-  white-space: nowrap;
+  height: 36px;
+  padding: 0 6px 0 14px;
+  border: 1.5px solid var(--black);
+  border-radius: 999px;
+  background: var(--white);
 }
-.ticker-item:hover { color: var(--green-text); }
-/* The company's own mark leads each item, at the bar-row's 14px, in
-   place of the green dot that used to. */
-.ticker-item .company-logo { width: 14px; height: 14px; margin-right: 0; flex: 0 0 auto; }
-.ticker-item .ticker-company { color: var(--grey); }
-.ticker-item:hover .ticker-company { color: var(--green-text); }
+/* The ring goes on the wrapper, not the input: the input has no edge of
+   its own to draw one on. */
+.topbar-search:focus-within { outline: 2px solid var(--green); outline-offset: -2px; }
+.topbar-search-icon { flex: 0 0 auto; color: var(--grey); }
+.topbar-search:focus-within .topbar-search-icon { color: var(--green-text); }
+
+.topbar-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--black);
+  font: 400 13px var(--font-ui);
+}
+.topbar-search input:focus { outline: none; }
+.topbar-search input::placeholder { color: var(--grey); opacity: 0.75; }
+
+/* Worth advertising only while it works: once the box has focus, / types
+   a slash. It gives up its place to the clear button. */
+.topbar-search-key {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  background: var(--hover-bg);
+  color: var(--grey);
+  font: 400 11px var(--font-ui);
+}
+.topbar-search:focus-within .topbar-search-key,
+.topbar-search.has-text .topbar-search-key { display: none; }
+
+.topbar-search-clear {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--grey);
+  line-height: 0;
+  cursor: pointer;
+}
+.topbar-search-clear:hover { background: var(--hover-bg); color: var(--black); }
+.topbar-search-clear:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+.topbar-search-clear[hidden] { display: none; }
 
 .topnav {
   /* Keeps the nav on the right on the pages with nothing else in the
@@ -2125,9 +2144,9 @@ footer {
 @media (max-width: 640px) {
   /* The utility row on a phone. It was 10.5px text in controls 17 to 19px
      tall, bunched into the left 160px of a 390px screen, right under the
-     browser's address bar: reported live as too tight. The wordmark,
-     ticker and status all hide at this width (below), so the row has the
-     whole width to itself. The links go back to the 13px UI size and
+     browser's address bar: reported live as too tight. The wordmark and
+     the status line both hide at this width, and the search box drops
+     into the filter bar, so the row has the whole width to itself. The links go back to the 13px UI size and
      every control is 44px tall to tap, which is the height Apple's
      guidance asks for and what makes the bar taller. They stay grouped on
      the left: spread across the width, the gaps read as too much. Each
@@ -2152,7 +2171,6 @@ footer {
     text-decoration-thickness: 1px;
     text-underline-offset: 4px;
   }
-  .ticker { display: none; } /* topbar is already tight without a marquee too */
   /* LIVE/OFFLINE + dot: real information on desktop, but on a phone's
      topbar it's spending width without earning it -- reported live
      (2026-09-08). */
@@ -2281,7 +2299,8 @@ footer {
    that small, so it buys a nominal voice and costs real smoothness.
    Linear instead: on a composited property that means the bar redraws at
    whatever the display runs at, 60Hz or 120Hz, rather than at a rate this
-   file picked. The ticker already sweeps this way. steps() stays where it
+   file picked. The landing page's tickers already sweep this way.
+   steps() stays where it
    reads as character, on the status dot.
 
    The judder was never only the step count though. This animated `left`,
@@ -4574,7 +4593,8 @@ a.hero-account-btn { text-decoration: none; }
   .hero-bar { font-size: 12px; flex-wrap: wrap; row-gap: 4px; }
   .hero-feature { grid-template-columns: 1fr; }
 }
-/* Slower, not still, as with the board's ticker. */
+/* Slower, not still: a reader who asked for less motion still wants to
+   know the row is a marquee and not a static list. */
 @media (prefers-reduced-motion: reduce) {
   .hero-ticker.to-right .hero-ticker-track { animation-duration: 180s; }
   .hero-ticker.to-left .hero-ticker-track { animation-duration: 120s; }
@@ -4655,8 +4675,8 @@ a.hero-account-btn { text-decoration: none; }
 /* The board fills the window and does not scroll as a page: the bar
    takes what it needs, the three columns take the rest, and each of them
    scrolls on its own. Subtracting a fixed topbar height was guesswork
-   the ticker kept breaking, so the topbar simply takes its own height
-   out of a flex column. */
+   that broke every time something in the bar changed height, so the
+   topbar simply takes its own height out of a flex column. */
 .board-page {
   background: var(--hover-bg);
   height: 100vh;
@@ -4709,11 +4729,9 @@ a.hero-account-btn { text-decoration: none; }
 
 .board-bar-row > * { min-width: 0; } /* form controls have a real intrinsic width too */
 
-.board-bar #f-search { flex: 1 1 auto; }
 .board-bar #f-date-posted,
 .board-bar #f-sort { flex: 0 0 150px; }
 
-.board-bar input[type="text"],
 .board-bar select {
   height: 38px;
   padding: 0 10px;
@@ -4723,9 +4741,7 @@ a.hero-account-btn { text-decoration: none; }
   color: var(--black);
   font: 400 13px var(--font-ui);
 }
-.board-bar input[type="text"]:focus,
 .board-bar select:focus { outline: 2px solid var(--green); outline-offset: -2px; }
-.board-bar input::placeholder { color: var(--grey); opacity: 0.75; }
 
 /* The same chevron the rail's carets use, so the two arrows sitting a
    few pixels apart match. */
@@ -5838,14 +5854,12 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 @media (max-width: 640px) {
   .board-bar { position: static; padding: 10px 8px; gap: 8px; }
   .board-bar-row { flex-wrap: nowrap; gap: 8px; }
-  .board-bar #f-search { flex: 1; height: 44px; min-width: 0; }
   /* Date posted moves into the filter sheet and the sort moves into the
      list head, so neither takes a row here. Search plus Filters is the
      whole of the first row. */
   .board-bar #f-date-posted,
   .board-bar #f-sort,
-  .board-bar .search-go,
-  .board-bar-gap { display: none; }
+  .board-bar .search-go { display: none; }
   .rail-toggle {
     height: 44px;
     flex: 0 0 auto;
@@ -6254,13 +6268,11 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
    square row above a round one. The extra side padding is not
    decoration: at 999px the corner eats into the text box, and a
    placeholder starting under the curve looks clipped. */
-.board-bar input[type="text"],
 .board-bar select,
 .board-bar .search-go,
 .board-bar .rail-toggle {
   border-radius: 999px;
 }
-.board-bar input[type="text"] { padding-left: 16px; padding-right: 16px; }
 .board-bar select { padding-left: 14px; }
 .board-bar .search-go { padding-left: 20px; padding-right: 20px; }
 /* The active-filter chips share that row with the view pills, so they
@@ -6272,12 +6284,11 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
    value, which is what the rail is for: one bounds the result set and
    the other orders it, so they belong beside the search rather than on
    a row with the views. */
-/* flex:none, and the ticker beside it keeps the flex:1 that pushes
-   everything right. margin-left:auto here fought the nav for the same
-   space and the two drew on top of each other. */
-.topbar-sorts { display: flex; align-items: center; gap: 8px; flex: none; }
+/* The only auto margin in the bar. The nav's own is overridden below:
+   with both of them pulling, the selects drew on top of "Sign in". */
+.topbar-sorts { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
 .topbar-sorts select {
-  height: 34px;
+  height: 36px;
   padding: 0 10px;
   border: 1.5px solid var(--black);
   border-radius: 999px;
@@ -6286,11 +6297,42 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   font: 400 13px var(--font-ui);
 }
 .topbar-board .topnav { margin-left: 16px; flex: none; }
-/* The search box stops running the width of the page. It is one control
-   among several now, not the whole row. */
-.board-bar #f-search { flex: 0 1 560px; }
+/* Below 800px the search box leaves the bar and the selects hide, so
+   nothing is left to push the nav over and it has to push itself. */
 @media (max-width: 800px) {
-  /* No room for them up there; they go back to the sheet and the bar. */
+  .topbar-board .topnav { margin-left: auto; }
+}
+
+/* Nothing is left on the bar's first row above 800px: the search box is
+   in the topbar and the Filters button is a phone control. */
+.board-bar-row-1 { display: none; }
+
+@media (max-width: 800px) {
+  /* No room for any of it up there. The selects go back to the sheet and
+     the list head; the search box goes back to the filter bar, where
+     wireSearchHome() moves the node. The display rules cover the moment
+     before that runs, and the case where it never does. */
   .topbar-sorts { display: none; }
-  .board-bar #f-search { flex: 1; }
+  .topbar .topbar-search { display: none; }
+  .board-bar-row-1 { display: flex; }
+  .board-bar .topbar-search {
+    display: flex;
+    flex: 1 1 auto;
+    max-width: none;
+    height: 38px;
+    padding-left: 16px;
+    order: -1;
+  }
+  /* The box goes back to being a plain field down here. The magnifier
+     costs 23px of a placeholder that is already cut off at 390px, and a
+     phone has no / to press. The clear cross stays: backspacing a search
+     out by hand is worst on the device with no Escape key. */
+  .board-bar .topbar-search-icon,
+  .board-bar .topbar-search-key { display: none; }
+}
+
+/* The phone's 44px tap target, the height this box has had there since
+   the mobile pass. */
+@media (max-width: 640px) {
+  .board-bar .topbar-search { height: 44px; }
 }

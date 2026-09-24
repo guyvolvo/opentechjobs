@@ -571,10 +571,14 @@ function escapeHtml(s) {
 
 function debounce(fn, ms) {
   let t;
-  return (...args) => {
+  const run = (...args) => {
     clearTimeout(t);
     t = setTimeout(() => fn(...args), ms);
   };
+  // For the callers that have a "do it now" path beside the timer, so
+  // pressing Enter doesn't run the same search again 500ms later.
+  run.cancel = () => clearTimeout(t);
+  return run;
 }
 
 // metrics dashboard
@@ -1244,7 +1248,6 @@ function wireCompanyBarClicks(el) {
       renderFilterRail();
       renderActiveChips();
       loadJobs();
-      loadTicker();
       window.scrollTo({ top: document.getElementById("board").offsetTop - 60, behavior: "smooth" });
     });
   });
@@ -1356,7 +1359,6 @@ async function setView(view) {
     state.skills = [];
     if (state.sort === "match") setActiveSortHeader("age", "asc");
     loadJobs();
-    loadTicker();
     return;
   }
   // Best matches keeps every filter already set: it orders what they
@@ -1373,11 +1375,11 @@ async function setView(view) {
   }
   setActiveSortHeader("match", "asc");
   loadJobs();
-  loadTicker();
 }
 
-// The filter (not sort/pagination) portion of state. Shared by loadJobs
-// and the ticker, so "10 most recent" respects the active filters too.
+// The filter (not sort/pagination) portion of state. Shared by loadJobs,
+// the facet counts and the scoped statistics, so they all describe the
+// same result set.
 function currentFilterParams() {
   return {
     search: state.search,
@@ -1681,7 +1683,7 @@ function applyStoredFilters() {
 // caller (boot, or the popstate handler) does that once, itself, after.
 // Requires wireFilters() to have already run (msDepartment etc. assigned).
 function applyStateToFilterUI() {
-  document.getElementById("f-search").value = state.search;
+  setSearchBox(state.search);
   document.getElementById("f-date-posted").value = state.max_age_days || "";
   paintViewSwitch();
   renderFilterRail();
@@ -1772,9 +1774,9 @@ function skeletonRowCount() {
 }
 
 // Rides the topbar's own bottom rule (see .load-bar in style.css).
-// Reference-counted: the board and the ticker refetch independently and
-// often overlap, and the first one to finish shouldn't switch the bar
-// off while the other is still in flight.
+// Reference-counted: the listings, the counts and the statistics refetch
+// independently and often overlap, and the first one to finish shouldn't
+// switch the bar off while the others are still in flight.
 let inFlight = 0;
 function setLoadBar(active) {
   inFlight = Math.max(0, inFlight + (active ? 1 : -1));
@@ -2086,7 +2088,7 @@ function clearHeldJobs() {
 // right, which is the one the reader most likely just added.
 function lastAppliedFilter() {
   const undo = [
-    ["search", () => state.search, () => { state.search = ""; const el = document.getElementById("f-search"); if (el) el.value = ""; }, () => `"${state.search}"`],
+    ["search", () => state.search, () => { state.search = ""; setSearchBox(""); }, () => `"${state.search}"`],
     ["max_age_days", () => state.max_age_days, () => { state.max_age_days = 0; const el = document.getElementById("f-date-posted"); if (el) el.value = ""; }, () => `posted in the last ${state.max_age_days} days`],
     ["workplace", () => state.workplace.length, () => { state.workplace = []; }, () => state.workplace.map((w) => WORKPLACE_LABELS[w] || w).join(", ")],
     ["city", () => state.city.length, () => { state.city = []; }, () => state.city.join(", ")],
@@ -2772,9 +2774,8 @@ function wireJobRowControls() {
       // listing must both mention separately.
       state.search = btn.dataset.skill.includes(" ") ? `"${btn.dataset.skill}"` : btn.dataset.skill;
       state.offset = 0;
-      document.getElementById("f-search").value = state.search;
+      setSearchBox(state.search);
       loadJobs();
-      loadTicker();
     });
   });
 }
@@ -4434,7 +4435,6 @@ function railApply() {
   renderFilterRail();
   renderActiveChips();
   loadJobs();
-  loadTicker();
 }
 
 function railPaintRange(slider) {
@@ -4642,28 +4642,135 @@ function wireActiveChips() {
 }
 
 
+// the search box
+
+// One box, two homes. Above 800px it is the first control in the topbar,
+// where it stays put however far the list runs; below 800px there is no
+// room up there, so it goes back to the filter bar the phone layout
+// already put it in. The same element moves either way: two inputs that
+// have to agree is how a search box ends up showing one thing and
+// filtering by another.
+function wireSearchHome() {
+  const box = document.getElementById("topbar-search");
+  const up = document.querySelector(".topbar-board .container");
+  const down = document.querySelector(".board-bar-row-1");
+  if (!box || !up || !down) return;
+  const narrow = window.matchMedia("(max-width: 800px)");
+  const place = () => {
+    const home = narrow.matches ? down : up;
+    if (box.parentElement === home) return;
+    const held = document.activeElement === document.getElementById("f-search");
+    if (narrow.matches) home.prepend(box);
+    else home.insertBefore(box, document.querySelector(".topbar-sorts"));
+    // Moving a node blurs whatever was focused inside it.
+    if (held) document.getElementById("f-search").focus();
+  };
+  place();
+  narrow.addEventListener("change", place);
+}
+
+// The / hint and the clear cross are two views of one thing: whether
+// there is anything in the box.
+function paintSearchBox() {
+  const el = document.getElementById("f-search");
+  if (!el) return;
+  const has = el.value.length > 0;
+  const box = el.closest(".topbar-search");
+  if (box) box.classList.toggle("has-text", has);
+  const clear = document.getElementById("f-search-clear");
+  if (clear) clear.hidden = !has;
+}
+
+// Every writer goes through here, so the cross and the hint never
+// describe a value the box no longer holds.
+function setSearchBox(value) {
+  const el = document.getElementById("f-search");
+  if (!el) return;
+  el.value = value;
+  paintSearchBox();
+}
+
+let searchDebounced = null;
+
+// Searches what is in the box now, without waiting out the typing timer.
+// Enter, the Search button and the clear cross all land here.
+function applySearchNow(raw) {
+  if (searchDebounced) searchDebounced.cancel();
+  const next = raw.trim();
+  if (next === state.search) return;
+  state.search = next;
+  // A broadening applies to the search it was asked for, not to the
+  // next one somebody types.
+  state.search_mode = "";
+  followSearchSort();
+  state.offset = 0;
+  loadJobs();
+}
+
+function wireSearchBox() {
+  wireSearchHome();
+  const el = document.getElementById("f-search");
+  if (!el) return;
+  paintSearchBox();
+
+  // 500, not 300. At 300 a ten-character word fired eight requests, each
+  // one a full search, and the later ones queued behind the earlier ones
+  // until the gateway gave up at 29 seconds and the reader got a 500
+  // instead of results. Typing settles inside 500ms between keys for
+  // almost everyone, so this is one request per word rather than one per
+  // keystroke.
+  searchDebounced = debounce((value) => applySearchNow(value), 500);
+  el.addEventListener("input", (e) => {
+    paintSearchBox();
+    searchDebounced(e.target.value);
+  });
+
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applySearchNow(e.target.value);
+      return;
+    }
+    // Escape empties the box before it reaches the handler that closes
+    // the open listing. With nothing to empty it falls through.
+    if (e.key === "Escape" && e.target.value) {
+      e.stopPropagation();
+      setSearchBox("");
+      applySearchNow("");
+    }
+  });
+
+  const clear = document.getElementById("f-search-clear");
+  if (clear) {
+    clear.addEventListener("click", () => {
+      setSearchBox("");
+      applySearchNow("");
+      el.focus();
+    });
+  }
+
+  // It had no handler at all: clicking it searched nothing and only
+  // worked because the box had already searched as you typed.
+  const go = document.getElementById("f-search-go");
+  if (go) go.addEventListener("click", () => applySearchNow(el.value));
+
+  // / focuses the box, the shortcut every list on the web has. Ignored
+  // while the reader is already typing somewhere, and while a modifier
+  // is down, where it belongs to the browser.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ""))) return;
+    e.preventDefault();
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  });
+}
+
 // filter wiring
 
 function wireFilters() {
-  document.getElementById("f-search").addEventListener(
-    "input",
-    debounce((e) => {
-      state.search = e.target.value.trim();
-      // A broadening applies to the search it was asked for, not to the
-      // next one somebody types.
-      state.search_mode = "";
-      followSearchSort();
-      state.offset = 0;
-      loadJobs();
-      loadTicker();
-      // 500, not 300. At 300 a ten-character word fired eight requests,
-      // each one a full search, and the later ones queued behind the
-      // earlier ones until the gateway gave up at 29 seconds and the
-      // reader got a 500 instead of results. Typing settles inside 500ms
-      // between keys for almost everyone, so this is one request per
-      // word rather than one per keystroke.
-    }, 500)
-  );
+  wireSearchBox();
 
   renderFilterRail();
   wireFilterRail();
@@ -4674,7 +4781,6 @@ function wireFilters() {
     state.max_age_days = e.target.value === "any" ? "" : e.target.value;
     state.offset = 0;
     loadJobs();
-    loadTicker();
   });
 
   // Newest/Oldest are both just the existing age-column sort under a
@@ -4717,7 +4823,7 @@ function wireFilters() {
     state.sort = "age";
     state.dir = "asc";
     state.offset = 0;
-    document.getElementById("f-search").value = "";
+    setSearchBox("");
     document.getElementById("f-date-posted").value = "";
     // What the rail was showing, not what it was filtering by: a reader
     // who reset while three countries were folded open should get them
@@ -4728,7 +4834,6 @@ function wireFilters() {
     renderFilterRail();
     renderActiveChips();
     loadJobs();
-    loadTicker();
   });
 
   document.getElementById("match-panel").addEventListener("click", (e) => {
@@ -4750,7 +4855,6 @@ function wireFilters() {
     if (!state.skills.length && state.sort === "match") setActiveSortHeader("age", "asc");
     state.offset = 0;
     loadJobs();
-    loadTicker();
   });
 
   document.querySelectorAll("[data-sort]").forEach((th) => {
@@ -5002,61 +5106,6 @@ function wireThemeToggle() {
   // to start because the snapshot is taken before the callback runs.
   runThemeSwap = swapTheme;
   btn.addEventListener("click", toggleTheme);
-}
-
-// Topbar ticker: 10 most recent listings matching the board's current
-// filters, not a fixed sitewide list. Called from every filter-changing
-// handler, but not pagination/sort (those don't change what "recent"
-// means). Duplicated once in the DOM so the CSS marquee loops seamlessly.
-let tickerRequestSeq = 0;
-let tickerInFlight = null;
-
-async function loadTicker() {
-  const seq = ++tickerRequestSeq;
-  if (tickerInFlight) tickerInFlight.abort();
-  const inFlight = new AbortController();
-  tickerInFlight = inFlight;
-  setLoadBar(true);
-  try {
-    return await _loadTicker(seq, inFlight.signal);
-  } finally {
-    setLoadBar(false); // see the note in loadJobs: never gate this
-  }
-}
-
-// Same sequencing as loadJobs, and for the same reason: this rides the
-// board's own filters, so without it the strip can end up showing the
-// ten newest for a filter nobody is looking at any more.
-async function _loadTicker(seq, signal) {
-  const track = document.getElementById("ticker-track");
-  try {
-    const params = qs({ ...currentFilterParams(), limit: 10, sort: "age", dir: "asc" });
-    const data = await getJSON(`/jobs?${params}`, { signal });
-    if (seq !== tickerRequestSeq) return;
-    if (!data.jobs.length) {
-      track.innerHTML = "";
-      return;
-    }
-    // Eager, not the lazy every other logo uses: a marquee never holds
-    // still long enough for lazy loading to settle, so marks were
-    // arriving blank mid-scroll.
-    const itemsHtml = data.jobs
-      .map(
-        (j) => `
-        <a class="ticker-item" href="${escapeHtml(j.url || "#")}" target="_blank" rel="noopener">
-          ${companyLogoImg(j.company_domain, 32, "ticker", j.logo_url).replace('loading="lazy"', 'loading="eager"')}${escapeHtml(j.title)}
-          <span class="ticker-company">@${escapeHtml(companyLabel(j))}</span>
-        </a>`
-      )
-      .join("");
-    track.innerHTML = itemsHtml + itemsHtml;
-    // Roughly constant per-item reading speed regardless of list length,
-    // rather than a fixed duration that'd crawl for 3 items and race for 10.
-    // 7s an item, 70s for the usual 10. Was 4s, which pulled the eye.
-    track.style.animationDuration = `${data.jobs.length * 7}s`;
-  } catch {
-    // Non-fatal: purely decorative, the board itself doesn't depend on it.
-  }
 }
 
 // Refreshes everything driven by /api/stats -- metrics, market panels,
@@ -6165,7 +6214,6 @@ async function boot() {
   // awaited is not free: /stats.json is 777KB and on a hard reload it
   // competes for the same bandwidth as the rows, on a page that now
   // reads four small numbers out of it.
-  loadTicker();
   refreshStats();
   // /health at boot, not only on the two-minute refresh. refreshStats
   // seeds lastCheckedAt from /stats.json, whose freshness block is
@@ -6206,7 +6254,6 @@ async function boot() {
       closeJobDetail();
     }
     loadJobs();
-    loadTicker();
   });
 
   // Every poller below goes through this. A tab nobody is looking at
@@ -6224,8 +6271,8 @@ async function boot() {
     };
   }
 
-  // The board's data refreshes as one: listings, ticker, statistics and
-  // the status line. The return from a hidden tab used to refresh only
+  // The board's data refreshes as one: listings, statistics and the
+  // status line. The return from a hidden tab used to refresh only
   // the statistics, so for up to two minutes fresh numbers sat beside an
   // old list. loadJobs() still skips the re-render when nothing changed,
   // and keeps the reader's place when something did (holdForReader).
@@ -6246,7 +6293,6 @@ async function boot() {
     try {
       await Promise.allSettled([
         loadJobs({ background: true }),
-        loadTicker(),
         refreshStats(),
         refreshFreshness(),
         refreshPipelineStatus(),
@@ -6288,12 +6334,11 @@ async function boot() {
   function setSearch({ search, mode }) {
     if (search !== undefined) {
       state.search = search;
-      document.getElementById("f-search").value = search;
+      setSearchBox(search);
     }
     if (mode !== undefined) state.search_mode = mode;
     state.offset = 0;
     loadJobs();
-    loadTicker();
     refreshStats();
   }
   document.addEventListener("click", (e) => {
