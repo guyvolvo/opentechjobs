@@ -20,6 +20,7 @@ os.environ.setdefault("AWS_DEFAULT_REGION", "il-central-1")
 os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")
 os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")
 
+import html as _html  # noqa: E402
 import alerts  # noqa: E402
 
 failures = []
@@ -58,67 +59,86 @@ matches = [
 h = alerts._digest_html(len(matches), matches, ALERT, NOW)
 t = alerts._digest_text(len(matches), matches, ALERT, NOW)
 
-# Structure and brand
-check("a compact header: the site's own mark, the wordmark, a 2px ink rule",
-      "OpenTechJobs</td>" in h and 'src="https://opentechjobs.org/favicon-32.png"' in h and "border-bottom:2px solid #40513b" in h)
-check("green is on actions only: Apply buttons and the board links, not the rule or the footer",
-      "border-bottom:2px solid #609966" not in h and 'class="otj-ink" style="color:#40513b; text-decoration:underline;">Unsubscribe</a>' in h)
-check("only DESIGN.md colours, both modes", all(c in h for c in ("#f2f0ef", "#40513b", "#3f6f45", "#d2cfcb", "#edf0ec", "#17181c", "#ededec", "#2fae60", "#23252b"))
-      and "#ffffff" not in h and "#dce8d4" not in h and "#609966" not in h)
-check("the summary is one calm line, no panel", ">4 new roles matching your alert</div>" in h and "background:#dce8d4" not in h)
-check("the summary names the filter", "Israel &middot; Product &middot; Senior &middot; since your last alert" in h,
-      re.search(r"since your last alert", h) and h[h.find("Israel") - 10:h.find("Israel") + 80])
-view_all = alerts.board_url(ALERT)
-check("view-all goes to the board with the alert's own filters, empty ones dropped",
-      view_all == "https://opentechjobs.org/board?country=IL&department=Product&seniority=senior", view_all)
-import html as _html
-check("both calls to action use it, escaped as an attribute", h.count(f'href="{_html.escape(view_all)}"') == 2)
-check("the calls to action are links, not buttons", "View all 4 matches &rarr;" in h and "View all matches &rarr;" in h)
-check("the footer says why and how to stop it",
-      "because you saved an alert" in h and h.count("/account") == 3 and "Unsubscribe" in h and "Pause alert" in h)
-check("a dark-mode rule exists as an enhancement only", "prefers-color-scheme: dark" in h and "#3f6f45" in h)
-check("fixed 600px table layout, inline styles, system fonts", 'width="600"' in h and "-apple-system" in h and "var(--" not in h)
+# What the mail is not, which is most of what changed
+check("no mark, no wordmark, no ink rule over the headline",
+      "favicon-32.png" not in h and ">OpenTechJobs<" not in h and "border-bottom:2px solid" not in h)
+check("no view-all links and no per-row Apply buttons", "View all" not in h and "Apply" not in h)
+check("no standing explanation and no pause link",
+      "because you saved an alert" not in h and "Pause alert" not in h)
+check("never says a salary is undisclosed", "Undisclosed" not in h)
+
+# The headline block
+check("the headline names the alert and counts the jobs",
+      "4 new jobs for &ldquo;Israel&rdquo;" in h, h[h.find("new jobs") - 60:h.find("new jobs") + 60])
+check("Arial bold 22px in ink, 20px on a phone",
+      "font-size:22px; line-height:1.25; font-weight:700; color:#40513b" in h
+      and ".otj-head { font-size: 20px !important; }" in h)
+check("the subline is 14px with 14px under it", ">Since your last alert</div>" in h and "padding:6px 0 14px 0" in h)
+check("the preheader is hidden and says how many, where", "4 new roles in Israel" in h and "max-height:0" in h)
 
 # Rows
-check("the title is the link, in ink, and Apply is the board's own button",
-      'font-weight:700; color:#40513b; text-decoration:none;">Senior Product Manager</a>' in h
-      and 'style="background:#3f6f45; border-radius:4px;">' in h and 'color:#f2f0ef; text-decoration:none; white-space:nowrap;">Apply &#8599;</a>' in h)
-check("in dark mode the button is the site's dark green with the dark tint as its text",
-      ".otj-btn { background: #2fae60 !important; }" in h and ".otj-btn-text { color: #23252b !important; }" in h)
-check("a company mark in a band the height of the row, or a lettered square of the same size",
-      'width="52" align="center" valign="middle"' in h and 'src="https://wix.com/favicon.png" width="44" height="44"' in h
-      and 'font-size:18px; font-weight:700; color:#40513b;">W</td>' in h)
-check("a ten-office listing is one place and a count",
-      alerts._place({"location": "Bordeaux, France; Grenoble, France; Tel Aviv, Israel; Paris, France"}, ALERT) == "Tel Aviv, Israel + 3 locations"
-      and alerts._place({"location": "Paris, France; Berlin, Germany"}, {"filter": {}}) == "Paris, France + 1 location"
-      and alerts._place({"location": "Tel Aviv, Israel"}, ALERT) == "Tel Aviv, Israel")
+check("each row has a hairline over it and 16px of vertical padding",
+      h.count("padding:16px 0; border-top:1px solid #d2cfcb") == 4)
+check("the whole row is one link to the job",
+      '<a href="https://boards.greenhouse.io/wix/jobs/1" style="font-family:Arial,Helvetica,sans-serif; color:#40513b; text-decoration:none; display:block;">' in h)
+check("48px logo tile: white, hairline, 4px radius",
+      'width="48" align="center" valign="middle" style="width:48px; height:48px; background:#ffffff; border:1px solid #d2cfcb; border-radius:4px;' in h
+      and h.count('padding-left:14px') == 4)
+check("a company with no logo gets a lettered tile the same size, lettered from the company not the title",
+      'border-radius:4px; font-family:Arial,Helvetica,sans-serif; font-size:18px; font-weight:700; color:#40513b;">W</td>' in h)
+check("the title is bold 16px in green text", 'font-size:16px; line-height:1.3; font-weight:700; color:#3f6f45;">Senior Product Manager</div>' in h)
 check("company name over domain, with the place", "Wix &middot; Tel Aviv, Israel" in h)
-check("posted age, level and workplace on one line", "Posted 2h ago &middot; Senior &middot; Hybrid" in h)
-check("a Hebrew title is laid out right to left, its metadata left to right",
-      'dir="rtl" style="text-align:right;">' in h and '<a href="https://jobs.iai.co.il/job/76050151" dir="rtl"' in h
-      and 'dir="ltr" class="otj-ink" style="font-family' in h)
-check("a listing with no date uses first seen, coarsely", "Posted 3d ago" in h)
-check("a company with no name falls back to the domain", "wix.com &middot; Tel Aviv, Israel" in h)
-check("an estimate is marked as one", "Est. ₪30K – ₪40K" in h and "market estimate" in h)
-check("disclosed pay is not", "$150K – $200K" in h and "Est. $150K" not in h)
+check("a bare domain has its dots broken so Gmail leaves it alone",
+      "wix⁠.⁠com" in h and ">wix.com &middot;" not in h)
+check("a real company name is not mangled", "Wix" in h and "W⁠i" not in h)
+check("the meta line is the estimate then the age, nothing else",
+      "Est. ₪30K – ₪40K &middot; 2h ago" in h and "Senior &middot; Hybrid" not in h)
+check("disclosed pay is not marked as an estimate", "$150K – $200K &middot; 2h ago" in h and "Est. $150K" not in h)
+check("a listing with no date falls back to first seen", "3d ago" in h)
 check("angle brackets in a title are escaped", "Backend &lt;Lead&gt;" in h and "<Lead>" not in h)
-check("every listing has an Apply button", h.count("Apply &#8599;") == 4)
-check("hairline under each row, no bar, no box; the only radius is the button's",
-      'width="4"' not in h and h.count("border-bottom:1px solid #d2cfcb") >= 5 and h.count("border-radius") == 4)
 
-# Plain-text part says the same things
-check("text part: count, filter, view-all, each listing with apply and the footer",
-      t.startswith("4 new roles matching your alert\nIsrael · Product · Senior · since your last alert")
-      and f"View all matches: {view_all}" in t and t.count("Apply: https://") == 4
-      and "Manage, pause or delete it: https://opentechjobs.org/account" in t, t[:300])
-check("text part marks the estimate", "Est. ₪30K – ₪40K" in t)
+# Direction
+check("title and company lines size themselves to the script, the meta line does not",
+      h.count('dir="auto"') == 9 and h.count('dir="ltr"') == 4 and 'dir="rtl"' not in h)
 
-# Singular and an alert with no filter
+# The one button, and the footer
+board = alerts.board_url(ALERT)
+check("the board link carries the alert's own filters, empty ones dropped",
+      board == "https://opentechjobs.org/board?country=IL&department=Product&seniority=senior", board)
+check("one button, ink on paper, and it is the only radius besides the tiles",
+      h.count(f'href="{_html.escape(board)}"') == 1 and "background:#40513b; border-radius:4px" in h
+      and ">See all jobs</a>" in h and "padding:11px 20px" in h)
+check("the footer is two underlined links, 32px down",
+      "padding-top:32px" in h and ">Edit alert</a>" in h and ">Unsubscribe</a>" in h and h.count("/account") == 2)
+
+# The shell
+check("600px, 32px of padding, 20px on a phone, Arial, no web fonts, no variables",
+      'width="600"' in h and 'class="otj-pad" style="padding:32px;"' in h
+      and ".otj-pad { padding: 20px !important; }" in h
+      and "Arial,Helvetica,sans-serif" in h and "-apple-system" not in h
+      and "fonts.googleapis" not in h and "var(--" not in h)
+check("paper background on the body and the outer table", h.count("background:#f2f0ef") >= 2)
+
+# Five rows at most, and the button carries the rest
+many = [job(id=f"j{i}", title=f"Role {i}") for i in range(9)]
+big = alerts._digest_html(9, many, ALERT, NOW)
+check("at most five rows are shown", big.count("padding:16px 0; border-top:1px solid #d2cfcb") == 5
+      and "Role 4" in big and "Role 5" not in big)
+check("the button says how many there are in total", ">See all 9 jobs</a>" in big)
+
+# Plain text says the same things
+check("text part: headline, subline, rows with their links, then the board",
+      t.startswith('4 new jobs for "Israel"\nSince your last alert')
+      and t.count("https://") == 6 and f"See all jobs: {board}" in t
+      and f"Edit alert or unsubscribe: {alerts.SITE_ORIGIN}/account" in t, t[:200])
+check("text part marks the estimate and drops the rest", "Est. ₪30K – ₪40K · 2h ago" in t and "Hybrid" not in t)
+
+# Singular, and an alert with no filter at all
 one = alerts._digest_html(1, matches[:1], {"filter": {}}, NOW)
-check("singular reads right", ">1 new role matching your alert</div>" in one and "View all 1 match &rarr;" in one)
-check("no filter means a bare board link and only the timing in the summary",
-      f'href="https://opentechjobs.org/board"' in one and "&middot; since your last alert" not in one and "since your last alert" in one)
-check("israel_only still reads as Israel", alerts._filter_summary({"filter": {"israel_only": True}}) == ["Israel"])
+check("singular reads right", "1 new job for &ldquo;your alert&rdquo;" in one and "1 new role in your alert" in one)
+check("no filter means a bare board link", 'href="https://opentechjobs.org/board"' in one)
+check("israel_only still reads as Israel", alerts._filter_summary({"filter": {"israel_only": True}}) == ["Israel"]
+      and alerts.alert_name({"filter": {"israel_only": True}}) == "Israel")
 
 print()
 if failures:

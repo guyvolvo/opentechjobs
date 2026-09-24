@@ -200,14 +200,10 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
     if not to_email:
         return
     n = len(matches)
-    # Requested live: a plain "N new jobs on OpenTechJobs" subject looked
-    # identical across every digest in an inbox, no way to tell them
-    # apart at a glance without opening each one. UTC, not the site's own
-    # display timezone -- there isn't one consistent "local" time for an
-    # arbitrary subscriber, and an unlabeled time is worse than an exact,
-    # honestly-labeled one.
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    subject = f"{n} new job{'s' if n != 1 else ''} on OpenTechJobs.org [{timestamp}]"
+    # The alert's own name in the subject, which is what tells two
+    # digests apart in a list. It replaced a UTC timestamp that was there
+    # for the same reason and read like a log line.
+    subject = f'{n} new job{"s" if n != 1 else ""} for "{alert_name(alert)}"'
 
     _ses.send_email(
         FromEmailAddress=FROM_EMAIL,
@@ -215,6 +211,13 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
         Content={
             "Simple": {
                 "Subject": {"Data": subject},
+                # Gmail and Apple Mail put an Unsubscribe control beside
+                # the sender when this is present, which is the control
+                # people actually reach for. It points at the account
+                # page rather than a one-click endpoint: List-Unsubscribe
+                # -Post needs a route that unsubscribes without a session
+                # and that route does not exist yet.
+                "Headers": [{"Name": "List-Unsubscribe", "Value": f"<{SITE_ORIGIN}/account>"}],
                 # Both parts of one multipart/alternative message, not two
                 # separate sends -- an HTML-capable client (virtually all
                 # of them, Gmail included) renders Html and ignores Text
@@ -325,26 +328,19 @@ def _filter_summary(alert: dict) -> list[str]:
 def _digest_text(n: int, matches: list[dict], alert: dict | None = None, now: datetime | None = None) -> str:
     now = now or datetime.now(timezone.utc)
     alert = alert or {}
-    head = f"{n} new role{'s' if n != 1 else ''} matching your alert"
-    summary = " · ".join(_filter_summary(alert) + ["since your last alert"])
-    lines = [head, summary, "", f"View all matches: {board_url(alert)}", ""]
-    for j in matches:
-        meta = [_company(j), _place(j, alert)]
-        lines.append(f"{j['title']}")
-        lines.append(f"  {' · '.join(x for x in meta if x)}")
-        bits = [_age(j, now)]
-        if j.get("seniority"):
-            bits.append(_SENIORITY.get(j["seniority"], j["seniority"]))
-        if j.get("workplace_type"):
-            bits.append(_WORKPLACE.get(j["workplace_type"], j["workplace_type"]))
+    shown = matches[:ROWS_SHOWN]
+    lines = [f'{n} new job{"s" if n != 1 else ""} for "{alert_name(alert)}"', "Since your last alert", ""]
+    for j in shown:
+        lines.append(j["title"])
+        lines.append("  " + " · ".join(x for x in (_company(j), _place(j, alert)) if x))
         sal = _salary(j)
-        if sal:
-            bits.append(("Est. " if sal[1] else "") + sal[0])
-        lines.append(f"  {' · '.join(bits)}")
-        lines.append(f"  Apply: {j['url']}")
+        bits = ([("Est. " if sal[1] else "") + sal[0]] if sal else []) + [_age(j, now).replace("Posted ", "")]
+        lines.append("  " + " · ".join(bits))
+        lines.append("  " + j["url"])
         lines.append("")
-    lines.append("You're receiving this because you saved an alert on OpenTechJobs.")
-    lines.append(f"Manage, pause or delete it: {SITE_ORIGIN}/account")
+    lines.append(f'{"See all " + str(n) + " jobs" if n > len(shown) else "See all jobs"}: {board_url(alert)}')
+    lines.append("")
+    lines.append(f"Edit alert or unsubscribe: {SITE_ORIGIN}/account")
     return "\n".join(lines)
 
 
@@ -372,199 +368,177 @@ def _place(job: dict, alert: dict | None = None) -> str:
     return f"{want} + {rest} location{'s' if rest != 1 else ''}"
 
 
-# DESIGN.md's palette, both modes, as literal values because an email
-# client has no CSS variables. Paper is the only surface: DESIGN.md
-# says it is never a panel colour and the site draws its cards with
-# hairlines rather than fills, so the mail does the same. Green is
-# Signal Green and Green Text, and it goes on exactly what it means:
-# the Apply buttons and the links back to the board, and nowhere else:
-# the header rule is ink, the footer links are ink.
-# Titles and metadata are ink. The logo band tokens are the site's own
-# treatment for a company mark on paper.
+# DESIGN.md's palette as literal values, because an email client has no
+# CSS variables. Paper is the only surface. The mail carries no mark and
+# no wordmark: the sender line already says who it is from, and a logo
+# plus a rule was 80px of the first screen saying nothing.
 _PAPER = "#f2f0ef"
 _INK = "#40513b"
-_GREEN = "#609966"
 _LINK = "#3f6f45"
 _LINE = "#d2cfcb"
-_LOGO_BAND = "#edf0ec"
-_LOGO_RULE = "#d6ded6"
-_DARK_PAPER = "#17181c"
-_DARK_INK = "#ededec"
-_DARK_GREEN = "#2fae60"
-_DARK_GREY = "#9a9a9a"
-_DARK_LINE = "#2b2c31"
-_DARK_BAND = "#23252b"
-# The Apply button is the board's own: Green Text fill with paper text
-# in light mode, and in dark mode the site's dark Signal Green with the
-# dark row tint as its text, which is the button as it appears there.
 _BTN_TEXT = _PAPER
-_DARK_BTN_TEXT = "#23252b"
-_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
-_MARK = f"{SITE_ORIGIN}/favicon-32.png"
+# Arial, not a system stack: Outlook on Windows resolves an unknown first
+# family to Times, and the stack that starts with -apple-system did
+# exactly that. No web fonts.
+_FONT = "Arial,Helvetica,sans-serif"
+
+# Five, then the button carries the rest. A digest is a nudge to open the
+# board, not the board.
+ROWS_SHOWN = 5
+
+
+def alert_name(alert: dict | None) -> str:
+    """What this alert is called, in the reader's terms. Alerts have no
+    name field, so it is the first thing the filter summary says, which
+    is the country or city they picked. "your alert" when they picked
+    nothing, which reads correctly in the subject line too."""
+    parts = _filter_summary(alert or {})
+    return parts[0] if parts else "your alert"
 
 
 def _logo_cell(job: dict) -> str:
-    """The company's mark in the site's logo band, the band running the
-    full height of the listing so the mark sits centred beside all three
-    lines. 44px inside a 52px band; a lettered square of the same size
-    when there is no logo, so every row lines up. No rule around the
-    band: it boxed the mark in, and the tint alone holds it."""
+    """A 48px tile on white with a hairline, the same treatment the board
+    gives a company mark. A lettered tile at the same size when there is
+    no logo, so every row lines up whether the image loads or not."""
     esc = html.escape
-    band = f"width:52px; background:{_LOGO_BAND}; vertical-align:middle;"
+    tile = (f"width:48px; height:48px; background:#ffffff; border:1px solid {_LINE}; "
+            f"border-radius:4px;")
     if job.get("logo_url"):
-        return (f'<td width="52" align="center" valign="middle" class="otj-band" style="{band}">'
-                f'<img src="{esc(job["logo_url"])}" width="44" height="44" alt="" '
-                f'style="display:block; width:44px; height:44px; border:0;" /></td>')
+        return (f'<td width="48" align="center" valign="middle" style="{tile}">'
+                f'<img src="{esc(job["logo_url"])}" width="40" height="40" alt="" '
+                f'style="display:block; width:40px; height:40px; border:0;" /></td>')
     letter = (_company(job)[:1] or "?").upper()
-    return (f'<td width="52" align="center" valign="middle" class="otj-band otj-ink" style="{band} '
+    return (f'<td width="48" align="center" valign="middle" style="{tile} '
             f'font-family:{_FONT}; font-size:18px; font-weight:700; color:{_INK};">{esc(letter)}</td>')
 
 
-def _row_html(j: dict, now: datetime, alert: dict | None = None) -> str:
-    """One listing: mark, title as the link in ink, who and where on one
-    line, when and what on the next, Apply in green at the end. A
-    hairline under each, nothing around it."""
-    esc = html.escape
-    rtl = _is_rtl(j.get("title") or "")
-    title_dir = ' dir="rtl"' if rtl else ""
-    title_align = "right" if rtl else "left"
-    bits = [esc(_age(j, now))]
-    if j.get("seniority"):
-        bits.append(esc(_SENIORITY.get(j["seniority"], j["seniority"])))
-    if j.get("workplace_type"):
-        bits.append(esc(_WORKPLACE.get(j["workplace_type"], j["workplace_type"])))
+def _no_autolink(text: str) -> str:
+    """A bare domain with the dots broken by a zero-width joiner.
+
+    Gmail autolinks anything that looks like a host and paints it its own
+    blue, which put a second, wrong-destination link inside a row whose
+    whole job is to be one link. The joiner is invisible and copies out
+    harmlessly. Only for a domain: a real company name has no dots to
+    break, and this would be vandalism on ordinary text."""
+    return html.escape(text).replace(".", "⁠.⁠")
+
+
+def _row_meta(j: dict, now: datetime) -> str:
+    """The third line: the estimate when there is one, then the age.
+    Never "Undisclosed" -- a digest row has no room to say that a number
+    is missing, and the absence says it."""
     sal = _salary(j)
+    bits = []
     if sal:
-        bits.append(f'<span title="A market estimate, not the employer\'s figure">Est. {esc(sal[0])}</span>' if sal[1] else esc(sal[0]))
-    who = " &middot; ".join(esc(x) for x in (_company(j), _place(j, alert)) if x)
+        bits.append(("Est. " if sal[1] else "") + sal[0])
+    bits.append(_age(j, now).replace("Posted ", "").replace("just now", "Just now"))
+    return " &middot; ".join(html.escape(b) for b in bits)
+
+
+def _row_html(j: dict, now: datetime, alert: dict | None = None) -> str:
+    """One listing. The whole row is the link: title, then who and where,
+    then the numbers. dir="auto" on the two text lines, so a Hebrew title
+    lays itself out to the right and an English one stays left; the meta
+    line is forced ltr, because a salary range and an age are ltr things
+    whatever the title above them is."""
+    esc = html.escape
+    name = _company(j)
+    # A domain is the fallback when we have no company name, and it is
+    # the only thing here Gmail would try to linkify.
+    company = _no_autolink(name) if ("." in name and not j.get("company_name")) else esc(name)
+    where = esc(_place(j, alert))
+    who = " &middot; ".join(x for x in (company, where) if x)
+    link = (f'font-family:{_FONT}; color:{_INK}; text-decoration:none;')
     return f"""
           <tr>
-            <td style="padding:12px 0 12px 0; border-bottom:1px solid {_LINE};" class="otj-line">
+            <td style="padding:16px 0; border-top:1px solid {_LINE};">
+              <a href="{esc(j['url'])}" style="{link} display:block;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    {_logo_cell(j)}
+                    <td style="padding-left:14px; vertical-align:top;">
+                      <div dir="auto" style="font-family:{_FONT}; font-size:16px; line-height:1.3; font-weight:700; color:{_LINK};">{esc(j['title'])}</div>
+                      <div dir="auto" style="font-family:{_FONT}; font-size:14px; line-height:1.4; color:{_INK}; padding-top:3px;">{who}</div>
+                      <div dir="ltr" style="font-family:{_FONT}; font-size:13px; line-height:1.4; color:{_INK}; opacity:0.75; padding-top:3px;">{_row_meta(j, now)}</div>
+                    </td>
+                  </tr>
+                </table>
+              </a>
+            </td>
+          </tr>"""
+
+
+def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: datetime | None = None) -> str:
+    """The digest: a headline, the rows, one button, a two-link footer.
+
+    Tables and inline styles throughout, one font stack, no web fonts and
+    no CSS beyond a media query that narrows the padding on a phone,
+    because that is the subset Gmail, Outlook and Apple Mail all render
+    the same way. 600px, 32px of padding, 20px under 480.
+    """
+    esc = html.escape
+    now = now or datetime.now(timezone.utc)
+    alert = alert or {}
+    shown = matches[:ROWS_SHOWN]
+    rows = "".join(_row_html(j, now, alert) for j in shown)
+    name = alert_name(alert)
+    headline = f'{n} new job{"s" if n != 1 else ""} for &ldquo;{esc(name)}&rdquo;'
+    button = f"See all {n} jobs" if n > len(shown) else "See all jobs"
+    # Shown by the inbox list as the line after the subject, and by
+    # nothing else: hidden, zero-height, and followed by enough blank
+    # space that the headline does not get dragged in after it.
+    preheader = f'{n} new role{"s" if n != 1 else ""} in {esc(name)}'
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{headline}</title>
+  <style>
+    @media only screen and (max-width: 480px) {{
+      .otj-pad {{ padding: 20px !important; }}
+      .otj-head {{ font-size: 20px !important; }}
+    }}
+  </style>
+</head>
+<body style="margin:0; padding:0; background:{_PAPER};">
+  <div style="display:none; font-size:1px; color:{_PAPER}; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">{preheader}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{_PAPER};">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+          <tr>
+            <td class="otj-pad" style="padding:32px;">
+
+              <div class="otj-head" dir="auto" style="font-family:{_FONT}; font-size:22px; line-height:1.25; font-weight:700; color:{_INK};">{headline}</div>
+              <div style="font-family:{_FONT}; font-size:14px; line-height:1.4; color:{_INK}; padding:6px 0 14px 0;">Since your last alert</div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{rows}
+              </table>
+
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr><td style="border-top:1px solid {_LINE}; font-size:0; line-height:0; height:1px;">&nbsp;</td></tr>
                 <tr>
-                  {_logo_cell(j)}
-                  <td style="padding-left:12px; vertical-align:top;">
-                    <div{title_dir} style="text-align:{title_align};">
-                      <a href="{esc(j['url'])}"{title_dir} class="otj-ink" style="font-family:{_FONT}; font-size:15px; line-height:1.3; font-weight:700; color:{_INK}; text-decoration:none;">{esc(j['title'])}</a>
-                    </div>
-                    <div dir="ltr" class="otj-ink" style="font-family:{_FONT}; font-size:13px; line-height:1.4; color:{_INK}; margin-top:3px;">{who}</div>
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;">
+                  <td style="padding-top:20px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td dir="ltr" class="otj-grey" style="font-family:{_FONT}; font-size:12px; line-height:1.4; color:{_INK};">{" &middot; ".join(bits)}</td>
-                        <td dir="ltr" align="right" style="white-space:nowrap; padding-left:12px;">
-                          <table role="presentation" cellpadding="0" cellspacing="0" align="right"><tr>
-                            <td class="otj-btn" style="background:{_LINK}; border-radius:4px;">
-                              <a href="{esc(j['url'])}" class="otj-btn-text" style="display:inline-block; padding:7px 12px; font-family:{_FONT}; font-size:13px; line-height:1; font-weight:700; color:{_BTN_TEXT}; text-decoration:none; white-space:nowrap;">Apply &#8599;</a>
-                            </td>
-                          </tr></table>
+                        <td style="background:{_INK}; border-radius:4px;">
+                          <a href="{esc(board_url(alert))}" style="display:inline-block; padding:11px 20px; font-family:{_FONT}; font-size:14px; line-height:1; font-weight:700; color:{_BTN_TEXT}; text-decoration:none;">{esc(button)}</a>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
               </table>
-            </td>
-          </tr>"""
 
-
-def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: datetime | None = None) -> str:
-    """The digest as a quiet page in the site's own colours: a compact
-    header with the mark and a green rule, one line saying how many and
-    for which alert, the listings under hairlines, a link back to the
-    board with the same filters, and a footer that says why this
-    arrived and where to stop it.
-
-    Tables and inline styles, system fonts, one image (the site's own
-    favicon, with the band behind it if a client blocks it), fixed at
-    600px. The dark-mode rule carries DESIGN.md's dark tokens and is an
-    enhancement for clients that honour it; the light values are the
-    contract.
-    """
-    esc = html.escape
-    now = now or datetime.now(timezone.utc)
-    alert = alert or {}
-    view_all = board_url(alert)
-    summary = _filter_summary(alert) + ["since your last alert"]
-    rows = "".join(_row_html(j, now, alert) for j in matches)
-    roles = f"{n} new role{'s' if n != 1 else ''}"
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="light dark" />
-  <title>{roles} on OpenTechJobs</title>
-  <style>
-    @media (prefers-color-scheme: dark) {{
-      .otj-paper {{ background: {_DARK_PAPER} !important; }}
-      .otj-ink {{ color: {_DARK_INK} !important; }}
-      .otj-grey {{ color: {_DARK_GREY} !important; }}
-      .otj-link {{ color: {_DARK_GREEN} !important; }}
-      .otj-rule {{ border-bottom-color: {_DARK_INK} !important; }}
-      .otj-btn {{ background: {_DARK_GREEN} !important; }}
-      .otj-btn-text {{ color: {_DARK_BTN_TEXT} !important; }}
-      .otj-line {{ border-bottom-color: {_DARK_LINE} !important; }}
-      .otj-band {{ background: {_DARK_BAND} !important; }}
-    }}
-  </style>
-</head>
-<body class="otj-paper" style="margin:0; padding:0; background:{_PAPER};">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="otj-paper" style="background:{_PAPER};">
-    <tr>
-      <td align="center" style="padding:24px 12px 32px 12px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
-
-          <tr>
-            <td class="otj-rule" style="padding:0 0 10px 0; border-bottom:2px solid {_INK};">
-              <table role="presentation" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td width="24" class="otj-band" style="width:24px; height:24px; background:{_LOGO_BAND};">
-                    <img src="{_MARK}" width="24" height="24" alt="" style="display:block; width:24px; height:24px; border:0;" />
-                  </td>
-                  <td class="otj-ink" style="padding-left:8px; font-family:{_FONT}; font-size:15px; font-weight:700; color:{_INK};">OpenTechJobs</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <tr>
-            <td class="otj-line" style="padding:18px 0 16px 0; border-bottom:1px solid {_LINE};">
-              <div class="otj-ink" style="font-family:{_FONT}; font-size:18px; line-height:1.3; font-weight:700; color:{_INK};">{roles} matching your alert</div>
-              <div class="otj-grey" style="font-family:{_FONT}; font-size:13px; line-height:1.5; color:{_INK}; margin-top:4px;">{" &middot; ".join(esc(x) for x in summary)}</div>
-              <div style="font-family:{_FONT}; font-size:14px; line-height:1.5; margin-top:10px;">
-                <a href="{esc(view_all)}" class="otj-link" style="color:{_LINK}; font-weight:700; text-decoration:none;">View all {n} match{"es" if n != 1 else ""} &rarr;</a>
+              <div style="font-family:{_FONT}; font-size:12px; line-height:1.5; color:{_INK}; opacity:0.8; padding-top:32px;">
+                <a href="{SITE_ORIGIN}/account" style="color:{_INK}; text-decoration:underline;">Edit alert</a>
+                &nbsp;&middot;&nbsp;
+                <a href="{SITE_ORIGIN}/account" style="color:{_INK}; text-decoration:underline;">Unsubscribe</a>
               </div>
+
             </td>
           </tr>
-
-          <tr>
-            <td>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{rows}
-              </table>
-            </td>
-          </tr>
-
-          <tr>
-            <td style="padding:16px 0 0 0; font-family:{_FONT}; font-size:14px; line-height:1.5;">
-              <a href="{esc(view_all)}" class="otj-link" style="color:{_LINK}; font-weight:700; text-decoration:none;">View all matches &rarr;</a>
-            </td>
-          </tr>
-
-          <tr>
-            <td class="otj-line" style="padding:20px 0 0 0; border-top:1px solid {_LINE}; margin-top:20px;">
-              <div class="otj-grey" style="font-family:{_FONT}; font-size:12px; line-height:1.5; color:{_INK};">
-                You're receiving this because you saved an alert on OpenTechJobs.
-              </div>
-              <div style="font-family:{_FONT}; font-size:12px; line-height:1.5; margin-top:6px;">
-                <a href="{SITE_ORIGIN}/account" class="otj-ink" style="color:{_INK}; text-decoration:underline;">Manage alert</a>
-                <span class="otj-grey" style="color:{_INK};">&nbsp;&middot;&nbsp;</span>
-                <a href="{SITE_ORIGIN}/account" class="otj-ink" style="color:{_INK}; text-decoration:underline;">Pause alert</a>
-                <span class="otj-grey" style="color:{_INK};">&nbsp;&middot;&nbsp;</span>
-                <a href="{SITE_ORIGIN}/account" class="otj-ink" style="color:{_INK}; text-decoration:underline;">Unsubscribe</a>
-              </div>
-            </td>
-          </tr>
-
         </table>
       </td>
     </tr>
