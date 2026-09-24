@@ -539,6 +539,29 @@ function fmtAge(days) {
   return `${Math.floor(days)}D`;
 }
 
+// The same age as fmtAge, said as a time rather than a length of one. A
+// listing row is a list of things that happened, so "2h ago" is the
+// answer to what a reader is actually asking. fmtAge stays for the
+// places that do mean a duration, such as the median open age on /stats,
+// where "12d ago" would be an outright lie.
+//
+// Lowercase, and the minutes dropped when there are none: "3h 0m ago"
+// was what the old format said at the top of every hour.
+function fmtAgeAgo(days) {
+  if (days === null || days === undefined) return "-";
+  const totalMinutes = Math.floor(days * 24 * 60);
+  const totalHours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const hours = totalHours % 24;
+
+  if (totalMinutes < 1) return "just now";
+  if (totalHours < 1) return `${minutes}m ago`;
+  if (totalHours < 12) return minutes ? `${totalHours}h ${minutes}m ago` : `${totalHours}h ago`;
+  if (totalHours < 24) return `${totalHours}h ago`;
+  if (days < 3) return hours ? `${Math.floor(days)}d ${hours}h ago` : `${Math.floor(days)}d ago`;
+  return `${Math.floor(days)}d ago`;
+}
+
 function fmtMinutesAgo(mins) {
   if (mins === null || mins === undefined) return "UNKNOWN";
   if (mins < 60) return `${Math.round(mins)}M AGO`;
@@ -2712,7 +2735,7 @@ function jobRowsHtml(jobs, starred) {
                where its own column would steal the width the title
                needs, and hides on desktop where the column exists.
                Same trick the board used before this layout. -->
-          <div class="job-meta">${jobWhoLine(j)}<span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAge(age)}</span></span></div>
+          <div class="job-meta"><span class="job-who">${jobWhoLine(j)}</span><span class="meta-age"> · <span class="meta-age-value ${fresh ? "fresh" : ""}">${fmtAgeAgo(age)}</span></span></div>
           <div class="job-where">${jobWhereLine(j)}</div>
           <div class="job-chips">${matchedSkills.size ? jobMatchLine(j) : jobSalaryChip(j) + jobSkillChips(j)}</div>
           <div class="job-links">
@@ -2721,7 +2744,7 @@ function jobRowsHtml(jobs, starred) {
           </div>
           <div class="job-salary-line">${jobSalaryLine(j)}</div>
         </td>
-        <td data-label="Age" class="age-cell ${fresh ? "fresh" : ""}">${fmtAge(age)}</td>
+        <td data-label="Age" class="age-cell ${fresh ? "fresh" : ""}">${fmtAgeAgo(age)}</td>
       </tr>`;
     })
     .join("");
@@ -2853,7 +2876,7 @@ function renderJobDetailBody(job, { descriptionLoading = false, descriptionError
 
     <div class="job-detail-facts">
       ${jobFact("Monthly salary", detailSalaryHtml(job))}
-      ${jobFact("Posted", age !== null ? `${escapeHtml(fmtAge(age))} ago` : '<span class="fact-absent">Unreported</span>')}
+      ${jobFact("Posted", age !== null ? escapeHtml(fmtAgeAgo(age)) : '<span class="fact-absent">Unreported</span>')}
       ${jobFact("Department", job.department ? escapeHtml(job.department) : '<span class="fact-absent">-</span>')}
       ${jobFact("Workplace", job.workplace_type ? escapeHtml(WORKPLACE_LABELS[job.workplace_type] || job.workplace_type) : '<span class="fact-absent">-</span>')}
     </div>

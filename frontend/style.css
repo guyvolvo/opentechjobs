@@ -5992,7 +5992,22 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   .job-where,
   .job-links,
   .job-salary-line { display: none; }
-  .meta-age { display: inline; }
+  /* The age rides at the end of this line on a phone, and the line
+     truncates, so it was the first thing to go: a row read
+     "mobius.org - Engineering Solutions - 29d..." with the one word that
+     said how old it is cut in half. The company and department give up
+     their characters instead. */
+  .job-meta { display: flex; align-items: baseline; }
+  .job-meta .job-who {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* padding, because the separator's leading space is the first thing in
+     a flex item and flex collapses it: the line read "Engineering- 29d
+     ago" with the gap only on one side of the dot. */
+  .meta-age { display: inline; flex: none; white-space: nowrap; padding-left: 4px; }
   /* Every cell placed explicitly. The star is first in the DOM and the
      phone grid wants it last, and naming only its column left the other
      two to auto-placement: the cursor had already passed column 3, so
