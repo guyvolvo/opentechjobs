@@ -5106,10 +5106,19 @@ a.hero-account-btn { text-decoration: none; }
 table.jobs tbody tr[data-id],
 table.jobs tbody tr.skeleton-row {
   display: grid;
-  grid-template-columns: 18px 48px minmax(0, 1fr) auto;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
   gap: 14px;
   align-items: start;
 }
+/* Each cell names its column rather than trusting auto-placement. The
+   star is display:none at this width and a hidden grid item does not
+   advance the cursor, so the three that remain would land correctly by
+   luck; naming them is what stops the next change to this grid quietly
+   shifting all of them one column left, which is exactly what happened
+   to the phone row. */
+.logo-cell { grid-column: 1; }
+.main-cell { grid-column: 2; }
+.age-cell { grid-column: 3; }
 
 table.jobs tbody td { padding: 0; vertical-align: top; }
 /* One height for every row, so fifty of them make a rhythm a reader can
@@ -5145,7 +5154,11 @@ table.jobs tbody tr.selected::before {
   background: var(--green-text);
 }
 
-.star-cell { display: flex; justify-content: center; padding-top: 2px; }
+/* Not on the desktop row. It was an 18px column of outlines down the
+   left edge of every listing, ahead of the logo, and the pane that opens
+   on a click carries Save as a labelled button. The phone keeps it: there
+   the row is the only place it can live, and it sits on the right. */
+.star-cell { display: none; justify-content: center; padding-top: 2px; }
 .star-btn {
   width: 18px;
   height: 18px;
@@ -5896,7 +5909,7 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
      alone above them. Reported as the rows being a mess, and they were. */
   .logo-cell { grid-column: 1; grid-row: 1; }
   .main-cell { grid-column: 2; grid-row: 1; }
-  .star-cell { grid-column: 3; grid-row: 1; justify-self: end; }
+  .star-cell { display: flex; grid-column: 3; grid-row: 1; justify-self: end; }
   .star-btn { width: 36px; height: 36px; margin: -8px -8px 0 0; }
   .job-chips { display: flex; height: 22px; }
   /* Two lines, then the ellipsis. A phone title wraps where a desktop
