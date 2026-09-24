@@ -837,7 +837,7 @@ function globalScope(stats) {
 // second definition of its own: the board sends a confidence on every
 // request, so it never counts as a filter here.
 function currentScopeMode() {
-  const params = qs({ ...currentFilterParams(), confidence: "" });
+  const params = qs(countingParams());
   if (!params) return "global";
   if (!latestScoped || latestScoped.params !== params) return "pending";
   return latestScoped.degraded ? "unavailable" : "scoped";
@@ -4517,6 +4517,19 @@ function normalizeLocationFacets(rows) {
     });
 }
 
+// What the counting endpoints should be asked about. confidence rides on
+// every request, so it is not a filter. skills is not one either: in Best
+// matches it orders what the filters already left, it does not narrow it
+// (see setView). Sending it anyway asked /facets and /stats a question no
+// precomputed variant answers, so both computed live -- measured on the
+// box at 7.2s and 4.2s -- for counts that are identical to the ones
+// without it. Those two requests held gunicorn slots for seven seconds,
+// which is what made opening a listing take five: the description was
+// queued behind them.
+function countingParams() {
+  return { ...currentFilterParams(), confidence: "", skills: "" };
+}
+
 let facetsRequestSeq = 0;
 
 async function refreshFacetOptions() {
@@ -4529,9 +4542,9 @@ async function refreshFacetOptions() {
     // confidence is the exception: the board always sends one, so it is
     // not a filter in the sense that matters here. The static file holds
     // a variant per value.
-    const active = { ...currentFilterParams(), confidence: "" };
+    const active = countingParams();
     const facets = qs(active)
-      ? await getJSON(`/facets?${qs(currentFilterParams())}`)
+      ? await getJSON(`/facets?${qs({ ...currentFilterParams(), skills: "" })}`)
       : await getStaticFacets(state.confidence || "verified");
     if (seq !== facetsRequestSeq) return; // a newer filter is already being counted
     // By count, every group, because the rail's whole rule is that the
@@ -4830,7 +4843,7 @@ async function refreshScopedStats({ force = false } = {}) {
   // refreshFacetOptions' test, not a second definition of it: confidence
   // rides along on every request the board makes, so it is not a filter
   // in the sense that decides between the static artifact and the API.
-  const params = qs({ ...currentFilterParams(), confidence: "" });
+  const params = qs(countingParams());
 
   if (!params) {
     // Unfiltered, which is the path that must stay on the precomputed
@@ -4874,7 +4887,7 @@ async function refreshScopedStats({ force = false } = {}) {
 
   setLoadBar(true);
   try {
-    const data = await getJSON(`/stats?${qs(currentFilterParams())}`, { signal: inFlight.signal });
+    const data = await getJSON(`/stats?${qs({ ...currentFilterParams(), skills: "" })}`, { signal: inFlight.signal });
     if (seq !== scopedStatsSeq) return;
     const scoped = data && data.scoped;
     // No `scoped` key is a normal answer, not a broken one: it is what
