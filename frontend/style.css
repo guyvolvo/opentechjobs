@@ -4484,7 +4484,18 @@ a.hero-account-btn { text-decoration: none; }
   align-items: stretch;
   flex: 1;
   min-height: 0;
+  /* The same gutter the bar above it uses, so the three columns line up
+     with the search box rather than running into the window edges. The
+     rule stays full width: it is the line under the bar, not a border
+     around the columns. */
+  padding: 0 var(--gutter);
   border-top: 1px solid var(--grey-line);
+}
+/* Narrow enough that the pane is a sheet and the rail is on its way to
+   being one: the columns need the width more than the margin, and the
+   rows carry 20px of their own padding already. */
+@media (max-width: 1100px) {
+  .board-grid { padding: 0; }
 }
 .board-grid > * { min-width: 0; }
 
