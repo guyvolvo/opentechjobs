@@ -29858,5 +29858,65 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "interface.com",
+  "tenant": "interface",
+  "wd": "wd1",
+  "site": "interface",
+  "jobs_seen": 33,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "spectrumcontrol.com",
+  "tenant": "spectrumcontrol",
+  "wd": "wd1",
+  "site": "SpectrumControl",
+  "jobs_seen": 33,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "cabrini.net",
+  "tenant": "cabrini",
+  "wd": "wd3",
+  "site": "Cabrini",
+  "jobs_seen": 32,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "genevausa.org",
+  "tenant": "genevausa",
+  "wd": "wd5",
+  "site": "CareersAtGeneva",
+  "jobs_seen": 30,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "baicommunications.com",
+  "tenant": "baicommunications",
+  "wd": "wd3",
+  "site": "External",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "bison.com",
+  "tenant": "bison",
+  "wd": "wd3",
+  "site": "BisonNon-DrivingCareers",
+  "jobs_seen": 28,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
