@@ -585,7 +585,10 @@ function renderSchema() {
 
 function wireThemeToggle() {
   const btn = $("theme-toggle");
-  const sync = () => { btn.textContent = document.documentElement.getAttribute("data-theme") === "dark" ? "Light" : "Dark"; };
+  // A switch now, not a labelled button: writing textContent here wiped
+  // the moon and sun out of it and left a pill that said "Light". The
+  // CSS draws the side from :root[data-theme]; the state is all this says.
+  const sync = () => { btn.setAttribute("aria-checked", String(document.documentElement.getAttribute("data-theme") === "dark")); };
   sync();
   btn.addEventListener("click", () => {
     const root = document.documentElement;

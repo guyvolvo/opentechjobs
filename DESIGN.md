@@ -661,8 +661,11 @@ panel says "Ranked by relevance" and explains the rule in its tooltip.
   the squeeze, so the whole bar never wraps to multiple lines above the
   mobile breakpoint.
 - **Board topbar:** three grid columns, `minmax(min-content, 1fr) auto
-  minmax(min-content, 1fr)`, with the status line, the search group and
-  the nav each naming its own column. Equal cheeks put the group on the
+  minmax(min-content, 1fr)`: the mark with Jobs · Statistics · API on the
+  left, the search group in the middle, the account controls on the
+  right, each naming its own column. The nav is plain text with the
+  current page in bold and nothing else; the same `.topbar-left` group
+  heads the account, stats and contact bars. Equal cheeks put the group on the
   middle of the window rather than in the middle of whatever the two
   unequal ends leave. Below roughly 1150px there is no longer room for
   that and the group slides left, keeping a 16px gap either side. It
