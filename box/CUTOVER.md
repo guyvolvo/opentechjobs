@@ -78,6 +78,21 @@ that way from the cutover until 2026-09-24.
 Expect the apply line to report `cleared N`, `alerts N checked`, and
 `published N`. If it reports `cleared 0` the flag did not take.
 
+The box's own IAM role needs the same treatment, and for the same
+reason: it was written for the alert evaluator, which only ever scans
+alerts and stamps `last_notified_at`, so it carries Scan, UpdateItem,
+GetItem and Query. The API routes the cutover moved onto the box also
+write and delete, and the Lambda they came from had both
+(`infra/lambda.tf`). Without them, saving a profile, creating an alert
+and un-saving a job each return 500 while every read still works, so the
+account page looks alive and quietly refuses every change. Fixed
+2026-09-24.
+
+    aws iam get-role-policy --role-name otj-box-experiment       --policy-name primary-applier --profile openmarket-tf       --query "PolicyDocument.Statement[?contains(to_string(@),'dynamodb')].Action" --output text
+    # expect: DeleteItem GetItem PutItem Query Scan UpdateItem
+
+The role is not in terraform. A rebuilt box gets none of this.
+
 Check the auth separately, because nothing above covers it. Signed in,
 `/api/me/saved` answers 200; the log shows `jwt rejected: ...` for a
 bad token and nothing at all for a good one. A run of 401s with no
