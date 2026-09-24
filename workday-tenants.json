@@ -30108,5 +30108,25 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "bishopfleming.com",
+  "tenant": "bishopfleming",
+  "wd": "wd3",
+  "site": "BF",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "sjrmc.org",
+  "tenant": "sjrmc",
+  "wd": "wd1",
+  "site": "SJRMC_Student",
+  "jobs_seen": 9,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
