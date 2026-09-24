@@ -30158,5 +30158,15 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "fhlbny.com",
+  "tenant": "fhlbny",
+  "wd": "wd1",
+  "site": "FHLBNY",
+  "jobs_seen": 5,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]

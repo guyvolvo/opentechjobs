@@ -24473,3 +24473,24 @@ edrone.io
 ecobio.co
 finnplay.com
 dotworld.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+flanks.io
+experimental.de
+getbux.com
+globalpartner.io
+groupemeteor.com
+fit.de
+heianordnorge.com
+harfanglab-1666711819.com
+hmbcon.com
+hotelsprovidencehotelleldorado.com
+hrcompany.ai
+ingenjorsfirman.com
+brlriskconsulting.com
+fabianbuenker.de
+marvu.com
+rochusvitalapotheken.com
+rmnolscherumweltservicegmbh.com
+qrabbl.com
+align.co
