@@ -268,7 +268,11 @@ function companyLogoUrl(domain, size = 32) {
 // always available with no network round-trip once picked.
 function monogramLogoSvg(domain) {
   const letter = (domain || "").trim().charAt(0).toUpperCase() || "?";
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#40513b"/><text x="32" y="33" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#f3f6e4" text-anchor="middle" dominant-baseline="central">${letter}</text></svg>`;
+  // Ink on paper, no fill. The tile behind it already draws the white
+  // square and the hairline, so a coloured block here put a second,
+  // louder shape inside the first and made a company with no logo the
+  // loudest thing in the row.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><text x="32" y="33" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#40513b" text-anchor="middle" dominant-baseline="central">${letter}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 

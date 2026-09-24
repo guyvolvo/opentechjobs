@@ -4400,6 +4400,7 @@ a.hero-account-btn { text-decoration: none; }
    the ticker kept breaking, so the topbar simply takes its own height
    out of a flex column. */
 .board-page {
+  background: var(--hover-bg);
   height: 100vh;
   height: 100dvh;
   display: flex;
@@ -4431,7 +4432,9 @@ a.hero-account-btn { text-decoration: none; }
 .board-bar {
   flex: none;
   z-index: 9; /* under .topbar's 10 */
-  background: var(--white);
+  /* The same ground as the boxes below, so the two do not meet in a
+     seam across the page. */
+  background: var(--hover-bg);
   /* No bottom rule: the boxes below start their own edge. */
   padding: 16px var(--gutter) 14px;
   display: flex;
@@ -4904,6 +4907,10 @@ a.hero-account-btn { text-decoration: none; }
   scrollbar-width: thin;
   scrollbar-color: var(--grey-line) transparent;
 }
+/* 4px top and bottom on every scroll area, so the scrollbar's thumb
+   clears the box's rounded corners instead of being clipped by them. */
+.board-list > table.jobs { margin: 4px 0; }
+.rail-groups { padding-top: 24px; padding-bottom: 32px; }
 /* Sticky rather than a sibling of a scroller: the list column is one
    scroll and the head rides at its top, which keeps the count and the
    sort in reach fifty rows down. */
@@ -5127,7 +5134,7 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .age-cell {
   font: 400 12.5px var(--font);
   font-variant-numeric: tabular-nums;
-  color: var(--grey);
+  color: var(--black);
   text-align: right;
   white-space: nowrap;
   padding-top: 1px;
@@ -5152,6 +5159,7 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   scrollbar-width: thin;
   scrollbar-color: var(--grey-line) transparent;
   padding: 24px 20px 32px;
+  scroll-padding-block: 4px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -5880,3 +5888,16 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
    overview's tiles, so the two states of one pane read alike. */
 .job-detail-facts .fact { display: flex; flex-direction: column; gap: 4px; }
 .job-detail-skills { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* One tile everywhere a company mark appears: white, hairline, 4px, and
+   the image inset inside it rather than bleeding to the edge. A logo is
+   someone else's artwork at someone else's aspect ratio, so it is
+   contained and centred and never cropped. */
+.company-logo {
+  box-sizing: border-box;
+  background: var(--white);
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  object-fit: contain;
+  padding: 6px;
+}
