@@ -4652,7 +4652,7 @@ function wireActiveChips() {
 // filtering by another.
 function wireSearchHome() {
   const box = document.getElementById("topbar-search");
-  const up = document.querySelector(".topbar-board .container");
+  const up = document.querySelector(".topbar-center");
   const down = document.querySelector(".board-bar-row-1");
   if (!box || !up || !down) return;
   const narrow = window.matchMedia("(max-width: 800px)");

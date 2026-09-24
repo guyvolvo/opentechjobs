@@ -284,9 +284,8 @@ button, input, select {
    field's chrome is on the wrapper and the input inside is bare. */
 
 .topbar-search {
-  flex: 1 1 auto;
+  width: 560px;
   min-width: 0;
-  max-width: 560px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -6284,22 +6283,67 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
    value, which is what the rail is for: one bounds the result set and
    the other orders it, so they belong beside the search rather than on
    a row with the views. */
-/* The only auto margin in the bar. The nav's own is overridden below:
-   with both of them pulling, the selects drew on top of "Sign in". */
-.topbar-sorts { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+/* Search and the two selects are one group, centred on the bar rather
+   than parked at its two ends. Three explicit columns, not flex with
+   auto margins: the status line on the left and the nav on the right are
+   nowhere near the same width, so splitting the free space between them
+   leaves the group looking centred on nothing. Equal 1fr cheeks put it
+   on the middle of the window.
+
+   Each item names its column. The status line hides below 640px, and
+   auto-placement would then walk everything else one column left, which
+   is the same trap the mobile job row fell into. */
+.topbar-board .container {
+  display: grid;
+  /* min-content, not the 1fr shorthand: .topbar .container > * sets
+     min-width: 0 on every child, which zeroes a 1fr track's automatic
+     minimum, and the nav collapsed its own column and drew over the
+     selects. */
+  grid-template-columns: minmax(min-content, 1fr) auto minmax(min-content, 1fr);
+  align-items: center;
+  column-gap: 16px;
+}
+.topbar-board .status-indicator { grid-column: 1; justify-self: start; }
+.topbar-center {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* nowrap so the track's min-content is the nav's real width. Without it
+   "Sign in" broke across two lines and took the bar's height with it. */
+.topbar-board .topnav { grid-column: 3; justify-self: end; margin-left: 0; flex: none; white-space: nowrap; }
+
+.topbar-sorts { display: flex; align-items: center; gap: 8px; flex: none; }
 .topbar-sorts select {
   height: 36px;
-  padding: 0 10px;
+  /* The chevron the rail's carets use, not the browser's own. These two
+     wore the native arrow from the moment they moved up here, jammed
+     against a 999px corner that curves away under it. 34px of right
+     padding and 16px of inset clears the curve. */
+  appearance: none;
+  padding: 0 34px 0 16px;
   border: 1.5px solid var(--black);
   border-radius: 999px;
-  background: var(--white);
+  background-color: var(--white);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2340513b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 10px 6px;
   color: var(--black);
   font: 400 13px var(--font-ui);
 }
-.topbar-board .topnav { margin-left: 16px; flex: none; }
-/* Below 800px the search box leaves the bar and the selects hide, so
-   nothing is left to push the nav over and it has to push itself. */
+:root[data-theme="dark"] .topbar-sorts select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ededec' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.topbar-sorts select:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+
+/* Below 800px the group is empty: the selects hide and the search box
+   moves into the filter bar. Back to the flex row the other pages use,
+   so the nav reaches the right edge on its own. */
 @media (max-width: 800px) {
+  .topbar-board .container { display: flex; }
   .topbar-board .topnav { margin-left: auto; }
 }
 
@@ -6317,8 +6361,11 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   .board-bar-row-1 { display: flex; }
   .board-bar .topbar-search {
     display: flex;
-    flex: 1 1 auto;
-    max-width: none;
+    /* Basis 0, not the 560px width it carries upstairs: the box takes
+       what the Search and Filters buttons leave, rather than shrinking
+       alongside them and taking 2px off each. */
+    flex: 1 1 0;
+    width: auto;
     height: 38px;
     padding-left: 16px;
     order: -1;

@@ -642,11 +642,18 @@ panel says "Ranked by relevance" and explains the rule in its tooltip.
   to viewport top, 2px ink bottom rule. `flex-wrap: nowrap` by design:
   one element between the two ends carries `min-width: 0` and absorbs all
   the squeeze, so the whole bar never wraps to multiple lines above the
-  mobile breakpoint. On the board that element is the search box; on the
-  other pages nothing sits there and the nav holds the right edge alone.
-- **Board search (`.topbar-search`):** a 36px pill in the topbar holding
-  the magnifier, the input and, when the box is empty and unfocused, a
-  `/` key cap. The hotkey focuses it from anywhere on the page; Enter
+  mobile breakpoint.
+- **Board topbar:** three grid columns, `minmax(min-content, 1fr) auto
+  minmax(min-content, 1fr)`, with the status line, the search group and
+  the nav each naming its own column. Equal cheeks put the group on the
+  middle of the window rather than in the middle of whatever the two
+  unequal ends leave. Below roughly 1150px there is no longer room for
+  that and the group slides left, keeping a 16px gap either side. It
+  reverts to a flex row below 800px, where the group is empty.
+- **Board search (`.topbar-search`):** a 560px, 36px-tall pill in the
+  middle of the topbar holding the magnifier, the input and, when the box
+  is empty and unfocused, a `/` key cap. Date posted and the sort sit
+  beside it, 10px away, on the same pill radius. The hotkey focuses it from anywhere on the page; Enter
   searches without waiting out the 500ms typing timer, Escape empties it
   before the key reaches the handler that closes an open listing. Below
   800px the same node moves into the filter bar and drops both the
