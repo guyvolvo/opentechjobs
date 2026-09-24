@@ -4709,6 +4709,12 @@ a.hero-account-btn { text-decoration: none; }
 
 .rail-country + .rail-country { margin-top: 6px; }
 .rail-country-row { display: flex; align-items: center; gap: 2px; }
+/* No negative margin on a tree row. A plain option pulls itself 8px out
+   on each side so its checked fill spans the column; here that dragged
+   the country's checkbox back over the caret beside it, and moved every
+   city 8px off the connector lines drawn from its own left edge. */
+.rail-country-row .rail-option,
+.rail-option.rail-city { margin-left: 0; margin-right: 0; }
 .rail-country-row .rail-option { flex: 1 1 auto; min-width: 0; }
 
 .rail-caret {
