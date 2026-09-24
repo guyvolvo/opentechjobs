@@ -29268,5 +29268,85 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "cranecompany.com",
+  "tenant": "cranecompany",
+  "wd": "wd5",
+  "site": "Careers",
+  "jobs_seen": 296,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "searhc.org",
+  "tenant": "searhc",
+  "wd": "wd5",
+  "site": "SEARHC",
+  "jobs_seen": 257,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "hss.de",
+  "tenant": "hss",
+  "wd": "wd1",
+  "site": "HSS_Careers",
+  "jobs_seen": 239,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "ashealthnet.com",
+  "tenant": "ashealthnet",
+  "wd": "wd1",
+  "site": "ASHN",
+  "jobs_seen": 209,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "kaweahhealth.com",
+  "tenant": "kaweahhealth",
+  "wd": "wd1",
+  "site": "Careers",
+  "jobs_seen": 180,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "smartcare.com",
+  "tenant": "smartcare",
+  "wd": "wd5",
+  "site": "Smart_Care",
+  "jobs_seen": 174,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "mearsgroup.com",
+  "tenant": "mearsgroup",
+  "wd": "wd3",
+  "site": "External_Career_Site",
+  "jobs_seen": 169,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "bacardi.com",
+  "tenant": "bacardi",
+  "wd": "wd3",
+  "site": "Jobs_Bacardi",
+  "jobs_seen": 160,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]

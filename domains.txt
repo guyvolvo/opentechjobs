@@ -23682,3 +23682,18 @@ mcdermott.com
 dtcc.com
 sinclair.com
 estes-express.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+shaner.de
+sun.com
+michael.com
+hilltop-holdings.com
+uw.com
+badger.com
+ricoh.com
+hologic.com
+rivierduinen.com
+quad.com
+pella.org
+upike.com
+yum.ai
