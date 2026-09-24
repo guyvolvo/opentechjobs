@@ -5335,12 +5335,20 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   }
 
   table.jobs thead { display: none; }
+  /* height:auto, and it matters. The 104px the three-column board fixes
+     a row at is measured for the chip line, and a phone row does not
+     have one: it carries Apply, Save link and the salary instead, which
+     comes to about 120. The row kept the 104 and the extra spilled into
+     the row below it, so every title had the previous row's salary
+     printed across it. A phone row is a card and sizes to its content. */
   table.jobs tbody tr[data-id],
   table.jobs tbody tr.skeleton-row {
     grid-template-columns: 44px minmax(0, 1fr);
     gap: 14px;
     padding: 16px 0;
+    height: auto;
     align-items: start;
+    align-content: normal;
   }
   /* Hidden rather than dropped from the markup: the row still carries
      all of them, and the width they were taking is the width the title
