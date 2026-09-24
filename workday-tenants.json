@@ -29348,5 +29348,65 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "canadiansolar.com",
+  "tenant": "canadiansolar",
+  "wd": "wd5",
+  "site": "CanadianSolar",
+  "jobs_seen": 156,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "kbi.com",
+  "tenant": "kbi",
+  "wd": "wd5",
+  "site": "Kontoor",
+  "jobs_seen": 145,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "ncnu.com",
+  "tenant": "ncnu",
+  "wd": "wd1",
+  "site": "aaa_ncnu_careers",
+  "jobs_seen": 111,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "cscc.com",
+  "tenant": "cscc",
+  "wd": "wd1",
+  "site": "CSCC_ext",
+  "jobs_seen": 108,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "interstate.com",
+  "tenant": "interstate",
+  "wd": "wd1",
+  "site": "interstatebatteries-careers",
+  "jobs_seen": 108,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "crownresorts.com",
+  "tenant": "crownresorts",
+  "wd": "wd3",
+  "site": "crown_careers",
+  "jobs_seen": 102,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]

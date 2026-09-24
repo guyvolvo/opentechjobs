@@ -23697,3 +23697,20 @@ quad.com
 pella.org
 upike.com
 yum.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+theweitzcompany.com
+mountaire.com
+childrens.com
+vanderbilt-university.com
+blue.net
+cottage.com
+zahneinsgmbh.com
+rockland.com
+hillside.com
+aci-worldwide.com
+choctaw.org
+samuel.com
+forward.com
+icu.com
+solistica.com
