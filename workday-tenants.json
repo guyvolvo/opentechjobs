@@ -29928,5 +29928,35 @@
   "israel_jobs_seen": 0,
   "source": "common-crawl",
   "added": "2026-09-24"
+ },
+ {
+  "domain": "hargreaveslansdown.com",
+  "tenant": "hargreaveslansdown",
+  "wd": "wd3",
+  "site": "HargreavesLansdown",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "pinnaclegroup.com",
+  "tenant": "pinnaclegroup",
+  "wd": "wd1",
+  "site": "PinnacleGroup",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
+ },
+ {
+  "domain": "ultradent.com",
+  "tenant": "ultradent",
+  "wd": "wd1",
+  "site": "careers",
+  "jobs_seen": 19,
+  "israel_jobs_seen": 0,
+  "source": "common-crawl",
+  "added": "2026-09-24"
  }
 ]
