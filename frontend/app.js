@@ -2975,6 +2975,11 @@ function renderDetailEmpty() {
       "New today", "ov-new");
   add(pending ? bone : scoped?.companies_hiring == null ? null : fmtInt(scoped.companies_hiring),
       "Companies");
+  // Fourth, so it lands under New today in the two-column grid. The same
+  // seven-day figure the scoped stats already carry beside the daily
+  // one; it was in the response and nowhere on the page.
+  add(pending ? bone : scoped?.new_jobs_7d == null ? null : `+${fmtInt(scoped.new_jobs_7d)}`,
+      "New this week", "ov-new");
   add(salary?.median ? escapeHtml(fmtShekels(salary.median)) : railFacetsLoaded ? null : bone,
       "Median estimate");
 
