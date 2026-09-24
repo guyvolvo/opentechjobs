@@ -5955,3 +5955,12 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 
 /* The part of a filter option the reader typed. */
 .rail-hit { font-weight: 700; color: var(--green-text); }
+
+/* The end of the list. Centred and quiet: it is a place the reader
+   arrives at, not a control they go looking for. */
+.jobs-more {
+  display: flex;
+  justify-content: center;
+  padding: 18px 20px 28px;
+}
+.jobs-more[hidden] { display: none; }

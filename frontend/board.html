@@ -330,9 +330,12 @@
           })();
         </script>
 
-        <div class="pagination" id="pagination">
-          <span id="pagination-info"></span>
-          <div class="pages" id="pagination-pages"></div>
+        <!-- The list grows as you reach the end of it. The button is
+             not a fallback nobody sees: the observer clicks it, so there
+             is one path into a load, and it still works on its own if
+             the observer never fires. -->
+        <div class="jobs-more" id="jobs-more" hidden>
+          <button type="button" class="btn ghost" id="jobs-more-btn">Load more</button>
         </div>
       </div>
 

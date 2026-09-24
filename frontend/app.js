@@ -1843,7 +1843,8 @@ let jobCountInFlight = null;
 
 // background: a timer or tab-return refresh, not something the reader
 // did. Only those may hold new rows back (see holdForReader).
-async function loadJobs({ background = false } = {}) {
+async function loadJobs({ background = false, append: wantAppend = false } = {}) {
+  let append = wantAppend;
   const seq = ++jobsRequestSeq;
   if (!background) clearHeldJobs();
   // Cancel rather than ignore. Ignoring would still cost the reader's
@@ -1901,7 +1902,11 @@ async function loadJobs({ background = false } = {}) {
   }
 
   showJobsTable(true);
-  if (background) {
+  if (append) {
+    // Nothing here: the rows on screen stay exactly as they are and the
+    // new ones land after them. Skeletons or a cached render would both
+    // wipe the list this call is supposed to be extending.
+  } else if (background) {
     // The screen already shows this view. Drawing the cached copy first
     // could put up rows a previous refresh held back (holdForReader
     // caches what it holds), which is the jump holding exists to avoid.
@@ -1911,7 +1916,7 @@ async function loadJobs({ background = false } = {}) {
     document.getElementById("jobs-loading").textContent = "";
     lastJobsResponse = cached;
     renderJobs(cached, starred);
-    renderPagination(cached);
+    paintMoreButton(cached);
   } else {
     // Bones, not "Loading listings…". Same height as the rows about to
     // replace them, so the page doesn't reflow when data lands.
@@ -1930,7 +1935,7 @@ async function loadJobs({ background = false } = {}) {
   const deferCount = !background;
   setLoadBar(true);
   try {
-    const data = await getJSON(`/jobs?${params}${deferCount ? "&count=skip" : ""}`, { signal: inFlight.signal });
+    let data = await getJSON(`/jobs?${params}${deferCount ? "&count=skip" : ""}`, { signal: inFlight.signal });
     if (seq !== jobsRequestSeq) return;
     // Revisiting a view we already have a number for: keep showing it
     // rather than blanking the total and putting it back a moment later.
@@ -1942,15 +1947,39 @@ async function loadJobs({ background = false } = {}) {
     // Skip the re-render when the background refresh just confirms
     // nothing changed -- avoids a jarring flicker/scroll-reset for what
     // will be the common case (revisiting within the same 5-min window).
-    const changed = !cached || JSON.stringify(data) !== JSON.stringify(cached);
+    const changed = append || !cached || JSON.stringify(data) !== JSON.stringify(cached);
     setCachedJobs(params, data);
     if (changed && background && holdForReader(data, starred)) return;
-    lastJobsResponse = data;
-    if (changed) {
-      clearHeldJobs();
-      renderJobs(data, starred);
-      renderPagination(data);
+    if (append && params.replace(/&?offset=\d+/, "") !== listParams) {
+      // The filters moved while this page was in the air. It belongs to
+      // a list that is no longer on screen, so it is dropped rather than
+      // appended to a different one.
+      append = false;
     }
+    if (append) {
+      // Deduped against what is already on screen as well as within the
+      // page: the same listing can arrive twice across two pages when a
+      // company is reachable through two ATS tokens.
+      const seen = new Set(((lastJobsResponse && lastJobsResponse.jobs) || [])
+        .map((j) => (j.url || "").trim().toLowerCase() || `${j.company_domain} ${j.external_id || j.id}`));
+      data = { ...data, jobs: dedupeJobs(data.jobs, seen) };
+      // One list, grown. lastJobsResponse is what findKnownJob and the
+      // pane's own prev/next read, so the accumulated rows have to live
+      // there rather than only in the DOM.
+      const all = [...((lastJobsResponse && lastJobsResponse.jobs) || []), ...data.jobs];
+      lastJobsResponse = { ...data, jobs: all, total: data.total ?? lastJobsResponse?.total ?? null };
+      appendJobRows(data.jobs, starred);
+      renderResultCount(lastJobsResponse);
+    } else {
+      data = { ...data, jobs: dedupeJobs(data.jobs) };
+      lastJobsResponse = data;
+      listParams = params.replace(/&?offset=\d+/, "");
+      if (changed) {
+        clearHeldJobs();
+        renderJobs(data, starred);
+      }
+    }
+    paintMoreButton(data);
     if (deferCount) loadJobCount(params, seq);
     // Last, and debounced. The rail's counts are the most expensive
     // thing the API answers and the least urgent thing on screen.
@@ -2018,7 +2047,7 @@ function showHeldJobs({ scroll = true } = {}) {
   clearHeldJobs();
   lastJobsResponse = data;
   renderJobs(data, starred);
-  renderPagination(data);
+  paintMoreButton(data);
   if (scroll) {
     window.scrollTo({ top: window.scrollY + jobsListTop() - topbarBottom() - 12, behavior: "smooth" });
   }
@@ -2178,7 +2207,8 @@ const MAX_SEARCH_TERMS = 10;
 async function renderStarredOnly(starred, seq, inFlight) {
   document.getElementById("jobs-loading").textContent = "";
   document.getElementById("jobs-error").style.display = "none";
-  document.getElementById("pagination").style.display = "none";
+  const more = document.getElementById("jobs-more");
+  if (more) more.hidden = true;
   const tbody = document.getElementById("jobs-body");
   const empty = document.getElementById("jobs-empty");
 
@@ -2279,7 +2309,7 @@ async function loadJobCount(params, seq) {
     // returned would change nothing.
     setCachedJobs(params, lastJobsResponse);
     renderResultCount(lastJobsResponse);
-    renderPagination(lastJobsResponse);
+    paintMoreButton(lastJobsResponse);
   } catch (err) {
     if (err.name !== "AbortError" && seq === jobsRequestSeq) console.debug("count:", err.message);
   } finally {
@@ -2326,11 +2356,14 @@ function renderResultCount(data) {
     sub.textContent = updatedAgo();
     return;
   }
-  const from = state.offset + 1;
+  // The list accumulates rather than paging, so the range always starts
+  // at the first row and ends at however many are on screen.
+  const from = 1;
   const total = data.total;
   // The range is true without the total, and it does not move when the
   // total lands, so nothing on the line jumps.
-  const to = total == null ? state.offset + data.jobs.length : Math.min(state.offset + data.jobs.length, total);
+  const shown = data.jobs.length;
+  const to = total == null ? shown : Math.min(shown, total);
   el.innerHTML = total == null
     ? `<b>${fmtInt(data.jobs.length)}+</b> ${escapeHtml(resultNoun())}`
     : `<b>${fmtInt(total)}</b> ${escapeHtml(resultNoun())}`;
@@ -2354,7 +2387,7 @@ function scheduleFacets() {
 function renderJobs(data, starred) {
   matchedSkills = new Set(data.matched_skills || []);
   renderSearchNotice(data);
-  document.getElementById("pagination").style.display = "flex";
+
   if (!data.jobs.length) {
     document.getElementById("jobs-empty").innerHTML = state.search
       ? emptySearchState(data)
@@ -2593,8 +2626,7 @@ function jobSkillChips(j) {
 // through two ATS tokens and both were crawled. Same URL, same job, and
 // nothing downstream of here can tell them apart, so they are collapsed
 // before anything is drawn rather than deduplicated in the eye.
-function dedupeJobs(jobs) {
-  const seen = new Set();
+function dedupeJobs(jobs, seen = new Set()) {
   return jobs.filter((j) => {
     const key = (j.url || "").trim().toLowerCase() || `${j.company_domain}\u0000${j.external_id || j.id}`;
     if (seen.has(key)) return false;
@@ -2620,13 +2652,14 @@ function revealSelectedRow() {
   else if (rb.bottom > lb.bottom) list.scrollTop += rb.bottom - lb.bottom + 8;
 }
 
-function renderJobRows(jobs, starred) {
+// Split from the wiring below, because the infinite list appends rows to
+// a body whose existing rows are already wired and must not be rebuilt.
+function jobRowsHtml(jobs, starred) {
   // The tooltip stopped being true once /me/saved existed. Signed in,
   // the star does follow you, and saying otherwise talks people out of
   // using it.
   const starTitle = getAuthTokens() ? "Save to your account" : "Save (this browser only)";
-  showJobsTable(true);
-  document.getElementById("jobs-body").innerHTML = dedupeJobs(jobs)
+  return jobs
     .map((j) => {
       const age = j.posted_at
         ? (Date.now() - new Date(j.posted_at).getTime()) / 86400000
@@ -2670,8 +2703,29 @@ function renderJobRows(jobs, starred) {
       </tr>`;
     })
     .join("");
+}
 
-  document.querySelectorAll("[data-star]").forEach((btn) => {
+function renderJobRows(jobs, starred) {
+  showJobsTable(true);
+  document.getElementById("jobs-body").innerHTML = jobRowsHtml(jobs, starred);
+  wireJobRowControls();
+  // A replaced list starts at its own top. Left where it was, a reader
+  // who had scrolled to the end and then changed a filter landed at the
+  // bottom of fifty new rows, and the load-more sentinel was already in
+  // view, so the next page appended itself before they saw the first.
+  const list = document.querySelector(".board-list");
+  if (list) list.scrollTop = 0;
+}
+
+// Rebinding every handler after an append is cheap and has no state to
+// lose: these are all stateless clicks reading a data attribute.
+function wireJobRowControls() {
+  // Scoped to the list. [data-star] also matches the detail pane's own
+  // button and the sticky bar's, and an append that rebound those would
+  // leave two listeners on each, so one click would toggle twice.
+  const body = document.getElementById("jobs-body");
+  if (!body) return;
+  body.querySelectorAll("[data-star]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation(); // inside a clickable row; starring shouldn't also open it
       const s = toggleStar(btn.dataset.star);
@@ -2684,14 +2738,14 @@ function renderJobRows(jobs, starred) {
     });
   });
 
-  document.querySelectorAll("[data-copy-url]").forEach((btn) => {
+  body.querySelectorAll("[data-copy-url]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation(); // inside a clickable row; copying should not also open it
       copyToClipboard(btn, btn.dataset.copyUrl);
     });
   });
 
-  document.querySelectorAll("[data-skill]").forEach((btn) => {
+  body.querySelectorAll("[data-skill]").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation(); // same reasoning as the star button above
       // Quoted, so "REST API" stays one term rather than two words the
@@ -2818,9 +2872,11 @@ function paneHead(job) {
     const rows = (lastJobsResponse && lastJobsResponse.jobs) || [];
     const i = rows.findIndex((r) => r.id === job.id);
     const total = lastJobsResponse && lastJobsResponse.total;
-    const at = i < 0 ? null : state.offset + i + 1;
+    // The list is cumulative, so a row's index in it is its position.
+    // state.offset is the next page's starting point, not this list's.
+    const at = i < 0 ? null : i + 1;
     const label = at === null ? "Listing"
-      : `${fmtInt(at)} of ${total == null ? `${fmtInt(state.offset + rows.length)}+` : fmtInt(total)}`;
+      : `${fmtInt(at)} of ${total == null ? `${fmtInt(rows.length)}+` : fmtInt(total)}`;
     head.innerHTML = `
       <div class="pane-nav">
         <button type="button" class="pane-step" data-step="-1" aria-label="Previous listing"
@@ -2962,6 +3018,85 @@ async function copyToClipboard(btn, url) {
   }, 1200);
 }
 
+// The list grows as you reach the end of it, rather than being cut into
+// pages. With a million rows a page number is not something anyone
+// navigates by, and "next" on a board is always just "more".
+//
+// The button is not a fallback nobody sees: it is what the observer
+// clicks, so there is one path into a load and one thing to disable
+// while it runs. An observer that never fires (a short list, a browser
+// that blocks it) leaves a button that still works.
+let moreObserver = null;
+let loadingMore = false;
+// Which query the rows on screen belong to. An append that comes back
+// for a different one is a page of the list the reader has already left,
+// and accumulating it produced a count of 300 over a list of 50.
+let listParams = null;
+
+function appendJobRows(jobs, starred) {
+  const body = document.getElementById("jobs-body");
+  if (!body) return;
+  const tmp = document.createElement("tbody");
+  tmp.innerHTML = jobRowsHtml(jobs, starred);
+  // The rows already on screen are not re-rendered: their star handlers
+  // and their selected state stay exactly as they are.
+  while (tmp.firstChild) body.appendChild(tmp.firstChild);
+  wireJobRowControls();
+}
+
+function paintMoreButton(data) {
+  const wrap = document.getElementById("jobs-more");
+  if (!wrap) return;
+  const shown = ((lastJobsResponse && lastJobsResponse.jobs) || []).length;
+  const total = (lastJobsResponse && lastJobsResponse.total) ?? data?.total;
+  // Before the count lands, a full page is reason enough to believe
+  // there is another one.
+  const more = total == null ? (data?.jobs?.length || 0) >= PAGE_SIZE : shown < total;
+  wrap.hidden = !more;
+  const btn = document.getElementById("jobs-more-btn");
+  if (btn) {
+    btn.disabled = loadingMore;
+    btn.textContent = loadingMore ? "Loading…" : "Load more";
+  }
+}
+
+async function loadMoreJobs() {
+  if (loadingMore) return;
+  const shown = ((lastJobsResponse && lastJobsResponse.jobs) || []).length;
+  const total = lastJobsResponse && lastJobsResponse.total;
+  if (total != null && shown >= total) return;
+  loadingMore = true;
+  paintMoreButton(lastJobsResponse);
+  const previous = state.offset;
+  state.offset = shown;
+  try {
+    await loadJobs({ append: true });
+  } catch {
+    state.offset = previous;
+  } finally {
+    loadingMore = false;
+    paintMoreButton(lastJobsResponse);
+  }
+}
+
+function wireInfiniteList() {
+  const wrap = document.getElementById("jobs-more");
+  const btn = document.getElementById("jobs-more-btn");
+  const list = document.querySelector(".board-list");
+  if (!wrap || !btn || !list) return;
+  btn.addEventListener("click", loadMoreJobs);
+  if (moreObserver) moreObserver.disconnect();
+  // rootMargin so the next page is already arriving as the last rows
+  // come into view, rather than after the reader has hit the bottom.
+  moreObserver = new IntersectionObserver(
+    ([e]) => { if (e.isIntersecting && !wrap.hidden) loadMoreJobs(); },
+    { root: list, rootMargin: "600px 0px" },
+  );
+  moreObserver.observe(wrap);
+}
+
+// Replaced by the infinite list below. Kept out of the board entirely
+// rather than left wired to a hidden element.
 function renderPagination(data) {
   const el = document.getElementById("pagination-pages");
   const current = Math.floor(state.offset / PAGE_SIZE) + 1;
@@ -4586,6 +4721,7 @@ function wireFilters() {
   });
 
   wireRailSheet();
+  wireInfiniteList();
 }
 
 function setActiveSortHeader(key, dir) {
