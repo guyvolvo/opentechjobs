@@ -1796,17 +1796,6 @@ function skeletonRowCount() {
   return Math.min(PAGE_SIZE, Math.max(SKELETON_ROWS, shown));
 }
 
-// Rides the topbar's own bottom rule (see .load-bar in style.css).
-// Reference-counted: the listings, the counts and the statistics refetch
-// independently and often overlap, and the first one to finish shouldn't
-// switch the bar off while the others are still in flight.
-let inFlight = 0;
-function setLoadBar(active) {
-  inFlight = Math.max(0, inFlight + (active ? 1 : -1));
-  const bar = document.getElementById("load-bar");
-  if (bar) bar.classList.toggle("active", inFlight > 0);
-}
-
 // The precomputed first pages (loader/bootstrap.py), published by the
 // merge Lambda and served straight from CloudFront's edge. Used only for
 // the views listed below, and only when a file's recorded params match
@@ -1977,7 +1966,6 @@ async function loadJobs({ background = false, append: wantAppend = false } = {})
   // waiting on it, and a response shaped like the cached one is what
   // lets the no-flicker comparison below do its job.
   const deferCount = !background;
-  setLoadBar(true);
   try {
     let data = await getJSON(`/jobs?${params}${deferCount ? "&count=skip" : ""}`, { signal: inFlight.signal });
     if (seq !== jobsRequestSeq) return;
@@ -2042,16 +2030,10 @@ async function loadJobs({ background = false, append: wantAppend = false } = {})
       errEl.style.display = "block";
     }
   } finally {
+    // Always, never gated on the sequence: a stale request that declined
+    // to clear this would leave the list believing it is still being
+    // replaced, and the infinite scroll sentinel would never fire again.
     if (!append && !background) listReloading = false;
-    // Always, never gated on the sequence. setLoadBar is reference
-    // counted, and an earlier request skipping its decrement leaks the
-    // count upward: request two increments before request one's finally
-    // runs, one then declines to decrement, and the bar is stuck on for
-    // the rest of the session. Guarding this looked like it was stopping
-    // a stale request reporting the page as settled, but the counter
-    // already handles that. Introduced by the sequencing fix and caught
-    // in review before anyone saw it.
-    setLoadBar(false);
   }
 }
 
@@ -2284,7 +2266,6 @@ async function renderStarredOnly(starred, seq, inFlight) {
   tbody.innerHTML = jobsSkeletonHtml(skeletonRowCount());
   document.getElementById("jobs-loading").textContent = "Loading listings";
   document.getElementById("result-count").innerHTML = "";
-  setLoadBar(true);
   try {
     const data = await getJSON(`/jobs?${params}`, { signal: inFlight.signal });
     if (seq !== jobsRequestSeq) return;
@@ -2311,8 +2292,6 @@ async function renderStarredOnly(starred, seq, inFlight) {
     const errEl = document.getElementById("jobs-error");
     errEl.textContent = `Could not load your saved listings: ${err.message}`;
     errEl.style.display = "block";
-  } finally {
-    setLoadBar(false); // see the note in loadJobs: never gate this
   }
 }
 
@@ -5204,7 +5183,6 @@ async function refreshStats() {
     renderScopedPanels(cachedStats);
   }
 
-  setLoadBar(true);
   try {
     const stats = await getStaticOrApi("/stats.json", "/stats");
     latestStats = stats;
@@ -5244,8 +5222,6 @@ async function refreshStats() {
       // which says what it could not count rather than staying blank.
       renderDetailEmpty();
     }
-  } finally {
-    setLoadBar(false);
   }
 }
 
@@ -5311,7 +5287,6 @@ async function refreshScopedStats({ force = false } = {}) {
   if (!held) latestScoped = null;
   renderScopeDependent();
 
-  setLoadBar(true);
   try {
     const data = await getJSON(`/stats?${qs({ ...currentFilterParams(), skills: "" })}`, { signal: inFlight.signal });
     if (seq !== scopedStatsSeq) return;
@@ -5336,10 +5311,6 @@ async function refreshScopedStats({ force = false } = {}) {
       scopedStatsPending = null;
       scopedStatsInFlight = null;
     }
-    // Unconditional, unlike loadJobs': the bar is reference counted and
-    // this call incremented it exactly once, so skipping the decrement
-    // on a superseded request would leave it running forever.
-    setLoadBar(false);
   }
 }
 

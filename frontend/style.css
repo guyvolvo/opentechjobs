@@ -55,7 +55,6 @@
   /* The loading sweep runs along the topbar's dark rule, not on paper, so
      it is measured against #40513b: --green was 2.5:1 there and hard to
      see. This is 5.1:1. */
-  --load-bar: #9fd4a5;
   --grey: #40513b;
   /* Neutral, not green. The structure (row dividers, panel and tile
      borders, bar tracks) used to be a sage tint, which made the whole
@@ -133,7 +132,6 @@
   --black: #ededec;
   --green: #2fae60;
   --green-bright: #4ee585;
-  --load-bar: var(--green); /* already clear against the light rule */
   --grey: #9a9a9a;
   --grey-line: #2b2c31;
   --hover-bg: #1e1f24;
@@ -313,24 +311,6 @@ button, input, select {
 }
 .topbar-search input:focus { outline: none; }
 .topbar-search input::placeholder { color: var(--grey); opacity: 0.75; }
-
-/* Worth advertising only while it works: once the box has focus, / types
-   a slash. It gives up its place to the clear button. */
-.topbar-search-key {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  margin-right: 6px;
-  border: 1px solid var(--grey-line);
-  border-radius: 4px;
-  background: var(--hover-bg);
-  color: var(--grey);
-  font: 400 11px var(--font-ui);
-}
-.topbar-search:focus-within .topbar-search-key,
-.topbar-search.has-text .topbar-search-key { display: none; }
 
 .topbar-search-clear {
   flex: 0 0 auto;
@@ -2271,89 +2251,6 @@ footer {
 .sk-panel .bar-row:nth-child(3n+1) .sk-name { width: 84%; }
 .sk-panel .sk-more .sk-name { width: 64px; }
 
-/* Refetch indicator. Rides the topbar's existing 2px ink bottom rule
-   rather than adding furniture: the rule that is already there turns
-   green and sweeps while a fetch is in flight, then goes back to being
-   a rule. Green is legitimate here under DESIGN.md's "if a green
-   appears, it is pointing at something" test, since it points at work
-   actually happening right now. Current results stay on screen
-   underneath, which is the whole point over a blocking spinner. */
-.load-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(-1 * var(--rule));
-  height: var(--rule);
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0;
-}
-.load-bar.active { opacity: 1; }
-/* Two changes here, and only one of them is the frame rate.
-
-   This swept on steps() for a while, first 13 and then 26, borrowing the
-   cadence the status dot flickers on. Stepping caps the bar at whatever
-   number sits in the parentheses, and hitting 60 would need steps(51),
-   where each step moves the bar 2% of its travel. Nobody can see a step
-   that small, so it buys a nominal voice and costs real smoothness.
-   Linear instead: on a composited property that means the bar redraws at
-   whatever the display runs at, 60Hz or 120Hz, rather than at a rate this
-   file picked. The landing page's tickers already sweep this way.
-   steps() stays where it
-   reads as character, on the status dot.
-
-   The judder was never only the step count though. This animated `left`,
-   which is a layout property: every frame the browser recomputes
-   geometry, so on a main thread busy parsing a jobs response, the very
-   moment this bar is on screen, frames get dropped and the real rate
-   falls below the nominal one. transform is composited and runs off the
-   main thread. will-change promotes the layer before the bar is needed,
-   so the first frames after .active go to moving it, not building it.
-
-   Percentages differ between the two because they are measured against
-   different boxes: `left` against the parent, `translateX` against the
-   element itself. -28%/100% of a full-width parent is -108%/385% of an
-   element 26% that wide. */
-.load-bar::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 26%;
-  background: var(--load-bar);
-  will-change: transform;
-  /* Deliberately not animated here.
-
-     The animation used to live on this rule and run forever, with
-     .active only switching the opacity. So a sweep that had been
-     running invisibly for minutes became visible at whatever point of
-     its travel it happened to be at, and most of the time that is not
-     the left edge. Reported live from a screenshot: the bar appears at
-     the right-hand side and slides off, which reads as a load ending
-     the instant it began.
-
-     Declaring it on .active instead starts every sweep at frame one, so
-     the bar always enters from the left. It also stops a compositor
-     animation running on every idle page, which was costing a repaint a
-     frame for something nobody could see. */
-  transform: translateX(-108%);
-}
-.load-bar.active::after {
-  animation: load-bar-sweep 0.85s linear infinite;
-}
-@keyframes load-bar-sweep {
-  from { transform: translateX(-108%); }
-  to   { transform: translateX(385%); }
-}
-
-/* The reduced-motion sweep. Same travel, slower, so the movement is
-   never quick enough to catch the eye the way the 0.85s one does. */
-@keyframes load-bar-sweep-calm {
-  from { transform: translateX(-108%); }
-  to   { transform: translateX(385%); }
-}
-
 /* Inline button busy state. color:transparent keeps the label in flow,
    so the button never changes size mid-click. */
 .btn-busy {
@@ -2380,36 +2277,9 @@ footer {
 
 /* Everything above still communicates with the animation off: the bones
    remain, the spinner holds one frame, the sheet arrives already open.
-   Nothing depends on movement to be legible.
-
-   The load bar was the exception and it read as broken. A static
-   full-width green bar is indistinguishable from a decorative rule that
-   has changed colour for no reason, and it was reported exactly that
-   way: "static green instead of an actual loading animation."
-
-   So it pulses instead of sweeping. Reduced motion is about not
-   triggering people with vestibular sensitivity, which is a rule about
-   large translation, not about holding every pixel still. A slow
-   the load bar keeps its direction but loses its pace, since a bar that
-   only brightens and dims says something is happening without saying
-   which way it is going. */
+   Nothing depends on movement to be legible. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; background-image: none; }
-  /* Slower, not still.
-     
-     This used to swap the sweep for a full-width bar pulsing its
-     opacity. Reported live from a browser with the setting on: it reads
-     as a flashing line rather than as progress, which is the one thing
-     a loading indicator has to say. A 2px strip crossing a header is
-     not the large-area or parallax motion this media query exists to
-     spare people; an element covering the full width and changing
-     brightness in place arguably is closer to it.
-     
-     So the bar still travels, at a third of the speed, which is slow
-     enough not to catch the eye and still obviously a direction. */
-  .load-bar.active::after {
-    animation: load-bar-sweep-calm 2.6s linear infinite;
-  }
   .btn-busy::after { animation: none; }
   /* The sheet still opens and closes, it just arrives already there. */
   .job-detail, #job-scrim { transition: none; }
@@ -6430,8 +6300,7 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
      costs 23px of a placeholder that is already cut off at 390px, and a
      phone has no / to press. The clear cross stays: backspacing a search
      out by hand is worst on the device with no Escape key. */
-  .board-bar .topbar-search-icon,
-  .board-bar .topbar-search-key { display: none; }
+  .board-bar .topbar-search-icon { display: none; }
 }
 
 /* The phone's 44px tap target, the height this box has had there since

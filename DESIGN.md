@@ -658,13 +658,14 @@ panel says "Ranked by relevance" and explains the rule in its tooltip.
   that and the group slides left, keeping a 16px gap either side. It
   reverts to a flex row below 800px, where the group is empty.
 - **Board search (`.topbar-search`):** a 560px, 36px-tall pill in the
-  middle of the topbar holding the magnifier, the input and, when the box
-  is empty and unfocused, a `/` key cap. Date posted and the sort sit
-  beside it, 10px away, on the same pill radius. The hotkey focuses it from anywhere on the page; Enter
-  searches without waiting out the 500ms typing timer, Escape empties it
-  before the key reaches the handler that closes an open listing. Below
-  800px the same node moves into the filter bar and drops both the
-  magnifier and the key cap: a phone has no `/` to press, and the
+  middle of the topbar holding the magnifier, the input, and a clear
+  cross once there is anything to clear. Date posted and the sort sit
+  beside it, 10px away, on the same pill radius. `/` focuses it from
+  anywhere on the page, unadvertised: the key cap that used to say so was
+  one more thing in a box that is already three. Enter searches without
+  waiting out the 500ms typing timer, Escape empties it before the key
+  reaches the handler that closes an open listing. Below 800px the same
+  node moves into the filter bar and drops the magnifier, since the
   placeholder is already cut off at 390px.
 - **Mobile:** nav wraps below 960px.
 
@@ -730,10 +731,8 @@ hand-placed irregular opacity keyframes, closer to a Minecraft torch
 than a smooth pulse, going offline-red with the animation killed
 outright. The flicker was removed before this change, having read as
 distracting rather than as character on something permanently on screen.
-The stepped motion voice it belonged to still lives in the load bar's
-own history (see Motion), and the square is gone: a ring reads as a
-status mark where a square read as a decoration that happened to change
-colour.
+The square is gone with it: a ring reads as a status mark where a square
+read as a decoration that happened to change colour.
 
 ### Statistics column collapse
 A toggle at the top of the Statistics column folds it away to the right
