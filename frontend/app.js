@@ -2248,9 +2248,16 @@ async function loadJobCount(params, seq) {
 // the one number on the board that says whether what you are reading is
 // current. Absent until stats land, and the line simply omits it then.
 function updatedAgo() {
-  const iso = latestStats?.freshness?.last_checked || latestStats?.meta?.last_loaded;
-  if (!iso) return "";
-  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  // lastCheckedAt, not latestStats. /stats.json is a precomputed
+  // artifact: its freshness block is frozen at the moment the file was
+  // built, so reading it here dated the board by however long ago that
+  // was. Measured 2026-09-24: the artifact said 2.8 minutes, the file
+  // was 32 minutes old, and the loader had actually written 1 minute
+  // earlier, so the board claimed half an hour of staleness that did
+  // not exist. lastCheckedAt is the /api/health poll's own answer,
+  // refreshed every 120s and monotonic (see setLastCheckedAt).
+  if (lastCheckedAt === null) return "";
+  const mins = Math.max(0, Math.round((Date.now() - lastCheckedAt) / 60000));
   if (!Number.isFinite(mins)) return "";
   if (mins < 1) return "Updated just now";
   if (mins < 60) return `Updated ${mins} min ago`;
@@ -2771,7 +2778,8 @@ function renderDetailEmpty() {
   // a company total, which is a different question (how many companies
   // errored, ever) and would be a made-up percentage dressed as a
   // measurement. The row stays out until something measures it.
-  const freshMins = latestStats?.freshness?.minutes_since_update;
+  // Same source as the text beside it, for the same reason.
+  const freshMins = lastCheckedAt === null ? null : (Date.now() - lastCheckedAt) / 60000;
   const health = updatedAgo();
 
   paneBody().innerHTML = `
@@ -5780,6 +5788,12 @@ async function boot() {
   // reads four small numbers out of it.
   loadTicker();
   refreshStats();
+  // /health at boot, not only on the two-minute refresh. refreshStats
+  // seeds lastCheckedAt from /stats.json, whose freshness block is
+  // frozen at the moment that file was built, so until the first health
+  // poll landed the board reported the artifact's age as its own. It is
+  // the cheapest endpoint on the box and it is the only live answer.
+  refreshFreshness();
 
   // ?view=matches opens Best matches directly, for the 404 page and any
   // other link that wants it. Not filter state: setView works out the
