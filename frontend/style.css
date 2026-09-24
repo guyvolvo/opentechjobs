@@ -4813,7 +4813,17 @@ table.jobs tbody tr.selected::before {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.job-card-title .badge { flex: 0 0 auto; }
+/* Exactly the height of the line it sits on: 15 of line, 1 of padding
+   and 1 of border, each doubled, is 19. At the badge's usual 25 it stood
+   3px proud of the title at each end, and .main-cell clips, so the top
+   edge of every seniority badge on the board was shaved off. The row has
+   no slack to give it (the chip line already ends flush with the cell),
+   so the badge is what gives. */
+.job-card-title .badge {
+  flex: 0 0 auto;
+  line-height: 15px;
+  padding: 1px 6px;
+}
 tr:hover .job-title-text { color: var(--green-text); }
 
 .job-meta {
