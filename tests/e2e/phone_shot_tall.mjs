@@ -19,7 +19,8 @@ const page = await context.newPage();
 await page.goto(`https://opentechjobs.org/${QUERY}`, { waitUntil: "domcontentloaded", timeout: 60000 });
 await page.waitForSelector("#jobs-body tr", { timeout: 60000 });
 const atRest = () => page.waitForFunction(
-  () => document.getElementById("status-text")?.textContent.trim() === "Live",
+  // The topbar mark is gone (2026-09-24); with no element there is nothing to wait for.
+      () => { const el = document.getElementById("status-text"); return !el || el.textContent.trim() === "Live"; },
   null, { timeout: 20000 }).then(() => true).catch(() => false);
 let settled = await atRest();
 for (let i = 0; !settled && i < 8; i++) {

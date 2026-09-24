@@ -31,7 +31,8 @@ for (const [name, opts] of [
     // That is the board's real state, not a render race, so this waits for
     // a quiet moment and reloads between tries rather than faking the text.
     const atRest = () => page.waitForFunction(
-      () => document.getElementById("status-text")?.textContent.trim() === "Live",
+      // The topbar mark is gone (2026-09-24); with no element there is nothing to wait for.
+      () => { const el = document.getElementById("status-text"); return !el || el.textContent.trim() === "Live"; },
       null, { timeout: 20000 }).then(() => true).catch(() => false);
     let settled = await atRest();
     for (let attempt = 0; !settled && attempt < 8; attempt++) {

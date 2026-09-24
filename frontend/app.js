@@ -813,8 +813,14 @@ function tickApiStatus() {
   card.querySelector(".sub").textContent = sub;
   const syncEl = card.querySelector(".sync-countdown");
   if (syncEl) syncEl.textContent = pipelineActivityText() ?? "";
-  paintStatusIcon(document.getElementById("status-dot"), level);
-  document.getElementById("status-text").textContent = STATUS_LEVELS[level].text;
+  // The topbar's own copy of this mark is gone: the overview panel's
+  // "Last updated" line says the same thing beside the number it
+  // qualifies. The ids stay guarded rather than removed, because /stats
+  // still carries them.
+  const dot = document.getElementById("status-dot");
+  if (dot) paintStatusIcon(dot, level);
+  const text = document.getElementById("status-text");
+  if (text) text.textContent = STATUS_LEVELS[level].text;
 }
 
 // The scoped answer the API gave for one exact set of board filters,
@@ -1028,8 +1034,10 @@ function renderPipelineTile() {
         </div>
       </div>`;
 
-  paintStatusIcon(document.getElementById("status-dot"), status.level);
-  document.getElementById("status-text").textContent = STATUS_LEVELS[status.level].text;
+  const dot = document.getElementById("status-dot");
+  if (dot) paintStatusIcon(dot, status.level);
+  const text = document.getElementById("status-text");
+  if (text) text.textContent = STATUS_LEVELS[status.level].text;
 }
 
 // Recomputes from lastCheckedAt every 1s -- the sync countdown needs a

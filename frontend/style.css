@@ -273,8 +273,7 @@ button, input, select {
   padding-bottom: 10px;
 }
 .topbar .container > * { min-width: 0; } /* same min-width:auto issue as everywhere else in this file */
-.status-indicator, .topnav { flex: 0 0 auto; } /* natural width; the search is the one flexible element between them */
-.status-indicator { display: flex; align-items: center; }
+.topnav { flex: 0 0 auto; } /* natural width; the search is the one flexible element beside it */
 
 /* The board's search box, when it is in the topbar. Above 800px this is
    its home; below it the same node sits in the filter bar (the rules at
@@ -2123,9 +2122,9 @@ footer {
 @media (max-width: 640px) {
   /* The utility row on a phone. It was 10.5px text in controls 17 to 19px
      tall, bunched into the left 160px of a 390px screen, right under the
-     browser's address bar: reported live as too tight. The wordmark and
-     the status line both hide at this width, and the search box drops
-     into the filter bar, so the row has the whole width to itself. The links go back to the 13px UI size and
+     browser's address bar: reported live as too tight. The wordmark hides
+     at this width and the search box drops into the filter bar, so the
+     row has the whole width to itself. The links go back to the 13px UI size and
      every control is 44px tall to tap, which is the height Apple's
      guidance asks for and what makes the bar taller. They stay grouped on
      the left: spread across the width, the gaps read as too much. Each
@@ -2150,10 +2149,6 @@ footer {
     text-decoration-thickness: 1px;
     text-underline-offset: 4px;
   }
-  /* LIVE/OFFLINE + dot: real information on desktop, but on a phone's
-     topbar it's spending width without earning it -- reported live
-     (2026-09-08). */
-  .status-indicator { display: none; }
   .topbar .container { flex-wrap: nowrap; }
 
   /* Reported live: cut off. .auth-panel is `right: 0` relative to its
@@ -6261,7 +6256,6 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   align-items: center;
   column-gap: 16px;
 }
-.topbar-board .status-indicator { grid-column: 1; justify-self: start; }
 .topbar-center {
   grid-column: 2;
   min-width: 0;
