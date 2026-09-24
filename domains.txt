@@ -24401,3 +24401,11 @@ imsm.com
 indigoresearch.com
 inu.com
 hrworkforce-ura.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+brcsolargmbh.com
+puhlgmbhcokg.com
+aap.io
+remi.com
+renrns.com
+revivetomission.com
