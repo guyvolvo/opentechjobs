@@ -25186,3 +25186,10 @@ goldrepublic.com
 maastrichtaachenairport.com
 happiestbaby.com
 redcross.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+waittfoundation.org
+alectrona.com
+air.com
+connexio.ai
+cresst.net
