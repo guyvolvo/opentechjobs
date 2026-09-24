@@ -3222,15 +3222,23 @@ function wireStickyActions(job) {
   if (paneStickyObserver) paneStickyObserver.disconnect();
   if (!bar || !actions) return;
   const starred = getStarred().has(job.id);
+  // Star and copy first as square targets, then Apply taking whatever is
+  // left, named after the company so the button says where it is sending
+  // you rather than just that it sends you somewhere.
   bar.innerHTML = `
-    <a class="job-detail-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener">Apply ${EXTERNAL_ARROW_SVG}</a>
-    <button type="button" class="job-detail-star ${starred ? "on" : ""}" data-star="${job.id}"
-            aria-pressed="${starred}">${STAR_SVG}<span>${starred ? "Saved" : "Save"}</span></button>`;
+    <button type="button" class="pane-act job-detail-star ${starred ? "on" : ""}" data-star="${job.id}"
+            aria-pressed="${starred}" aria-label="${starred ? "Saved" : "Save"}">${STAR_SVG}</button>
+    <button type="button" class="pane-act" data-copy-permalink="${escapeHtml(jobPermalink(job.id))}"
+            aria-label="Copy a link to this listing"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 5.5v-1a1.5 1.5 0 0 0-1.5-1.5H4a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 4 11h1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button>
+    <a class="job-detail-apply pane-apply" href="${escapeHtml(job.url || "#")}" target="_blank" rel="noopener">Apply on ${escapeHtml(companyLabel(job))} ${EXTERNAL_ARROW_SVG}</a>`;
+  const copy = bar.querySelector("[data-copy-permalink]");
+  if (copy) copy.addEventListener("click", () => copyToClipboard(copy, copy.dataset.copyPermalink));
   bar.querySelector("[data-star]").addEventListener("click", (e) => {
     const on = toggleStar(job.id).has(job.id);
     paintDetailStar(e.currentTarget, on);
     const other = body.querySelector(".job-detail-star");
     if (other) paintDetailStar(other, on);
+    e.currentTarget.setAttribute("aria-label", on ? "Saved" : "Save");
     const rowBtn = document.querySelector(`[data-star="${job.id}"].star-btn`);
     if (rowBtn) {
       rowBtn.classList.toggle("on", on);
@@ -4570,7 +4578,11 @@ function railToggleLabel() {
   }
   if (state.country.length || state.city.length) n += 1;
   if (state.max_age_days) n += 1;
-  btn.textContent = n ? `Filters (${n})` : "Filters";
+  // The word alone, with the number as a badge the phone draws from
+  // data-count. "Filters (3)" in a 44px button beside a search box is
+  // most of the row spent on two brackets.
+  btn.textContent = "Filters";
+  btn.dataset.count = String(n);
 }
 
 function renderActiveChips() {

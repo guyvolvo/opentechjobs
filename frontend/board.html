@@ -167,6 +167,10 @@
              for the reader who types and then looks for one, and for a
              phone keyboard's Go: it submits what is already in the box. -->
         <button type="button" class="btn primary search-go" id="f-search-go">Search</button>
+        <!-- Opens the rail as a sheet below 800px, where there is no
+             room for a column, and sits beside the search because that
+             is the row a thumb is already on. Hidden above it. -->
+        <button type="button" class="btn ghost rail-toggle" id="rail-toggle" aria-expanded="false" aria-controls="filter-rail">Filters</button>
         <span class="board-bar-gap"></span>
         <select id="f-date-posted" title="Date posted">
           <option value="">Date posted</option>
@@ -190,10 +194,6 @@
       </div>
 
       <div class="board-bar-row board-bar-row-2">
-        <!-- Opens the rail as a sheet below 800px, where there is no
-             room for a column. Hidden above it. -->
-        <button type="button" class="btn ghost rail-toggle" id="rail-toggle" aria-expanded="false" aria-controls="filter-rail">Filters</button>
-
         <!-- Which listings the board shows. Saved used to be a checkbox
              among the filters, and the CV match a chip that only
              appeared once a link from /account had set it, so neither

@@ -5774,8 +5774,8 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
      the Filters button's own count: two rows of them on a 390px screen
      is most of the first screen, and the count says the same thing in
      one line. */
-  .board-bar-row-2 { flex-direction: column; align-items: stretch; gap: 10px; }
-  .board-bar-row-2 .rail-toggle {
+  .board-bar-row-2 { gap: 10px; }
+  .board-bar-row-2 .rail-toggle-unused {
     order: 1;
     width: 100%;
     height: 42px;
@@ -5800,11 +5800,62 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 }
 
 @media (max-width: 640px) {
-  .board-bar { position: static; }
-  .board-bar-row { flex-wrap: wrap; }
-  .board-bar #f-search { flex: 1 1 100%; }
+  .board-bar { position: static; padding: 10px 8px; gap: 8px; }
+  .board-bar-row { flex-wrap: nowrap; gap: 8px; }
+  .board-bar #f-search { flex: 1; height: 44px; min-width: 0; }
+  /* Date posted moves into the filter sheet and the sort moves into the
+     list head, so neither takes a row here. Search plus Filters is the
+     whole of the first row. */
   .board-bar #f-date-posted,
-  .board-bar #f-sort { flex: 1 1 calc(50% - 5px); }
+  .board-bar #f-sort,
+  .board-bar .search-go,
+  .board-bar-gap { display: none; }
+  .rail-toggle { height: 44px; flex: 0 0 auto; }
+  /* The count on the Filters button, so the sheet is not the only place
+     that says anything is on. */
+  .rail-toggle[data-count]:not([data-count="0"])::after {
+    content: attr(data-count);
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    margin-left: 7px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--green-text);
+    color: var(--white);
+    font: 700 11px var(--font-ui);
+  }
+
+  /* The view switch stops being a segmented control and becomes chips
+     that scroll: four segments across 390px gives each of them nine
+     characters and no room for a thumb. */
+  .board-bar-row-2 { flex-direction: row; gap: 8px; overflow: visible; }
+  .board-bar-row-2 .view-switch {
+    order: 0;
+    width: auto;
+    display: flex;
+    gap: 8px;
+    border: 0;
+    border-radius: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .board-bar-row-2 .view-switch::-webkit-scrollbar { display: none; }
+  .board-bar-row-2 .view-switch .seg-btn {
+    flex: 0 0 auto;
+    height: 32px;
+    padding: 0 14px;
+    border: 1px solid var(--grey-line);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .board-bar-row-2 .view-switch .seg-btn.active {
+    border-color: var(--black);
+    background: var(--black);
+    color: var(--white);
+  }
 
   .job-detail {
     /* A phone has no room for a side sheet, so it is the whole screen
@@ -5819,39 +5870,60 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   }
 
   table.jobs thead { display: none; }
-  /* height:auto, and it matters. The 104px the three-column board fixes
-     a row at is measured for the chip line, and a phone row does not
-     have one: it carries Apply, Save link and the salary instead, which
-     comes to about 120. The row kept the 104 and the extra spilled into
-     the row below it, so every title had the previous row's salary
-     printed across it. A phone row is a card and sizes to its content. */
+
+  /* The list is a box with a lid and no floor: it runs off the bottom of
+     the screen, because there is always more of it. */
+  .board-list {
+    margin: 0 8px;
+    background: var(--white);
+    border: 1px solid var(--panel-line);
+    border-bottom: 0;
+    border-radius: 10px 10px 0 0;
+  }
+  .board-list .list-head { height: 52px; padding: 0 14px; }
+  .list-head .col-head-title { font-size: 15px; }
+  .list-head .col-head-sub { font-size: 11px; }
+
+  /* 112px, and the row carries only what can be read at a glance: the
+     title, one meta line and one chip line. Apply, Save link and the
+     salary line are gone from it -- tapping the row opens the listing,
+     which is where acting on it belongs. */
   table.jobs tbody tr[data-id],
   table.jobs tbody tr.skeleton-row {
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 14px;
-    padding: 16px 0;
-    height: auto;
+    grid-template-columns: 40px minmax(0, 1fr) 28px;
+    gap: 12px;
+    padding: 14px;
+    height: 112px;
     align-items: start;
-    align-content: normal;
+    align-content: start;
   }
-  /* Hidden rather than dropped from the markup: the row still carries
-     all of them, and the width they were taking is the width the title
-     needed. The skills line goes too, for the same reason: on a phone
-     the row is a card somebody reads one of at a time, not a dense
-     line they scan fifty of. */
-  .star-cell,
   .age-cell,
-  .job-chips { display: none; }
-  .meta-age { display: inline; }
+  .job-where,
   .job-links,
-  .job-salary-line { display: flex; }
+  .job-salary-line { display: none; }
+  .meta-age { display: inline; }
+  /* The star moves to the end of the row and gets a thumb-sized target
+     without taking a thumb-sized column. */
+  .star-cell { grid-column: 3; justify-self: end; }
+  .star-btn { width: 36px; height: 36px; margin: -8px -8px 0 0; }
+  .job-chips { display: flex; height: 22px; }
+  /* Two lines, then the ellipsis. A phone title wraps where a desktop
+     one truncates: the width is half and the words are the same. */
+  .job-card-title { height: auto; align-items: flex-start; }
+  .job-title-text {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+  }
   table.jobs tbody tr.selected::before { left: -8px; }
-  .logo-cell .company-logo.listing { width: 44px; height: 44px; }
+  .logo-cell .company-logo.listing { width: 40px; height: 40px; }
   .logo-cell { padding-top: 4px; }
 
-  .main-cell { gap: 8px; }
-  .job-card-title { font-size: 17px; line-height: 1.25; }
-  .job-meta { font-size: 14px; line-height: 1.45; }
+  .main-cell { gap: 6px; }
+  .job-card-title { font-size: 15px; line-height: 1.25; }
+  .job-meta { font-size: 13px; line-height: 1.35; }
 
   /* Apply is the one filled control on the row, the way it was before
      this layout. Save link beside it stays a plain link: they are not
@@ -6058,6 +6130,14 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 /* The part of a filter option the reader typed. */
 .rail-hit { font-weight: 700; color: var(--green-text); }
 
+/* Above the phone breakpoint the button says the number in words; the
+   badge is a phone treatment. */
+@media (min-width: 801px) {
+  .rail-toggle[data-count]:not([data-count="0"])::after {
+    content: " (" attr(data-count) ")";
+  }
+}
+
 /* The end of the list. Centred and quiet: it is a place the reader
    arrives at, not a control they go looking for. */
 .jobs-more {
@@ -6066,3 +6146,63 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
   padding: 18px 20px 28px;
 }
 .jobs-more[hidden] { display: none; }
+
+/* The pane's action bar. Two square targets and then Apply, which takes
+   the rest of the row: the two are things you might do and Apply is the
+   thing you came for. */
+.pane-sticky .pane-act {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--black);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  cursor: pointer;
+}
+.pane-sticky .pane-act:hover { background: var(--hover-bg); }
+.pane-sticky .pane-act.on { color: var(--green-text); border-color: var(--green-text); }
+.pane-sticky .pane-apply {
+  flex: 1;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 14px;
+  border-radius: 4px;
+  background: var(--green-text);
+  color: var(--white);
+  font: 700 14px var(--font-ui);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 800px) {
+  /* The whole screen, not a 440px drawer with the board showing beside
+     it: at 390px that drawer was wider than the phone and every line in
+     it ran off the right edge. */
+  .job-detail {
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+  }
+  .job-detail .pane-head { height: 52px; padding: 0 8px; }
+  .pane-step { width: 44px; height: 44px; }
+  .pane-close { width: 44px; height: 44px; }
+  .pane-body { padding: 16px 16px 24px; }
+  .job-detail-title { font-size: 24px; }
+  .job-detail-description { font-size: 15px; line-height: 1.55; }
+  /* Always there, not only once the header actions scroll away: on a
+     phone the header is off screen the moment you start reading. */
+  .pane-sticky {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+  .pane-sticky[hidden] { display: flex; }
+}
