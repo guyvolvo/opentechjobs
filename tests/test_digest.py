@@ -105,16 +105,25 @@ check("title and company lines size themselves to the script, the meta line does
 board = alerts.board_url(ALERT)
 check("the board link carries the alert's own filters, empty ones dropped",
       board == "https://opentechjobs.org/board?country=IL&department=Product&seniority=senior", board)
-check("one button, ink on paper, and it is the only radius besides the tiles",
+check("one button, ink on paper",
       h.count(f'href="{_html.escape(board)}"') == 1 and "background:#40513b; border-radius:4px" in h
       and ">See all jobs</a>" in h and "padding:11px 20px" in h)
-check("the footer is two underlined links, 32px down",
-      "padding-top:32px" in h and ">Edit alert</a>" in h and ">Unsubscribe</a>" in h and h.count("/account") == 2)
+check("the footer is two underlined links, under the card",
+      "padding-top:20px" in h and ">Edit alert</a>" in h and ">Unsubscribe</a>" in h and h.count("/account") == 2)
+
+# The card
+check("the digest sits in one white card with a hairline and the board's 10px radius",
+      h.count("border-radius:10px") == 1
+      and "background:#ffffff; border:1px solid #d2cfcb; border-radius:10px" in h
+      and 'class="otj-card-pad" style="padding:24px 28px 28px 28px;"' in h
+      and ".otj-card-pad { padding: 20px !important; }" in h)
+check("the card holds the headline, the rows and the button, and the footer sits outside it",
+      h.index("border-radius:10px") < h.index('class="otj-head"') < h.index(">See all jobs</a>") < h.index(">Edit alert</a>"))
 
 # The shell
-check("600px, 32px of padding, 20px on a phone, Arial, no web fonts, no variables",
+check("600px, 32px of padding, 16px on a phone, Arial, no web fonts, no variables",
       'width="600"' in h and 'class="otj-pad" style="padding:32px;"' in h
-      and ".otj-pad { padding: 20px !important; }" in h
+      and ".otj-pad { padding: 16px !important; }" in h
       and "Arial,Helvetica,sans-serif" in h and "-apple-system" not in h
       and "fonts.googleapis" not in h and "var(--" not in h)
 check("paper background on the body and the outer table", h.count("background:#f2f0ef") >= 2)
@@ -139,6 +148,19 @@ check("singular reads right", "1 new job for &ldquo;your alert&rdquo;" in one an
 check("no filter means a bare board link", 'href="https://opentechjobs.org/board"' in one)
 check("israel_only still reads as Israel", alerts._filter_summary({"filter": {"israel_only": True}}) == ["Israel"]
       and alerts.alert_name({"filter": {"israel_only": True}}) == "Israel")
+
+# The subject line: the newest listing, named
+check("one job: title at company",
+      alerts.digest_subject(ALERT, matches[:1]) == "Senior Product Manager at Wix", alerts.digest_subject(ALERT, matches[:1]))
+check("two jobs: both named, no arithmetic",
+      alerts.digest_subject(ALERT, matches[:2]) == "Senior Product Manager at Wix and ראש/ת מנהל תקשורת שיווקית וקשרי לקוחות at IAI")
+check("three or more: the first, then the count of the rest",
+      alerts.digest_subject(ALERT, matches) == "Senior Product Manager at Wix and 3 more new jobs", alerts.digest_subject(ALERT, matches))
+check("no company name falls back to the domain, and none at all to the title alone",
+      alerts.digest_subject(ALERT, [matches[2]]) == "Data Engineer at wix.com"
+      and alerts.digest_subject(ALERT, [job(company_name=None, company_domain="")]) == "Senior Product Manager")
+check("the preheader still carries the count and the alert name, so the inbox line does",
+      "4 new roles in Israel" in h)
 
 print()
 if failures:

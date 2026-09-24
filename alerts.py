@@ -200,13 +200,14 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
     if not to_email:
         return
     n = len(matches)
-    # The alert's own name in the subject, which is what tells two
-    # digests apart in a list. It replaced a UTC timestamp that was there
-    # for the same reason and read like a log line.
-    subject = f'{n} new job{"s" if n != 1 else ""} for "{alert_name(alert)}"'
+    subject = digest_subject(alert, matches)
 
     _ses.send_email(
-        FromEmailAddress=FROM_EMAIL,
+        # A named sender. The inbox list shows the name where LinkedIn's
+        # shows "LinkedIn Job Alerts", and the subject no longer has to
+        # say where the mail came from, which leaves it free to say what
+        # is in it.
+        FromEmailAddress=FROM_EMAIL if "<" in FROM_EMAIL else f"OpenTechJobs <{FROM_EMAIL}>",
         Destination={"ToAddresses": [to_email]},
         Content={
             "Simple": {
@@ -373,6 +374,7 @@ def _place(job: dict, alert: dict | None = None) -> str:
 # no wordmark: the sender line already says who it is from, and a logo
 # plus a rule was 80px of the first screen saying nothing.
 _PAPER = "#f2f0ef"
+_CARD = "#ffffff"
 _INK = "#40513b"
 _LINK = "#3f6f45"
 _LINE = "#d2cfcb"
@@ -385,6 +387,33 @@ _FONT = "Arial,Helvetica,sans-serif"
 # Five, then the button carries the rest. A digest is a nudge to open the
 # board, not the board.
 ROWS_SHOWN = 5
+
+
+def digest_subject(alert: dict | None, matches: list[dict]) -> str:
+    """The newest listing, named, the way LinkedIn's alerts do it.
+
+    "DevOps Engineer at Silverfort" for one. Two are both named, since
+    "and 1 more" hides half the mail behind a number. Three or more name
+    the first and count the rest. The count and the alert's own name,
+    which the subject used to carry, moved to the preheader: the inbox
+    list shows that right after the subject, so nothing is lost and the
+    subject gets to lead with a job rather than with arithmetic.
+
+    Matches arrive newest first (ORDER BY first_seen DESC), so the first
+    one is the one that just appeared, which is the one worth the line.
+    """
+    def named(j):
+        company = _company(j)
+        return f"{j['title']} at {company}" if company else j["title"]
+
+    n = len(matches)
+    if n == 0:
+        return f'No new jobs for "{alert_name(alert)}"'
+    if n == 1:
+        return named(matches[0])
+    if n == 2:
+        return f"{named(matches[0])} and {named(matches[1])}"
+    return f"{named(matches[0])} and {n - 1} more new jobs"
 
 
 def alert_name(alert: dict | None) -> str:
@@ -496,7 +525,8 @@ def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: da
   <title>{headline}</title>
   <style>
     @media only screen and (max-width: 480px) {{
-      .otj-pad {{ padding: 20px !important; }}
+      .otj-pad {{ padding: 16px !important; }}
+      .otj-card-pad {{ padding: 20px !important; }}
       .otj-head {{ font-size: 20px !important; }}
     }}
   </style>
@@ -509,6 +539,15 @@ def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: da
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
           <tr>
             <td class="otj-pad" style="padding:32px;">
+
+              <!-- The digest is a card on the paper rather than a column
+                   the width of the mail, which read as the message
+                   having no edges. The same 10px the board's own boxes
+                   carry. Outlook's Word engine squares the corners and
+                   keeps the border, which is the right way to degrade. -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{_CARD}; border:1px solid {_LINE}; border-radius:10px;">
+                <tr>
+                  <td class="otj-card-pad" style="padding:24px 28px 28px 28px;">
 
               <div class="otj-head" dir="auto" style="font-family:{_FONT}; font-size:22px; line-height:1.25; font-weight:700; color:{_INK};">{headline}</div>
               <div style="font-family:{_FONT}; font-size:14px; line-height:1.4; color:{_INK}; padding:6px 0 14px 0;">Since your last alert</div>
@@ -531,7 +570,11 @@ def _digest_html(n: int, matches: list[dict], alert: dict | None = None, now: da
                 </tr>
               </table>
 
-              <div style="font-family:{_FONT}; font-size:12px; line-height:1.5; color:{_INK}; opacity:0.8; padding-top:32px;">
+                  </td>
+                </tr>
+              </table>
+
+              <div style="font-family:{_FONT}; font-size:12px; line-height:1.5; color:{_INK}; opacity:0.8; padding-top:20px;">
                 <a href="{SITE_ORIGIN}/account" style="color:{_INK}; text-decoration:underline;">Edit alert</a>
                 &nbsp;&middot;&nbsp;
                 <a href="{SITE_ORIGIN}/account" style="color:{_INK}; text-decoration:underline;">Unsubscribe</a>
