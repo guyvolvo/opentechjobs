@@ -3951,35 +3951,84 @@ a.hero-account-btn { text-decoration: none; }
   aspect-ratio: 5 / 2;
   background: url("/img/showcase-desktop.webp") bottom center / cover no-repeat;
 }
-/* The API block, on the page's own ground. */
+/* The API block. Dark in both themes, because the thing in it is a
+   terminal and a terminal that follows the page theme stops reading as
+   one. The values are literal rather than tokens for the same reason:
+   these are not the page's colours, they are the block's. */
 .hero-api {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: 40px;
+  align-items: center;
   margin: 0 var(--edge) clamp(40px, 6vw, 88px);
-  padding: clamp(28px, 4vw, 52px);
-  border: var(--rule) solid var(--black);
+  padding: 28px 32px;
+  border: 0;
   border-radius: 4px;
+  background: #17181c;
+  color: #ededec;
 }
+.hero-api-text { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .hero-api h2 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(28px, 3.4vw, 3rem);
-  line-height: 1;
-  letter-spacing: -0.03em;
   margin: 0;
+  font: 400 36px/1 var(--font-display);
+  letter-spacing: -0.03em;
+  color: #ededec;
 }
 .hero-api p {
+  margin: 0;
   max-width: 62ch;
-  margin: 0.7em 0 0;
-  font-size: 16px;
-  line-height: 1.5;
-  color: var(--grey);
+  font: 400 15px/1.5 var(--font);
+  color: #ededec;
 }
+/* The secondary button inverted: the ground is dark, so the outline is
+   the light thing and filling it is what hover does. */
 .hero-api-link {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 1.1em;
-  font-weight: 600;
-  color: var(--green-text);
+  height: 38px;
+  padding: 0 16px;
+  border: 2px solid #ededec;
+  border-radius: 4px;
+  background: transparent;
+  color: #ededec;
+  font: 600 13px var(--font-ui);
+  text-decoration: none;
+}
+.hero-api-link:hover { background: #ededec; color: #17181c; }
+
+.hero-api-code { position: relative; min-width: 0; }
+.hero-api-code pre {
+  margin: 0;
+  overflow-x: auto;
+  background: none;
+}
+.hero-api-code code {
+  display: block;
+  white-space: pre;
+  font: 12.5px/1.7 ui-monospace, Menlo, monospace;
+  color: #2fae60;
+}
+.api-cmd { color: #ededec; }
+.api-key { color: #9a9a9a; }
+/* Over the code rather than above it: the block is already the last
+   thing on the page and a row of its own for one word is a row wasted. */
+.hero-api-copy {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: #9a9a9a;
+  font: 400 12px var(--font-ui);
+  cursor: pointer;
+}
+.hero-api-copy:hover { color: #ededec; }
+
+@media (max-width: 900px) {
+  .hero-api { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 24px; }
+  .hero-api h2 { font-size: 30px; }
 }
 /* The reason the board exists, so it is the largest of the four. */
 .hero-feature.feature-lead h2 { font-size: clamp(36px, 5.4vw, 5rem); }

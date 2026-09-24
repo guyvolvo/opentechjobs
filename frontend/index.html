@@ -159,17 +159,42 @@
       </article>
     </section>
 
-    <!-- Its own block, not a fifth feature: the people who want this are
-         not the people reading the four above. -->
-    <section class="hero-api">
-      <h2>Build on the same data.</h2>
-      <p>There is a free public JSON API with a limit of 20 requests per second, feel free to
-         read the Docs and set up your own alerts/dashboard.</p>
-      <a class="hero-api-link" href="/api/help">Read the API reference <svg class="cta-arrow" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-    </section>
 
     <section class="hero-cta">
       <a class="hero-cta-link" href="/board">Browse <span id="cta-count">the open jobs</span></a>
+    </section>
+
+    <!-- Its own block, not a fifth feature: the people who want this are
+         not the people reading the four above. Last on the page, and dark
+         in both themes, because a terminal is the one thing here that
+         should look like a terminal.
+
+         The sample is the real answer to the real query beside it, nulls
+         and all. Apple's Golang listing genuinely has no company_name and
+         no salary, and a developer reading this needs to know those come
+         back null rather than finding out in their own parser. -->
+    <section class="hero-api" aria-labelledby="api-title">
+      <div class="hero-api-text">
+        <h2 id="api-title">Build on the same data.</h2>
+        <p>Free public JSON API, no key, 20 requests per second.</p>
+        <a class="hero-api-link" href="/api/help">Read the API reference</a>
+      </div>
+
+      <div class="hero-api-code">
+        <button type="button" class="hero-api-copy" id="api-copy">Copy</button>
+<pre><code><span class="api-cmd">$ curl "opentechjobs.org/api/jobs?q=golang&amp;limit=1"</span>
+{
+  <span class="api-key">"total"</span>: 176,
+  <span class="api-key">"jobs"</span>: [{
+    <span class="api-key">"title"</span>: "Distributed Systems Software Engineer (Golang)",
+    <span class="api-key">"company_domain"</span>: "apple.com",
+    <span class="api-key">"company_name"</span>: null,
+    <span class="api-key">"location"</span>: "Austin, United States of America",
+    <span class="api-key">"salary_text"</span>: null,
+    <span class="api-key">"ats"</span>: "apple"
+  }]
+}</code></pre>
+      </div>
     </section>
   </main>
 
@@ -350,6 +375,36 @@
         });
         block.classList.add("is-live");
       }
+    })();
+
+    // The curl line only, not the response. Copying a block of JSON
+    // nobody asked for is what the whole sample is here to save you.
+    (function () {
+      var btn = document.getElementById("api-copy");
+      var cmd = document.querySelector(".hero-api-code .api-cmd");
+      if (!btn || !cmd) return;
+      btn.addEventListener("click", function () {
+        var text = cmd.textContent.replace(/^\$\s*/, "");
+        var done = function () {
+          btn.textContent = "Copied";
+          setTimeout(function () { btn.textContent = "Copy"; }, 1600);
+        };
+        // Clipboard needs a secure context, and this page is also served
+        // over plain http in local testing.
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(done, function () {});
+          return;
+        }
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); done(); } catch (e) {}
+        document.body.removeChild(ta);
+      });
     })();
   </script>
   <script src="mobile_nav.js"></script>
