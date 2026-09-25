@@ -25574,3 +25574,11 @@ lalandbaptiste.com
 chia.com
 namos.ai
 qic.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+balanceclaims.com
+rcghealthnetwork.com
+delegat.com
+innovativesystems.com
+riderflex.ai
+trioelectric.net
