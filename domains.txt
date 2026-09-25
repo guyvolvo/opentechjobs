@@ -25604,3 +25604,7 @@ fernstone.com
 trilitech.com
 ewg.net
 securityjourney.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+uow.com
+gnzs.de
