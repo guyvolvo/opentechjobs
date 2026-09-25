@@ -25509,3 +25509,14 @@ sbic.org
 westpac-group.com
 sew.com
 mufg.de
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+hand.com
+foxconnggroup.com
+cnrl.com
+thewarehousegroup.co
+uisce.com
+uem.com
+bmdigital.io
+definity.com
+atco.com
