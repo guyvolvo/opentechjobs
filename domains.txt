@@ -25567,3 +25567,10 @@ people-first.com
 communitiesfirstinc.com
 concordusa.com
 organik.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+engeniousdesign.com
+lalandbaptiste.com
+chia.com
+namos.ai
+qic.com
