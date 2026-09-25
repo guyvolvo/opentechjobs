@@ -816,13 +816,17 @@ def route_pipeline_status() -> dict:
 
 def route_geo(event: dict) -> dict:
     """The viewer's own country, for the frontend to offer a local
-    default without imposing one. Cloudflare's CF-IPCountry first,
-    CloudFront's CloudFront-Viewer-Country second: while the zone is
-    proxied through Cloudflare, CloudFront only ever sees Cloudflare's
-    own IP, so ITS header reports whichever Cloudflare PoP took the
-    request, not where the person actually is. Neither header reaches
-    this Lambda unless /api/geo's own cache behavior forwards it --
-    /api/* strips every header (see infra/cloudfront.tf).
+    default without imposing one. X-Viewer-Country first: the viewer's
+    CF-IPCountry as CloudFront's request function saved it, because the
+    box sits behind Cloudflare too and CF-IPCountry arrives here
+    re-stamped with the CloudFront edge's country. CF-IPCountry second,
+    right whenever nothing sits between Cloudflare and this code.
+    CloudFront-Viewer-Country last: while the zone is proxied through
+    Cloudflare, CloudFront only ever sees Cloudflare's own IP, so ITS
+    header reports whichever Cloudflare PoP took the request, not where
+    the person actually is. None of them reaches this code unless
+    /api/geo's own cache behavior forwards it -- /api/* strips every
+    header (see infra/cloudfront.tf).
 
     Answers null rather than guessing. An absent or unusable value
     means the frontend shows no prompt at all, which is the right
@@ -830,7 +834,7 @@ def route_geo(event: dict) -> dict:
     only ever a suggestion the visitor can ignore.
     """
     headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
-    for key in ("cf-ipcountry", "cloudfront-viewer-country"):
+    for key in ("x-viewer-country", "cf-ipcountry", "cloudfront-viewer-country"):
         raw = (headers.get(key) or "").strip().upper()
         # XX is Cloudflare's own "couldn't tell", T1 is Tor. Both are
         # real values it sends, neither is a country.

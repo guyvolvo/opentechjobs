@@ -1,8 +1,19 @@
 # Single CloudFront distribution, single domain: default behavior serves
 # the static frontend from S3 (via Origin Access Control, bucket stays
-# private), /api/* routes to the API Gateway origin (see apigateway.tf).
-# One domain for both means the frontend never needs CORS for its own
-# calls; the API's own CORS config only matters for direct API access.
+# private); /api/*, /job/* and /company/* go to the box through its
+# Cloudflare tunnel; /api/auth/* alone stays on the API Gateway origin
+# (see apigateway.tf), because sign-in lives on that Lambda. One domain
+# for all of it means the frontend never needs CORS for its own calls;
+# the API's own CORS config only matters for direct API access.
+#
+# CloudFront does the path routing, not a Cloudflare Worker. It used to
+# be a Worker (infra/cloudflare-worker.js, deleted 2026-09-25), because
+# Cloudflare's Origin Rules cannot change the origin on the free plan
+# and a Worker was the only way to send some paths elsewhere. A Worker
+# on the free plan gets 100,000 requests a day, and one crawler walking
+# the job sitemap at six a second used them up by 05:00. CloudFront's
+# permanent free tier is ten million requests a month, and every path
+# was already passing through it.
 
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${var.project_name}-frontend-oac"
@@ -15,6 +26,15 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
 # follow a fixed shape, no need to parse a URL like the Function URL did.
 locals {
   api_gateway_domain = "${aws_apigatewayv2_api.api.id}.execute-api.${var.aws_region}.amazonaws.com"
+  # The box's tunnel hostname: a Cloudflare DNS record (not Terraform's)
+  # pointing at the cloudflared tunnel, proxied. CloudFront reaches it
+  # like any HTTPS origin, and Cloudflare carries the request down the
+  # tunnel to gunicorn on :8000. So a request crosses Cloudflare twice:
+  # once as the viewer's, once as CloudFront's. The rate limiting rule
+  # in the Cloudflare dashboard is scoped to http.host eq
+  # "opentechjobs.org" for that reason, or a few CloudFront IPs would
+  # look like one very busy client.
+  box_domain = "box.${var.domain_name}"
 }
 
 # Two jobs, one function, because a behaviour gets exactly one
@@ -133,6 +153,14 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
       // an unknown page and was rewritten to /404.html before it ever
       // reached the origin. Caught on the first deploy.
       if (uri.indexOf("/api/") === 0 || uri === "/api" || uri.indexOf("/job/") === 0 || uri.indexOf("/company/") === 0) {
+        // Cloudflare stamped CF-IPCountry with the viewer's country on
+        // the way in. The box sits behind Cloudflare too, so on the way
+        // out Cloudflare stamps it again, this time with the country of
+        // the CloudFront edge that made the request. The viewer's copy
+        // survives only under a name Cloudflare does not own.
+        if (uri === "/api/geo" && request.headers["cf-ipcountry"]) {
+          request.headers["x-viewer-country"] = { value: request.headers["cf-ipcountry"].value };
+        }
         return request;
       }
 
@@ -240,6 +268,24 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
+  origin {
+    domain_name = local.box_domain
+    origin_id   = "box"
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+      # Both the maximum CloudFront allows without a quota request. The
+      # read timeout because a cold facet query on the box can run past
+      # the 30s default; the keepalive because a request now crosses two
+      # edges to reach the box, and a warm connection between them is
+      # what keeps that from costing a TLS handshake every time.
+      origin_read_timeout      = 60
+      origin_keepalive_timeout = 60
+    }
+  }
+
   default_cache_behavior {
     target_origin_id       = "frontend-s3"
     viewer_protocol_policy = "redirect-to-https"
@@ -282,7 +328,7 @@ resource "aws_cloudfront_distribution" "main" {
   # (a dynamic, authenticated path that must never be cached).
   ordered_cache_behavior {
     path_pattern             = "/api/me/*"
-    target_origin_id         = "api-lambda"
+    target_origin_id         = "box"
     viewer_protocol_policy   = "redirect-to-https"
     allowed_methods          = ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"]
     cached_methods           = ["GET", "HEAD"]
@@ -296,22 +342,22 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # /api/geo alone forwards the viewer's country to the Lambda. Two
+  # /api/geo alone forwards the viewer's country to the box. Three
   # headers, not one, because the answer comes from a different place
-  # depending on whether Cloudflare is proxying the zone: CF-IPCountry
-  # is Cloudflare's own, present only on a proxied (orange-cloud)
-  # request, and CloudFront-Viewer-Country is CloudFront's own, which
-  # CloudFront adds itself when an origin request policy names it.
-  # Behind a proxied Cloudflare zone the CloudFront one degrades to the
-  # Cloudflare PoP's country rather than the real viewer's, since
-  # CloudFront then only ever sees Cloudflare's IP -- so route_geo
-  # prefers CF-IPCountry and falls back. Deliberately its own behavior
-  # rather than a header added to /api/*'s shared cache policy: a
-  # country in THAT cache key would fragment every jobs/stats response
-  # per country for nothing.
+  # depending on what is in front: X-Viewer-Country is the viewer's
+  # CF-IPCountry as the function above saved it before Cloudflare
+  # overwrites it on the hop to the box; CF-IPCountry itself is right
+  # only when nothing sits between Cloudflare and the origin; and
+  # CloudFront-Viewer-Country is CloudFront's own, which behind a
+  # proxied Cloudflare zone degrades to the Cloudflare PoP's country,
+  # since CloudFront only ever sees Cloudflare's IP. route_geo reads
+  # them in that order. Deliberately its own behavior rather than a
+  # header added to /api/*'s shared cache policy: a country in THAT
+  # cache key would fragment every jobs/stats response per country for
+  # nothing.
   ordered_cache_behavior {
     path_pattern           = "/api/geo"
-    target_origin_id       = "api-lambda"
+    target_origin_id       = "box"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
@@ -329,14 +375,35 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # A listing's own HTML page, served by the API Lambda (api/job_page.py).
+  # Sign-in stays on the Lambda: the GitHub callback and the email OTP
+  # start are a separate function behind API Gateway
+  # (github_auth_lambda.tf), and the box does not serve them. Listed
+  # before /api/* because CloudFront takes the first pattern that
+  # matches, in this order.
+  ordered_cache_behavior {
+    path_pattern             = "/api/auth/*"
+    target_origin_id         = "api-lambda"
+    viewer_protocol_policy   = "redirect-to-https"
+    allowed_methods          = ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"]
+    cached_methods           = ["GET", "HEAD"]
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    compress                 = true
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.legacy_domain_redirect.arn
+    }
+  }
+
+  # A listing's own HTML page, served by the box (api/job_page.py).
   # Its own behavior rather than a path under /api/ because the URL is
   # the point: /job/<id> is what the sitemap lists and what a crawler
   # indexes, and it must not carry the API prefix. No query strings in
   # the key: the page is a function of the id alone.
   ordered_cache_behavior {
     path_pattern           = "/job/*"
-    target_origin_id       = "api-lambda"
+    target_origin_id       = "box"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
@@ -354,7 +421,7 @@ resource "aws_cloudfront_distribution" "main" {
   # domain alone.
   ordered_cache_behavior {
     path_pattern           = "/company/*"
-    target_origin_id       = "api-lambda"
+    target_origin_id       = "box"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
@@ -369,7 +436,7 @@ resource "aws_cloudfront_distribution" "main" {
 
   ordered_cache_behavior {
     path_pattern           = "/api/*"
-    target_origin_id       = "api-lambda"
+    target_origin_id       = "box"
     viewer_protocol_policy = "redirect-to-https"
     # CloudFront only accepts one of three fixed sets here, not an
     # arbitrary subset -- GET/HEAD, GET/HEAD/OPTIONS, or all seven. The
@@ -401,12 +468,13 @@ resource "aws_cloudfront_distribution" "main" {
   }
 }
 
-# Forwards just the two country headers to the API Lambda, for the
-# /api/geo behavior above. Naming CloudFront-Viewer-Country here is
-# what makes CloudFront ADD it: it's CloudFront's own header, not
-# something the viewer sent. CF-IPCountry genuinely is a viewer header
-# by the time CloudFront sees it, added by Cloudflare at its own edge,
-# so it exists only while the zone is proxied.
+# Forwards just the country headers to the box, for the /api/geo
+# behavior above. Naming CloudFront-Viewer-Country here is what makes
+# CloudFront ADD it: it's CloudFront's own header, not something the
+# viewer sent. CF-IPCountry genuinely is a viewer header by the time
+# CloudFront sees it, added by Cloudflare at its own edge, so it exists
+# only while the zone is proxied. X-Viewer-Country is the function's
+# saved copy of it, the one that reaches the box intact.
 resource "aws_cloudfront_origin_request_policy" "viewer_country" {
   name    = "${var.project_name}-viewer-country"
   comment = "Country headers for /api/geo"
@@ -416,7 +484,7 @@ resource "aws_cloudfront_origin_request_policy" "viewer_country" {
 
   headers_config {
     header_behavior = "whitelist"
-    headers { items = ["CloudFront-Viewer-Country", "CF-IPCountry"] }
+    headers { items = ["X-Viewer-Country", "CloudFront-Viewer-Country", "CF-IPCountry"] }
   }
 }
 

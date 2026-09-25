@@ -75,16 +75,23 @@ EC2 ingestion cycles.
 `api/handler.py` (WSGI): Served via `gunicorn -w 2 --threads 4` reading
 directly from `jobs.db`.
 
-Routing via Cloudflare Worker (`infra/cloudflare-worker.js`):
+Routing is CloudFront cache behaviors (`infra/cloudfront.tf`):
 
 ```
-/api/auth/*                 ──► CloudFront ──► AWS Lambda        sign-in flows
-/api/*, /job/*, /company/*  ──► cloudflared ──► EC2 (:8000)
-/*                          ──► CloudFront ──► S3                static assets
+/api/auth/*                 ──► CloudFront ──► AWS Lambda                 sign-in flows
+/api/*, /job/*, /company/*  ──► CloudFront ──► cloudflared ──► EC2 (:8000)
+/*                          ──► CloudFront ──► S3                         static assets
 ```
 
-*Rollback path:* The legacy Lambda stack remains deployed. Removing the
-Cloudflare Worker routes restores full Lambda-based execution.
+The box's origin is its tunnel hostname, `box.opentechjobs.org`, so an
+API request crosses Cloudflare twice: as the viewer's, then as
+CloudFront's. A Cloudflare Worker did this routing until 2026-09-25,
+when a crawler used up the free plan's 100,000 daily requests before
+breakfast; CloudFront's free tier is ten million a month.
+
+*Rollback path:* The legacy Lambda stack remains deployed. Pointing the
+behaviors back at the `api-lambda` origin restores full Lambda-based
+execution.
 
 **3. Discovery engine**
 
