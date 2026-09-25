@@ -25589,3 +25589,8 @@ plus.ai
 hostpapa.com
 nearearthautonomy.com
 uganda.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+antelopepets.com
+ikshealth.com
+pearlwest.co
