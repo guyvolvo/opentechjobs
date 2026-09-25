@@ -7,4 +7,10 @@ Allow: /
 Allow: /api/help
 Disallow: /api/
 
+# Walked the whole job sitemap at six requests a second on the night of
+# 2026-09-24, 133k pages in six hours, and took the Worker over its
+# daily budget. Nobody knows who it is. Not welcome.
+User-agent: ShapBot
+Disallow: /
+
 Sitemap: https://opentechjobs.org/sitemap.xml
