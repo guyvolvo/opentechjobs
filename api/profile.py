@@ -37,6 +37,7 @@ import re
 import re
 
 import re
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 PROFILE_ID = "#profile"
 
@@ -69,10 +70,16 @@ CADENCE = ["instant", "daily", "weekly"]
 MAX_SKILLS = 40
 # How often alert digests go out. "instant" is every evaluation pass,
 # which on the box is every apply, about every thirty seconds. The other
-# two hold matches and send one digest in the morning, Israel time,
-# every day or every Monday (alerts.py, digest_due).
+# two hold matches and send one digest at the reader's own time of day,
+# in their own zone, every day or on their chosen weekday (alerts.py,
+# digest_due). The defaults are a weekday morning in Israel.
 CADENCE = ["instant", "daily", "weekly"]
+DIGEST_TIME = "09:00"
+DIGEST_TZ = "Asia/Jerusalem"
+DIGEST_DAY = 0  # Monday, the way datetime.weekday() counts
 MAX_PLACES = 20
+_HHMM = re.compile(r"([01]\d|2[0-3]):[0-5]\d")
+_TZ = re.compile(r"[A-Za-z0-9_+\-/]{1,64}")
 _COUNTRY = re.compile(r"[A-Z]{2}")
 _CITY = re.compile(r"[^\W\d_][\w .'\-]{0,59}")
 MAX_PLACES = 20
@@ -85,7 +92,8 @@ _CITY = re.compile(r"[^\W\d_][\w .'\-]{0,59}")
 
 def empty_profile() -> dict:
     return {"skills": [], "seniority": None, "workplace": [], "israel_only": True,
-            "country": [], "city": [], "cadence": "instant"}
+            "country": [], "city": [], "cadence": "instant",
+            "digest_time": DIGEST_TIME, "digest_tz": DIGEST_TZ, "digest_day": DIGEST_DAY}
 
 
 def clean_profile(body: dict) -> dict:
@@ -118,6 +126,17 @@ def clean_profile(body: dict) -> dict:
     city = [c for c in (str(x).strip() for x in (body.get("city") or []))
             if _CITY.fullmatch(c)]
     cadence = str(body.get("cadence") or "instant").strip().lower()
+    digest_time = str(body.get("digest_time") or "").strip()
+    # A zone is whatever the system's own database knows, checked by
+    # asking it, so the table holds nothing zoneinfo would choke on
+    # later at three in the morning.
+    digest_tz = str(body.get("digest_tz") or "").strip()
+    if not (_TZ.fullmatch(digest_tz) and _zone_exists(digest_tz)):
+        digest_tz = DIGEST_TZ
+    try:
+        digest_day = int(body.get("digest_day", DIGEST_DAY))
+    except (TypeError, ValueError):
+        digest_day = DIGEST_DAY
     return {
         "skills": skills,
         "seniority": seniority if seniority in SENIORITY else None,
@@ -128,7 +147,18 @@ def clean_profile(body: dict) -> dict:
         "country": list(dict.fromkeys(country))[:MAX_PLACES],
         "city": list(dict.fromkeys(city))[:MAX_PLACES],
         "cadence": cadence if cadence in CADENCE else "instant",
+        "digest_time": digest_time if _HHMM.fullmatch(digest_time) else DIGEST_TIME,
+        "digest_tz": digest_tz,
+        "digest_day": digest_day if 0 <= digest_day <= 6 else DIGEST_DAY,
     }
+
+
+def _zone_exists(name: str) -> bool:
+    try:
+        ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError, OSError):
+        return False
+    return True
 
 
 def profile_to_filter(profile: dict) -> dict:

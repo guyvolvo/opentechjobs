@@ -12,7 +12,8 @@ const $ = (id) => document.getElementById(id);
 // terms probe.py tags jobs with, so a skill found in a CV is by
 // construction one a listing can carry. A hardcoded copy here drifted
 // from the real list within minutes the first time it was tried.
-const draft = { skills: [], seniority: "", workplace: [], israel_only: true, country: [], city: [], cadence: "instant" };
+const draft = { skills: [], seniority: "", workplace: [], israel_only: true, country: [], city: [], cadence: "instant",
+                digest_time: "09:00", digest_tz: "Asia/Jerusalem", digest_day: 0 };
 
 function setStatus(el, text, isError = false) {
   const node = $(el);
@@ -22,13 +23,40 @@ function setStatus(el, text, isError = false) {
   if (text) setTimeout(() => { node.textContent = ""; node.classList.remove("error"); }, 4000);
 }
 
-const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only: true, country: [], city: [], cadence: "instant" };
+const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only: true, country: [], city: [], cadence: "instant",
+                        digest_time: "09:00", digest_tz: "Asia/Jerusalem", digest_day: 0 };
 
-const CADENCE_SUMMARY = {
-  instant: "Instant, as matches appear",
-  daily: "Daily digest, mornings Israel time",
-  weekly: "Weekly digest, Monday mornings",
-};
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+// The zones on offer. Not the whole IANA list, which is six hundred
+// names nobody scrolls; the browser's own zone is always added, so
+// whoever is somewhere else still finds home at the top.
+const ZONES = [
+  "Asia/Jerusalem", "UTC", "Europe/London", "Europe/Dublin", "Europe/Lisbon", "Europe/Paris", "Europe/Berlin",
+  "Europe/Amsterdam", "Europe/Madrid", "Europe/Rome", "Europe/Warsaw", "Europe/Athens", "Europe/Kyiv",
+  "Europe/Istanbul", "Europe/Moscow", "America/New_York", "America/Toronto", "America/Chicago", "America/Denver",
+  "America/Los_Angeles", "America/Vancouver", "America/Sao_Paulo", "America/Mexico_City", "Asia/Dubai",
+  "Asia/Kolkata", "Asia/Singapore", "Asia/Hong_Kong", "Asia/Tokyo", "Asia/Seoul", "Australia/Sydney",
+  "Pacific/Auckland", "Africa/Johannesburg", "Africa/Cairo",
+];
+
+function zoneLabel(zone) {
+  let offset = "";
+  try {
+    const part = new Intl.DateTimeFormat("en", { timeZone: zone, timeZoneName: "longOffset" })
+      .formatToParts(new Date()).find((p) => p.type === "timeZoneName");
+    offset = part ? ` (${part.value})` : "";
+  } catch {
+    offset = "";
+  }
+  return `${zone.replace(/_/g, " ")}${offset}`;
+}
+
+function cadenceSummary() {
+  if (draft.cadence === "daily") return `Daily at ${draft.digest_time}, ${zoneLabel(draft.digest_tz)}`;
+  if (draft.cadence === "weekly") return `Weekly on ${DAY_NAMES[draft.digest_day] || DAY_NAMES[0]} at ${draft.digest_time}, ${zoneLabel(draft.digest_tz)}`;
+  return "Instant, as matches appear";
+}
 
 // Each count appears twice: small beside its button in the nav, large
 // on a tile in the overview. One call writes both, so they cannot drift.
@@ -294,8 +322,12 @@ function paintProfile(profile) {
   draft.country = [...(profile.country || [])];
   draft.city = [...(profile.city || [])];
   draft.cadence = profile.cadence || "instant";
+  draft.digest_time = profile.digest_time || "09:00";
+  draft.digest_tz = profile.digest_tz || "Asia/Jerusalem";
+  draft.digest_day = Number.isInteger(profile.digest_day) ? profile.digest_day : 0;
   // What Cancel goes back to: the last thing the server confirmed.
-  savedPrefs = { workplace: [...draft.workplace], country: [...draft.country], city: [...draft.city], cadence: draft.cadence };
+  savedPrefs = { workplace: [...draft.workplace], country: [...draft.country], city: [...draft.city], cadence: draft.cadence,
+                 digest_time: draft.digest_time, digest_tz: draft.digest_tz, digest_day: draft.digest_day };
   if (draft.skills.length) {
     $("cv-result").hidden = false;
     paintChips();
@@ -310,7 +342,7 @@ function paintProfile(profile) {
 // uses, so a place or a workplace means the same thing in both.
 let prefMsWorkplace = null;
 let prefMsLocation = null;
-let savedPrefs = { workplace: [], country: [], city: [], cadence: "instant" };
+let savedPrefs = { workplace: [], country: [], city: [], cadence: "instant", digest_time: "09:00", digest_tz: "Asia/Jerusalem", digest_day: 0 };
 // The place labels, once the facets are in; codes until then.
 let placeLabels = {};
 
@@ -341,8 +373,21 @@ function wirePreferences() {
     })
     .catch(() => {});
   document.querySelectorAll('input[name="pref-cadence"]').forEach((r) => {
-    r.addEventListener("change", () => { if (r.checked) draft.cadence = r.value; });
+    r.addEventListener("change", () => { if (r.checked) { draft.cadence = r.value; paintWhenControls(); } });
   });
+  // The time and the zone are one value shown in two rows, so either
+  // row's controls write the same fields and the other follows.
+  const zones = [...ZONES];
+  const here = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })();
+  if (here && !zones.includes(here)) zones.unshift(here);
+  document.querySelectorAll("#preferences .pref-tz").forEach((sel) => {
+    sel.innerHTML = zones.map((z) => `<option value="${z}">${zoneLabel(z)}</option>`).join("");
+    sel.addEventListener("change", () => { draft.digest_tz = sel.value; paintWhenControls(); });
+  });
+  document.querySelectorAll("#preferences .pref-time").forEach((inp) => {
+    inp.addEventListener("change", () => { if (/^\d\d:\d\d$/.test(inp.value)) { draft.digest_time = inp.value; paintWhenControls(); } });
+  });
+  $("pref-day").addEventListener("change", () => { draft.digest_day = Number($("pref-day").value); });
 
   // One row open at a time. Opening a row is not a commitment: Cancel
   // and closing both put the draft back to what was last saved.
@@ -391,6 +436,9 @@ function closePrefItem(it, revert) {
     draft.country = [...savedPrefs.country];
     draft.city = [...savedPrefs.city];
     draft.cadence = savedPrefs.cadence;
+    draft.digest_time = savedPrefs.digest_time;
+    draft.digest_tz = savedPrefs.digest_tz;
+    draft.digest_day = savedPrefs.digest_day;
     paintPreferences();
   }
   it.classList.remove("open");
@@ -410,10 +458,28 @@ function paintPreferences() {
   if (prefMsWorkplace) prefMsWorkplace.setSelected(draft.workplace);
   if (prefMsLocation) prefMsLocation.setSelected(draft.country, draft.city);
   document.querySelectorAll('input[name="pref-cadence"]').forEach((r) => { r.checked = r.value === (draft.cadence || "instant"); });
+  paintWhenControls();
   const sum = (key, text) => { const el = $(`pref-sum-${key}`); if (el) el.textContent = text; };
   sum("workplace", draft.workplace.length ? draft.workplace.map((w) => WORKPLACE_LABELS[w] || w).join(", ") : "Any");
   sum("location", placeSummary());
-  sum("cadence", CADENCE_SUMMARY[draft.cadence] || CADENCE_SUMMARY.instant);
+  sum("cadence", cadenceSummary());
+}
+
+// The time, zone and day controls: both rows show the one value, and
+// only the chosen row's controls are live.
+function paintWhenControls() {
+  document.querySelectorAll("#preferences .pref-time").forEach((inp) => { inp.value = draft.digest_time; });
+  document.querySelectorAll("#preferences .pref-tz").forEach((sel) => {
+    if (![...sel.options].some((o) => o.value === draft.digest_tz)) sel.add(new Option(zoneLabel(draft.digest_tz), draft.digest_tz));
+    sel.value = draft.digest_tz;
+  });
+  const day = $("pref-day");
+  if (day) day.value = String(draft.digest_day);
+  document.querySelectorAll("#preferences .pref-when").forEach((span) => {
+    const live = span.dataset.for === draft.cadence;
+    span.classList.toggle("off", !live);
+    span.querySelectorAll("input, select").forEach((c) => { c.disabled = !live; });
+  });
 }
 
 // The line under the section title, in the words the rows use.
@@ -422,7 +488,7 @@ function prefsSummary() {
   if (draft.workplace.length) bits.push(draft.workplace.map((w) => WORKPLACE_LABELS[w] || w).join(", "));
   const places = draft.country.length + draft.city.length;
   if (places) bits.push(`${places} ${places === 1 ? "place" : "places"}`);
-  bits.push({ daily: "daily digest", weekly: "weekly digest" }[draft.cadence] || "instant alerts");
+  bits.push({ daily: `daily at ${draft.digest_time}`, weekly: `weekly on ${DAY_NAMES[draft.digest_day] || "Monday"}` }[draft.cadence] || "instant alerts");
   return bits.join(" · ");
 }
 

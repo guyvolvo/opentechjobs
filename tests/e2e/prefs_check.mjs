@@ -15,7 +15,7 @@ const now = Math.floor(Date.now() / 1000);
 const ID_TOKEN = [b64({ alg: "RS256", typ: "JWT" }), b64({ sub: SUB, email: EMAIL, iat: now, exp: now + 3600 }), "sig"].join(".");
 const SKILLS = ["Python", "AWS", "Terraform"];
 const PROFILE = { skills: SKILLS, seniority: null, workplace: ["remote", "hybrid"], israel_only: true,
-                  country: ["IL"], city: [], cadence: "daily" };
+                  country: ["IL"], city: [], cadence: "daily", digest_time: "09:00", digest_tz: "Asia/Jerusalem", digest_day: 0 };
 
 const failures = [];
 const check = (name, ok, detail = "") => {
@@ -67,25 +67,41 @@ for (const width of [1440, 390]) {
   }));
   console.log(`${width}px`, JSON.stringify(state));
   check(`${width}: section title`, state.title === "Preferences", state.title);
-  check(`${width}: status line summarises`, /Remote, Hybrid · 1 place · daily digest/.test(state.status || ""), state.status);
+  check(`${width}: status line summarises`, /Remote, Hybrid · 1 place · daily at 09:00/.test(state.status || ""), state.status);
   check(`${width}: workplace summary`, state.workplace === "Remote, Hybrid", state.workplace);
   check(`${width}: location summary names Israel`, /Israel/.test(state.location || ""), state.location);
-  check(`${width}: cadence summary`, /Daily digest/.test(state.cadence || ""), state.cadence);
+  check(`${width}: cadence summary`, /^Daily at 09:00, Asia\/Jerusalem \(GMT\+0[23]:00\)$/.test(state.cadence || ""), state.cadence);
   check(`${width}: nothing open at first`, state.openEditors === 0, String(state.openEditors));
   check(`${width}: matches link carries country`, /country=IL/.test(state.matches || ""), state.matches);
 
   await page.screenshot({ path: `prefs-${width}.png`, fullPage: width < 800 });
 
-  // Open the cadence row, pick weekly, save.
+  // Open the cadence row, pick weekly on Friday at 18:30 New York, save.
   await page.click("#pref-item-cadence .pref-head");
   const opened = await page.evaluate(() => ({
     open: document.getElementById("pref-item-cadence").classList.contains("open"),
     checked: document.querySelector('input[name="pref-cadence"]:checked')?.value,
+    dailyTime: document.getElementById("pref-time-daily")?.value,
+    dailyLive: !document.getElementById("pref-time-daily")?.disabled,
+    weeklyLive: !document.getElementById("pref-time-weekly")?.disabled,
+    zones: document.getElementById("pref-tz-daily")?.options.length,
   }));
   check(`${width}: cadence row opens`, opened.open, JSON.stringify(opened));
   check(`${width}: radio painted from the profile`, opened.checked === "daily", opened.checked);
+  check(`${width}: daily controls live, weekly greyed`, opened.dailyTime === "09:00" && opened.dailyLive && !opened.weeklyLive, JSON.stringify(opened));
+  check(`${width}: zones on offer`, (opened.zones || 0) >= 30, String(opened.zones));
   await page.screenshot({ path: `prefs-${width}-open.png`, fullPage: width < 800 });
   await page.check('input[name="pref-cadence"][value="weekly"]');
+  await page.selectOption("#pref-day", "4");
+  await page.fill("#pref-time-weekly", "18:30");
+  await page.selectOption("#pref-tz-weekly", "America/New_York");
+  const swapped = await page.evaluate(() => ({
+    weeklyLive: !document.getElementById("pref-time-weekly")?.disabled,
+    dailyLive: !document.getElementById("pref-time-daily")?.disabled,
+    dailyMirrors: document.getElementById("pref-time-daily")?.value,
+  }));
+  check(`${width}: weekly controls live once chosen, daily mirrors the time`, swapped.weeklyLive && !swapped.dailyLive && swapped.dailyMirrors === "18:30", JSON.stringify(swapped));
+  await page.screenshot({ path: `prefs-${width}-weekly.png`, fullPage: width < 800 });
   await page.click("#pref-item-cadence .pref-save");
   await page.waitForFunction(() => !document.getElementById("pref-item-cadence").classList.contains("open"), null, { timeout: 10000 }).catch(() => {});
   const after = await page.evaluate(() => ({
@@ -93,11 +109,13 @@ for (const width of [1440, 390]) {
     status: document.getElementById("acct-status")?.textContent,
     open: document.getElementById("pref-item-cadence").classList.contains("open"),
   }));
-  check(`${width}: PUT carries cadence`, putBody?.cadence === "weekly", JSON.stringify(putBody));
+  check(`${width}: PUT carries cadence, day, time and zone`, putBody?.cadence === "weekly" && putBody?.digest_day === 4 && putBody?.digest_time === "18:30" && putBody?.digest_tz === "America/New_York", JSON.stringify(putBody));
   check(`${width}: PUT keeps skills`, Array.isArray(putBody?.skills) && putBody.skills.length === 3, JSON.stringify(putBody?.skills));
   check(`${width}: PUT carries country and workplace`, putBody?.country?.[0] === "IL" && putBody?.workplace?.length === 2, JSON.stringify(putBody));
-  check(`${width}: row closes and summary updates`, !after.open && /Weekly digest/.test(after.cadence || ""), JSON.stringify(after));
-  check(`${width}: status line follows`, /weekly digest/.test(after.status || ""), after.status);
+  check(`${width}: row closes and summary updates`, !after.open && /^Weekly on Friday at 18:30, America\/New York \(GMT-0[45]:00\)$/.test(after.cadence || ""), JSON.stringify(after));
+  check(`${width}: status line follows`, /weekly on Friday/.test(after.status || ""), after.status);
+  const help = await page.evaluate(() => document.querySelectorAll("#preferences .pref-help").length);
+  check(`${width}: no help lines under the pickers`, help === 0, String(help));
 
   // Cancel reverts: open workplace, clear it through the draft, cancel.
   await page.click("#pref-item-workplace .pref-head");

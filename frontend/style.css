@@ -6138,14 +6138,27 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .pref-editor { display: flex; flex-direction: column; gap: 12px; padding: 0 0 18px; }
 .pref-editor[hidden] { display: none; }
 .pref-editor > .ms { max-width: 320px; }
-.pref-help { margin: 0; font: 400 13px var(--font); color: var(--grey); }
 .pref-actions { display: flex; align-items: center; gap: 10px; }
-.pref-radios { display: flex; flex-direction: column; gap: 10px; }
-.pref-radio { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
-.pref-radio input { margin: 3px 0 0; accent-color: var(--green); flex: 0 0 auto; }
-.pref-radio-text { display: flex; flex-direction: column; gap: 2px; }
-.pref-radio-label { font: 500 14px var(--font); color: var(--black); }
-.pref-radio-note { font: 400 13px var(--font); color: var(--grey); }
+.pref-radios { display: flex; flex-direction: column; gap: 12px; }
+.pref-radio { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pref-radio input[type="radio"] { margin: 0; accent-color: var(--green); flex: 0 0 auto; }
+.pref-radio-label { font: 500 14px var(--font); color: var(--black); cursor: pointer; }
+/* The controls that go with a row: a time, a zone, a day. Greyed, not
+   hidden, when another row is chosen, so the row still reads as a
+   sentence and the value is there to come back to. */
+.pref-when { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pref-when.off { opacity: 0.45; }
+.pref-time, .pref-tz, .pref-day {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--black);
+  font: 400 14px var(--font);
+}
+.pref-tz { max-width: 260px; }
+.pref-time:focus-visible, .pref-tz:focus-visible, .pref-day:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
 
 /* Its own block, bordered in the one colour this system reserves for
    something that cannot be undone. */

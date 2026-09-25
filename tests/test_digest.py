@@ -27,7 +27,7 @@ failures = []
 
 # digest_due: the cadence gate. A fixed clock, so the test does not
 # depend on when it runs.
-_MON_0630 = datetime(2026, 9, 28, 6, 30, tzinfo=timezone.utc)   # a Monday, in the digest hour
+_MON_0630 = datetime(2026, 9, 28, 6, 30, tzinfo=timezone.utc)   # a Monday; 09:30 in Israel
 _TUE_0630 = _MON_0630 + timedelta(days=1)
 _MON_1200 = _MON_0630.replace(hour=12)
 
@@ -170,17 +170,35 @@ check("the preheader still carries the count and the alert name, so the inbox li
 
 print()
 check("instant is always due", alerts.digest_due("instant", None, _MON_1200))
-check("daily outside the hour waits", not alerts.digest_due("daily", None, _MON_1200))
-check("daily in the hour with no digest yet sends", alerts.digest_due("daily", None, _MON_0630))
-check("daily in the hour, digest 30s ago, waits",
-      not alerts.digest_due("daily", (_MON_0630 - timedelta(seconds=30)).isoformat(), _MON_0630))
-check("daily in the hour, digest yesterday, sends",
-      alerts.digest_due("daily", (_MON_0630 - timedelta(days=1)).isoformat(), _MON_0630))
-check("weekly on a Tuesday waits", not alerts.digest_due("weekly", None, _TUE_0630))
-check("weekly on Monday in the hour sends", alerts.digest_due("weekly", None, _MON_0630))
-check("weekly on Monday, digest 3 days ago, waits",
-      not alerts.digest_due("weekly", (_MON_0630 - timedelta(days=3)).isoformat(), _MON_0630))
+# daily, default 09:00 Asia/Jerusalem; 06:30Z is 09:30 there
+check("daily, nothing sent since before today's moment, sends",
+      alerts.digest_due("daily", (_MON_0630 - timedelta(hours=1)).isoformat(), _MON_0630))
+check("daily, sent after today's moment, waits",
+      not alerts.digest_due("daily", (_MON_0630 - timedelta(minutes=20)).isoformat(), _MON_0630))
+check("daily, before today's moment, yesterday's already sent, waits",
+      not alerts.digest_due("daily", (_MON_0630 - timedelta(days=1)).isoformat(), _MON_0630 - timedelta(hours=2)))
+check("daily, before today's moment, yesterday's missed, sends now",
+      alerts.digest_due("daily", (_MON_0630 - timedelta(days=2)).isoformat(), _MON_0630 - timedelta(hours=2)))
+check("daily, created after today's moment, waits for tomorrow",
+      not alerts.digest_due("daily", (_MON_0630 + timedelta(minutes=5)).isoformat(), _MON_0630 + timedelta(hours=1)))
+check("daily at a chosen time and zone: 18:00 New York is 22:00Z, due at 22:05Z",
+      alerts.digest_due("daily", (_MON_0630).isoformat(), _MON_0630.replace(hour=22, minute=5), at="18:00", tz="America/New_York"))
+check("daily at a chosen time and zone: not due at 21:55Z",
+      not alerts.digest_due("daily", (_MON_0630).isoformat(), _MON_0630.replace(hour=21, minute=55), at="18:00", tz="America/New_York"))
+# weekly, default Monday
+check("weekly on Monday after the moment, last week's sent, sends",
+      alerts.digest_due("weekly", (_MON_0630 - timedelta(days=7)).isoformat(), _MON_0630))
+check("weekly on Tuesday, Monday's sent, waits",
+      not alerts.digest_due("weekly", _MON_0630.isoformat(), _TUE_0630))
+check("weekly on Tuesday, Monday's missed, sends",
+      alerts.digest_due("weekly", (_MON_0630 - timedelta(days=8)).isoformat(), _TUE_0630))
+check("weekly on a chosen day: Friday, checked Tuesday, waits",
+      not alerts.digest_due("weekly", (_MON_0630 - timedelta(days=1)).isoformat(), _TUE_0630, day=4))
+check("weekly on a chosen day: Friday, checked Friday 09:30 IL, sends",
+      alerts.digest_due("weekly", (_MON_0630 - timedelta(days=1)).isoformat(), _MON_0630 + timedelta(days=4), day=4))
 check("unknown cadence behaves as instant", alerts.digest_due("hourly", None, _MON_1200))
+check("a bad zone and time fall back to the defaults, not to never",
+      alerts.digest_due("daily", (_MON_0630 - timedelta(hours=1)).isoformat(), _MON_0630, at="nope", tz="Mars/Olympus"))
 
 if failures:
     print("%d failed:" % len(failures))

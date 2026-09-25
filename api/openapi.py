@@ -148,8 +148,13 @@ PROFILE = {
         "city": {"type": "array", "items": {"type": "string", "maxLength": 60}, "maxItems": 20,
                  "description": "City names as the locations facet spells them."},
         "cadence": {"type": "string", "enum": ["instant", "daily", "weekly"],
-                    "description": "How often alert digests go out. Daily and weekly send one email in the "
-                                   "morning, Israel time, when there is something new."},
+                    "description": "How often alert digests go out. Daily and weekly send one email at "
+                                   "digest_time in digest_tz, when there is something new."},
+        "digest_time": {"type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$", "default": "09:00"},
+        "digest_tz": {"type": "string", "default": "Asia/Jerusalem",
+                      "description": "An IANA zone name the server knows; anything else becomes the default."},
+        "digest_day": {"type": "integer", "minimum": 0, "maximum": 6, "default": 0,
+                       "description": "Weekday for the weekly digest, Monday is 0."},
     },
 }
 

@@ -319,7 +319,6 @@
                   </button>
                   <div class="pref-editor" id="pref-edit-workplace" hidden>
                     <div class="ms" id="pref-ms-workplace"></div>
-                    <p class="pref-help">Pre-fills new alerts and the See matches link. Leave it empty for any.</p>
                     <div class="pref-actions">
                       <button class="btn btn-small pref-save" type="button" data-pref="workplace">Save</button>
                       <button class="btn btn-quiet btn-small pref-cancel" type="button" data-pref="workplace">Cancel</button>
@@ -337,7 +336,6 @@
                   </button>
                   <div class="pref-editor" id="pref-edit-location" hidden>
                     <div class="ms" id="pref-ms-location"></div>
-                    <p class="pref-help">Countries and cities you would work in. Leave it empty for anywhere.</p>
                     <div class="pref-actions">
                       <button class="btn btn-small pref-save" type="button" data-pref="location">Save</button>
                       <button class="btn btn-quiet btn-small pref-cancel" type="button" data-pref="location">Cancel</button>
@@ -347,20 +345,42 @@
                 </div>
               </div>
               <div class="pref-group">
-                <h3 class="pref-group-title">Job alerts</h3>
+                <h3 class="pref-group-title">Alert settings</h3>
                 <div class="pref-item" id="pref-item-cadence">
                   <button type="button" class="pref-head" aria-expanded="false" aria-controls="pref-edit-cadence">
                     <span class="pref-head-text">
-                      <span class="pref-label">Alert emails</span>
+                      <span class="pref-label">Alert intervals</span>
                       <span class="pref-summary" id="pref-sum-cadence"></span>
                     </span>
                     <svg class="pref-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
                   </button>
                   <div class="pref-editor" id="pref-edit-cadence" hidden>
-                    <div class="pref-radios" role="radiogroup" aria-label="How often alert emails are sent">
-                      <label class="pref-radio"><input type="radio" name="pref-cadence" value="instant"><span class="pref-radio-text"><span class="pref-radio-label">Instant</span><span class="pref-radio-note">As soon as a match appears.</span></span></label>
-                      <label class="pref-radio"><input type="radio" name="pref-cadence" value="daily"><span class="pref-radio-text"><span class="pref-radio-label">Daily digest</span><span class="pref-radio-note">One email a day, in the morning Israel time, when there is something new.</span></span></label>
-                      <label class="pref-radio"><input type="radio" name="pref-cadence" value="weekly"><span class="pref-radio-text"><span class="pref-radio-label">Weekly digest</span><span class="pref-radio-note">One email on Monday mornings, when there is something new.</span></span></label>
+                    <!-- Not labels wrapping the controls: a click on a select
+                         inside a label is a click on the label, and would
+                         flip the radio. Each option is a radio, its label,
+                         and the controls that only mean anything with it. -->
+                    <div class="pref-radios" role="radiogroup" aria-label="Alert intervals">
+                      <div class="pref-radio">
+                        <input type="radio" name="pref-cadence" id="pref-cadence-instant" value="instant">
+                        <label class="pref-radio-label" for="pref-cadence-instant">Instant</label>
+                      </div>
+                      <div class="pref-radio">
+                        <input type="radio" name="pref-cadence" id="pref-cadence-daily" value="daily">
+                        <label class="pref-radio-label" for="pref-cadence-daily">Daily at</label>
+                        <span class="pref-when" data-for="daily">
+                          <input type="time" class="pref-time" id="pref-time-daily" aria-label="Time">
+                          <select class="pref-tz" id="pref-tz-daily" aria-label="Time zone"></select>
+                        </span>
+                      </div>
+                      <div class="pref-radio">
+                        <input type="radio" name="pref-cadence" id="pref-cadence-weekly" value="weekly">
+                        <label class="pref-radio-label" for="pref-cadence-weekly">Weekly at</label>
+                        <span class="pref-when" data-for="weekly">
+                          <select class="pref-day" id="pref-day" aria-label="Day"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select>
+                          <input type="time" class="pref-time" id="pref-time-weekly" aria-label="Time">
+                          <select class="pref-tz" id="pref-tz-weekly" aria-label="Time zone"></select>
+                        </span>
+                      </div>
                     </div>
                     <div class="pref-actions">
                       <button class="btn btn-small pref-save" type="button" data-pref="cadence">Save</button>

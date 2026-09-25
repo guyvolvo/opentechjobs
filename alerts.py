@@ -5,8 +5,9 @@ cycle (scrape_handler.py, right after the loader step, while jobs.db is
 already fresh on /tmp -- no separate download needed here).
 
 The owner's profile says how often: instant is every pass, daily and
-weekly hold the watermark until the morning digest is due, so the
-matches pile up behind it and go out as one email (digest_due below).
+weekly hold the watermark until the digest is due, at the owner's own
+time of day in their own zone, so the matches pile up behind it and go
+out as one email (digest_due below).
 
 Uses job_filters.build_jobs_where() for the actual matching, the same
 function /api/jobs itself uses (api/handler.py) -- an alert matches
@@ -24,17 +25,15 @@ from urllib.parse import urlencode
 
 import boto3
 from boto3.dynamodb.conditions import Attr
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from countries import label_for
 from job_filters import build_jobs_where, has_fts_index, has_places, register_functions, salary_source_select
-from profile import PROFILE_ID
+from profile import DIGEST_DAY, DIGEST_TIME, DIGEST_TZ, PROFILE_ID
 
 ALERTS_TABLE = os.environ.get("ALERTS_TABLE")
 FROM_EMAIL = os.environ.get("ALERTS_FROM_EMAIL", "alerts@guyvoloshin.com")
 SITE_ORIGIN = os.environ.get("SITE_ORIGIN", "https://opentechjobs.org")
-# When a daily or weekly digest goes out: 09:00 in Israel through the
-# summer, 08:00 in winter. Morning, before the day's applications.
-DIGEST_HOUR_UTC = 6
 
 _dynamodb = boto3.resource("dynamodb")
 _ses = boto3.client("sesv2")
@@ -64,9 +63,15 @@ def evaluate_alerts(jobs_db_path: Path) -> dict:
     errors = []
     for alert in alerts:
         try:
-            cadence = (profiles.get(alert["user_id"]) or {}).get("cadence") or "instant"
+            prof = profiles.get(alert["user_id"]) or {}
+            cadence = prof.get("cadence") or "instant"
             matches = _find_new_matches(conn, alert)
-            if matches and not digest_due(cadence, alert.get("last_digest_at"), now):
+            # Before the first digest, the alert's own creation is the
+            # last moment, so a daily alert made at ten waits for
+            # tomorrow's nine rather than sending in the first pass.
+            if matches and not digest_due(cadence, alert.get("last_digest_at") or alert.get("created_at"), now,
+                                          at=prof.get("digest_time"), tz=prof.get("digest_tz"),
+                                          day=prof.get("digest_day")):
                 # The watermark stays where it is, so these are in the
                 # digest when it is due, with whatever arrives meanwhile.
                 held += 1
@@ -92,24 +97,40 @@ def evaluate_alerts(jobs_db_path: Path) -> dict:
             "watched_domains": sorted(watched)}
 
 
-def digest_due(cadence: str, last_digest_at, now: datetime) -> bool:
+def digest_due(cadence: str, since, now: datetime, at=None, tz=None, day=None) -> bool:
     """Whether an alert with matches waiting should send now.
 
-    Instant always. Daily and weekly only in the digest hour, and only
-    if the last digest is old enough that this is not the same morning
-    seen twice: the evaluator runs every half minute, so "the hour
-    matches" alone would send sixty of them.
+    Instant always. Daily and weekly: find the most recent scheduled
+    moment at or before now, in the owner's zone (today at `at`, or the
+    last `day` at `at`), and send if nothing has gone out since it.
+    `since` is the last digest, or the alert's creation before there
+    was one. The evaluator runs every half minute, so this fires on the
+    first pass after the moment and then not again until the next one.
+    A zone or a time the profile could not have stored still falls back
+    to the defaults rather than to never.
     """
     if cadence not in ("daily", "weekly"):
         return True
-    if now.hour != DIGEST_HOUR_UTC:
-        return False
-    if cadence == "weekly" and now.weekday() != 0:
-        return False
-    last = _parse(last_digest_at)
-    if last is None:
-        return True
-    return now - last >= timedelta(hours=20 if cadence == "daily" else 24 * 6)
+    try:
+        zone = ZoneInfo(tz or DIGEST_TZ)
+    except (ZoneInfoNotFoundError, ValueError, OSError):
+        zone = ZoneInfo(DIGEST_TZ)
+    try:
+        hh, mm = (int(x) for x in str(at or DIGEST_TIME).split(":", 1))
+    except ValueError:
+        hh, mm = (int(x) for x in DIGEST_TIME.split(":"))
+    try:
+        weekday = int(day if day is not None else DIGEST_DAY) % 7
+    except (TypeError, ValueError):
+        weekday = DIGEST_DAY
+    local = now.astimezone(zone)
+    scheduled = local.replace(hour=hh, minute=mm, second=0, microsecond=0)
+    if cadence == "weekly":
+        scheduled -= timedelta(days=(local.weekday() - weekday) % 7)
+    if scheduled > local:
+        scheduled -= timedelta(days=7 if cadence == "weekly" else 1)
+    last = _parse(since)
+    return last is None or last < scheduled
 
 
 def _profiles(table, user_ids) -> dict[str, dict]:
