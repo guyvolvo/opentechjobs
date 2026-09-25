@@ -25537,3 +25537,10 @@ evansvillegoodwillindustriesinc.com
 delawareparkcasinoracing.com
 mx.com
 nri.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+australiansuper.com
+petronas.com
+efg.io
+octopus.com
+te.io
