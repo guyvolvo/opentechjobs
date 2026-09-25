@@ -25486,3 +25486,9 @@ ikonscience.com
 interinterimsante.com
 iprally.com
 psrs.de
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+raleys.net
+jdi.com
+wtw.com
+cotton-on.net
