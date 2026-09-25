@@ -25499,3 +25499,13 @@ barrick.com
 baptist-health.org
 michael-baker.com
 galliford.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+fujifilm.com
+pella.com
+springfield.co
+fife.com
+sbic.org
+westpac-group.com
+sew.com
+mufg.de
