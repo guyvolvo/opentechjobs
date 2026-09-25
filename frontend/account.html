@@ -142,6 +142,7 @@
               <a class="account-nav-link" href="#skills">Skills<span class="account-nav-count" id="stat-skills" data-zero="1">0</span></a>
               <a class="account-nav-link" href="#alerts">Alerts<span class="account-nav-count" id="stat-alerts" data-zero="1">0</span></a>
               <a class="account-nav-link" href="#saved">Saved jobs<span class="account-nav-count" id="stat-saved" data-zero="1">0</span></a>
+              <a class="account-nav-link" href="#preferences">Preferences</a>
               <a class="account-nav-link" href="#settings">Settings</a>
             </nav>
 
@@ -299,6 +300,77 @@
               <span class="account-status" id="saved-status" aria-live="polite"></span>
             </section>
 
+            <!-- What the reader wants, as opposed to what they can do
+                 (Skills). Rows in the shape LinkedIn's preferences take:
+                 a label, the current value in one line, a chevron, and
+                 the form for that one thing underneath when opened.
+                 Every save PUTs the whole profile, skills included, so
+                 this section and Skills cannot wipe each other. -->
+            <section class="account-block" id="preferences">
+              <div class="pref-group">
+                <h3 class="pref-group-title">What you're looking for</h3>
+                <div class="pref-item" id="pref-item-workplace">
+                  <button type="button" class="pref-head" aria-expanded="false" aria-controls="pref-edit-workplace">
+                    <span class="pref-head-text">
+                      <span class="pref-label">Workplace</span>
+                      <span class="pref-summary" id="pref-sum-workplace"></span>
+                    </span>
+                    <svg class="pref-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                  </button>
+                  <div class="pref-editor" id="pref-edit-workplace" hidden>
+                    <div class="ms" id="pref-ms-workplace"></div>
+                    <p class="pref-help">Pre-fills new alerts and the See matches link. Leave it empty for any.</p>
+                    <div class="pref-actions">
+                      <button class="btn btn-small pref-save" type="button" data-pref="workplace">Save</button>
+                      <button class="btn btn-quiet btn-small pref-cancel" type="button" data-pref="workplace">Cancel</button>
+                      <span class="account-status" id="pref-status-workplace" aria-live="polite"></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="pref-item" id="pref-item-location">
+                  <button type="button" class="pref-head" aria-expanded="false" aria-controls="pref-edit-location">
+                    <span class="pref-head-text">
+                      <span class="pref-label">Locations</span>
+                      <span class="pref-summary" id="pref-sum-location"></span>
+                    </span>
+                    <svg class="pref-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                  </button>
+                  <div class="pref-editor" id="pref-edit-location" hidden>
+                    <div class="ms" id="pref-ms-location"></div>
+                    <p class="pref-help">Countries and cities you would work in. Leave it empty for anywhere.</p>
+                    <div class="pref-actions">
+                      <button class="btn btn-small pref-save" type="button" data-pref="location">Save</button>
+                      <button class="btn btn-quiet btn-small pref-cancel" type="button" data-pref="location">Cancel</button>
+                      <span class="account-status" id="pref-status-location" aria-live="polite"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="pref-group">
+                <h3 class="pref-group-title">Job alerts</h3>
+                <div class="pref-item" id="pref-item-cadence">
+                  <button type="button" class="pref-head" aria-expanded="false" aria-controls="pref-edit-cadence">
+                    <span class="pref-head-text">
+                      <span class="pref-label">Alert emails</span>
+                      <span class="pref-summary" id="pref-sum-cadence"></span>
+                    </span>
+                    <svg class="pref-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                  </button>
+                  <div class="pref-editor" id="pref-edit-cadence" hidden>
+                    <div class="pref-radios" role="radiogroup" aria-label="How often alert emails are sent">
+                      <label class="pref-radio"><input type="radio" name="pref-cadence" value="instant"><span class="pref-radio-text"><span class="pref-radio-label">Instant</span><span class="pref-radio-note">As soon as a match appears.</span></span></label>
+                      <label class="pref-radio"><input type="radio" name="pref-cadence" value="daily"><span class="pref-radio-text"><span class="pref-radio-label">Daily digest</span><span class="pref-radio-note">One email a day, in the morning Israel time, when there is something new.</span></span></label>
+                      <label class="pref-radio"><input type="radio" name="pref-cadence" value="weekly"><span class="pref-radio-text"><span class="pref-radio-label">Weekly digest</span><span class="pref-radio-note">One email on Monday mornings, when there is something new.</span></span></label>
+                    </div>
+                    <div class="pref-actions">
+                      <button class="btn btn-small pref-save" type="button" data-pref="cadence">Save</button>
+                      <button class="btn btn-quiet btn-small pref-cancel" type="button" data-pref="cadence">Cancel</button>
+                      <span class="account-status" id="pref-status-cadence" aria-live="polite"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
             <section class="account-block" id="settings">
 
               <div class="acct-rows">

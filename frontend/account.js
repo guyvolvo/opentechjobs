@@ -12,7 +12,7 @@ const $ = (id) => document.getElementById(id);
 // terms probe.py tags jobs with, so a skill found in a CV is by
 // construction one a listing can carry. A hardcoded copy here drifted
 // from the real list within minutes the first time it was tried.
-const draft = { skills: [], seniority: "", workplace: [], israel_only: true };
+const draft = { skills: [], seniority: "", workplace: [], israel_only: true, country: [], city: [], cadence: "instant" };
 
 function setStatus(el, text, isError = false) {
   const node = $(el);
@@ -22,7 +22,13 @@ function setStatus(el, text, isError = false) {
   if (text) setTimeout(() => { node.textContent = ""; node.classList.remove("error"); }, 4000);
 }
 
-const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only: true };
+const EMPTY_PROFILE = { skills: [], seniority: null, workplace: [], israel_only: true, country: [], city: [], cadence: "instant" };
+
+const CADENCE_SUMMARY = {
+  instant: "Instant, as matches appear",
+  daily: "Daily digest, mornings Israel time",
+  weekly: "Weekly digest, Monday mornings",
+};
 
 // Each count appears twice: small beside its button in the nav, large
 // on a tile in the overview. One call writes both, so they cannot drift.
@@ -285,11 +291,139 @@ function paintProfile(profile) {
   draft.seniority = profile.seniority || "";
   draft.workplace = [...(profile.workplace || [])];
   draft.israel_only = profile.israel_only !== false;
+  draft.country = [...(profile.country || [])];
+  draft.city = [...(profile.city || [])];
+  draft.cadence = profile.cadence || "instant";
+  // What Cancel goes back to: the last thing the server confirmed.
+  savedPrefs = { workplace: [...draft.workplace], country: [...draft.country], city: [...draft.city], cadence: draft.cadence };
   if (draft.skills.length) {
     $("cv-result").hidden = false;
     paintChips();
   }
   paintMatchLink();
+  paintPreferences();
+}
+
+// The Preferences section. Each row is one thing: its head shows the
+// value in a line, opening it shows the control for that one value and
+// a Save. The pickers are app.js's own, the same ones the alert form
+// uses, so a place or a workplace means the same thing in both.
+let prefMsWorkplace = null;
+let prefMsLocation = null;
+let savedPrefs = { workplace: [], country: [], city: [], cadence: "instant" };
+// The place labels, once the facets are in; codes until then.
+let placeLabels = {};
+
+function wirePreferences() {
+  if (!$("pref-item-workplace") || typeof createMultiSelect !== "function") return;
+  prefMsWorkplace = createMultiSelect("pref-ms-workplace", {
+    placeholder: "Workplace",
+    options: Object.entries(WORKPLACE_LABELS).map(([value, label]) => ({ value, label })),
+    onChange: (values) => { draft.workplace = values; },
+  });
+  prefMsLocation = createLocationSelect("pref-ms-location", {
+    placeholder: "Locations",
+    onChange: ({ countries, cities }) => { draft.country = countries; draft.city = cities; },
+  });
+  // The options arrive after the profile did, and setOptions drops any
+  // selection it does not know, so the selection is painted again once
+  // they are in.
+  getStaticFacets("verified")
+    .then((facets) => {
+      const rows = normalizeLocationFacets(facets.locations);
+      placeLabels = {};
+      rows.forEach((c) => {
+        placeLabels[c.value] = c.label || c.value;
+        (c.cities || []).forEach((t) => { placeLabels[t.value] = t.label || t.value; });
+      });
+      prefMsLocation.setOptions(rows);
+      paintPreferences();
+    })
+    .catch(() => {});
+  document.querySelectorAll('input[name="pref-cadence"]').forEach((r) => {
+    r.addEventListener("change", () => { if (r.checked) draft.cadence = r.value; });
+  });
+
+  // One row open at a time. Opening a row is not a commitment: Cancel
+  // and closing both put the draft back to what was last saved.
+  document.querySelectorAll("#preferences .pref-head").forEach((head) => {
+    head.addEventListener("click", () => {
+      const it = head.closest(".pref-item");
+      const open = !it.classList.contains("open");
+      document.querySelectorAll("#preferences .pref-item.open").forEach((o) => { if (o !== it) closePrefItem(o, true); });
+      if (open) {
+        it.classList.add("open");
+        head.setAttribute("aria-expanded", "true");
+        it.querySelector(".pref-editor").hidden = false;
+      } else {
+        closePrefItem(it, true);
+      }
+    });
+  });
+  document.querySelectorAll("#preferences .pref-cancel").forEach((btn) => {
+    btn.addEventListener("click", () => closePrefItem(btn.closest(".pref-item"), true));
+  });
+  document.querySelectorAll("#preferences .pref-save").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      // Held before the await: currentTarget is null once dispatch ends.
+      const button = e.currentTarget;
+      const key = button.dataset.pref;
+      const it = button.closest(".pref-item");
+      button.classList.add("btn-busy");
+      try {
+        const res = await authedFetch("/me/profile", { method: "PUT", body: JSON.stringify(draft) });
+        paintProfile(res.profile || res);
+        paintSectionStatus("preferences");
+        closePrefItem(it, false);
+      } catch (err) {
+        setStatus(`pref-status-${key}`, err.message || "Could not save.", true);
+      } finally {
+        button.classList.remove("btn-busy");
+      }
+    });
+  });
+}
+
+function closePrefItem(it, revert) {
+  if (!it) return;
+  if (revert) {
+    draft.workplace = [...savedPrefs.workplace];
+    draft.country = [...savedPrefs.country];
+    draft.city = [...savedPrefs.city];
+    draft.cadence = savedPrefs.cadence;
+    paintPreferences();
+  }
+  it.classList.remove("open");
+  it.querySelector(".pref-head").setAttribute("aria-expanded", "false");
+  it.querySelector(".pref-editor").hidden = true;
+  const status = it.querySelector(".account-status");
+  if (status) status.textContent = "";
+}
+
+function placeSummary() {
+  const names = [...draft.country, ...draft.city].map((v) => placeLabels[v] || v);
+  if (!names.length) return "Anywhere";
+  return names.length > 3 ? `${names.slice(0, 3).join(", ")} and ${names.length - 3} more` : names.join(", ");
+}
+
+function paintPreferences() {
+  if (prefMsWorkplace) prefMsWorkplace.setSelected(draft.workplace);
+  if (prefMsLocation) prefMsLocation.setSelected(draft.country, draft.city);
+  document.querySelectorAll('input[name="pref-cadence"]').forEach((r) => { r.checked = r.value === (draft.cadence || "instant"); });
+  const sum = (key, text) => { const el = $(`pref-sum-${key}`); if (el) el.textContent = text; };
+  sum("workplace", draft.workplace.length ? draft.workplace.map((w) => WORKPLACE_LABELS[w] || w).join(", ") : "Any");
+  sum("location", placeSummary());
+  sum("cadence", CADENCE_SUMMARY[draft.cadence] || CADENCE_SUMMARY.instant);
+}
+
+// The line under the section title, in the words the rows use.
+function prefsSummary() {
+  const bits = [];
+  if (draft.workplace.length) bits.push(draft.workplace.map((w) => WORKPLACE_LABELS[w] || w).join(", "));
+  const places = draft.country.length + draft.city.length;
+  if (places) bits.push(`${places} ${places === 1 ? "place" : "places"}`);
+  bits.push({ daily: "daily digest", weekly: "weekly digest" }[draft.cadence] || "instant alerts");
+  return bits.join(" · ");
 }
 
 // The profile is expressible as an ordinary board search, which is the
@@ -304,6 +438,8 @@ function paintMatchLink() {
   if (draft.skills.length) p.set("skills", draft.skills.join(","));
   if (draft.seniority) p.set("seniority", draft.seniority);
   if (draft.workplace.length) p.set("workplace", draft.workplace.join(","));
+  if (draft.country.length) p.set("country", draft.country.join(","));
+  if (draft.city.length) p.set("city", draft.city.join(","));
   // Same reasoning as loadMatches: israel_only is a legacy flag with no
   // control behind it and a default of true, so sending it would filter
   // every reader's matches to one country none of them chose.
@@ -415,6 +551,7 @@ const SECTION_HEAD = {
   skills: { title: "Skills", action: '<button type="button" class="btn btn-small" id="acct-do-cv">Scan a CV</button>' },
   alerts: { title: "Alerts", action: '<a class="btn btn-small" href="#alerts">New alert</a>' },
   saved: { title: "Saved jobs", action: '<a class="btn ghost btn-small" href="/board">Open the board</a>' },
+  preferences: { title: "Preferences" },
   settings: { title: "Settings" },
 };
 
@@ -442,6 +579,7 @@ function paintSectionStatus(id) {
     skills: counts.skills ? n("skills", "skill", "skills") + " matched against every listing" : "No skills yet",
     alerts: counts.alerts ? n("alerts", "alert", "alerts") : "No alerts yet",
     saved: counts.saved ? n("saved", "saved job", "saved jobs") : "Nothing saved yet",
+    preferences: prefsSummary(),
     settings: "",
   }[id] || "";
   el.textContent = text;
@@ -614,7 +752,7 @@ function wireLeaving() {
       // this is a delete without needing a delete route.
       await authedFetch("/me/profile", {
         method: "PUT",
-        body: JSON.stringify({ skills: [], seniority: null, workplace: [], israel_only: true }),
+        body: JSON.stringify(EMPTY_PROFILE),
       });
       setStatus("account-status", "Deleted. Signing out.");
       setTimeout(signOut, 1200);
@@ -862,6 +1000,7 @@ async function bootAccount() {
       const loaded = await loadProfile();
       skillSpec = loaded.skill_spec || null;
       wireProfile();
+      wirePreferences();
       paintProfile(loaded.profile);
     }),
     block("alerts", "alerts-list", wireAlerts),

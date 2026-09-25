@@ -143,6 +143,13 @@ PROFILE = {
         "workplace": {"type": "array",
                       "items": {"type": "string", "enum": ["remote", "hybrid", "onsite"]}},
         "israel_only": {"type": "boolean"},
+        "country": {"type": "array", "items": {"type": "string", "pattern": "^[A-Z]{2}$"}, "maxItems": 20,
+                    "description": "ISO 3166-1 alpha-2 codes. Pre-fills new alerts and the matches view."},
+        "city": {"type": "array", "items": {"type": "string", "maxLength": 60}, "maxItems": 20,
+                 "description": "City names as the locations facet spells them."},
+        "cadence": {"type": "string", "enum": ["instant", "daily", "weekly"],
+                    "description": "How often alert digests go out. Daily and weekly send one email in the "
+                                   "morning, Israel time, when there is something new."},
     },
 }
 

@@ -5878,6 +5878,39 @@ const alertFormState = {
 // distinguishes the two modes.
 let editingAlertId = null;
 
+// The reader's workplace and places from /account#preferences, read once
+// when the form is wired. A new alert starts from them, and they can be
+// changed in the form like anything else. Null until read, or signed
+// out, or with nothing set.
+let alertPrefs = null;
+
+async function profilePrefs() {
+  if (!getAuthTokens()) return null;
+  try {
+    const data = await authedFetch("/me/profile");
+    const p = (data && data.profile) || {};
+    const prefs = { workplace: p.workplace || [], country: p.country || [], city: p.city || [] };
+    return prefs.workplace.length || prefs.country.length || prefs.city.length ? prefs : null;
+  } catch {
+    return null;
+  }
+}
+
+// Only onto a blank form: the reader may have started filling it in
+// while the profile was still on its way, and the options for places
+// arrive on their own schedule (setOptions drops any selection it does
+// not know), so this runs from each of those arrivals and from every
+// reset, and does nothing when there is already something in the form.
+function applyAlertPrefsIfBlank() {
+  if (!alertPrefs || !alertMsWorkplace || editingAlertId) return;
+  if (alertFormState.workplace.length || alertFormState.country.length || alertFormState.city.length) return;
+  alertFormState.workplace = [...alertPrefs.workplace];
+  alertFormState.country = [...alertPrefs.country];
+  alertFormState.city = [...alertPrefs.city];
+  alertMsWorkplace.setSelected(alertFormState.workplace);
+  alertMsLocation.setSelected(alertFormState.country, alertFormState.city);
+}
+
 // The last list we rendered, so clicking a row can reload that alert's
 // filter without asking the API for it again.
 let myAlerts = [];
@@ -5956,6 +5989,7 @@ function resetAlertForm() {
   alertMsWorkplace.reset();
   editingAlertId = null;
   paintAlertFormMode();
+  applyAlertPrefsIfBlank();
 }
 
 // Deliberately global, not board-scoped: an alert is a standing filter
@@ -5981,7 +6015,10 @@ function populateAlertFilterOptions() {
   // "Tel Aviv", "Tel Aviv-Yafo, Tel Aviv, ISR" and "tel-aviv" were three
   // choices for one place, and none of them named a country.
   getStaticFacets("verified")
-    .then((facets) => alertMsLocation.setOptions(normalizeLocationFacets(facets.locations)))
+    .then((facets) => {
+      alertMsLocation.setOptions(normalizeLocationFacets(facets.locations));
+      applyAlertPrefsIfBlank();
+    })
     .catch(() => {});
   loadGlobalCompanyOptions().then((opts) => {
     if (opts) alertMsCompany.setOptions(opts);
@@ -6027,6 +6064,10 @@ function wireAlertCreateForm() {
     onChange: (values) => { alertFormState.workplace = values; },
   });
   populateAlertFilterOptions();
+  profilePrefs().then((prefs) => {
+    alertPrefs = prefs;
+    applyAlertPrefsIfBlank();
+  });
 
   document.getElementById("cancel-edit-btn").addEventListener("click", cancelEditAlert);
   paintAlertFormMode();

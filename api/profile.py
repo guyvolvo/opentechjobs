@@ -16,7 +16,27 @@ Values are validated against closed vocabularies on the way in. That is
 the reason this file exists rather than storing whatever JSON arrives:
 the only strings that reach the table are ones this project already
 uses, so a profile cannot become a place to park arbitrary user text.
+The one exception is the city list, since the set of cities is the
+places table and not a constant: a city is bounded instead, to twenty
+names of at most sixty letters, spaces and hyphens each.
+The one exception is the city list, since the set of cities is the
+places table and not a constant: a city is bounded instead, to twenty
+names of at most sixty letters, spaces and hyphens each.
+The one exception is the city list, since the set of cities is the
+places table and not a constant: a city is bounded instead, to twenty
+names of at most sixty letters, spaces and hyphens each.
+The one exception is the city list, since the set of cities is the
+places table and not a constant: a city is bounded instead, to twenty
+names of at most sixty letters, spaces and hyphens each.
 """
+
+import re
+
+import re
+
+import re
+
+import re
 
 PROFILE_ID = "#profile"
 
@@ -36,11 +56,36 @@ WORKPLACE = ["remote", "hybrid", "onsite"]
 # A profile is a search, not a CV. Past this many skills it stops
 # narrowing anything and starts being a list of everything the person
 # has ever touched.
+# How often alert digests go out. "instant" is every evaluation pass,
+# which on the box is every apply, about every thirty seconds. The other
+# two hold matches and send one digest in the morning, Israel time,
+# every day or every Monday (alerts.py, digest_due).
+CADENCE = ["instant", "daily", "weekly"]
+# How often alert digests go out. "instant" is every evaluation pass,
+# which on the box is every apply, about every thirty seconds. The other
+# two hold matches and send one digest in the morning, Israel time,
+# every day or every Monday (alerts.py, digest_due).
+CADENCE = ["instant", "daily", "weekly"]
 MAX_SKILLS = 40
+# How often alert digests go out. "instant" is every evaluation pass,
+# which on the box is every apply, about every thirty seconds. The other
+# two hold matches and send one digest in the morning, Israel time,
+# every day or every Monday (alerts.py, digest_due).
+CADENCE = ["instant", "daily", "weekly"]
+MAX_PLACES = 20
+_COUNTRY = re.compile(r"[A-Z]{2}")
+_CITY = re.compile(r"[^\W\d_][\w .'\-]{0,59}")
+MAX_PLACES = 20
+_COUNTRY = re.compile(r"[A-Z]{2}")
+_CITY = re.compile(r"[^\W\d_][\w .'\-]{0,59}")
+MAX_PLACES = 20
+_COUNTRY = re.compile(r"[A-Z]{2}")
+_CITY = re.compile(r"[^\W\d_][\w .'\-]{0,59}")
 
 
 def empty_profile() -> dict:
-    return {"skills": [], "seniority": None, "workplace": [], "israel_only": True}
+    return {"skills": [], "seniority": None, "workplace": [], "israel_only": True,
+            "country": [], "city": [], "cadence": "instant"}
 
 
 def clean_profile(body: dict) -> dict:
@@ -68,6 +113,11 @@ def clean_profile(body: dict) -> dict:
         str(x).strip().lower() for x in (body.get("workplace") or [])
     ) if w in WORKPLACE]
 
+    country = [c for c in (str(x).strip().upper() for x in (body.get("country") or []))
+               if _COUNTRY.fullmatch(c)]
+    city = [c for c in (str(x).strip() for x in (body.get("city") or []))
+            if _CITY.fullmatch(c)]
+    cadence = str(body.get("cadence") or "instant").strip().lower()
     return {
         "skills": skills,
         "seniority": seniority if seniority in SENIORITY else None,
@@ -75,6 +125,9 @@ def clean_profile(body: dict) -> dict:
         # the order they see them back.
         "workplace": list(dict.fromkeys(workplace)),
         "israel_only": bool(body.get("israel_only", True)),
+        "country": list(dict.fromkeys(country))[:MAX_PLACES],
+        "city": list(dict.fromkeys(city))[:MAX_PLACES],
+        "cadence": cadence if cadence in CADENCE else "instant",
     }
 
 
@@ -99,6 +152,10 @@ def profile_to_filter(profile: dict) -> dict:
         params["seniority"] = profile["seniority"]
     if profile.get("workplace"):
         params["workplace"] = ",".join(profile["workplace"])
+    if profile.get("country"):
+        params["country"] = ",".join(profile["country"])
+    if profile.get("city"):
+        params["city"] = ",".join(profile["city"])
     if profile.get("israel_only"):
         params["israel_only"] = "1"
     return params

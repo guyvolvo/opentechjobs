@@ -25,6 +25,12 @@ import alerts  # noqa: E402
 
 failures = []
 
+# digest_due: the cadence gate. A fixed clock, so the test does not
+# depend on when it runs.
+_MON_0630 = datetime(2026, 9, 28, 6, 30, tzinfo=timezone.utc)   # a Monday, in the digest hour
+_TUE_0630 = _MON_0630 + timedelta(days=1)
+_MON_1200 = _MON_0630.replace(hour=12)
+
 
 def check(name, ok, detail=""):
     print("%s: %s%s" % ("PASS" if ok else "FAIL", name, "" if ok else "  -- " + detail))
@@ -163,6 +169,19 @@ check("the preheader still carries the count and the alert name, so the inbox li
       "4 new roles in Israel" in h)
 
 print()
+check("instant is always due", alerts.digest_due("instant", None, _MON_1200))
+check("daily outside the hour waits", not alerts.digest_due("daily", None, _MON_1200))
+check("daily in the hour with no digest yet sends", alerts.digest_due("daily", None, _MON_0630))
+check("daily in the hour, digest 30s ago, waits",
+      not alerts.digest_due("daily", (_MON_0630 - timedelta(seconds=30)).isoformat(), _MON_0630))
+check("daily in the hour, digest yesterday, sends",
+      alerts.digest_due("daily", (_MON_0630 - timedelta(days=1)).isoformat(), _MON_0630))
+check("weekly on a Tuesday waits", not alerts.digest_due("weekly", None, _TUE_0630))
+check("weekly on Monday in the hour sends", alerts.digest_due("weekly", None, _MON_0630))
+check("weekly on Monday, digest 3 days ago, waits",
+      not alerts.digest_due("weekly", (_MON_0630 - timedelta(days=3)).isoformat(), _MON_0630))
+check("unknown cadence behaves as instant", alerts.digest_due("hourly", None, _MON_1200))
+
 if failures:
     print("%d failed:" % len(failures))
     for f in failures:

@@ -35,7 +35,7 @@ from help_page import HELP_HTML
 from openapi import spec as openapi_spec
 import company_page
 import job_page
-from profile import (PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
+from profile import (CADENCE, PROFILE_ID, SENIORITY, SKILLS, WORKPLACE, clean_profile,
                      empty_profile)
 from saved import is_saved_id, job_id_of, saved_id
 from skills import spec as skill_spec
@@ -1204,7 +1204,7 @@ def route_get_profile(user_id: str) -> dict:
     # already created once between probe.py and the API.
     return {
         "profile": stored,
-        "options": {"skills": SKILLS, "seniority": SENIORITY, "workplace": WORKPLACE},
+        "options": {"skills": SKILLS, "seniority": SENIORITY, "workplace": WORKPLACE, "cadence": CADENCE},
         # The full rules for frontend/cv_skills.js, the same ones probe.py
         # tags jobs with. The needles ship as well as the labels because
         # the CV analyser runs in the reader's own browser: the file is

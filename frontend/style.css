@@ -6107,6 +6107,46 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .acct-row-label { font: 700 15px var(--font); color: var(--black); }
 .acct-row-note { font: 400 14px var(--font); color: var(--grey); }
 
+/* Preferences. Groups under a heading, and in each a row per value:
+   label, the value in a line, a chevron. Opening a row turns the
+   chevron down and shows that value's control and a Save under it.
+   The rows are the account page's own hairline rows; nothing is boxed. */
+.pref-group + .pref-group { margin-top: 28px; }
+.pref-group-title { margin: 0 0 2px; font: 500 16px var(--font-display); color: var(--black); }
+.pref-item { border-bottom: 1px solid var(--grey-line); }
+.pref-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border: 0;
+  background: none;
+  color: var(--black);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.pref-head:hover .pref-label { color: var(--green-text); }
+.pref-head:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+.pref-head-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pref-label { font: 700 15px var(--font); }
+.pref-summary { font: 400 14px var(--font); color: var(--grey); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pref-chevron { flex: 0 0 auto; color: var(--grey); transition: transform 160ms cubic-bezier(0.2, 0, 0, 1); }
+.pref-item.open .pref-chevron { transform: rotate(90deg); }
+.pref-editor { display: flex; flex-direction: column; gap: 12px; padding: 0 0 18px; }
+.pref-editor[hidden] { display: none; }
+.pref-editor > .ms { max-width: 320px; }
+.pref-help { margin: 0; font: 400 13px var(--font); color: var(--grey); }
+.pref-actions { display: flex; align-items: center; gap: 10px; }
+.pref-radios { display: flex; flex-direction: column; gap: 10px; }
+.pref-radio { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.pref-radio input { margin: 3px 0 0; accent-color: var(--green); flex: 0 0 auto; }
+.pref-radio-text { display: flex; flex-direction: column; gap: 2px; }
+.pref-radio-label { font: 500 14px var(--font); color: var(--black); }
+.pref-radio-note { font: 400 13px var(--font); color: var(--grey); }
+
 /* Its own block, bordered in the one colour this system reserves for
    something that cannot be undone. */
 .account-danger {

@@ -4,6 +4,10 @@ with any new matches, advances the watermark. Called once per fast-poll
 cycle (scrape_handler.py, right after the loader step, while jobs.db is
 already fresh on /tmp -- no separate download needed here).
 
+The owner's profile says how often: instant is every pass, daily and
+weekly hold the watermark until the morning digest is due, so the
+matches pile up behind it and go out as one email (digest_due below).
+
 Uses job_filters.build_jobs_where() for the actual matching, the same
 function /api/jobs itself uses (api/handler.py) -- an alert matches
 exactly what its owner would see applying those filters on the live
@@ -23,10 +27,14 @@ from boto3.dynamodb.conditions import Attr
 
 from countries import label_for
 from job_filters import build_jobs_where, has_fts_index, has_places, register_functions, salary_source_select
+from profile import PROFILE_ID
 
 ALERTS_TABLE = os.environ.get("ALERTS_TABLE")
 FROM_EMAIL = os.environ.get("ALERTS_FROM_EMAIL", "alerts@guyvoloshin.com")
 SITE_ORIGIN = os.environ.get("SITE_ORIGIN", "https://opentechjobs.org")
+# When a daily or weekly digest goes out: 09:00 in Israel through the
+# summer, 08:00 in winter. Morning, before the day's applications.
+DIGEST_HOUR_UTC = 6
 
 _dynamodb = boto3.resource("dynamodb")
 _ses = boto3.client("sesv2")
@@ -49,18 +57,29 @@ def evaluate_alerts(jobs_db_path: Path) -> dict:
     conn.row_factory = sqlite3.Row
     register_functions(conn)
 
+    profiles = _profiles(table, {a["user_id"] for a in alerts})
+    now = datetime.now(timezone.utc)
     sent = 0
+    held = 0
     errors = []
     for alert in alerts:
         try:
+            cadence = (profiles.get(alert["user_id"]) or {}).get("cadence") or "instant"
             matches = _find_new_matches(conn, alert)
+            if matches and not digest_due(cadence, alert.get("last_digest_at"), now):
+                # The watermark stays where it is, so these are in the
+                # digest when it is due, with whatever arrives meanwhile.
+                held += 1
+                continue
+            update = "SET last_notified_at = :t"
             if matches:
                 _send_digest(alert, matches)
                 sent += 1
+                update += ", last_digest_at = :t"
             table.update_item(
                 Key={"user_id": alert["user_id"], "alert_id": alert["alert_id"]},
-                UpdateExpression="SET last_notified_at = :t",
-                ExpressionAttributeValues={":t": datetime.now(timezone.utc).isoformat()},
+                UpdateExpression=update,
+                ExpressionAttributeValues={":t": now.isoformat()},
             )
         except Exception as e:
             # One user's bad filter or bounced address shouldn't stop
@@ -69,8 +88,43 @@ def evaluate_alerts(jobs_db_path: Path) -> dict:
 
     watched = _watched_domains(alerts) | _recently_matching_domains(conn, alerts)
     conn.close()
-    return {"alerts_checked": len(alerts), "digests_sent": sent, "errors": errors,
+    return {"alerts_checked": len(alerts), "digests_sent": sent, "digests_held": held, "errors": errors,
             "watched_domains": sorted(watched)}
+
+
+def digest_due(cadence: str, last_digest_at, now: datetime) -> bool:
+    """Whether an alert with matches waiting should send now.
+
+    Instant always. Daily and weekly only in the digest hour, and only
+    if the last digest is old enough that this is not the same morning
+    seen twice: the evaluator runs every half minute, so "the hour
+    matches" alone would send sixty of them.
+    """
+    if cadence not in ("daily", "weekly"):
+        return True
+    if now.hour != DIGEST_HOUR_UTC:
+        return False
+    if cadence == "weekly" and now.weekday() != 0:
+        return False
+    last = _parse(last_digest_at)
+    if last is None:
+        return True
+    return now - last >= timedelta(hours=20 if cadence == "daily" else 24 * 6)
+
+
+def _profiles(table, user_ids) -> dict[str, dict]:
+    """The profile row of each owner, for its cadence. One get per
+    owner rather than a scan: the active-alert scan cannot see profile
+    rows (they carry no `active`), and owners are few."""
+    out = {}
+    for uid in user_ids:
+        try:
+            item = table.get_item(Key={"user_id": uid, "alert_id": PROFILE_ID}).get("Item")
+        except Exception:  # noqa: BLE001 -- a missing profile is instant, the default
+            item = None
+        if item:
+            out[uid] = item
+    return out
 
 
 # How far back a match counts as evidence that a board is worth watching.
