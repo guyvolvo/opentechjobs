@@ -2951,6 +2951,22 @@ function companyNameFor(domain) {
   return hit ? hit.company_name : domainLabel(domain);
 }
 
+// The same lookup for the logo. A resolved URL when something already
+// on this page carries one (a loaded row, or the stats leaderboards,
+// which come with logos attached); otherwise null, and companyLogoImg
+// falls back to its guess cascade, the way it does for any row that
+// arrived without one.
+function companyLogoFor(domain) {
+  const rows = (lastJobsResponse && lastJobsResponse.jobs) || [];
+  const hit = rows.find((j) => j.company_domain === domain && j.logo_url);
+  if (hit) return hit.logo_url;
+  for (const list of [latestScoped?.data?.top_companies, latestStats?.top_companies]) {
+    const c = (list || []).find((r) => r.domain === domain && r.logo_url);
+    if (c) return c.logo_url;
+  }
+  return null;
+}
+
 function renderDetailEmpty() {
   const panel = document.getElementById("job-detail");
   if (!panel || selectedJobId !== null) return;
@@ -3007,11 +3023,11 @@ function renderDetailEmpty() {
 
       ${hiring.length ? `
         <div class="ov-block">
-          <span class="ov-block-title">Hiring most</span>
+          <span class="ov-block-title">Companies with most open roles</span>
           ${hiring.map((c) => `
-            <button type="button" class="ov-row" data-company="${escapeHtml(c.value)}"
+            <button type="button" class="ov-row ov-row-co" data-company="${escapeHtml(c.value)}"
                     title="Show only ${escapeHtml(companyNameFor(c.value))}">
-              <span>${escapeHtml(companyNameFor(c.value))}</span>
+              <span class="ov-co">${companyLogoImg(c.value, 32, "ov-logo", companyLogoFor(c.value))}<span class="ov-co-name">${escapeHtml(companyNameFor(c.value))}</span></span>
               <span class="ov-row-n">${fmtInt(c.n)}</span>
             </button>`).join("")}
         </div>` : ""}

@@ -5580,6 +5580,13 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .ov-row:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
 .ov-row > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ov-row-n { flex: 0 0 auto; font-variant-numeric: tabular-nums; opacity: 0.75; }
+/* The company rows carry a 32px mark, the same tile as the listing
+   rows at a smaller size, so the row's padding comes down to keep the
+   list from doubling in height. */
+.ov-row-co { padding: 6px 0; }
+.ov-co { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ov-co-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-row .company-logo.ov-logo { width: 32px; height: 32px; margin: 0; border-radius: 4px; flex: 0 0 auto; }
 .ov-dot-row { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
 .ov-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--aws-operational); }
 .ov-dot.stale { background: var(--aws-degraded); }
