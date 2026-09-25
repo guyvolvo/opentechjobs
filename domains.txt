@@ -25544,3 +25544,11 @@ petronas.com
 efg.io
 octopus.com
 te.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+rjwm.com
+zamilindustrial.com
+pepper.com
+art.com
+blackmore.io
+nova-systems.com
