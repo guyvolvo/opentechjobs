@@ -25520,3 +25520,12 @@ uem.com
 bmdigital.io
 definity.com
 atco.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+hbl.com
+armsrm.com
+sedgman.com
+tforce.io
+alithya.com
+urus.ai
+budimex.de
