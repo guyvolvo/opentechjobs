@@ -10,12 +10,14 @@ name: resolve-company-names
 # have one yet. The first run resolves the backlog; every run after is
 # just whatever discovery added since, usually a handful.
 #
-# Nothing here touches the live database. The merge picks the file up on
-# its next hourly run and stamps the names onto jobs-read.db.
+# Nothing here touches the live database. Since 2026-09-25 the box
+# resolves names itself (otj-names.timer, see box/CUTOVER.md) and is the
+# only thing that stamps them onto its database, so the daily schedule
+# here is gone: two writers on one S3 file, one of them with no reader.
+# Dispatch by hand remains, for a targeted --refresh from a laptop-free
+# place.
 
 on:
-  schedule:
-    - cron: "41 4 * * *" # daily, offset off the hour and away from the discover sweep
   workflow_dispatch:
     inputs:
       limit:

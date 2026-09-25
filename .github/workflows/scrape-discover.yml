@@ -129,7 +129,8 @@ jobs:
         if: ${{ github.event.inputs.domains == '' }}
         run: |
           shard=$(( 10#$(date -u +%j) % 4 ))
-          python probe.py --batch domains.txt --hints known.json --fetch-descriptions \n            --guess-shard "$shard/4" --deadline-minutes 240 --json > resolved.json
+          python probe.py --batch domains.txt --hints known.json --fetch-descriptions \
+            --guess-shard "$shard/4" --deadline-minutes 240 --json > resolved.json
 
       # No --guess-shard here, deliberately. The point of a targeted
       # dispatch is to probe the domains you asked for, now; deferring
