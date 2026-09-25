@@ -25617,3 +25617,6 @@ pythonsoftwarefoundation.com
 rlab.com
 online.io
 inland.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+marie-curie.net
