@@ -64,6 +64,7 @@ Usage:
 import argparse
 import html
 import json
+import os
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
