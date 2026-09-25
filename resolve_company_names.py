@@ -463,11 +463,15 @@ def main() -> int:
     # 1,500 every day. --refresh asks everyone again.
     todo = [e for e in known
             if e.get("ats") in RESOLVERS and (args.refresh or e.get("domain", "") not in names)]
+    backlog = len(todo)
     if args.limit:
         todo = todo[:args.limit]
 
-    print(f"{len(known)} known companies, {len(names)} already named, {len(todo)} to resolve",
-          file=sys.stderr)
+    # The backlog before the cap, not the batch after it: a loop that ran
+    # the batches read "1500 to resolve" on every run and stopped early,
+    # taking the cap for the end of the queue.
+    print(f"{len(known)} known companies, {len(names)} already tried, {backlog} still to resolve, "
+          f"{len(todo)} this run", file=sys.stderr)
     if not todo:
         return 0
 
