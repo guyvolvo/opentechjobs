@@ -25492,3 +25492,10 @@ raleys.net
 jdi.com
 wtw.com
 cotton-on.net
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+cimb.com
+barrick.com
+baptist-health.org
+michael-baker.com
+galliford.com
