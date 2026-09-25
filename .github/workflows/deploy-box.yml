@@ -30,6 +30,12 @@ on:
       - "box/**"
       - "alerts.py"
       - "db/schema.sql"
+      # The box runs the name resolver from the checkout too, on the
+      # otj-names timer, and reads its Workday registry from the same
+      # place. A change to either that did not deploy sat on the box as
+      # the old code for a day (2026-09-25).
+      - "resolve_company_names.py"
+      - "workday-tenants.json"
   workflow_dispatch: {}
 
 permissions:
