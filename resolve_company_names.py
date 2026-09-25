@@ -100,11 +100,98 @@ STATIC_NAMES = {
     "discountbank.co.il": "Discount Bank",       #     62
     "pwc.com": "PwC",                            #     51
     "iai.co.il": "IAI",
+    # Workday tenants whose hiring organization is a payroll entity, a
+    # subsidiary or a ledger line, checked by hand against the listings
+    # on 2026-09-25 and ordered by open listings. The domain is the row's
+    # domain, which for Workday is often a guess from the tenant name
+    # (ghr.fr is Bank of America's "ghr" tenant), so the map keys on it
+    # as written, not as it should be.
+    "dollartree.com": "Dollar Tree",             # 24,208
+    "cvshealth.com": "CVS Health",               # 19,079
+    "oreillyauto.de": "O'Reilly Auto Parts",     # 18,778
+    "lowes.com": "Lowe's",                       # 12,506
+    "whataburger.com": "Whataburger",
+    "ngc.com": "Northrop Grumman",               #  3,784
+    "davita.com": "DaVita",
+    "mvh.myworkdayjobs.com": "Banfield Pet Hospital",
+    "thermofisher.com": "Thermo Fisher Scientific",
+    "jci.com": "Johnson Controls",
+    "basspro.de": "Bass Pro Shops",
+    "abercrombie.com": "Abercrombie & Fitch",
+    "gevernova.com": "GE Vernova",
+    "asmglobal.com": "ASM Global",
+    "ghr.fr": "Bank of America",
+    "wvumedicine.com": "WVU Medicine",
+    "sysco.com": "Sysco",
+    "slihrms.myworkdayjobs.com": "AtkinsR\u00e9alis",
+    "musc.co": "MUSC Health",
+    "massgeneralbrigham.ai": "Mass General Brigham",
+    "knitwellgroup.com": "KnitWell Group",
+    "kindercare.com": "KinderCare",
+    "jll.com": "JLL",
+    "genpt.ai": "Genuine Parts Company",
+    "freseniusmedicalcare.com": "Fresenius Medical Care",
+    "circlek.com": "Circle K",
+    "bilh.myworkdayjobs.com": "Beth Israel Lahey Health",
+    "bah.com": "Booz Allen Hamilton",
+    "adventhealth.com": "AdventHealth",
+    "aah.org": "Advocate Health",
+    "walmart.com": "Walmart",
+    "uhaul.myworkdayjobs.com": "U-Haul",
+    "tmobile.com": "T-Mobile",
+    "thales.com": "Thales",
+    "tapestry.com": "Tapestry",
+    "sentara.com": "Sentara Health",
+    "pnc.com": "PNC",
+    "petco.net": "Petco",
+    "michaels.myworkdayjobs.com": "Michaels",
+    "leidos.com": "Leidos",
+    "kohls.de": "Kohl's",
+    "hitachi.myworkdayjobs.com": "Hitachi Energy",
+    "genpact.com": "Genpact",
+    "drivenbrands.com": "Driven Brands",
+    "cw.ai": "Cushman & Wakefield",
+    "citi.com": "Citi",
+    "bridgestone.com": "Bridgestone",
+    "advanceauto.myworkdayjobs.com": "Advance Auto Parts",
+    "accenture.com": "Accenture",
+    "abb.myworkdayjobs.com": "ABB",
+    "eiffage.com": "Eiffage",
+    "spectrumhealth.com": "Corewell Health",
+    "mmc.com": "Marsh McLennan",
+    "iqvia.com": "IQVIA",
+    "jj.ai": "Johnson & Johnson",
+    "sunriseseniorliving.com": "Sunrise Senior Living",
+    "ochsner.com": "Ochsner Health",
+    "kbr.com": "KBR",
+    "aspendental.com": "Aspen Dental",
+    "umiami.myworkdayjobs.com": "University of Miami",
+    "wf.com": "Wells Fargo",
+    "interpublic.com": "IPG",
+    "cnx.com": "Concentrix",
+    "signetjewelers.com": "Signet Jewelers",
+    "hcmportal.myworkdayjobs.com": "UPS",
+    "brownhealth.com": "Brown University Health",
+    "vfc.com": "VF Corporation",
+    "2020companies.com": "2020 Companies",
+    "rrhs.io": "Rochester Regional Health",
+    "imh.com": "Intermountain Health",
+    "statestreet.com": "State Street",
+    "rbc.ai": "RBC",
+    "gdit.com": "GDIT",
+    "onetp.myworkdayjobs.com": "Teleperformance",
+    "nshs.net": "Endeavor Health",
+    "msd.com": "MSD",
+    "ummh.de": "UMass Memorial Health",
+    "rtx.com": "RTX",
+    "abbott.com": "Abbott",
+    "pae.com": "PAE",
 }
 
 LEGAL_SUFFIX = re.compile(
-    r"[\s,]+(inc\.?|incorporated|llc|l\.l\.c\.|ltd\.?|limited|corp\.?|corporation|co\.?|plc|"
-    r"gmbh|ag|s\.?a\.?|s\.?r\.?l\.?|b\.?v\.?|pty\.?|pvt\.?|n\.?v\.?)\s*$",
+    r"[\s,]+(inc\.?|incorporated|llc\.?|l\.l\.c\.|llp|pllc|ltd\.?|limited|corp\.?|corporation|co\.?|plc|"
+    r"gmbh|ggmbh|ag|s\.?a\.?|s\.?a\.?s\.?|s\.?r\.?l\.?|b\.?v\.?|pty\.?|pvt\.?|n\.?v\.?|k\.?k\.?|"
+    r"pte\.?|sdn\.? bhd\.?|n\.\s?a\.|national association|legal entity)\s*$",
     re.I,
 )
 
@@ -210,10 +297,34 @@ def _strip_legal(name: str | None) -> str | None:
     return _txt(LEGAL_SUFFIX.sub("", name.strip()).strip(" ,"))
 
 
+# What a Workday hiring organization wears in front of its name, from
+# the first 2,900 tenants resolved: a ledger code with digits in it
+# ("AL8238 UK Grid Solutions", "R301US Hibbett Retail", "C002 Medical
+# University Hospital Authority", "94-1687665 Bank of America"), a
+# number joined by a dash ("8286-Cordis De Mexico"), a parenthetical
+# ("(Midtown Oaks Post Acute) White Fir Holdings"), a stray dash
+# ("- KCE Champions"). A code is capitals, digits, underscores and
+# dashes only, with a letter and a digit and three characters in it, or
+# two or more bare digits; so 3M, 7-Eleven, 2U, R1, 1st Source and
+# 23andMe keep their names.
+_ORG_PREFIX = re.compile(
+    r"^(?:\([^)]*\)\s*|-\s+"
+    r"|(?=[A-Z0-9_-]{3})(?=[A-Z_-]*\d)(?=[\d_]*[A-Z])[A-Z0-9_-]+[\s-]+"
+    r"|\d{2,}[\s-]+)+"
+)
+# And behind it: a code in parentheses ("Novasyte LLC (USA7)", "Advance
+# Stores Company Inc (500)"), or a location after an underscore ("Booz
+# Allen Hamilton_United States").
+_ORG_SUFFIX = re.compile(r"(?:\s*\([^)]*\d[^)]*\)|_[A-Za-z ]+)\s*$")
+
+
 def _clean_org(name: str | None) -> str | None:
     """A Workday hiring organization down to a name a reader would say:
-    the legal suffix off, and the acronym soup a payroll entity carries
-    rejected outright, since the domain is better than that."""
+    the ledger code off the front, the legal suffix off the back, and
+    the acronym soup a payroll entity carries rejected outright, since
+    the domain is better than that."""
+    if name:
+        name = _ORG_SUFFIX.sub("", _ORG_PREFIX.sub("", name.strip()))
     name = _strip_legal(name)
     if not name:
         return None
@@ -349,12 +460,20 @@ def _workday(sess, token, domain=None):
             d = r.json() if r.status_code == 200 else {}
         except (requests.RequestException, ValueError):
             continue
-        raw = _txt((d.get("hiringOrganization") or {}).get("name"))
-        name = _clean_org(re.sub(r"^\d+\s+", "", raw) if raw else None)
+        name = _clean_org(_txt((d.get("hiringOrganization") or {}).get("name")))
         if name:
             votes[name] = votes.get(name, 0) + 1
     if not votes:
         return None
+    # Not a gate. I tried requiring the name to share its opening
+    # letters with the domain and ran it over the 2,901 tenants already
+    # named: it would have dropped 962, and among them Bank of America
+    # (tenant ghr, domain guessed as ghr.fr), Booz Allen, Ohio State
+    # and United Rentals. The domain is itself a guess from the tenant
+    # name for most of Workday, so it cannot judge the name. The
+    # payroll entities the vote cannot see past (ngc.com's "Northwest
+    # Gospel Church", davita.com's "RHI DVA Renal Healthcare") are
+    # corrected by hand in STATIC_NAMES, largest tenants first.
     label = re.sub(r"[^a-z0-9]", "", (domain or "").split(".")[0].lower())
     def score(item):
         name, n = item
@@ -386,7 +505,9 @@ RESOLVERS = {
 # Thirteen companies showed one of these as their name (2026-09-17). No
 # name is better: the board falls back to the domain.
 GENERIC_NAMES = {"jobs", "job board", "job openings", "careers", "career site",
-                 "open positions", "current openings", "home"}
+                 "open positions", "current openings", "home",
+                 # Workday hiring organizations that are a page, not a company
+                 "sign in to your account", "companies", "external", "corporate"}
 
 
 def resolve_one(entry: dict, sess: requests.Session) -> tuple[str, str | None]:
@@ -415,6 +536,7 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="resolve at most N unnamed companies this run")
     ap.add_argument("--refresh", action="store_true",
                      help="re-resolve companies that already have a name (normally skipped)")
+    ap.add_argument("--ats", help="only companies on this ATS (e.g. workday), for a targeted --refresh")
     args = ap.parse_args()
 
     s3 = None
@@ -462,7 +584,8 @@ def main() -> int:
     # companies nobody has asked yet, rather than asking the same first
     # 1,500 every day. --refresh asks everyone again.
     todo = [e for e in known
-            if e.get("ats") in RESOLVERS and (args.refresh or e.get("domain", "") not in names)]
+            if e.get("ats") in RESOLVERS and (not args.ats or e.get("ats") == args.ats)
+            and (args.refresh or e.get("domain", "") not in names)]
     backlog = len(todo)
     if args.limit:
         todo = todo[:args.limit]
