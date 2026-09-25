@@ -1,1 +1,50 @@
-[]
+[
+  {
+    "ats": "workable",
+    "token": "myteam",
+    "domain": "myteam.team",
+    "domain_verified": true,
+    "job_count": 18,
+    "israel_job_count": 18
+  },
+  {
+    "ats": "workable",
+    "token": "tomax",
+    "domain": "tomax.io",
+    "domain_verified": true,
+    "job_count": 8,
+    "israel_job_count": 8
+  },
+  {
+    "ats": "workable",
+    "token": "shifters-ai",
+    "domain": "shifters-ai.com",
+    "domain_verified": true,
+    "job_count": 5,
+    "israel_job_count": 3
+  },
+  {
+    "ats": "workable",
+    "token": "squareone",
+    "domain": "squareone.com.cy",
+    "domain_verified": true,
+    "job_count": 12,
+    "israel_job_count": 2
+  },
+  {
+    "ats": "workable",
+    "token": "oikonomakis-law-firm",
+    "domain": "oikonomakislaw.com",
+    "domain_verified": true,
+    "job_count": 18,
+    "israel_job_count": 1
+  },
+  {
+    "ats": "workable",
+    "token": "libertexgroup",
+    "domain": "libertexgroup.com",
+    "domain_verified": true,
+    "job_count": 31,
+    "israel_job_count": 0
+  }
+]
