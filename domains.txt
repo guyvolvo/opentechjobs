@@ -25529,3 +25529,11 @@ tforce.io
 alithya.com
 urus.ai
 budimex.de
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+ku.com
+abba.co
+evansvillegoodwillindustriesinc.com
+delawareparkcasinoracing.com
+mx.com
+nri.ai
