@@ -25582,3 +25582,10 @@ delegat.com
 innovativesystems.com
 riderflex.ai
 trioelectric.net
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+synlait.com
+plus.ai
+hostpapa.com
+nearearthautonomy.com
+uganda.com
