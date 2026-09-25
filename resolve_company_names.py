@@ -136,23 +136,47 @@ def _json(sess: requests.Session, url: str):
         return None
 
 
+# Everything a title or a meta tag can tell us is in the first stretch of
+# the document. The first full run read whole pages, some of them
+# megabytes of SPA bundle, and sat at 98% CPU for three hours with
+# nothing to show: the patterns below used to have unbounded [^>]+ runs
+# that backtrack across a long attribute list. Now the read stops at
+# HEAD_BYTES and every quantifier has a ceiling.
+HEAD_BYTES = 256 * 1024
+
+
 def _html(sess: requests.Session, url: str) -> str | None:
     try:
-        r = sess.get(url, timeout=TIMEOUT, headers={"Accept": "text/html"})
+        with sess.get(url, timeout=TIMEOUT, headers={"Accept": "text/html"}, stream=True) as r:
+            if r.status_code != 200:
+                return None
+            raw = b""
+            for chunk in r.iter_content(16 * 1024):
+                raw += chunk
+                if len(raw) >= HEAD_BYTES:
+                    break
+            return raw.decode(r.encoding or "utf-8", errors="replace")
     except requests.RequestException:
         return None
-    return r.text if r.status_code == 200 else None
 
 
 def _title(page: str | None) -> str | None:
-    m = re.search(r"<title[^>]*>(.*?)</title>", page or "", re.I | re.S)
+    m = re.search(r"<title[^>]{0,200}>([^<]{0,400})", page or "", re.I)
     return _txt(" ".join(html.unescape(m.group(1)).split())) if m else None
 
 
+_META_TAG = re.compile(r"<meta\b[^>]{0,1000}>", re.I)
+_META_ATTR = re.compile(r'\b(property|name|content)\s*=\s*(?:"([^"]{0,500})"|\'([^\']{0,500})\')', re.I)
+
+
 def _meta(page: str | None, prop: str) -> str | None:
-    m = re.search(r'<meta[^>]+(?:property|name)=["\']' + re.escape(prop) + r'["\'][^>]+content=["\']([^"\']+)',
-                  page or "", re.I)
-    return _txt(html.unescape(m.group(1))) if m else None
+    """One tag at a time, attributes read once each: no pattern here can
+    run back and forth across a page looking for a second quote."""
+    for tag in _META_TAG.finditer(page or ""):
+        attrs = {k.lower(): (a if a is not None else b) for k, a, b in _META_ATTR.findall(tag.group(0))}
+        if (attrs.get("property") or attrs.get("name") or "").lower() == prop.lower() and attrs.get("content"):
+            return _txt(html.unescape(attrs["content"]))
+    return None
 
 
 _TITLE_NOISE = {"login", "careers", "career page", "career site", "jobs", "job openings",
@@ -288,7 +312,10 @@ def _personio(sess, token):
     return _from_title(_title(_html(sess, f"https://{token}.jobs.personio.de")))
 
 
-WORKDAY_SAMPLE = 5
+# Three, not five. Five was a request per job on 3,000 tenants, and the
+# vote is between "the company" and "a subsidiary", which three settles
+# as well as five did on the tenants checked by hand.
+WORKDAY_SAMPLE = 3
 
 
 def _workday(sess, token, domain=None):
@@ -417,8 +444,12 @@ def main() -> int:
             if t.get("domain") and t["domain"] not in have and t.get("tenant") and t.get("wd") and t.get("site"):
                 known.append({"domain": t["domain"], "ats": "workday",
                               "token": f"{t['tenant']}:{t['wd']}:{t['site']}"})
+    # Skip anything already tried, named or not: a board that answered
+    # with nothing is written as "" so the next batch moves on to
+    # companies nobody has asked yet, rather than asking the same first
+    # 1,500 every day. --refresh asks everyone again.
     todo = [e for e in known
-            if e.get("ats") in RESOLVERS and (args.refresh or not names.get(e.get("domain", "")))]
+            if e.get("ats") in RESOLVERS and (args.refresh or e.get("domain", "") not in names)]
     if args.limit:
         todo = todo[:args.limit]
 
@@ -435,8 +466,8 @@ def main() -> int:
     found = 0
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         for domain, name in pool.map(lambda e: resolve_one(e, sess), todo):
+            names[domain] = name or ""
             if name:
-                names[domain] = name
                 found += 1
 
     by_ats: dict[str, int] = {}

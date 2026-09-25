@@ -127,7 +127,7 @@ nowhere, which is how 89% of listings came to show a bare domain.
     User=ubuntu
     WorkingDirectory=/srv/otj/app
     EnvironmentFile=/etc/otj-api.env
-    ExecStart=/bin/sh -c '/srv/otj/venv/bin/python resolve_company_names.py --bucket "$DATA_BUCKET" && /srv/otj/venv/bin/python box/apply_company_names.py'
+    ExecStart=/bin/sh -c '/srv/otj/venv/bin/python resolve_company_names.py --bucket "$DATA_BUCKET" --limit 1500 && /srv/otj/venv/bin/python box/apply_company_names.py'
     EOF
     sudo tee /etc/systemd/system/otj-names.timer >/dev/null <<'EOF'
     [Unit]
