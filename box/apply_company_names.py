@@ -51,6 +51,14 @@ def load_names(bucket: str) -> dict[str, str]:
             names.update(json.loads(body))
         except Exception as e:  # noqa: BLE001 -- a missing file is "nothing resolved yet", not a crash
             print(f"no {NAMES_KEY} in s3://{bucket}: {e}", file=sys.stderr)
+    # The resolver's own copy beside the database, on top of S3's: it is
+    # written before the bucket is, so it is never behind.
+    local = DB.with_name(NAMES_KEY)
+    if local.exists():
+        try:
+            names.update(json.loads(local.read_text(encoding="utf-8")))
+        except (OSError, ValueError) as e:
+            print(f"ignoring unreadable {local}: {e}", file=sys.stderr)
     # The static map wins: it is the one place a wrong resolved name can
     # be corrected without touching S3.
     names.update(STATIC_NAMES)

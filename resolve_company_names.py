@@ -434,6 +434,18 @@ def main() -> int:
             names = {}  # first run
     elif args.out and args.out.exists():
         names = json.loads(args.out.read_text(encoding="utf-8"))
+    # A local copy beside the database, merged on top of S3's. A run's
+    # answers are written here first, so a bucket that refuses the write
+    # delays the sync rather than losing the work: the first bounded
+    # batch on the box resolved 1,468 names in two minutes and lost every
+    # one of them to an AccessDenied on the final put. The apply step
+    # reads this file the same way.
+    local = Path(os.environ.get("DATA_PATH", "/var/lib/otj/jobs.db")).with_name(NAMES_KEY)
+    if s3 and local.exists():
+        try:
+            names.update(json.loads(local.read_text(encoding="utf-8")))
+        except (OSError, ValueError) as e:
+            print(f"ignoring unreadable {local}: {e}", file=sys.stderr)
 
     # Workday tenants live in their own registry, keyed the same way the
     # scraper reads them; known.json carries only a few dozen of them.
@@ -485,7 +497,19 @@ def main() -> int:
         args.out.write_bytes(body)
         print(f"wrote {args.out} ({len(names)} names)", file=sys.stderr)
     if s3:
-        s3.put_object(Bucket=args.bucket, Key=NAMES_KEY, Body=body, ContentType="application/json")
+        # Local first, bucket second. The apply step reads the local copy,
+        # so the run's answers count from here even if the put fails;
+        # the put failing is then a warning to fix the role, not a
+        # batch to redo.
+        try:
+            local.write_bytes(body)
+        except OSError as e:
+            print(f"could not write {local}: {e}", file=sys.stderr)
+        try:
+            s3.put_object(Bucket=args.bucket, Key=NAMES_KEY, Body=body, ContentType="application/json")
+        except Exception as e:  # noqa: BLE001
+            print(f"WARNING: {NAMES_KEY} not written to s3://{args.bucket} ({e!r}); "
+                  f"the names are in {local} and will apply from there", file=sys.stderr)
         print(f"pushed {NAMES_KEY} ({len(names)} names) to s3://{args.bucket}/{NAMES_KEY}", file=sys.stderr)
     return 0
 

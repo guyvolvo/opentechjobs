@@ -139,6 +139,14 @@ nowhere, which is how 89% of listings came to show a bare domain.
     WantedBy=timers.target
     EOF
     sudo systemctl daemon-reload && sudo systemctl enable --now otj-names.timer
+
+The box's role (otj-box-experiment, inline policy primary-applier, not
+in terraform) also needs s3:PutObject on
+`arn:aws:s3:::<data-bucket>/company-names.json`, beside merge-status.json
+in the same statement. Without it the resolver's final put is refused
+and, until 2026-09-25, a whole batch was lost; it now writes
+`/var/lib/otj/company-names.json` first and the apply reads that, so a
+missing grant only delays the S3 sync. Granted by hand 2026-09-25.
     sudo systemctl start otj-snapshot.service
     sudo journalctl -u otj-snapshot -n 5 --no-pager
 
