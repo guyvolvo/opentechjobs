@@ -39,7 +39,7 @@ for (const [name, path] of PAGES) {
         issues.push(`http ${r.status()}: ${u.slice(0, 120)}`);
     });
     await page.addInitScript((t) => { try { localStorage.setItem("iljobs_theme", t); localStorage.setItem("iljobs_geo_asked", "1"); } catch {} }, theme);
-    const resp = await page.goto(BASE + path, { waitUntil: "networkidle", timeout: 45000 }).catch((e) => { issues.push(`goto: ${e.message.slice(0, 100)}`); return null; });
+    const resp = await page.goto(BASE + path, { waitUntil: "load", timeout: 45000 }).catch((e) => { issues.push(`goto: ${e.message.slice(0, 100)}`); return null; });
     if (theme === "dark") await page.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
     await page.waitForTimeout(1500);
     const facts = await page.evaluate((oldSrc) => {
