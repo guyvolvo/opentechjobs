@@ -25633,3 +25633,10 @@ jobtalentfrance.com
 keskosenukailithuania.com
 knowmadmood.com
 jvalle.net
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+itpmediagroup.com
+jovikonsultab.com
+tggaccounting.com
+intelligenesis.net
+pratumco.com
