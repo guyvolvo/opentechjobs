@@ -55,6 +55,7 @@ _ALLOWED_FILTER_KEYS = {
     "search", "q", "keywords", "ats", "company", "department", "seniority", "location", "country",
     "city", "workplace", "confidence", "israel_only", "include_closed", "include_outdated",
     "min_age_days", "max_age_days", "skills", "ids", "search_mode", "roles",
+    "salary_min", "salary_max", "salary_known",
 }
 
 # Best matches: how many days since posting cost one matched skill in the

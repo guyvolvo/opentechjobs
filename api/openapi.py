@@ -88,6 +88,11 @@ FILTER_PARAMS = [
     _q("include_outdated", "Set to 1 to include open postings older than 1 year (hidden by default)."),
     _q("min_age_days", "Filter listings by age in days.", schema={"type": "integer", "minimum": 0}),
     _q("max_age_days", "Filter listings by age in days.", schema={"type": "integer", "minimum": 0}),
+    _q("salary_min", "Lowest monthly gross salary in shekels. Keeps listings with no shekel figure "
+                     "unless salary_known=1.", schema={"type": "integer", "minimum": 0}),
+    _q("salary_max", "Highest monthly gross salary in shekels. Same rule as salary_min.",
+       schema={"type": "integer", "minimum": 0}),
+    _q("salary_known", "1 for only listings with a shekel salary figure.", schema={"type": "string", "enum": ["1"]}),
 ]
 
 PAGE_PARAMS = [

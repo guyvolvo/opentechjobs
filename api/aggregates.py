@@ -271,11 +271,56 @@ def compute_facets(conn, params: dict) -> dict:
         for c in companies:
             c["name"] = names.get(c["value"])
 
-    return {
+    out = {
         "categories": counts_by(category_sql(conn), "department", 20),
         "locations": location_tree(),
         "companies": companies,
     }
+    salary = salary_bounds(conn, params)
+    if salary:
+        out["salary"] = salary
+    return out
+
+
+def salary_bounds(conn, params: dict) -> dict:
+    """The shekel range the current result set occupies, for the board's
+    salary track: its ends, how many listings have a figure, and the
+    median of their midpoints.
+
+    Measured rather than fixed, and with the salary filter itself
+    dropped, so dragging a handle cannot walk the track out from under
+    the hand holding it. Every query carries salary_min_ils IS NOT NULL,
+    which is the partial index idx_jobs_salary_ils's own condition: the
+    walk is the few thousand rows with a figure, not the table. An empty
+    dict when the result set has none, so the board leaves the control
+    out instead of drawing one that cannot move.
+    """
+    if not has_fts_index(conn).salary_ils:
+        return {}
+    scoped = {k: v for k, v in params.items() if k not in ("salary_min", "salary_max", "salary_known")}
+    where_sql, args = build_jobs_where(scoped, has_fts_index(conn), has_places(conn))
+    mids = [r[0] for r in conn.execute(
+        f"SELECT (salary_min_ils + salary_max_ils) / 2.0 AS mid, salary_min_ils, salary_max_ils "
+        f"FROM jobs INDEXED BY idx_jobs_salary_ils "
+        f"WHERE salary_min_ils IS NOT NULL AND {where_sql} ORDER BY mid",
+        args,
+    ).fetchall()] if _has_salary_index(conn) else []
+    if not mids:
+        return {}
+    lo, hi = conn.execute(
+        f"SELECT MIN(salary_min_ils), MAX(salary_max_ils) FROM jobs INDEXED BY idx_jobs_salary_ils "
+        f"WHERE salary_min_ils IS NOT NULL AND {where_sql}", args).fetchone()
+    half = len(mids) // 2
+    median = mids[half] if len(mids) % 2 else (mids[half - 1] + mids[half]) / 2
+    return {"min": int(lo), "max": int(hi), "known": len(mids), "median": int(round(median))}
+
+
+def _has_salary_index(conn) -> bool:
+    # Only the box builds it (loader BOX_INDEXES). Without it the query
+    # would be a table scan per facet request, which is what took the
+    # board down once already, so no index means no salary facet.
+    return conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = 'idx_jobs_salary_ils'").fetchone() is not None
 
 
 COMPANY_SEARCH_LIMIT = 50

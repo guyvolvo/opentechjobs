@@ -231,11 +231,12 @@ class SnapshotCaps:
     claiming to search all of it. Not marked means not used.
     """
 
-    __slots__ = ("fts", "fts_full", "category_col", "posted_at_utc", "board_indexes")
+    __slots__ = ("fts", "fts_full", "category_col", "posted_at_utc", "board_indexes", "salary_ils")
 
     def __init__(self, fts: bool = False, fts_full: bool = False,
                  category_col: str | None = None, posted_at_utc: bool = False,
-                 board_indexes: bool = False):
+                 board_indexes: bool = False, salary_ils: bool = False):
+        self.salary_ils = salary_ils
         self.fts = fts
         self.fts_full = fts_full
         self.category_col = category_col
@@ -286,12 +287,13 @@ def _read_caps(conn) -> SnapshotCaps:
     # was, just answering more questions. The index's own CREATE text
     # says which columns it carries.
     try:
-        fts_sql, category, fts_complete, posted_at_utc, board_indexes = conn.execute(
+        fts_sql, category, fts_complete, posted_at_utc, board_indexes, salary_ils = conn.execute(
             "SELECT (SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'jobs_fts'),"
             " (SELECT COUNT(*) FROM pragma_table_info('jobs') WHERE name = 'category'),"
             " (SELECT value FROM meta WHERE key = 'fts_complete'),"
             " (SELECT value FROM meta WHERE key = 'posted_at_utc'),"
-            " (SELECT value FROM meta WHERE key = 'board_indexes')"
+            " (SELECT value FROM meta WHERE key = 'board_indexes'),"
+            " (SELECT COUNT(*) FROM pragma_table_info('jobs') WHERE name = 'salary_min_ils')"
         ).fetchone()
     except Exception:
         return SnapshotCaps()
@@ -302,6 +304,7 @@ def _read_caps(conn) -> SnapshotCaps:
         category_col="category" if category else None,
         posted_at_utc=posted_at_utc == "1",
         board_indexes=board_indexes == "1",
+        salary_ils=bool(salary_ils),
     )
 
 
@@ -927,4 +930,41 @@ def build_jobs_where(params: dict, has_fts=False,
         where.append("posted_at IS NOT NULL AND julianday('now') - julianday(posted_at) <= ?")
         args.append(int(max_age))
 
+    _add_salary_filter(where, args, params, caps)
+
     return " AND ".join(where), args
+
+
+def _add_salary_filter(where: list, args: list, params: dict, caps: "SnapshotCaps") -> None:
+    """salary_min / salary_max, in monthly gross shekels, plus salary_known.
+
+    Overlap, not containment: a listing at 30-40 answers a search for
+    35-50, because a reader asking for at least 35 would take that job.
+
+    A listing with no shekel figure stays while the handles move. Most
+    listings quote nothing, so a range that dropped them would answer a
+    nudge on one handle by deleting most of the board. salary_known=1 is
+    the separate control for the other behaviour.
+
+    Skipped on a snapshot without the columns: a filter ignored hands
+    back a wider answer, where naming a missing column hands back a 500.
+    """
+    if not caps.salary_ils:
+        return
+    known_only = bool_param(params, "salary_known")
+    if known_only:
+        where.append("salary_min_ils IS NOT NULL")
+
+    def bound(name: str, clause: str) -> None:
+        raw = params.get(name)
+        if not raw:
+            return
+        try:
+            value = int(float(raw))
+        except (TypeError, ValueError):
+            return
+        where.append(clause if known_only else f"({clause} OR salary_min_ils IS NULL)")
+        args.append(value)
+
+    bound("salary_min", "salary_max_ils >= ?")
+    bound("salary_max", "salary_min_ils <= ?")

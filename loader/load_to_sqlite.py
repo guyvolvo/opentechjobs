@@ -234,6 +234,10 @@ _NEW_COLUMNS = {
     "salary_text": "TEXT",
     "salary_is_estimate": "INTEGER NOT NULL DEFAULT 0",
     "salary_source": "TEXT",
+    # salary_text as two numbers, for the board's salary filter. Derived
+    # after the load by derive_salary_ranges, not through the upsert.
+    "salary_min_ils": "INTEGER",
+    "salary_max_ils": "INTEGER",
     # The tech-role verdict (api/role_class.py): tech, adjacent, non-tech
     # or unknown, its score, and the evidence it rests on. Filled by
     # classify_roles after every load, for rows still NULL.
@@ -1095,6 +1099,48 @@ def classify_roles(conn: sqlite3.Connection) -> int:
     return total
 
 
+def derive_salary_ranges(conn: sqlite3.Connection, domains=None) -> int:
+    """Refill salary_min_ils/salary_max_ils from salary_text.
+
+    Derived here rather than carried through upsert_job: salary_text
+    reaches a row through several ON CONFLICT branches that weigh a
+    disclosed figure against an estimate, and two more columns would
+    mean two more copies of that ladder kept in step by hand. The pair
+    is a function of salary_text alone, so it is computed from it after
+    the load has settled what it is.
+
+    `domains` narrows it to the companies this load touched, which is
+    what every apply passes: the whole table is a million rows and only
+    the touched ones can have changed. None walks everything, for a
+    backfill.
+    """
+    from salary_range import monthly_ils
+
+    def scoped(sql: str, extra: list) -> list:
+        if domains is None:
+            return [(sql, extra)]
+        ds = sorted(domains)
+        return [(f"{sql} AND company_domain IN ({','.join('?' * len(ds[i:i + 500]))})", extra + ds[i:i + 500])
+                for i in range(0, len(ds), 500)]
+
+    touched = 0
+    for sql, args in scoped(
+        "UPDATE jobs SET salary_min_ils = NULL, salary_max_ils = NULL "
+        "WHERE salary_min_ils IS NOT NULL AND (salary_text IS NULL OR salary_text NOT LIKE '%₪%')", []):
+        touched += conn.execute(sql, args).rowcount
+    rows = []
+    for sql, args in scoped("SELECT id, salary_text, salary_min_ils, salary_max_ils FROM jobs "
+                            "WHERE salary_text LIKE '%₪%'", []):
+        rows.extend(conn.execute(sql, args).fetchall())
+    written = []
+    for jid, text, old_lo, old_hi in rows:
+        parsed = monthly_ils(text) or (None, None)
+        if parsed != (old_lo, old_hi):
+            written.append((parsed[0], parsed[1], jid))
+    conn.executemany("UPDATE jobs SET salary_min_ils = ?, salary_max_ils = ? WHERE id = ?", written)
+    return touched + len(written)
+
+
 def classify_categories(conn: sqlite3.Connection) -> int:
     """Fill the category column for rows that have none yet. A whole
     snapshot the first time, a few hundred rows on every apply after."""
@@ -1132,6 +1178,12 @@ BOX_INDEXES = (
     " WHERE closed_at IS NULL AND confidence = 'verified'",
     "CREATE INDEX IF NOT EXISTS idx_jobs_open_category ON jobs(category, role_class, posted_at)"
     " WHERE closed_at IS NULL AND confidence = 'verified'",
+    # A few thousand rows, the only ones with a shekel figure. The salary
+    # facet's bounds and median read these and nothing else, so asking
+    # "what range does this result set occupy" walks a tiny index rather
+    # than the table. See aggregates.compute_facets.
+    "CREATE INDEX IF NOT EXISTS idx_jobs_salary_ils ON jobs(salary_min_ils, salary_max_ils)"
+    " WHERE salary_min_ils IS NOT NULL",
 )
 
 
@@ -1906,6 +1958,9 @@ def main() -> int:
             n_roles = classify_roles(conn)
             if n_roles:
                 print(f"role verdicts for {n_roles} rows", file=sys.stderr)
+            n_sal = derive_salary_ranges(conn, current_domains)
+            if n_sal:
+                print(f"shekel ranges for {n_sal} rows", file=sys.stderr)
             if args.box:
                 n_cat = classify_categories(conn)
                 if n_cat:
