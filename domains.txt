@@ -25685,3 +25685,13 @@ danielstarklaw.com
 spencebrothers.com
 xcaliburmp.com
 karimgroup.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+justlife.com
+yumingcharterschool.com
+acceleratedental.com
+environmentcontrolservicegroup.com
+fusemachines.com
+taberco.net
+wrgroup.com
+lcionline.com
