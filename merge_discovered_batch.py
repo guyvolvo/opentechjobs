@@ -60,6 +60,9 @@ from load_to_sqlite import s3_pull, s3_push  # noqa: E402
 QUEUE_PATH = ROOT / "pending-discovery-candidates.json"
 DOMAINS_PATH = ROOT / "domains.txt"
 
+PROBE_CHUNK = 20
+PROBE_DEADLINE_MIN = 1.25
+PROBE_CHUNK_TIMEOUT_S = 120
 BATCH_SIZE = 80  # was 40; doubled 2026-09-08 alongside the fast-poll's own memory/timeout bump, now that a real run has proven headroom (68% memory, 31% time) at the pre-bump scale
 BUDGET_FRACTION = 0.7  # don't merge more if the fast-poll is already using >70% of its budget
 FAST_POLL_TIMEOUT_S = 400  # matches infra/variables.tf's scrape_lambda_timeout_s
@@ -250,42 +253,46 @@ def main() -> int:
     # as any other company) on this company's own next shard rotation.
     # Paying for Comeet/Workday's extra per-job detail fetch here would
     # be pure waste now.
-    # A deadline inside the timeout, so a slow batch ends the probe on
-    # time with the rest handed back deferred, instead of the timeout
-    # killing it with nothing written. Found 2026-09-26: one batch of
-    # slow hosts hit the 400s wall, and because a failed run leaves the
-    # queue as it was, the next run picked up the same batch and failed
-    # the same way, every ten minutes, with discovery stopped behind it.
+    # In chunks, each with a deadline inside its own time limit. Found
+    # 2026-09-26: one batch of slow hosts hit the old single 400s wall,
+    # and because a failed run leaves the queue as it was, every run
+    # after picked up the same batch and failed the same way, with
+    # discovery stopped behind it. A deadline alone was not enough: it
+    # stops the probe starting new domains, and one host hung inside a
+    # request past the limit anyway. Now a chunk that overruns goes back
+    # in the queue by itself and the rest of the batch still merges.
+    # Four chunks of 20 at 120s each keep a run under the ten minutes
+    # between runs.
     data = []
-    if probe_domains:
+    requeue = set()
+    for i in range(0, len(probe_domains), PROBE_CHUNK):
+        chunk = probe_domains[i:i + PROBE_CHUNK]
         try:
             probe = subprocess.run(
-                [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(probe_domains), "--json",
-                 "--deadline-minutes", "5"],
-                capture_output=True, text=True, timeout=400,
+                [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(chunk), "--json",
+                 "--deadline-minutes", str(PROBE_DEADLINE_MIN)],
+                capture_output=True, text=True, timeout=PROBE_CHUNK_TIMEOUT_S,
             )
         except subprocess.TimeoutExpired:
-            # Past even the deadline: one host hung inside a request. The
-            # batch goes to the back of the queue rather than the front,
-            # so the next run moves on and this one gets another go later.
-            QUEUE_PATH.write_text(json.dumps(remaining + batch, indent=2, ensure_ascii=False), encoding="utf-8")
-            print(f"probe.py overran its 400s limit -- batch of {len(batch)} moved to the back of the queue",
-                  file=sys.stderr)
-            return 0
+            requeue.update(chunk)
+            print(f"  chunk of {len(chunk)} overran {PROBE_CHUNK_TIMEOUT_S}s, queued again at the back", file=sys.stderr)
+            continue
         if probe.stderr:
             print(probe.stderr, file=sys.stderr)
         if probe.returncode != 0:
-            print(f"probe.py exited {probe.returncode} -- batch NOT merged, queue left untouched", file=sys.stderr)
-            return 1
-        resolved_path.write_text(probe.stdout, encoding="utf-8")
-        data = json.loads(probe.stdout)
+            requeue.update(chunk)
+            print(f"  chunk of {len(chunk)}: probe.py exited {probe.returncode}, queued again at the back",
+                  file=sys.stderr)
+            continue
+        data.extend(json.loads(probe.stdout))
+    resolved_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
-    # What the deadline cut off comes back untried; queue it again, last.
-    deferred = {r["domain"] for r in data if not r.get("ats") and r.get("retryable")
-                and "deadline" in (r.get("error") or "")}
-    if deferred:
-        remaining = remaining + [c for c in batch if c["domain"] in deferred]
-        print(f"  {len(deferred)} not reached before the deadline, queued again at the back", file=sys.stderr)
+    # What a deadline cut off comes back untried; it goes to the back too.
+    requeue.update(r["domain"] for r in data if not r.get("ats") and r.get("retryable")
+                   and "deadline" in (r.get("error") or ""))
+    if requeue:
+        remaining = remaining + [c for c in batch if c["domain"] in requeue]
+        print(f"  {len(requeue)} not probed in time, queued again at the back", file=sys.stderr)
     hits = [r for r in data if r.get("ats")]
     hits.extend({"domain": c["domain"], "ats": "comeet", "token": c["token"]} for c in comeet_pins)
     print(f"{len(hits)}/{len(data) + len(comeet_pins)} resolved for real", file=sys.stderr)
