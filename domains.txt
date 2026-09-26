@@ -25658,3 +25658,12 @@ thepremiercollection.com
 vitalchemicalsusa.com
 nojokemarketing1f.com
 silver-fern.co
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+sixworks.com
+spectrumhealth.com
+terooputaurima.com
+terralabor.com
+thejpigroup.com
+advanced-nursing.com
+zg.com
