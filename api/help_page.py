@@ -67,7 +67,7 @@ HELP_HTML = """<!doctype html>
 </style>
 </head>
 <body>
-<nav class="api-bar" aria-label="Site"><a class="api-brand" href="/" aria-label="Ocean of Jobs home"><img src="/favicon.svg?v=3" width="22" height="22" alt="" />Ocean of Jobs</a><a href="/board">Jobs</a><a href="/stats">Statistics</a><a class="current" href="/api/help" aria-current="page">API</a></nav>
+<nav class="api-bar" aria-label="Site"><a class="api-brand" href="/" aria-label="Ocean of Jobs home"><img src="/favicon.svg?v=3" width="22" height="22" alt="" /></a><a href="/board">Jobs</a><a href="/stats">Statistics</a><a class="current" href="/api/help" aria-current="page">API</a></nav>
 <div id="swagger-ui"><noscript><div class="api-fallback">
   This reference is rendered from an OpenAPI document. With JavaScript off,
   read it directly: <a href="/api/openapi.json">/api/openapi.json</a>.
