@@ -1,5 +1,5 @@
 ---
-name: OpenTechJobs
+name: Ocean of Jobs
 description: Swiss-grid job board for the Israeli tech market, ground-truthed data, zero decoration, forest-green ink on neutral paper.
 colors:
   paper: "#f2f0ef"
@@ -158,7 +158,7 @@ components:
     padding: "6px 10px"
 ---
 
-# Design System: OpenTechJobs
+# Design System: Ocean of Jobs
 
 ## Overview
 

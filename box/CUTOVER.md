@@ -24,7 +24,7 @@ Lambda's snapshot, which is a safe place to sit and check things.
 
     # row parity against the live snapshot
     sqlite3 /var/lib/otj/jobs.db "select count(*) from jobs;"
-    curl -s https://opentechjobs.org/api/health | python3 -c "import sys,json;print(json.load(sys.stdin)['jobs_total'])"
+    curl -s https://oceanofjobs.com/api/health | python3 -c "import sys,json;print(json.load(sys.stdin)['jobs_total'])"
 
     # the two rehearsals, both green
     sudo -u ubuntu bash -c 'set -a; . /etc/otj-api.env; set +a; SNAPSHOT_KEY=backups/test-snapshot.db /srv/otj/venv/bin/python /srv/otj/app/box/publish_snapshot.py'
@@ -121,7 +121,7 @@ nowhere, which is how 89% of listings came to show a bare domain.
 
     sudo tee /etc/systemd/system/otj-names.service >/dev/null <<'EOF'
     [Unit]
-    Description=OpenTechJobs: resolve company names and stamp them on the box
+    Description=Ocean of Jobs: resolve company names and stamp them on the box
     [Service]
     Type=oneshot
     User=ubuntu
@@ -152,7 +152,7 @@ missing grant only delays the S3 sync. Granted by hand 2026-09-25.
 
 ## 5. Move the traffic
 
-A Cloudflare origin rule, on the `opentechjobs.org` zone. The paths the
+A Cloudflare origin rule, on the `oceanofjobs.com` zone. The paths the
 box serves:
 
     /api/*        except /api/auth/*
@@ -169,7 +169,7 @@ Excluding them is the whole reason this stays simple.
 
 Expression:
 
-    (http.host eq "opentechjobs.org" and
+    (http.host eq "oceanofjobs.com" and
      (starts_with(http.request.uri.path, "/api/") or
       starts_with(http.request.uri.path, "/job/") or
       starts_with(http.request.uri.path, "/company/")) and
@@ -180,7 +180,7 @@ Origin: `box.opentechjobs.org`.
 ## 6. Check
 
     for p in "/api/health" "/api/jobs?limit=5&roles=tech" "/api/jobs?limit=5&search=grpc" "/api/facets?country=IL" "/api/stats"; do
-      curl -s -o /dev/null -w "$p %{http_code} %{time_total}s\n" "https://opentechjobs.org$p&_=$RANDOM"
+      curl -s -o /dev/null -w "$p %{http_code} %{time_total}s\n" "https://oceanofjobs.com$p&_=$RANDOM"
     done
 
 `search=grpc` is the one to watch: it returns 0 on the Lambda stack and

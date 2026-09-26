@@ -67,7 +67,7 @@ t = alerts._digest_text(len(matches), matches, ALERT, NOW)
 
 # What the mail is not, which is most of what changed
 check("no mark, no wordmark, no ink rule over the headline",
-      "favicon-32.png" not in h and ">OpenTechJobs<" not in h and "border-bottom:2px solid" not in h)
+      "favicon-32.png" not in h and ">Ocean of Jobs<" not in h and "border-bottom:2px solid" not in h)
 check("no view-all links and no per-row Apply buttons", "View all" not in h and "Apply" not in h)
 check("no standing explanation and no pause link",
       "because you saved an alert" not in h and "Pause alert" not in h)
@@ -110,7 +110,7 @@ check("title and company lines size themselves to the script, the meta line does
 # The one button, and the footer
 board = alerts.board_url(ALERT)
 check("the board link carries the alert's own filters, empty ones dropped",
-      board == "https://opentechjobs.org/board?country=IL&department=Product&seniority=senior", board)
+      board == "https://oceanofjobs.com/board?country=IL&department=Product&seniority=senior", board)
 check("one button, ink on paper",
       h.count(f'href="{_html.escape(board)}"') == 1 and "background:#40513b; border-radius:4px" in h
       and ">See all jobs</a>" in h and "padding:11px 20px" in h)
@@ -151,7 +151,7 @@ check("text part marks the estimate and drops the rest", "Est. ₪30K – ₪40K
 # Singular, and an alert with no filter at all
 one = alerts._digest_html(1, matches[:1], {"filter": {}}, NOW)
 check("singular reads right", "1 new job for &ldquo;your alert&rdquo;" in one and "1 new role in your alert" in one)
-check("no filter means a bare board link", 'href="https://opentechjobs.org/board"' in one)
+check("no filter means a bare board link", 'href="https://oceanofjobs.com/board"' in one)
 check("israel_only still reads as Israel", alerts._filter_summary({"filter": {"israel_only": True}}) == ["Israel"]
       and alerts.alert_name({"filter": {"israel_only": True}}) == "Israel")
 

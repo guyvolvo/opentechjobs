@@ -25,7 +25,7 @@ endpoint, it was not on the page this replaces, and a documented mail
 sender is an invitation. It still works; it is simply not advertised.
 """
 
-SITE = "https://opentechjobs.org"
+SITE = "https://oceanofjobs.com"
 
 
 def _q(name, desc, example=None, schema=None):
@@ -473,7 +473,7 @@ def spec() -> dict:
     return {
         "openapi": "3.1.0",
         "info": {
-            "title": "OpenTechJobs API",
+            "title": "Ocean of Jobs API",
             "version": "1.0",
             "summary": "Every job, company and market figure on the board, as JSON.",
             "description": DESCRIPTION,

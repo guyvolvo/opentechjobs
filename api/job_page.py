@@ -36,7 +36,7 @@ from datetime import datetime, timedelta, timezone
 
 from countries import label_for
 
-SITE = "https://opentechjobs.org"
+SITE = "https://oceanofjobs.com"
 CARD = f"{SITE}/og-hills.jpg"
 EXPIRED_KEEP_DAYS = 30
 
@@ -308,7 +308,7 @@ def _head(title, description, canonical, robots=None, ld=None, og_type="article"
   <meta name="twitter:title" content="{esc(title)}" />
   <meta name="twitter:description" content="{esc(description)}" />
   <meta name="twitter:image" content="{CARD}" />
-  <link rel="alternate" type="application/rss+xml" title="OpenTechJobs newest listings" href="{SITE}/feed.xml" />
+  <link rel="alternate" type="application/rss+xml" title="Ocean of Jobs newest listings" href="{SITE}/feed.xml" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png" />
@@ -348,7 +348,7 @@ def render(job, now=None) -> str:
     # one line of ours a search result shows.
     city = (job.get("city") or "").split(",")[0].strip()
     where = f", {city}" if city else ""
-    title = f"{job.get('title', '').strip()} at {company}{where} | OpenTechJobs"
+    title = f"{job.get('title', '').strip()} at {company}{where} | Ocean of Jobs"
     closed = _parse(job.get("closed_at"))
     posted = _parse(job.get("posted_at")) or _parse(job.get("first_seen"))
     open_ = closed is None
@@ -417,7 +417,7 @@ def render(job, now=None) -> str:
 def render_missing(status: int, job_id: str) -> str:
     """The 404 and 410 pages: short, honest, noindex."""
     gone = status == 410
-    title = "Listing no longer available | OpenTechJobs" if gone else "Listing not found | OpenTechJobs"
+    title = "Listing no longer available | Ocean of Jobs" if gone else "Listing not found | Ocean of Jobs"
     what = ("This listing closed a while ago and the page has been retired."
             if gone else "There is no listing with this id. It may have been removed, or the link may be wrong.")
     head = _head(title, what, canonical_url(job_id), robots="noindex", og_type="website")

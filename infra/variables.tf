@@ -103,19 +103,19 @@ variable "scrape_maintenance_timeout_s" {
 variable "domain_name" {
   type        = string
   description = "Custom domain for the CloudFront distribution (site at /, API at /api/*). DNS lives in Cloudflare, not Terraform; see infra/acm.tf for the manual validation-record step."
-  default     = "opentechjobs.org"
+  default     = "oceanofjobs.com"
 }
 
 variable "legacy_domain_names" {
   type        = list(string)
   description = "The project's old domains. Each is a CloudFront alias whose every request the redirect Function answers with a 301 to domain_name, path and query intact, so old links and indexed pages land on the current address. Never used as SITE_ORIGIN or a sign-in callback."
-  default     = ["openmarket.guyvoloshin.com"]
+  default     = ["opentechjobs.org", "openmarket.guyvoloshin.com"]
 }
 
 variable "alias_domain_names" {
   type        = list(string)
   description = "Domains served as they are, without a redirect: the site answers on them exactly as on domain_name. For the step in a domain move where the new name must work before it becomes the canonical one. Also accepted as sign-in callbacks."
-  default     = ["oceanofjobs.com"]
+  default     = []
 }
 
 variable "box_origin_domain" {
@@ -134,7 +134,7 @@ variable "box_origin_domain" {
 variable "auth_domain_name" {
   type        = string
   description = "Hosted sign-in domain for the Cognito user pool. On our own domain rather than the free *.auth.<region>.amazoncognito.com one because Google's consent screen names the redirect URI's host: on the prefix domain it read \"to continue to iljobs-auth-876913698688.auth.il-central-1.amazoncognito.com\"."
-  default     = "auth.opentechjobs.org"
+  default     = "auth.oceanofjobs.com"
 }
 
 variable "google_client_id" {

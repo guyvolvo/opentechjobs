@@ -1,5 +1,5 @@
 """
-OpenTechJobs API. One Lambda behind CloudFront (/api/* routes here, see
+Ocean of Jobs API. One Lambda behind CloudFront (/api/* routes here, see
 infra/cloudfront.tf).
 
 No framework: a handful of routes over a small SQLite file plus a
@@ -981,7 +981,7 @@ def route_contact(body: dict) -> tuple[int, dict]:
             FromEmailAddress=CONTACT_FROM,
             Destination={"ToAddresses": [CONTACT_TO]},
             ReplyToAddresses=[email],
-            Content={"Simple": {"Subject": {"Data": f"opentechjobs.org contact: {name or email}"[:200]},
+            Content={"Simple": {"Subject": {"Data": f"oceanofjobs.com contact: {name or email}"[:200]},
                                 "Body": {"Text": {"Data": text}}}},
         )
     except Exception as e:

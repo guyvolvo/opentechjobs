@@ -13,4 +13,4 @@ Disallow: /api/
 User-agent: ShapBot
 Disallow: /
 
-Sitemap: https://opentechjobs.org/sitemap.xml
+Sitemap: https://oceanofjobs.com/sitemap.xml

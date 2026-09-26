@@ -188,7 +188,7 @@ def main() -> int:
 
     handler_cls = make_handler(args.db)
     server = ThreadingHTTPServer((args.host, args.port), handler_cls)
-    print(f"OpenTechJobs dev server: http://{args.host}:{args.port}/  (db: {args.db})")
+    print(f"Ocean of Jobs dev server: http://{args.host}:{args.port}/  (db: {args.db})")
     print("Ctrl+C to stop.")
     try:
         server.serve_forever()

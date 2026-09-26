@@ -282,7 +282,7 @@ COMEET_TOKEN_RES = [
 ]
 COMEET_POSITIONS = "https://www.comeet.com/careers-api/1.0/company/{uid}/positions?token={token}"
 
-SITE_ORIGIN = "https://opentechjobs.org"
+SITE_ORIGIN = "https://oceanofjobs.com"
 
 
 def fetch_cc_urls(url_pattern: str, max_pages: int, indexes=None) -> list[str]:

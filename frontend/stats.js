@@ -517,7 +517,7 @@ function exportCsv() {
   const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `opentechjobs-explore-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `oceanofjobs-explore-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   a.remove();
