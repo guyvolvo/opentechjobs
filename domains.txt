@@ -25705,3 +25705,12 @@ isales.ai
 salma.ai
 solarpro.co
 srichand.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+tumodo.io
+villagedental.com
+wbmelback.com
+kndsuk.com
+sentrynd.com
+tankjuice.com
+wecp.ai
