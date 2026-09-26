@@ -4323,15 +4323,14 @@ function railLocationSummary() {
 // move.
 // The disclosed option sits under the track, and stands on its own where
 // there is no track: outside Israel nothing is in shekels, but plenty of
-// employers state their pay.
+// employers state their pay. Always drawn, count and all, even at zero:
+// in Israel no employer discloses, and an option that vanished there
+// read as a feature that was never built rather than as that fact.
 function railSalaryHtml() {
-  const d = railFacets.salary_disclosed || 0;
-  const disclosed = d || state.salary_disclosed
-    ? railOptionHtml({
-        kind: "salary_disclosed", value: "1", label: "Salary disclosed",
-        n: d, checked: state.salary_disclosed,
-      })
-    : "";
+  const disclosed = railOptionHtml({
+    kind: "salary_disclosed", value: "1", label: "Salary disclosed",
+    n: railFacets.salary_disclosed || 0, checked: state.salary_disclosed,
+  });
   return railSalaryTrackHtml() + disclosed;
 }
 
