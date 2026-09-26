@@ -4563,8 +4563,15 @@ function railCommitRange(slider) {
   // would put salary_min in the URL of every visit that so much as
   // brushed the track, and would drop every listing that quotes nothing
   // the moment the reader also ticked "only with an estimate".
+  const wasSet = !!(state.salary_min || state.salary_max);
   state.salary_min = lo > min ? String(lo) : "";
   state.salary_max = hi < max ? String(hi) : "";
+  // Dragging a salary handle means "show me jobs that pay this", and a
+  // listing with no figure does not answer that. So the first move ticks
+  // Only with an estimate, where the reader can see it and untick it to
+  // bring the rest back. Reported live: a ₪32K-66K range still led with
+  // listings that quote nothing.
+  if (!wasSet && (state.salary_min || state.salary_max)) state.salary_known = true;
   railApply();
 }
 
