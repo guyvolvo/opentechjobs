@@ -2987,7 +2987,6 @@ function renderDetailEmpty() {
   const total = lastJobsResponse?.total;
   const hiring = (railFacets.companies || []).slice(0, 4);
   const remote = (railFacets.workplace || []).find((r) => r.value === "remote");
-  const salary = railFacets.salary;
 
   // Value first, label under it, and a tile is dropped rather than
   // shown holding a dash: a panel of em dashes says nothing four times.
@@ -3010,8 +3009,6 @@ function renderDetailEmpty() {
   // one; it was in the response and nowhere on the page.
   add(pending ? bone : scoped?.new_jobs_7d == null ? null : `+${fmtInt(scoped.new_jobs_7d)}`,
       "New this week", "ov-new");
-  add(salary?.median ? escapeHtml(fmtShekels(salary.median)) : railFacetsLoaded ? null : bone,
-      "Median estimate");
 
   // Search health. The loader's own last write, which is the one number
   // that says whether this is current. "Sources responding" is in the

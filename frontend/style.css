@@ -5572,26 +5572,21 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 /* Value first, label under it, in a 2x2 that shares its rules. A tile
    whose number we do not have is left out rather than shown holding a
    dash, so the grid can be 3 or 2 wide as easily as 4. */
+/* Four tiles, each its own box with a gap between, rather than one
+   box ruled into quarters. */
 .ov-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--grey-line);
-  border-radius: 4px;
-  overflow: hidden;
+  gap: 10px;
 }
 .ov-tile {
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  border-right: 1px solid var(--grey-line);
-  border-bottom: 1px solid var(--grey-line);
+  border: 1px solid var(--grey-line);
+  border-radius: 4px;
 }
-/* The right-hand tile of each pair and the bottom pair give up the rule
-   they would otherwise draw against the container's own border. */
-.ov-tile:nth-child(2n) { border-right: 0; }
-.ov-tile:nth-last-child(-n + 2):nth-child(2n + 1),
-.ov-tile:last-child { border-bottom: 0; }
 .ov-value {
   font: 400 28px/1 var(--font-display);
   color: var(--black);
