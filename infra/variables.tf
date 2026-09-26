@@ -106,10 +106,22 @@ variable "domain_name" {
   default     = "opentechjobs.org"
 }
 
-variable "legacy_domain_name" {
+variable "legacy_domain_names" {
+  type        = list(string)
+  description = "The project's old domains. Each is a CloudFront alias whose every request the redirect Function answers with a 301 to domain_name, path and query intact, so old links and indexed pages land on the current address. Never used as SITE_ORIGIN or a sign-in callback."
+  default     = ["openmarket.guyvoloshin.com"]
+}
+
+variable "alias_domain_names" {
+  type        = list(string)
+  description = "Domains served as they are, without a redirect: the site answers on them exactly as on domain_name. For the step in a domain move where the new name must work before it becomes the canonical one. Also accepted as sign-in callbacks."
+  default     = ["oceanofjobs.com"]
+}
+
+variable "box_origin_domain" {
   type        = string
-  description = "The project's old domain. Kept as a second CloudFront alias (see cloudfront.tf's redirect Function) so old links/bookmarks land on domain_name instead of 404ing -- never used as SITE_ORIGIN/callback URLs, those all point at domain_name only."
-  default     = "openmarket.guyvoloshin.com"
+  description = "The cloudflared tunnel's public hostname, CloudFront's origin for /api/*, /job/* and /company/*. Its own variable because it lives in the Cloudflare tunnel config and does not move when the site's domain does."
+  default     = "box.opentechjobs.org"
 }
 
 # Auth (Cognito). Google/GitHub credentials come from each provider's own

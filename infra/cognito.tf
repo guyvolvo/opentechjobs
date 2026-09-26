@@ -148,8 +148,8 @@ resource "aws_cognito_user_pool_client" "web" {
   # with no server-side routing, so any path other than "/" 404s at
   # CloudFront/S3 -- app.js checks location.search for ?code= on every
   # load instead of needing a second real page.
-  callback_urls = ["https://${var.domain_name}/"]
-  logout_urls   = ["https://${var.domain_name}/"]
+  callback_urls = [for d in concat([var.domain_name], var.alias_domain_names) : "https://${d}/"]
+  logout_urls   = [for d in concat([var.domain_name], var.alias_domain_names) : "https://${d}/"]
 
   access_token_validity  = 1
   id_token_validity      = 1

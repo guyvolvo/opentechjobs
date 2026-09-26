@@ -34,7 +34,7 @@ locals {
   # in the Cloudflare dashboard is scoped to http.host eq
   # "opentechjobs.org" for that reason, or a few CloudFront IPs would
   # look like one very busy client.
-  box_domain = "box.${var.domain_name}"
+  box_domain = var.box_origin_domain
 }
 
 # Two jobs, one function, because a behaviour gets exactly one
@@ -86,7 +86,7 @@ resource "aws_cloudfront_function" "not_found_status" {
 resource "aws_cloudfront_function" "legacy_domain_redirect" {
   name    = "${var.project_name}-legacy-domain-redirect"
   runtime = "cloudfront-js-2.0"
-  comment = "301 ${var.legacy_domain_name} -> ${var.domain_name}; pretty URLs"
+  comment = "301 old domains -> ${var.domain_name}; pretty URLs"
   publish = true
   code    = <<-EOT
     // request.querystring is a parsed object (same shape as headers),
@@ -142,7 +142,8 @@ resource "aws_cloudfront_function" "legacy_domain_redirect" {
     function handler(event) {
       var request = event.request;
       var host = request.headers.host && request.headers.host.value;
-      if (host === "${var.legacy_domain_name}") {
+      var LEGACY = ${jsonencode(var.legacy_domain_names)};
+      if (LEGACY.indexOf(host) !== -1) {
         return redirect("https://${var.domain_name}" + request.uri + queryOf(request));
       }
 
@@ -249,7 +250,7 @@ resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
   price_class         = "PriceClass_100" # NA+EU edge locations only, cheapest tier; fine for an IL-focused audience mostly browsing from IL/EU/US
-  aliases             = [var.domain_name, var.legacy_domain_name]
+  aliases             = concat([var.domain_name], var.legacy_domain_names, var.alias_domain_names)
 
   origin {
     domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
