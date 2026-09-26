@@ -26004,3 +26004,19 @@ iverpolska.com
 johnsenrekruttering-1724310330.com
 digitalbiology.org
 swingeducation.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+casium.com
+jitter.com
+praecipio.com
+vyn.io
+systemic.net
+bti.com
+gpvswitzerland.com
+prenosis.com
+playtestcloud.com
+podiumvictorie.com
+billhighway.com
+clothandflame.com
+deanadventurecamps.com
+educators4excellence.com
