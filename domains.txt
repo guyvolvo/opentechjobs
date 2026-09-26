@@ -26037,3 +26037,16 @@ solvoyo.com
 step-up.ai
 taylor.com
 thirdandgrove.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+cybernetic-controls.com
+absolutecollagen.com
+akpirg.org
+arcnm.io
+arielre.com
+beforg.com
+catalysteplus.org
+cece.com
+beggarsgroup.de
+codemettle.com
+cvsc.com
