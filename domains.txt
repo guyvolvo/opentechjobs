@@ -25640,3 +25640,11 @@ jovikonsultab.com
 tggaccounting.com
 intelligenesis.net
 pratumco.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+innovamat.com
+nudgeeducation.com
+rumble.org
+nera-services.fr
+sisd.net
+neolytix.com
