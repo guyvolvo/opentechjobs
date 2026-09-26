@@ -26020,3 +26020,11 @@ billhighway.com
 clothandflame.com
 deanadventurecamps.com
 educators4excellence.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+sagomini.com
+reveale0.com
+xcelhr.com
+catsci.com
+colman.io
+deca.com
