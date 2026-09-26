@@ -44,6 +44,7 @@ soft-404 HTML page served as apple-touch-icon.png cannot win.
 import hashlib
 import re
 import sys
+from pathlib import Path
 from html.parser import HTMLParser
 
 import requests
@@ -81,6 +82,7 @@ GOOGLE_PLACEHOLDER = (16, 16)
 #
 # The key is icon_fingerprint() of the body as Google serves it at sz=128.
 PLACEHOLDER_ICONS = {
+    "2dec4705e9ab399e": "Cloudflare's orange cloud on a parked domain (greeneking.org)",
     "c20af3aed3deab7c": "GoDaddy parked domain (102 domains)",
     "0e81a4f2798c5e8d": "parked domain, blue triangle (28)",
     "80dcf26cf6a6d55b": "parked domain, house (23)",
@@ -130,10 +132,12 @@ PLACEHOLDER_ICONS = {
 # These are paths that cannot belong to a company: a domain-sale
 # landing page's own branding, or a site builder's stock logo shipped
 # with an empty template.
-PLACEHOLDER_URL_RE = re.compile(
-    r"(sedoparking\.com|cdn\.domainmarket\.com|forsale\.spaceship-cdn\.com"
-    r"|parkingcrew\.net|afternic\.com|bodis\.com|wsimg\.com/.*logo-default)",
-    re.I)
+# The list lives in loader/placeholder_logos.py, shared with the loader,
+# which strips the same URLs whichever path wrote them.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "loader"))
+from placeholder_logos import PLACEHOLDER_URL_PARTS  # noqa: E402
+
+PLACEHOLDER_URL_RE = re.compile("|".join(re.escape(p) for p in PLACEHOLDER_URL_PARTS), re.I)
 
 # The same placeholders again, recognised by what they look like.
 #

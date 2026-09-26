@@ -457,6 +457,14 @@ window.rememberLogoStage = rememberLogoStage;
 // The cascade below remains for rows loaded before the column existed,
 // and for the panels that have a domain but no job record to read from.
 function companyLogoImg(domain, size, extraClass = "", resolved = null) {
+  // "" is the server saying there is no logo: the one it had was a
+  // parked domain's or a site builder's placeholder (see
+  // loader/placeholder_logos.py). Guessing from the domain would fetch
+  // that same placeholder, so it is the letter straight away.
+  if (resolved === "") {
+    const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
+    return `<img class="${cls}" src="${escapeHtml(monogramLogoSvg(domain))}" alt="" />`;
+  }
   if (resolved) {
     const cls = extraClass ? `company-logo ${extraClass}` : "company-logo";
     // Two fallbacks, not one. A resolved URL can fail for reasons the

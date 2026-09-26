@@ -1733,6 +1733,20 @@ def s3_push_conditional(bucket: str, key: str, src: Path, etag: str | None) -> b
     return True
 
 
+def clear_placeholder_logos(conn: sqlite3.Connection) -> int:
+    """Swap every placeholder logo for the no-logo marker, whichever
+    path wrote it: the logo file, or discovery's own upsert. Twenty
+    thousand rows against a short list of LIKEs, so it runs every apply.
+    See placeholder_logos.py for the list and why NO_LOGO is not NULL."""
+    from placeholder_logos import NO_LOGO, PLACEHOLDER_URL_PARTS
+
+    where = " OR ".join("logo_url LIKE ?" for _ in PLACEHOLDER_URL_PARTS)
+    return conn.execute(
+        f"UPDATE companies SET logo_url = ? WHERE logo_url IS NOT NULL AND logo_url <> '' AND ({where})",
+        [NO_LOGO, *(f"%{p}%" for p in PLACEHOLDER_URL_PARTS)],
+    ).rowcount
+
+
 def apply_company_logos(conn: sqlite3.Connection, path: Path) -> int:
     """Stamp each company's resolved logo onto the snapshot.
 
@@ -2005,6 +2019,9 @@ def main() -> int:
             if args.logos:
                 n_logos = apply_company_logos(conn, args.logos)
                 print(f"logos: {n_logos} companies carry one", file=sys.stderr)
+            n_ph = clear_placeholder_logos(conn)
+            if n_ph:
+                print(f"logos: {n_ph} placeholders cleared", file=sys.stderr)
             # Never fatal. Filling a derived column is a nicety; the
             # merge publishing at all is not, and the first version of
             # this took the merge down with it.

@@ -74,7 +74,7 @@ LOGOS_KEY = "company-logos.json"
 # identical mark at a size no fingerprint had seen. company_logo.py now
 # compares what the picture looks like rather than only its bytes, and
 # everything accepted under 3 has to be looked at through that.
-LOGO_CHECK_VERSION = 4
+LOGO_CHECK_VERSION = 5  # 5: loader/placeholder_logos.py and the parked-domain Cloudflare icon (2026-09-26)
 
 # See referral_boards.py. referralsuseonly.com is not a website, so every
 # logo path that starts from the domain is looking somewhere that does
