@@ -4730,19 +4730,18 @@ a.hero-account-btn { text-decoration: none; }
   margin: 0;
   height: 30px;
   padding: 0 9px;
-  /* Filled rather than outlined: a chip is a filter that is on, and the
-     row fill is the same green the rail marks a ticked option with, so
-     the two places a filter shows up agree. */
-  border: 1px solid var(--green-text);
+  /* Ink on nothing: a hairline and text in the theme's own ink, black
+     on light and white on dark, no fill and no green. */
+  border: 1px solid var(--black);
   border-radius: 4px;
-  background: var(--row-selected);
+  background: none;
   color: var(--black);
   font: 400 13px var(--font-ui);
   text-transform: none;
   letter-spacing: normal;
   cursor: pointer;
 }
-.active-chips .chip:hover { background: var(--black); border-color: var(--black); color: var(--white); }
+.active-chips .chip:hover .chip-label { text-decoration: underline; text-underline-offset: 3px; }
 .active-chips .chip:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
 .active-chips .chip-label { max-width: 20ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip-x { flex: 0 0 auto; opacity: 0.6; }
@@ -5368,21 +5367,21 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .job-chip.skill { cursor: pointer; }
 .job-chip.skill:hover { border-color: var(--black); color: var(--black); }
 .job-chip.skill:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
-/* The one number on the row worth colour, and now the only green on it:
-   the age gave its green up so nothing competes. The green outline is on
-   both kinds; the fill is what says the employer published this figure
-   rather than us estimating it.
-   4px to the right on top of the chip line's 6px gap, so the number
-   stands off the skills instead of reading as the first of them. */
+/* The salary reads as text in the theme's ink, black on light and white
+   on dark, with no outline and no fill: weight is what sets it apart
+   from the skills beside it. No left padding, since without a border it
+   would read as an indent. 4px to the right on top of the chip line's
+   6px gap, so it stands off the skills. */
 .job-chip.salary {
-  border-color: var(--green-text);
-  color: var(--green-text);
+  border-color: transparent;
+  padding-left: 0;
+  background: none;
+  color: var(--black);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   margin-right: 4px;
 }
-.job-chip.salary[data-salary-source="disclosed"] { background: var(--salary-fill); }
-.job-chip.salary .salary-range { color: var(--green-text); font-variant-numeric: tabular-nums; }
+.job-chip.salary .salary-range { color: var(--black); font-variant-numeric: tabular-nums; }
 /* "Est." is the qualifier, not part of the figure, so it stays in the
    row's own text colour at the row's own weight. */
 .job-chip.salary .salary-est-label { color: var(--black); font-weight: 400; }
