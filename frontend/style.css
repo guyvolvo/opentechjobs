@@ -6199,7 +6199,16 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
 .topbar-name { font: 400 16px/1 var(--font-display); letter-spacing: -0.01em; white-space: nowrap; }
 /* The board's bar carries the search in its middle column; below this
    width the name gives its room back and the mark stands alone. */
-@media (max-width: 1279px) { .topbar-board .topbar-name { display: none; } }
+@media (min-width: 641px) and (max-width: 1279px) { .topbar-board .topbar-name { display: none; } }
+/* On a phone the menu button (mobile_nav.js) lists Jobs, Statistics and
+   API, so the inline links give up their place beside the brand. Pages
+   without that menu (a listing, an employer) keep them. */
+@media (max-width: 640px) {
+  .topbar .container:has(.hero-nav-toggle) .topbar-left .topbar-nav { display: none; }
+  /* Each page's bar spaced its items its own way (12, 16 or 24px), so
+     the brand started somewhere different on every page. One gap. */
+  .topbar .container:has(.hero-nav-toggle) { column-gap: 14px; }
+}
 .topbar-mark img { display: block; width: 22px; height: 22px; border-radius: 5px; }
 .topbar-mark:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 5px; }
 .topbar-gap { flex: 1; }
