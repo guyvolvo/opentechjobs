@@ -26028,3 +26028,12 @@ xcelhr.com
 catsci.com
 colman.io
 deca.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+pave.com
+quotefactory.com
+sleepres-inc.com
+solvoyo.com
+step-up.ai
+taylor.com
+thirdandgrove.com
