@@ -25772,3 +25772,16 @@ wolla.org
 xccelerated.io
 jusubrothers.com
 bluestone.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+hainmueller.com
+translated.com
+skypoint.com
+senecahealth.org
+smch.net
+svante.net
+therawest.net
+toonboom.com
+torrero.com
+transparentbpo.com
+universalhomeservices.com
