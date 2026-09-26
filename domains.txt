@@ -26103,3 +26103,25 @@ visterrainc.com
 wastelogic.com
 walkertapeco.com
 wearedobi.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+wambi.org
+wcscanada.com
+wilan.com
+weseedchange.org
+wobbleworks.com
+worthwhile.com
+tvc.org
+wwhf.org
+wyo.co
+wildplay.io
+viind.com
+vlp.org
+zfbkk.de
+advisensefinland.com
+batterseaartscentre-1747837251.com
+holvi.com
+jobblyftet.com
+keeperab.com
+varnish-software.com
+seenconnects.com
