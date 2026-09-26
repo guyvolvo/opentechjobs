@@ -25735,3 +25735,14 @@ triotech.com
 virtualpeace.org
 videoslots.com
 wks.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+ppmi.net
+searpdc.org
+simpcwresourcesgroup.com
+smsenvironmental.com
+transoftsolutions.com
+externalia.com
+itracing.net
+precoro.com
+tereos.com
