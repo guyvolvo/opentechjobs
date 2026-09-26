@@ -25724,3 +25724,14 @@ u1sports.com
 twinoakscabinets.com
 wtpartnership.com
 kierratyskeskus.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+strategices.com
+studcosystems.com
+taylordesign.com
+therapeuticfocus.com
+thesheetsociety.com
+triotech.com
+virtualpeace.org
+videoslots.com
+wks.com
