@@ -25794,3 +25794,14 @@ walesmclelland.com
 windenergyoftexas.com
 kmpro.org
 allthingshr.org
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+smithfieldri.com
+terasakiinstitute.com
+tmsfinancial.com
+urbanfamilybrewing.com
+vuehealth.com
+watersconst.com
+wildridge.ai
+wonderacademy.net
+yuppiechef.com
