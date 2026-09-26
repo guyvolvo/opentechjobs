@@ -309,9 +309,9 @@ def _head(title, description, canonical, robots=None, ld=None, og_type="article"
   <meta name="twitter:description" content="{esc(description)}" />
   <meta name="twitter:image" content="{CARD}" />
   <link rel="alternate" type="application/rss+xml" title="Ocean of Jobs newest listings" href="{SITE}/feed.xml" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=3" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png?v=3" />
   <link rel="stylesheet" href="/style.css" />
 {ld_tag}  <script>
     if (localStorage.getItem("iljobs_theme") === "dark") {{
@@ -325,7 +325,7 @@ def _head(title, description, canonical, robots=None, ld=None, og_type="article"
 TOPBAR = """<body class="job-page-body">
   <div class="topbar">
     <div class="container">
-      <nav class="topbar-nav"><a class="link" href="/board">Browse all jobs</a></nav>
+      <div class="topbar-left"><a class="topbar-mark" href="/" aria-label="Ocean of Jobs home"><img src="/favicon.svg?v=3" width="22" height="22" alt="" /><span class="topbar-name">Ocean of Jobs</span></a><nav class="topbar-nav" aria-label="Site"><a href="/board">Jobs</a><a href="/stats">Statistics</a><a href="/api/help">API</a></nav></div>
     </div>
   </div>
 """

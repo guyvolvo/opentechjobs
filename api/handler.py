@@ -135,8 +135,13 @@ def route_company_page(domain: str):
     conn = get_connection()
     ccols = {r[1] for r in conn.execute("PRAGMA table_info(companies)")}
     pick = ", ".join(c for c in ("domain", "ats", "error", "first_seen", "company_name", "logo_url") if c in ccols)
-    row = conn.execute(f"SELECT {pick} FROM companies WHERE domain = ?", (domain,)).fetchone()
+    # NOCASE: a handful of domains are stored with capitals
+    # (ServiceNow.com, 642 open jobs), and the URL is lowercased above,
+    # so an exact match 404'd every one of them.
+    row = conn.execute(f"SELECT {pick} FROM companies WHERE domain = ? COLLATE NOCASE", (domain,)).fetchone()
     company = dict(row) if row else None
+    if company:
+        domain = company["domain"]
     status = company_page.status_for(company)
     if status == 404:
         return _html_response(404, company_page.render_missing(domain), cache_seconds=60,

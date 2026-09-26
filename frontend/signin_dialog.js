@@ -18,7 +18,7 @@ function openSignIn() {
   wrap.innerHTML = `
     <div class="signin-dialog" role="dialog" aria-modal="true" aria-labelledby="signin-title">
       <div class="signin-dialog-head">
-        <h2 class="account-block-title" id="signin-title">Sign in</h2>
+        <h2 class="account-block-title" id="signin-title">Log in</h2>
         <button type="button" class="signin-close" id="signin-close" aria-label="Close">&times;</button>
       </div>
       <button class="auth-provider-btn" id="signin-google" type="button">

@@ -4665,8 +4665,16 @@ a.hero-account-btn { text-decoration: none; }
   margin-bottom: 18px;
   font-size: 13px;
 }
-.job-page .job-detail-meta-row { font-size: 13px; }
-.job-page .job-detail-meta-row .label { font-size: 13px; }
+.job-page .job-detail-meta-row {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--grey-line);
+  font-size: 13px;
+}
+.job-page .job-detail-meta-row .label { font-size: 13px; color: var(--grey); }
+@media (max-width: 640px) { .job-page .job-detail-meta-row { grid-template-columns: 7rem minmax(0, 1fr); } }
 .job-page .job-detail-description-title { font-size: 13px; margin-top: 8px; }
 .job-page-description { white-space: normal; font-size: 14px; line-height: 1.6; }
 .job-page-description h3 { font-size: 14px; margin: 18px 0 6px; }
@@ -6187,7 +6195,11 @@ a.job-company:hover { color: var(--green-text); text-decoration: underline; }
    the far end of the column, away from the mark. */
 .topbar-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
 .topbar-left .topbar-nav { margin-left: 0; }
-.topbar-mark { display: inline-flex; flex: none; line-height: 0; }
+.topbar-mark { display: inline-flex; align-items: center; gap: 8px; flex: none; line-height: 0; color: var(--black); text-decoration: none; }
+.topbar-name { font: 400 16px/1 var(--font-display); letter-spacing: -0.01em; white-space: nowrap; }
+/* The board's bar carries the search in its middle column; below this
+   width the name gives its room back and the mark stands alone. */
+@media (max-width: 1279px) { .topbar-board .topbar-name { display: none; } }
 .topbar-mark img { display: block; width: 22px; height: 22px; border-radius: 5px; }
 .topbar-mark:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 5px; }
 .topbar-gap { flex: 1; }

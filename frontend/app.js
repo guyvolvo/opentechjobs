@@ -5626,7 +5626,7 @@ function renderAuthState() {
     // This used to be a panel hanging under the button: the same four
     // controls in a different shape and a different place, which is two
     // implementations of one screen.
-    area.innerHTML = '<button class="auth-trigger" id="auth-trigger" type="button">Sign in</button>';
+    area.innerHTML = '<button class="auth-trigger" id="auth-trigger" type="button">Log in</button>';
     document.getElementById("auth-trigger").addEventListener("click", () => window.openSignIn());
     return;
   }
