@@ -25995,3 +25995,12 @@ webreality.com
 zelp.co
 amnesty-international.net
 ic-berlin.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+special.co
+itm8cz-1736947316.com
+iwow.ai
+iverpolska.com
+johnsenrekruttering-1724310330.com
+digitalbiology.org
+swingeducation.com
