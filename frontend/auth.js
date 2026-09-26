@@ -39,7 +39,7 @@ function setAuthErrorSink(fn) { authErrorSink = fn; }
 // one: Google's consent screen shows the reader the host of the
 // redirect URI. Must match infra/cognito.tf's user pool domain, and
 // changing one without the other takes Google and GitHub sign-in down.
-const COGNITO_DOMAIN = "auth.opentechjobs.org";
+const COGNITO_DOMAIN = "auth.oceanofjobs.com";
 const COGNITO_REGION = "il-central-1";
 const COGNITO_CLIENT_ID = "5021pv23cp3udp1uaq34tp38mb";
 // OAuth client IDs aren't secret, safe to ship in frontend JS same as

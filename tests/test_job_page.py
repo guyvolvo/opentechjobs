@@ -54,8 +54,8 @@ def ld_of(page):
 # An open Israeli job.
 p = job_page.render(job(), NOW)
 check("open job is 200", job_page.status_for(job(), NOW) == 200)
-check("title names the job, the company and the city", "<title>Senior Software Engineer at Wix, Tel Aviv | OpenTechJobs</title>" in p)
-check("canonical is the job's own page", '<link rel="canonical" href="https://opentechjobs.org/job/b561172d4d0ff1d6" />' in p)
+check("title names the job, the company and the city", "<title>Senior Software Engineer at Wix, Tel Aviv | Ocean of Jobs</title>" in p)
+check("canonical is the job's own page", '<link rel="canonical" href="https://oceanofjobs.com/job/b561172d4d0ff1d6" />' in p)
 check("no robots restriction on an open job", 'name="robots"' not in p)
 check("the visible page has the title, company, place and apply link",
       all(s in p for s in ("<h1 class=\"job-page-title\">Senior Software Engineer</h1>", ">Wix<", "Tel Aviv, Israel",
@@ -70,7 +70,7 @@ ld = ld_of(p)
 check("JobPosting markup is present and parses", ld is not None and ld.get("@type") == "JobPosting", repr(ld)[:120])
 check("markup says the same title, org, date and url as the page",
       ld["title"] == "Senior Software Engineer" and ld["hiringOrganization"]["name"] == "Wix"
-      and ld["datePosted"] == "2026-09-17" and ld["url"] == "https://opentechjobs.org/job/b561172d4d0ff1d6", repr(ld))
+      and ld["datePosted"] == "2026-09-17" and ld["url"] == "https://oceanofjobs.com/job/b561172d4d0ff1d6", repr(ld))
 check("location is the derived city and country",
       ld["jobLocation"]["address"] == {"@type": "PostalAddress", "addressLocality": "Tel Aviv", "addressCountry": "IL"},
       repr(ld.get("jobLocation")))

@@ -109,7 +109,7 @@ def meta_description(company, jobs, facts) -> str:
     name = company_label(company)
     n = len(jobs)
     if not n:
-        return f"{name} has no open roles on OpenTechJobs right now. The board has listed {facts['total']} of its roles since {facts['since']}."
+        return f"{name} has no open roles on Ocean of Jobs right now. The board has listed {facts['total']} of its roles since {facts['since']}."
     places = _places(jobs)
     where = f" in {_join(places, 3)}" if places else ""
     titles = _join([j.get("title", "").strip() for j in jobs[:3] if j.get("title")], 3)
@@ -153,8 +153,8 @@ def render(company, jobs, facts, now=None) -> str:
     name = company_label(company)
     domain = company.get("domain") or ""
     n = len(jobs)
-    title = (f"{name} jobs: {n} open {'role' if n == 1 else 'roles'} | OpenTechJobs" if n
-             else f"{name} jobs | OpenTechJobs")
+    title = (f"{name} jobs: {n} open {'role' if n == 1 else 'roles'} | Ocean of Jobs" if n
+             else f"{name} jobs | Ocean of Jobs")
     desc = meta_description(company, jobs, facts)
     head = _head(title, desc, canonical_url(domain), robots=None if n else "noindex,follow",
                  ld=json_ld(company, jobs), og_type="website")
@@ -234,7 +234,7 @@ def render_redirect(target: str) -> str:
 
 
 def render_missing(domain: str) -> str:
-    title = "Company not found | OpenTechJobs"
+    title = "Company not found | Ocean of Jobs"
     what = "The board does not track a company at this address. It may be spelled differently, or it may not have a careers page we can read."
     head = _head(title, what, canonical_url(domain), robots="noindex", og_type="website")
     return head + f"""{TOPBAR}

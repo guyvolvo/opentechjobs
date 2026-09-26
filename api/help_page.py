@@ -29,8 +29,8 @@ HELP_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>API Reference — OpenTechJobs.org</title>
-<meta name="description" content="Public JSON API for every job, company and market figure on OpenTechJobs: search, filter, statistics and account routes." />
+<title>API Reference — OceanOfJobs.com</title>
+<meta name="description" content="Public JSON API for every job, company and market figure on Ocean of Jobs: search, filter, statistics and account routes." />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />
 <style>

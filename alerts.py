@@ -33,7 +33,7 @@ from profile import DIGEST_DAY, DIGEST_TIME, DIGEST_TZ, PROFILE_ID
 
 ALERTS_TABLE = os.environ.get("ALERTS_TABLE")
 FROM_EMAIL = os.environ.get("ALERTS_FROM_EMAIL", "alerts@guyvoloshin.com")
-SITE_ORIGIN = os.environ.get("SITE_ORIGIN", "https://opentechjobs.org")
+SITE_ORIGIN = os.environ.get("SITE_ORIGIN", "https://oceanofjobs.com")
 
 _dynamodb = boto3.resource("dynamodb")
 _ses = boto3.client("sesv2")
@@ -282,7 +282,7 @@ def _send_digest(alert: dict, matches: list[dict]) -> None:
         # shows "LinkedIn Job Alerts", and the subject no longer has to
         # say where the mail came from, which leaves it free to say what
         # is in it.
-        FromEmailAddress=FROM_EMAIL if "<" in FROM_EMAIL else f"OpenTechJobs <{FROM_EMAIL}>",
+        FromEmailAddress=FROM_EMAIL if "<" in FROM_EMAIL else f"Ocean of Jobs <{FROM_EMAIL}>",
         Destination={"ToAddresses": [to_email]},
         Content={
             "Simple": {

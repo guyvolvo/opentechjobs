@@ -50,8 +50,8 @@ def ld_of(page):
 
 p = company_page.render(WIX, jobs, facts, NOW)
 check("a tracked company is 200", company_page.status_for(WIX) == 200)
-check("title is the query: '<name> jobs', with the open count", "<title>Wix jobs: 4 open roles | OpenTechJobs</title>" in p)
-check("canonical is the company's own page", '<link rel="canonical" href="https://opentechjobs.org/company/wix.com" />' in p)
+check("title is the query: '<name> jobs', with the open count", "<title>Wix jobs: 4 open roles | Ocean of Jobs</title>" in p)
+check("canonical is the company's own page", '<link rel="canonical" href="https://oceanofjobs.com/company/wix.com" />' in p)
 check("indexable while it has an open role", 'name="robots"' not in p)
 check("h1 and the summary say what the page is",
       '<h1 class="job-page-title">Wix jobs</h1>' in p and "4 open roles in Tel Aviv, Berlin" in p)
@@ -72,14 +72,14 @@ ld = ld_of(p)
 check("markup: a CollectionPage about the Organization, listing the job pages",
       ld and ld["@type"] == "CollectionPage" and ld["about"]["@type"] == "Organization" and ld["about"]["url"] == "https://wix.com"
       and ld["about"]["logo"] == "https://wix.com/favicon.png" and ld["mainEntity"]["numberOfItems"] == 4
-      and ld["mainEntity"]["itemListElement"][0]["url"] == "https://opentechjobs.org/job/id01", repr(ld)[:300])
-check("the shared head and foot are the listing page's", 'class="job-page-body"' in p and 'href="https://opentechjobs.org/feed.xml"' in p and "Browse the board" in p)
+      and ld["mainEntity"]["itemListElement"][0]["url"] == "https://oceanofjobs.com/job/id01", repr(ld)[:300])
+check("the shared head and foot are the listing page's", 'class="job-page-body"' in p and 'href="https://oceanofjobs.com/feed.xml"' in p and "Browse the board" in p)
 
 # Nothing open: the page stays, says so, and is not for the index.
 e = company_page.render(WIX, [], {"total": 412, "since": "2025-11-03", "last_open": ago(40)}, NOW)
 check("no open roles: 200, noindex, and the page says when the last one closed",
       company_page.status_for(WIX) == 200 and '<meta name="robots" content="noindex,follow" />' in e
-      and "<title>Wix jobs | OpenTechJobs</title>" in e and "The last one closed 1 month ago." in e)
+      and "<title>Wix jobs | Ocean of Jobs</title>" in e and "The last one closed 1 month ago." in e)
 check("its markup carries no empty list", "mainEntity" not in (ld_of(e) or {}))
 
 # Aliases redirect to the one page.
@@ -88,7 +88,7 @@ check("a demoted alias is a 301 to the real domain",
       company_page.status_for(alias) == 301 and company_page.redirect_target(alias) == "wix.com")
 same = {"domain": "sentinelone.com", "ats": "greenhouse", "error": None}
 check("a same_company duplicate redirects too", company_page.redirect_target(same) == "sentinellabs.io")
-check("the redirect body names the target", 'href="https://opentechjobs.org/company/wix.com"' in company_page.render_redirect("wix.com"))
+check("the redirect body names the target", 'href="https://oceanofjobs.com/company/wix.com"' in company_page.render_redirect("wix.com"))
 
 # Unknown and malformed.
 check("unknown is 404", company_page.status_for(None) == 404)

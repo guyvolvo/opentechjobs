@@ -44,7 +44,7 @@ check("a real message is sent once, from the alerts sender, to the contact addre
       and ses.sent[0]["Destination"] == {"ToAddresses": [handler.CONTACT_TO]} and ses.sent[0]["ReplyToAddresses"] == ["dana@example.com"], repr((status, body)))
 mail = ses.sent[0]["Content"]["Simple"]
 check("the subject names the sender and the body carries name, address and message",
-      mail["Subject"]["Data"] == "opentechjobs.org contact: Dana" and "Dana <dana@example.com>" in mail["Body"]["Text"]["Data"]
+      mail["Subject"]["Data"] == "oceanofjobs.com contact: Dana" and "Dana <dana@example.com>" in mail["Body"]["Text"]["Data"]
       and "run a board too" in mail["Body"]["Text"]["Data"])
 
 status, body = handler.route_contact({"email": "x", "message": "long enough message here"})

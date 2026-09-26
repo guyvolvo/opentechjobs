@@ -40,7 +40,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from probe import _ROLE_CATEGORY_RULES, _estimate_salary, IL_KEYWORDS  # noqa: E402
 from salary_model import SalaryModel, parse_disclosed  # noqa: E402
 
-API = "https://opentechjobs.org/api/jobs"
+API = "https://oceanofjobs.com/api/jobs"
 
 
 def fetch(pages: int, per_page: int = 500) -> list[dict]:
@@ -48,7 +48,7 @@ def fetch(pages: int, per_page: int = 500) -> list[dict]:
     the sample isn't just the newest listings.
     """
     def get(url):
-        req = urllib.request.Request(url, headers={"User-Agent": "opentechjobs-salary-eval/1.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": "oceanofjobs-salary-eval/1.0"})
         with urllib.request.urlopen(req, timeout=120) as r:
             return json.load(r)
 

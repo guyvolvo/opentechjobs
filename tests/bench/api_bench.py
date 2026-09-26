@@ -1,6 +1,6 @@
 """Time the same API URLs against two origins, cache-busted, median of N.
 
-    python tests/bench/api_bench.py https://opentechjobs.org http://box:8000
+    python tests/bench/api_bench.py https://oceanofjobs.com http://box:8000
 
 Each request carries a unique `_` query parameter so no edge or browser
 cache answers it: the number is the origin's own. Prints one row per

@@ -74,7 +74,7 @@ import requests
 
 TIMEOUT = 12
 WORKERS = 12
-UA = "Mozilla/5.0 (compatible; OpenTechJobs/1.0; +https://opentechjobs.org)"
+UA = "Mozilla/5.0 (compatible; Ocean of Jobs/1.0; +https://oceanofjobs.com)"
 
 NAMES_KEY = "company-names.json"
 

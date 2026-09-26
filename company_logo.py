@@ -63,7 +63,7 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 # which fell through to a lettered square. Found live from a screenshot
 # where the list showed a monogram and the detail drawer, which had no
 # resolved URL and so guessed, showed the real logo.
-ORIGIN = "https://opentechjobs.org"
+ORIGIN = "https://oceanofjobs.com"
 
 # Google answers 200 for a domain it has nothing for, with a generic
 # globe that is always exactly this size whatever sz you ask for.

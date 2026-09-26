@@ -49,7 +49,7 @@ sys.path.insert(0, str(_ROOT / "api"))
 
 from job_filters import FRESH_CLAUSE  # noqa: E402
 
-SITE = "https://opentechjobs.org"
+SITE = "https://oceanofjobs.com"
 SHARD = 40_000
 FEED_ITEMS = 100
 MAX_AGE_S = 3600
@@ -191,10 +191,10 @@ def feed(conn: sqlite3.Connection, now: datetime) -> str:
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n'
             "  <channel>\n"
-            "    <title>OpenTechJobs newest listings</title>\n"
+            "    <title>Ocean of Jobs newest listings</title>\n"
             f"    <link>{SITE}/board</link>\n"
             f'    <atom:link href="{SITE}/feed.xml" rel="self" type="application/rss+xml" />\n'
-            "    <description>The newest listings on OpenTechJobs.org, the open-source job board.</description>\n"
+            "    <description>The newest listings on OceanOfJobs.com, the open-source job board.</description>\n"
             "    <language>en</language>\n"
             f"    <lastBuildDate>{built}</lastBuildDate>\n"
             + "".join(items)
