@@ -25939,3 +25939,8 @@ telstarmediagroep.com
 columnfive.com
 cloudnonic.com
 cowrywise.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+algomus.fr
+canadasoccer.com
+fairmontschool.com
