@@ -25919,3 +25919,13 @@ wildsun.com
 wilsonvillefamilyfuncenter.com
 wrjdesign.com
 ywcamadison.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+breuer.ai
+internations.org
+windesign.io
+windotec.com
+joy.io
+al-barakah-investment-holding-company.com
+freckle.com
+kalibrilabs.com
