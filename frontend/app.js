@@ -4090,13 +4090,81 @@ document.addEventListener("click", () => OPEN_MULTISELECTS.forEach((closeOther) 
 // then what kind of work, then how senior, then how it is worked, then
 // who, then what it pays.
 const RAIL_GROUPS = [
-  { key: "location", title: "Location", kind: "tree", search: "Add a country or city" },
-  { key: "department", title: "Categories", kind: "list", facet: "categories" },
-  { key: "seniority", title: "Levels", kind: "list", facet: "seniority", labels: SENIORITY_LABELS },
+  { key: "location", title: "Country and city", kind: "tree", search: "Add a country or city" },
+  { key: "department", title: "Category", kind: "list", facet: "categories" },
+  { key: "seniority", title: "Level", kind: "list", facet: "seniority", labels: SENIORITY_LABELS },
   { key: "workplace", title: "Workplace", kind: "list", facet: "workplace", labels: WORKPLACE_LABELS },
   { key: "company", title: "Companies", kind: "list", facet: "companies", search: "Search companies", remote: true },
   { key: "salary", title: "Monthly salary estimate", kind: "range" },
 ];
+
+// The rail as an accordion of four, each holding one or two of the
+// groups above as labelled sub-sections. The shape Welcome to the
+// Jungle's filters take: a closed group is one line, and a closed group
+// with something ticked says what under its name.
+const RAIL_ICON = (d) => `<svg class="rail-acc-icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+  stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const RAIL_ACCORDION = [
+  { key: "role", title: "Role", parts: ["department", "seniority"],
+    icon: RAIL_ICON('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/>') },
+  { key: "place", title: "Location", parts: ["location", "workplace"],
+    icon: RAIL_ICON('<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>') },
+  { key: "pay", title: "Salary", parts: ["salary"],
+    icon: RAIL_ICON('<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6.5 15h4"/>') },
+  { key: "employer", title: "Company", parts: ["company"],
+    icon: RAIL_ICON('<path d="M4 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16M15 9h4a1 1 0 0 1 1 1v11M3 21h18M8 8h3M8 12h3M8 16h3"/>') },
+];
+const RAIL_CHEVRON = '<svg class="rail-acc-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+const RAIL_OPEN_KEY = "iljobs_rail_open";
+
+// Which accordion groups are open. Remembered per browser; the first
+// visit opens the first group with a selection, or Role.
+let railOpen = null;
+
+function railOpenSet() {
+  if (railOpen) return railOpen;
+  try {
+    const saved = JSON.parse(localStorage.getItem(RAIL_OPEN_KEY) || "null");
+    if (Array.isArray(saved)) railOpen = new Set(saved);
+  } catch { /* storage refused: fall through to the default */ }
+  if (!railOpen) {
+    const first = RAIL_ACCORDION.find((a) => railAccordionSummary(a));
+    railOpen = new Set([(first || RAIL_ACCORDION[0]).key]);
+  }
+  return railOpen;
+}
+
+function railSaveOpen() {
+  try { localStorage.setItem(RAIL_OPEN_KEY, JSON.stringify([...railOpenSet()])); } catch { /* per-browser nicety only */ }
+}
+
+// What a closed group is narrowing the board by, in the rail's own
+// words: "Infrastructure · Senior". Empty when nothing is ticked.
+function railAccordionSummary(acc) {
+  const bits = [];
+  for (const part of acc.parts) {
+    if (part === "department") bits.push(...state.department);
+    if (part === "seniority") bits.push(...state.seniority.map((v) => SENIORITY_LABELS[v] || v));
+    if (part === "workplace") bits.push(...state.workplace.map((v) => WORKPLACE_LABELS[v] || v));
+    if (part === "location") {
+      const countries = railFacets.locations || [];
+      bits.push(...state.country.map((c) => (countries.find((x) => x.value === c) || {}).label || c));
+      bits.push(...state.city);
+    }
+    if (part === "company") bits.push(...state.company.map((d) => companyNameFor(d)));
+    if (part === "salary") {
+      if (state.salary_min || state.salary_max) {
+        const s = railFacets.salary || {};
+        const lo = Number(state.salary_min) || s.min;
+        const hi = Number(state.salary_max) || s.max;
+        bits.push(lo && hi ? `${fmtShekels(lo)}–${fmtShekels(hi)}` : "Range set");
+      }
+      if (state.salary_known) bits.push("With an estimate");
+      if (state.salary_disclosed) bits.push("Disclosed only");
+    }
+  }
+  return bits.join(" · ");
+}
 
 // Four, then a link. Long enough that the common answer is usually on
 // screen (Israel's four biggest cities are 79% of its listings), short
@@ -4309,11 +4377,6 @@ function railCountryBlocks() {
   return blocks.join("");
 }
 
-function railLocationSummary() {
-  const n = state.country.length + state.city.length;
-  return n ? `${n} selected` : "Anywhere";
-}
-
 // Salary
 //
 // Two handles over the range the current result set actually occupies,
@@ -4328,7 +4391,7 @@ function railLocationSummary() {
 // read as a feature that was never built rather than as that fact.
 function railSalaryHtml() {
   const disclosed = railOptionHtml({
-    kind: "salary_disclosed", value: "1", label: "Salary disclosed",
+    kind: "salary_disclosed", value: "1", label: "Disclosed salary only",
     n: railFacets.salary_disclosed || 0, checked: state.salary_disclosed,
   });
   return railSalaryTrackHtml() + disclosed;
@@ -4359,7 +4422,7 @@ function railSalaryTrackHtml() {
          other behaviour. Without it, nudging a handle would answer by
          deleting most of the board. -->
     ${railOptionHtml({
-      kind: "salary_known", value: "1", label: "Only with an estimate",
+      kind: "salary_known", value: "1", label: "Has an estimate",
       n: s.known, checked: state.salary_known,
     })}`;
 }
@@ -4390,16 +4453,16 @@ function railGroupSkeleton(group) {
 function renderFilterRail() {
   const host = document.getElementById("rail-groups");
   if (!host) return;
-  const parts = [];
+  // Each inner group's HTML by key, wrapped into the accordion below.
+  const parts = {};
+  const push = (key, html) => { parts[key] = html; };
 
   for (const group of RAIL_GROUPS) {
     let body = "";
-    let summary = "";
 
     if (group.kind === "tree") {
-      summary = railLocationSummary();
       if (!railFacetsLoaded && !(railFacets.locations || []).length) {
-        parts.push(railGroupSkeleton(group));
+        push(group.key, railGroupSkeleton(group));
         continue;
       }
       body = railSearchHtml(group) + railCountryBlocks();
@@ -4410,10 +4473,6 @@ function renderFilterRail() {
       const rows = railVisibleRows(group);
       const picked = railSelected(group);
       const pool = railRows(group);
-      // How many of this group's options are on, said beside its
-      // heading, so a collapsed or scrolled-past group still reports
-      // that it is narrowing the list.
-      if (picked.size) summary = `${picked.size} selected`;
       // A facet this snapshot cannot answer gets no group at all,
       // rather than a heading over "No matches", which reads as a
       // result and not as an absence. Happens for one merge cycle after
@@ -4423,7 +4482,7 @@ function renderFilterRail() {
       // means the answer is still coming.
       if (!pool.length && !picked.size && !railQueries.get(group.key)) {
         if (railFacetsLoaded) continue;
-        parts.push(railGroupSkeleton(group));
+        push(group.key, railGroupSkeleton(group));
         continue;
       }
       body = railSearchHtml(group)
@@ -4436,15 +4495,36 @@ function renderFilterRail() {
         + railMoreHtml(group, pool.length);
     }
 
-    parts.push(`
+    push(group.key, `
       <section class="rail-group" data-group="${group.key}">
-        <h3 class="rail-title">${escapeHtml(group.title)}${
-          summary ? `<span class="rail-summary">${escapeHtml(summary)}</span>` : ""}</h3>
+        <h3 class="rail-title">${escapeHtml(group.title)}</h3>
         <div class="rail-body">${body}</div>
       </section>`);
   }
 
-  host.innerHTML = parts.join("");
+  const open = railOpenSet();
+  host.innerHTML = RAIL_ACCORDION.map((acc) => {
+    const inner = acc.parts.map((k) => parts[k] || "").join("");
+    if (!inner) return "";
+    const isOpen = open.has(acc.key);
+    const summary = isOpen ? "" : railAccordionSummary(acc);
+    // One inner group needs no label of its own under a header that
+    // already names it, except salary, whose label says what the
+    // numbers are.
+    const single = acc.parts.length === 1 && acc.key !== "pay";
+    return `
+      <div class="rail-acc${isOpen ? " open" : ""}${single ? " single" : ""}" data-acc="${acc.key}">
+        <button type="button" class="rail-acc-head" aria-expanded="${isOpen}" aria-controls="rail-acc-${acc.key}">
+          ${acc.icon}
+          <span class="rail-acc-text">
+            <span class="rail-acc-name">${escapeHtml(acc.title)}</span>
+            ${summary ? `<span class="rail-acc-sum">${escapeHtml(summary)}</span>` : ""}
+          </span>
+          ${RAIL_CHEVRON}
+        </button>
+        <div class="rail-acc-body" id="rail-acc-${acc.key}"${isOpen ? "" : " hidden"}>${inner}</div>
+      </div>`;
+  }).join("");
 }
 
 // One listener on the rail rather than one per control, because the
@@ -4473,6 +4553,17 @@ function wireFilterRail() {
   });
 
   host.addEventListener("click", (e) => {
+    const head = e.target.closest(".rail-acc-head");
+    if (head) {
+      const acc = head.closest(".rail-acc");
+      const key = acc.dataset.acc;
+      const set = railOpenSet();
+      set.has(key) ? set.delete(key) : set.add(key);
+      railSaveOpen();
+      renderFilterRail();
+      host.querySelector(`.rail-acc[data-acc="${key}"] .rail-acc-head`)?.focus();
+      return;
+    }
     const more = e.target.closest(".rail-more");
     if (more) {
       const key = more.dataset.more;

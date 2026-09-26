@@ -4874,6 +4874,50 @@ a.hero-account-btn { text-decoration: none; }
 .rail-group { display: flex; flex-direction: column; gap: 8px; }
 .rail-group + .rail-group { border-top: 1px solid var(--grey-line); padding-top: 28px; }
 
+/* The accordion. Four groups, a hairline between them, each a header
+   button over the existing option rows. */
+.rail-groups:has(.rail-acc) { gap: 0; padding-top: 8px; }
+.rail-acc + .rail-acc { border-top: 1px solid var(--grey-line); }
+.rail-acc-head {
+  display: grid;
+  grid-template-columns: 18px 1fr 14px;
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--black);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.rail-acc-head:hover { background: var(--row-hover); }
+.rail-acc-head:focus-visible { outline: 2px solid var(--green); outline-offset: -2px; }
+.rail-acc-icon { color: var(--black); }
+.rail-acc-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rail-acc-name { font: 500 15px var(--font-display); }
+/* The one green in the sidebar: what a closed group is filtering by. */
+.rail-acc-sum {
+  font: 400 12px var(--font);
+  color: var(--green-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rail-acc-chev { color: var(--black); transition: transform 150ms cubic-bezier(0.2, 0, 0, 1); }
+.rail-acc.open .rail-acc-chev { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .rail-acc-chev { transition: none; } }
+.rail-acc-body { display: flex; flex-direction: column; gap: 18px; padding: 2px 8px 14px 38px; }
+.rail-acc-body[hidden] { display: none; }
+/* Inside a group the old group heads become sub-section labels, and
+   the hairline and spacing between groups belong to the accordion. */
+.rail-acc .rail-group + .rail-group { border-top: 0; padding-top: 0; }
+.rail-acc .rail-title { font: 400 12px var(--font); color: var(--grey); }
+.rail-acc.single .rail-title { display: none; }
+
 .rail-title {
   display: flex;
   align-items: baseline;
@@ -4883,7 +4927,6 @@ a.hero-account-btn { text-decoration: none; }
   font: 700 14px var(--font);
   color: var(--black);
 }
-.rail-summary { font-weight: 400; font-size: 12px; color: var(--grey); }
 
 .rail-body { display: flex; flex-direction: column; gap: 2px; }
 
