@@ -25667,3 +25667,10 @@ terralabor.com
 thejpigroup.com
 advanced-nursing.com
 zg.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+staffzone.com
+techpeoplemx.com
+unode50.com
+interfacefinancial.com
+inexcogroupe-1712242485.com
