@@ -11,7 +11,7 @@ Every listing links to the employer's own application page. Salaries come in thr
 - [Explore](https://oceanofjobs.com/stats): query every tracked listing with filters and groupings, or with SQL, in the browser.
 - [API reference](https://oceanofjobs.com/api/help): every public endpoint and parameter.
 - [Privacy policy](https://oceanofjobs.com/privacy): what the optional alerts feature stores.
-- [Source code](https://github.com/guyvolvo/opentechjobs): MIT licensed.
+- [Source code](https://github.com/guyvolvo/oceanofjobs): MIT licensed.
 
 ## API
 

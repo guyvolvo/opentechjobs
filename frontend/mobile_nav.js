@@ -108,7 +108,7 @@
     }
     rows.push(`<a class="hero-nav-item" href="/api/help">${icons.code}API reference</a>`);
     rows.push(`<a class="hero-nav-item" href="/contact">${icons.chat}Contact</a>`);
-    rows.push(`<a class="hero-nav-item" href="https://github.com/guyvolvo/opentechjobs" target="_blank" rel="noopener">${icons.github}GitHub</a>`);
+    rows.push(`<a class="hero-nav-item" href="https://github.com/guyvolvo/oceanofjobs" target="_blank" rel="noopener">${icons.github}GitHub</a>`);
     rows.push(`<button type="button" class="hero-nav-item" data-act="theme">${isDark() ? icons.sun : icons.moon}${isDark() ? "Light mode" : "Dark mode"}</button>`);
     if (who) rows.push(`<button type="button" class="hero-nav-item hero-nav-out" data-act="signout">${icons.out}Log out</button>`);
     // Wrapped, because the slide is a transform on the list and the

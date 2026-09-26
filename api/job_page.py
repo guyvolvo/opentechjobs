@@ -37,7 +37,7 @@ from datetime import datetime, timedelta, timezone
 from countries import label_for
 
 SITE = "https://oceanofjobs.com"
-CARD = f"{SITE}/og-hills.jpg"
+CARD = f"{SITE}/og-hills.jpg?v=2"
 EXPIRED_KEEP_DAYS = 30
 
 SENIORITY_LABELS = {

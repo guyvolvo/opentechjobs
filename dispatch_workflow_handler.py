@@ -28,7 +28,7 @@ import urllib.request
 
 import boto3
 
-REPO = "guyvolvo/opentechjobs"
+REPO = "guyvolvo/oceanofjobs"
 TOKEN_PARAM = "/iljobs/github-dispatch-token"
 
 

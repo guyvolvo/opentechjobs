@@ -478,7 +478,7 @@ def spec() -> dict:
             "summary": "Every job, company and market figure on the board, as JSON.",
             "description": DESCRIPTION,
             "license": {"name": "Source on GitHub",
-                        "url": "https://github.com/guyvolvo/opentechjobs"},
+                        "url": "https://github.com/guyvolvo/oceanofjobs"},
         },
         "servers": [{"url": f"{SITE}/api", "description": "Production (HTTPS only)"}],
         "tags": [
