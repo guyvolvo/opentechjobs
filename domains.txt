@@ -25695,3 +25695,13 @@ fusemachines.com
 taberco.net
 wrgroup.com
 lcionline.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+puretreatsprimalpetfoodsinc.com
+handsomebrookfarms.com
+seasideplumbing.com
+vsptechnologies.com
+isales.ai
+salma.ai
+solarpro.co
+srichand.com
