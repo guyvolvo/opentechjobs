@@ -25814,3 +25814,24 @@ timedoctor.com
 nutritionkitchenhk.com
 asantegold.com
 platinum.io
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+tyton.de
+seminal.ai
+sherpa.com
+smrtcontent.com
+solutionsmetrix.com
+storyline.com
+strategicgroup.com
+structures.com
+thecounselinghub.com
+themovingexperience.com
+thewaterfront.com
+upslope.com
+ventri.com
+vivous.com
+wesleybhsllc.com
+wildlifeflorida.com
+wmcpa.com
+wtci.org
+zuno.com
