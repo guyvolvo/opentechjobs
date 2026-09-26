@@ -25714,3 +25714,13 @@ kndsuk.com
 sentrynd.com
 tankjuice.com
 wecp.ai
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+pleasant-valley.org
+shootsmart.com
+stuckeyauto.com
+topsandtrends.com
+u1sports.com
+twinoakscabinets.com
+wtpartnership.com
+kierratyskeskus.com
