@@ -4328,7 +4328,7 @@ function railSalaryHtml() {
   const d = railFacets.salary_disclosed || 0;
   const disclosed = d || state.salary_disclosed
     ? railOptionHtml({
-        kind: "salary_disclosed", value: "1", label: "Only with a disclosed salary",
+        kind: "salary_disclosed", value: "1", label: "Salary disclosed",
         n: d, checked: state.salary_disclosed,
       })
     : "";
