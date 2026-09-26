@@ -25805,3 +25805,12 @@ watersconst.com
 wildridge.ai
 wonderacademy.net
 yuppiechef.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+arcos.com
+crewlink.ai
+burgservice.com
+timedoctor.com
+nutritionkitchenhk.com
+asantegold.com
+platinum.io
