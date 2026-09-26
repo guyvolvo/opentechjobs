@@ -38,7 +38,7 @@
 const BOX = "https://box.oceanofjobs.com";
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     // Sign-in stays where it is.
@@ -57,6 +57,11 @@ export default {
     // this Worker's own location; the box's /api/geo reads this header
     // first. Set unconditionally so a viewer cannot supply their own.
     headers.set("x-viewer-country", (request.cf && request.cf.country) || "");
+    // The box answers only requests that carry this, CloudFront's and
+    // this Worker's (a WAF rule on box.* blocks the rest), so nobody can
+    // reach it directly and walk around the rate limit. ORIGIN_KEY is a
+    // Worker secret, set through the API and never in this file.
+    headers.set("x-otj-origin-key", env.ORIGIN_KEY || "");
     const response = await fetch(new Request(target, { method: request.method, headers, body: request.body, redirect: "manual" }));
 
     // So a human (or a curl) can tell which origin answered without

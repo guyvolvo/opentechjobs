@@ -63,6 +63,7 @@ jobs:
           TF_VAR_github_oauth_client_secret: ${{ secrets.GH_OAUTH_CLIENT_SECRET }}
           TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
           TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TF_VAR_origin_secret: ${{ secrets.OTJ_ORIGIN_SECRET }}
 
       - uses: actions/github-script@v7
         with:
@@ -105,3 +106,4 @@ jobs:
           TF_VAR_github_oauth_client_secret: ${{ secrets.GH_OAUTH_CLIENT_SECRET }}
           TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
           TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TF_VAR_origin_secret: ${{ secrets.OTJ_ORIGIN_SECRET }}

@@ -184,3 +184,10 @@ variable "box_instance_id" {
   default     = "i-0e0f6ed693e6b6db3"
   description = "The EC2 instance serving the API and applying deltas. A variable rather than a resource reference because the box was created by hand during the migration and has not been imported into this state yet; importing a live instance mid-cutover is how you get a plan that wants to replace it. Once it is imported this becomes aws_instance.box.id and the variable goes away."
 }
+
+variable "origin_secret" {
+  type        = string
+  sensitive   = true
+  description = "Sent as x-otj-origin-key on every CloudFront request to the box. A WAF rule on box.* blocks requests without it, so the box answers only CloudFront and the Worker (which sends the same value from its own secret) and nobody can reach it directly around the rate limit. From the OTJ_ORIGIN_SECRET repository secret; empty sends no header."
+  default     = ""
+}

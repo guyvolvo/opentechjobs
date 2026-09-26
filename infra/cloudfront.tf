@@ -272,6 +272,15 @@ resource "aws_cloudfront_distribution" "main" {
   origin {
     domain_name = local.box_domain
     origin_id   = "box"
+
+    # See var.origin_secret: the key the WAF rule on box.* checks for.
+    dynamic "custom_header" {
+      for_each = var.origin_secret == "" ? [] : [var.origin_secret]
+      content {
+        name  = "x-otj-origin-key"
+        value = custom_header.value
+      }
+    }
     custom_origin_config {
       http_port              = 80
       https_port             = 443
