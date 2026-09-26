@@ -3639,7 +3639,7 @@ body.signin-open .workspace > .section { border-bottom: 0; }
   top: calc(100% + 10px);
   right: -12px;
   z-index: 40;
-  min-width: 260px;
+  min-width: 180px;
   display: flex;
   flex-direction: column;
   padding: 6px;
@@ -3660,7 +3660,6 @@ body.signin-open .workspace > .section { border-bottom: 0; }
 .site-menu-item:hover,
 .site-menu-item:focus-visible { background: var(--row-hover); outline: none; }
 .site-menu-name { font: 500 15px var(--font-display); }
-.site-menu-note { font: 400 13px var(--font); color: var(--grey); }
 /* The theme pill at nav size beside the menus. */
 .hero-bar-head .hero-theme { font-size: 14px; }
 .hero-bar-head .hero-account-btn { font: 400 16px/1.2 var(--font-display); }
