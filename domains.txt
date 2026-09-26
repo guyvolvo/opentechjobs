@@ -25929,3 +25929,13 @@ joy.io
 al-barakah-investment-holding-company.com
 freckle.com
 kalibrilabs.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+vend.com
+cur8earth.com
+harmonyinsurance.com
+hanabgermany.de
+telstarmediagroep.com
+columnfive.com
+cloudnonic.com
+cowrywise.com

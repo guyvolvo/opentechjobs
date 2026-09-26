@@ -9,7 +9,7 @@ resource "aws_acm_certificate" "site" {
   # The redirect-source domain (see cloudfront.tf's redirect Function)
   # needs to be on the same distribution's cert too, or CloudFront never
   # accepts it as an alias in the first place.
-  subject_alternative_names = [var.legacy_domain_name]
+  subject_alternative_names = concat(var.legacy_domain_names, var.alias_domain_names)
   validation_method         = "DNS"
 
   lifecycle {
