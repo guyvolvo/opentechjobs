@@ -25648,3 +25648,8 @@ rumble.org
 nera-services.fr
 sisd.net
 neolytix.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+grantthorntonbelgium.com
+keskosenukailatvia.com
+thepremiercollection.com
