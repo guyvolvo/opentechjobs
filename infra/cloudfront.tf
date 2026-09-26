@@ -31,9 +31,9 @@ locals {
   # like any HTTPS origin, and Cloudflare carries the request down the
   # tunnel to gunicorn on :8000. So a request crosses Cloudflare twice:
   # once as the viewer's, once as CloudFront's. The rate limiting rule
-  # in the Cloudflare dashboard is scoped to http.host eq
-  # "opentechjobs.org" for that reason, or a few CloudFront IPs would
-  # look like one very busy client.
+  # on each zone is scoped to the site's own hostnames (http.host in
+  # {"oceanofjobs.com" "www.oceanofjobs.com"}) for that reason, or a few
+  # CloudFront IPs would look like one very busy client.
   box_domain = var.box_origin_domain
 }
 

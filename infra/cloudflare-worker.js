@@ -35,7 +35,7 @@
 //
 // Rollback is deleting the route: CloudFront takes over on the spot.
 
-const BOX = "https://box.opentechjobs.org";
+const BOX = "https://box.oceanofjobs.com";
 
 export default {
   async fetch(request) {

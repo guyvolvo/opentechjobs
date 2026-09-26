@@ -175,7 +175,7 @@ Expression:
       starts_with(http.request.uri.path, "/company/")) and
      not starts_with(http.request.uri.path, "/api/auth/"))
 
-Origin: `box.opentechjobs.org`.
+Origin: `box.oceanofjobs.com`.
 
 ## 6. Check
 

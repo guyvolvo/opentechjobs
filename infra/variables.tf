@@ -120,8 +120,8 @@ variable "alias_domain_names" {
 
 variable "box_origin_domain" {
   type        = string
-  description = "The cloudflared tunnel's public hostname, CloudFront's origin for /api/*, /job/* and /company/*. Its own variable because it lives in the Cloudflare tunnel config and does not move when the site's domain does."
-  default     = "box.opentechjobs.org"
+  description = "The cloudflared tunnel's public hostname, CloudFront's origin for /api/*, /job/* and /company/*. Its own variable because it lives in the Cloudflare tunnel config (the tunnel's ingress list names every accepted hostname) and moves on its own schedule: the tunnel must accept a new name before CloudFront is pointed at it."
+  default     = "box.oceanofjobs.com"
 }
 
 # Auth (Cognito). Google/GitHub credentials come from each provider's own
