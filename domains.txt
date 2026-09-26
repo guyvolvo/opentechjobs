@@ -25653,3 +25653,8 @@ neolytix.com
 grantthorntonbelgium.com
 keskosenukailatvia.com
 thepremiercollection.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+vitalchemicalsusa.com
+nojokemarketing1f.com
+silver-fern.co
