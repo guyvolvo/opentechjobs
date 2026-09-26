@@ -1,8 +1,8 @@
-# <img src="frontend/favicon-180.png" alt="" height="32" valign="middle"> OpenTechJobs
+# <img src="frontend/favicon-180.png" alt="" height="32" valign="middle"> Ocean of Jobs
 
 Open-source tech job board. Scrapes job listings directly from ATS APIs and company career portals, tracks them over time, and serves them through a lightweight public API.
 
-**Live site:** [opentechjobs.org](https://opentechjobs.org/) (board at [/board](https://opentechjobs.org/board), API docs at [/api/help](https://opentechjobs.org/api/help))
+**Live site:** [oceanofjobs.com](https://oceanofjobs.com/) (board at [/board](https://oceanofjobs.com/board), API docs at [/api/help](https://oceanofjobs.com/api/help))
 
 **License:** MIT
 

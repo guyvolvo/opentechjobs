@@ -104,7 +104,7 @@ the full diagram, not duplicated here):
 
 ## Brand Commitments
 
-- Name: **OpenTechJobs** (wordmark renders as "OpenTechJobs" + accent-color
+- Name: **Ocean of Jobs** (wordmark renders as "Ocean of Jobs" + accent-color
   ".org"). Formerly "IL/JOBS", then "OpenMarketIL", during earlier development.
 - Open-source, and that's load-bearing to the positioning, not incidental.
   "Open" extends to the data access model (public API, no gate), not

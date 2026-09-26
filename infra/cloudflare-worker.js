@@ -1,8 +1,14 @@
 // Routes the API to the box, as the fast path.
 //
-// One route on the opentechjobs.org zone:
+// Two routes, one per zone:
 //
+//     oceanofjobs.com/api/*
 //     opentechjobs.org/api/*
+//
+// The second outlives the move to oceanofjobs.com on purpose. The rest
+// of opentechjobs.org answers with a 301, and API clients that do not
+// follow redirects (or would turn a POST into a GET doing so) keep
+// working on the address they were written against.
 //
 // Nothing else. /job/* and /company/* used to be Worker routes too, and
 // on the night of 2026-09-24 one crawler walking the job sitemap spent
