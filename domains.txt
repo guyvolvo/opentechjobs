@@ -25785,3 +25785,12 @@ toonboom.com
 torrero.com
 transparentbpo.com
 universalhomeservices.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+switch2.co
+vitalresearch.com
+vortexfreight.com
+walesmclelland.com
+windenergyoftexas.com
+kmpro.org
+allthingshr.org
