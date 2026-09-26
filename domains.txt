@@ -25878,3 +25878,9 @@ wiresalad.com
 yourjobconsult.com
 insikta.com
 isentia.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+polygon-labs.de
+dash-water.com
+greenflux.com
+momentous.com
