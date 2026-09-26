@@ -250,12 +250,28 @@ def main() -> int:
     # as any other company) on this company's own next shard rotation.
     # Paying for Comeet/Workday's extra per-job detail fetch here would
     # be pure waste now.
+    # A deadline inside the timeout, so a slow batch ends the probe on
+    # time with the rest handed back deferred, instead of the timeout
+    # killing it with nothing written. Found 2026-09-26: one batch of
+    # slow hosts hit the 400s wall, and because a failed run leaves the
+    # queue as it was, the next run picked up the same batch and failed
+    # the same way, every ten minutes, with discovery stopped behind it.
     data = []
     if probe_domains:
-        probe = subprocess.run(
-            [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(probe_domains), "--json"],
-            capture_output=True, text=True, timeout=400,
-        )
+        try:
+            probe = subprocess.run(
+                [sys.executable, str(ROOT / "probe.py"), "--domain", ",".join(probe_domains), "--json",
+                 "--deadline-minutes", "5"],
+                capture_output=True, text=True, timeout=400,
+            )
+        except subprocess.TimeoutExpired:
+            # Past even the deadline: one host hung inside a request. The
+            # batch goes to the back of the queue rather than the front,
+            # so the next run moves on and this one gets another go later.
+            QUEUE_PATH.write_text(json.dumps(remaining + batch, indent=2, ensure_ascii=False), encoding="utf-8")
+            print(f"probe.py overran its 400s limit -- batch of {len(batch)} moved to the back of the queue",
+                  file=sys.stderr)
+            return 0
         if probe.stderr:
             print(probe.stderr, file=sys.stderr)
         if probe.returncode != 0:
@@ -264,6 +280,12 @@ def main() -> int:
         resolved_path.write_text(probe.stdout, encoding="utf-8")
         data = json.loads(probe.stdout)
 
+    # What the deadline cut off comes back untried; queue it again, last.
+    deferred = {r["domain"] for r in data if not r.get("ats") and r.get("retryable")
+                and "deadline" in (r.get("error") or "")}
+    if deferred:
+        remaining = remaining + [c for c in batch if c["domain"] in deferred]
+        print(f"  {len(deferred)} not reached before the deadline, queued again at the back", file=sys.stderr)
     hits = [r for r in data if r.get("ats")]
     hits.extend({"domain": c["domain"], "ats": "comeet", "token": c["token"]} for c in comeet_pins)
     print(f"{len(hits)}/{len(data) + len(comeet_pins)} resolved for real", file=sys.stderr)
