@@ -279,7 +279,25 @@ def compute_facets(conn, params: dict) -> dict:
     salary = salary_bounds(conn, params)
     if salary:
         out["salary"] = salary
+    disclosed = disclosed_count(conn, params)
+    if disclosed:
+        out["salary_disclosed"] = disclosed
     return out
+
+
+def disclosed_count(conn, params: dict) -> int:
+    """How many listings in the result set carry the employer's own pay
+    figure, for the rail's "Only with a disclosed salary" option. Through
+    idx_jobs_salary_disclosed, or not at all where that index is absent,
+    for the same reason as salary_bounds."""
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'index' "
+                    "AND name = 'idx_jobs_salary_disclosed'").fetchone() is None:
+        return 0
+    scoped = {k: v for k, v in params.items() if k != "salary_disclosed"}
+    where_sql, args = build_jobs_where(scoped, has_fts_index(conn), has_places(conn))
+    return conn.execute(
+        f"SELECT COUNT(*) FROM jobs INDEXED BY idx_jobs_salary_disclosed "
+        f"WHERE salary_source = 'disclosed' AND {where_sql}", args).fetchone()[0]
 
 
 def salary_bounds(conn, params: dict) -> dict:

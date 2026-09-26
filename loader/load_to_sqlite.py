@@ -1184,6 +1184,11 @@ BOX_INDEXES = (
     # than the table. See aggregates.compute_facets.
     "CREATE INDEX IF NOT EXISTS idx_jobs_salary_ils ON jobs(salary_min_ils, salary_max_ils)"
     " WHERE salary_min_ils IS NOT NULL",
+    # The listings whose employer stated the pay, about 20,000 open. Same
+    # reason: the rail counts them per result set, and this keeps that a
+    # walk of those rows rather than of the table.
+    "CREATE INDEX IF NOT EXISTS idx_jobs_salary_disclosed ON jobs(closed_at)"
+    " WHERE salary_source = 'disclosed'",
 )
 
 

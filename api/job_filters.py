@@ -949,6 +949,10 @@ def _add_salary_filter(where: list, args: list, params: dict, caps: "SnapshotCap
     Skipped on a snapshot without the columns: a filter ignored hands
     back a wider answer, where naming a missing column hands back a 500.
     """
+    # An employer's own figure, in whatever currency they wrote it. Not
+    # tied to the shekel columns, so it works on every board.
+    if bool_param(params, "salary_disclosed"):
+        where.append("salary_source = 'disclosed'")
     if not caps.salary_ils:
         return
     known_only = bool_param(params, "salary_known")

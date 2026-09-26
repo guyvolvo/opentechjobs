@@ -93,6 +93,8 @@ FILTER_PARAMS = [
     _q("salary_max", "Highest monthly gross salary in shekels. Same rule as salary_min.",
        schema={"type": "integer", "minimum": 0}),
     _q("salary_known", "1 for only listings with a shekel salary figure.", schema={"type": "string", "enum": ["1"]}),
+    _q("salary_disclosed", "1 for only listings whose employer stated the salary, in any currency.",
+       schema={"type": "string", "enum": ["1"]}),
 ]
 
 PAGE_PARAMS = [

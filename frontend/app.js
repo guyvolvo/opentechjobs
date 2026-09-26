@@ -80,6 +80,8 @@ const state = {
   salary_min: "",
   salary_max: "",
   salary_known: false,
+  // The employer's own figure, any currency, as opposed to an estimate.
+  salary_disclosed: false,
   confidence: "all", // no confidence filter in the UI; shown inline via badge instead
   max_age_days: "", // "" = any time; else days-since-posting cutoff, straight into the API param of the same name
   starred_only: false,
@@ -1425,6 +1427,7 @@ function currentFilterParams() {
     salary_min: state.salary_min,
     salary_max: state.salary_max,
     salary_known: state.salary_known ? "1" : "",
+    salary_disclosed: state.salary_disclosed ? "1" : "",
     confidence: state.confidence,
     max_age_days: state.max_age_days,
     // Not in the Saved view: a listing someone saved stays on their
@@ -1458,6 +1461,7 @@ function buildShareParams() {
   if (state.salary_min) p.set("salary_min", state.salary_min);
   if (state.salary_max) p.set("salary_max", state.salary_max);
   if (state.salary_known) p.set("salary_known", "1");
+  if (state.salary_disclosed) p.set("salary_disclosed", "1");
   if (state.confidence !== "all") p.set("confidence", state.confidence);
   if (state.max_age_days) p.set("max_age_days", state.max_age_days);
   if (state.starred_only) p.set("starred", "1");
@@ -1529,7 +1533,8 @@ function cleanFilterValue(key, value) {
       const s = String(value);
       return /^\d+$/.test(s) && Number(s) > 0 ? s : undefined;
     }
-    case "salary_known": {
+    case "salary_known":
+    case "salary_disclosed": {
       if (value === true || value === "1") return true;
       if (value === false || value === "" || value === "0" || value == null) return false;
       return undefined;
@@ -1581,6 +1586,7 @@ function applyStateFromUrl(search) {
     state.salary_min = "";
     state.salary_max = "";
     state.salary_known = false;
+    state.salary_disclosed = false;
     state.starred_only = false;
   }
   if (p.has("search")) state.search = p.get("search");
@@ -1614,7 +1620,7 @@ function applyStateFromUrl(search) {
     const v = cleanFilterValue("max_age_days", p.get("max_age_days"));
     if (v !== undefined) state.max_age_days = v;
   }
-  for (const key of ["salary_min", "salary_max", "salary_known"]) {
+  for (const key of ["salary_min", "salary_max", "salary_known", "salary_disclosed"]) {
     if (!p.has(key)) continue;
     const v = cleanFilterValue(key, p.get(key));
     if (v !== undefined) state[key] = v;
@@ -1652,7 +1658,7 @@ const FILTERS_KEY = "iljobs_filters";
 const PERSISTED_FILTER_KEYS = [
   "search", "department", "seniority", "company", "country", "city",
   "workplace", "skills", "confidence", "max_age_days", "starred_only",
-  "sort", "dir", "roles", "salary_min", "salary_max", "salary_known",
+  "sort", "dir", "roles", "salary_min", "salary_max", "salary_known", "salary_disclosed",
 ];
 
 function saveFiltersToStorage() {
@@ -4089,7 +4095,7 @@ const RAIL_GROUPS = [
   { key: "seniority", title: "Levels", kind: "list", facet: "seniority", labels: SENIORITY_LABELS },
   { key: "workplace", title: "Workplace", kind: "list", facet: "workplace", labels: WORKPLACE_LABELS },
   { key: "company", title: "Companies", kind: "list", facet: "companies", search: "Search companies", remote: true },
-  { key: "salary", title: "Salary estimate, monthly", kind: "range" },
+  { key: "salary", title: "Monthly salary estimate", kind: "range" },
 ];
 
 // Four, then a link. Long enough that the common answer is usually on
@@ -4315,7 +4321,21 @@ function railLocationSummary() {
 // group is left out when there is nothing to measure: no shekel figures
 // in this result set means no track, rather than a track that cannot
 // move.
+// The disclosed option sits under the track, and stands on its own where
+// there is no track: outside Israel nothing is in shekels, but plenty of
+// employers state their pay.
 function railSalaryHtml() {
+  const d = railFacets.salary_disclosed || 0;
+  const disclosed = d || state.salary_disclosed
+    ? railOptionHtml({
+        kind: "salary_disclosed", value: "1", label: "Only with a disclosed salary",
+        n: d, checked: state.salary_disclosed,
+      })
+    : "";
+  return railSalaryTrackHtml() + disclosed;
+}
+
+function railSalaryTrackHtml() {
   const s = railFacets.salary;
   if (!s || s.min == null || s.max == null || s.max <= s.min) return "";
   const lo = Number(state.salary_min) || s.min;
@@ -4476,6 +4496,8 @@ function wireFilterRail() {
 function railToggle(kind, value, on) {
   if (kind === "salary_known") {
     state.salary_known = on;
+  } else if (kind === "salary_disclosed") {
+    state.salary_disclosed = on;
   } else if (kind === "country") {
     // Clicking a country's own box is a claim about the whole country,
     // so it clears whatever cities were narrowing it.
@@ -4647,6 +4669,7 @@ function activeChips() {
     chips.push({ kind: "salary", value: "", text: `${fmtShekels(lo)}–${fmtShekels(hi)}` });
   }
   if (state.salary_known) chips.push({ kind: "salary_known", value: "", text: "Has an estimate" });
+  if (state.salary_disclosed) chips.push({ kind: "salary_disclosed", value: "", text: "Disclosed salary" });
   return chips;
 }
 
@@ -4705,6 +4728,8 @@ function wireActiveChips() {
       state.salary_max = "";
     } else if (kind === "salary_known") {
       state.salary_known = false;
+    } else if (kind === "salary_disclosed") {
+      state.salary_disclosed = false;
     } else if (kind === "country" || kind === "city") {
       railToggle(kind, value, false);
       return; // railToggle applies on its own
@@ -4892,6 +4917,7 @@ function wireFilters() {
     state.salary_min = "";
     state.salary_max = "";
     state.salary_known = false;
+    state.salary_disclosed = false;
     state.starred_only = false;
     state.roles = "tech";
     state.sort = "age";
@@ -5094,6 +5120,7 @@ async function refreshFacetOptions() {
       // a result set with no shekel figures in it. Either way the rail
       // leaves the group out rather than drawing a dead track.
       salary: facets.salary || null,
+      salary_disclosed: facets.salary_disclosed || 0,
     };
     latestCompanyOptions = [...(facets.companies || [])]
       .sort((a, b) => a.value.localeCompare(b.value))
