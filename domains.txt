@@ -25746,3 +25746,14 @@ externalia.com
 itracing.net
 precoro.com
 tereos.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+sestek.com
+televerohealth.com
+tlaaminfirst.com
+ventanaconstructionc.com
+zigabyte.net
+metropol.com
+ittotalab.com
+keyrusbelgium.com
+kattokeskus.com
