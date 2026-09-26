@@ -25623,3 +25623,7 @@ marie-curie.net
 
 # Common Crawl discovery batch (merge_discovered_batch.py)
 tao-group.de
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+caritasgesundheitberlinggmbh.com
+theentouragegroup.com
