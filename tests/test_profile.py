@@ -93,7 +93,8 @@ saved = profile.clean_profile({
     "phone": "+972000000", "cv_text": "twenty years of history",
 })
 check("nothing outside the known keys is stored",
-      set(saved) == {"skills", "seniority", "workplace", "israel_only"}, repr(sorted(saved)))
+      set(saved) == {"skills", "seniority", "workplace", "israel_only", "country", "city",
+                     "cadence", "digest_time", "digest_tz", "digest_day"}, repr(sorted(saved)))
 
 # A profile is expressible as an ordinary board search.
 f = profile.profile_to_filter({"skills": ["Python", "Go"], "seniority": "senior",
