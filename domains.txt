@@ -25757,3 +25757,18 @@ metropol.com
 ittotalab.com
 keyrusbelgium.com
 kattokeskus.com
+
+# Common Crawl discovery batch (merge_discovered_batch.py)
+terrascan.io
+tradinorganic.com
+jpr.com
+keck.fr
+seattlehumane.com
+sorensengross.com
+spinielloco.com
+spaceinternational.com
+tranter.com
+wolla.org
+xccelerated.io
+jusubrothers.com
+bluestone.ai
