@@ -47,7 +47,7 @@
     const barTheme = document.getElementById("hero-theme");
     if (barTheme) barTheme.hidden = !!who;
     if (!who) {
-      host.innerHTML = '<button type="button" class="hero-account-btn" id="hero-signin">Sign in</button>';
+      host.innerHTML = '<button type="button" class="hero-account-btn" id="hero-signin">Log in</button>';
       // The dialog lives in signin_dialog.js, which every page loads,
       // so the board opens the same one rather than its own panel.
       document.getElementById("hero-signin").addEventListener("click", () => window.openSignIn());

@@ -99,13 +99,37 @@
 <body class="hero-page">
 
   <header class="hero-bar hero-bar-head hero-bar-bare">
-    <!-- Sign in, or My Account with its menu: hero_account.js fills it
-         from the same stored tokens the board and account page use.
-         Hidden on a phone, where mobile_nav.js rebuilds all of this as
-         one vertical list instead. -->
+    <!-- Island's shape: the brand at the left, a row of plain text
+         menus at the right, and the account last. Resources and About
+         open small panels (hero_nav.js). Hidden on a phone, where
+         mobile_nav.js turns the right side into its one vertical list
+         and the brand stays. -->
+    <a class="hero-brand" href="/" aria-label="Ocean of Jobs home">
+      <img src="/favicon.svg?v=3" width="28" height="28" alt="" />
+      <span>Ocean of Jobs</span>
+    </a>
     <div class="hero-bar-right" id="hero-bar-right">
+      <nav class="site-menus" aria-label="Site">
+        <a class="site-menu-link" href="/board">Jobs</a>
+        <div class="site-menu" data-menu="resources">
+          <button type="button" class="site-menu-btn" aria-expanded="false" aria-controls="site-menu-resources">Resources<svg class="site-menu-chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <div class="site-menu-panel" id="site-menu-resources" hidden>
+            <a class="site-menu-item" href="/api/help"><span class="site-menu-name">API reference</span><span class="site-menu-note">Every job and figure as JSON</span></a>
+            <a class="site-menu-item" href="/stats"><span class="site-menu-name">Statistics</span><span class="site-menu-note">The market, charted and queryable</span></a>
+            <a class="site-menu-item" href="/feed.xml"><span class="site-menu-name">RSS feed</span><span class="site-menu-note">The newest listings</span></a>
+            <a class="site-menu-item" href="https://github.com/guyvolvo/oceanofjobs" target="_blank" rel="noopener"><span class="site-menu-name">Source code</span><span class="site-menu-note">MIT licensed, on GitHub</span></a>
+          </div>
+        </div>
+        <div class="site-menu" data-menu="about">
+          <button type="button" class="site-menu-btn" aria-expanded="false" aria-controls="site-menu-about">About<svg class="site-menu-chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <div class="site-menu-panel" id="site-menu-about" hidden>
+            <a class="site-menu-item" href="/contact"><span class="site-menu-name">Contact</span><span class="site-menu-note">A question, a company to add, a bug</span></a>
+            <a class="site-menu-item" href="/privacy"><span class="site-menu-name">Privacy</span><span class="site-menu-note">What is stored, and what is not</span></a>
+          </div>
+        </div>
+      </nav>
       <button type="button" class="hero-theme" id="hero-theme">Dark</button>
-      <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Sign in</a></div>
+      <div class="hero-account" id="hero-account"><a class="hero-bar-name" href="/account">Log in</a></div>
     </div>
   </header>
 
@@ -206,6 +230,7 @@
   <script src="auth.js"></script>
   <script src="signin_dialog.js"></script>
   <script src="hero_account.js"></script>
+  <script src="hero_nav.js"></script>
 
   <script>
     // A ticker of live board numbers over a row of the busiest companies'

@@ -3590,8 +3590,97 @@ body.signin-open .workspace > .section { border-bottom: 0; }
    --edge is what holds the bar off the right edge, so the same value
    holds it off the top and the corner sits in a square of space. */
 .hero-bar-bare {
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   padding-top: var(--edge);
+}
+
+/* The brand, Island-style: the mark and the name in regular weight. */
+.hero-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font: 400 22px/1 var(--font-display);
+  letter-spacing: -0.01em;
+  color: var(--black);
+}
+.hero-brand img { display: block; width: 28px; height: 28px; }
+
+/* The menus: plain text, a small chevron, no boxes. The bar's own 26px
+   is the footer's voice; the menus speak at nav size. */
+.hero-bar-head .hero-bar-right { align-items: center; gap: 28px; }
+.hero-bar-head .hero-bar-right > * { min-height: 0; }
+.site-menus { display: flex; align-items: center; gap: 28px; }
+.site-menu { position: relative; }
+.site-menu-link,
+.site-menu-btn,
+.hero-bar-head .hero-bar-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: var(--black);
+  font: 400 16px/1.2 var(--font-display);
+  cursor: pointer;
+}
+.site-menu-link:hover,
+.site-menu-btn:hover,
+.site-menu.open .site-menu-btn,
+.hero-bar-head .hero-bar-name:hover { text-decoration: underline; text-underline-offset: 4px; }
+.site-menu-btn:focus-visible,
+.site-menu-link:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 2px; }
+.site-menu-chev { transition: transform 150ms cubic-bezier(0.2, 0, 0, 1); }
+.site-menu.open .site-menu-chev { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .site-menu-chev { transition: none; } }
+.site-menu-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -12px;
+  z-index: 40;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border: 1px solid var(--grey-line);
+  border-radius: 10px;
+  background: var(--white);
+  box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.25);
+}
+.site-menu-panel[hidden] { display: none; }
+.site-menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: var(--black);
+}
+.site-menu-item:hover,
+.site-menu-item:focus-visible { background: var(--row-hover); outline: none; }
+.site-menu-name { font: 500 15px var(--font-display); }
+.site-menu-note { font: 400 13px var(--font); color: var(--grey); }
+/* The theme pill at nav size beside the menus. */
+.hero-bar-head .hero-theme { font-size: 14px; }
+.hero-bar-head .hero-account-btn { font: 400 16px/1.2 var(--font-display); }
+/* One line box for every item in the row, links and buttons alike, so
+   Jobs and Log in share a baseline with the two menus. */
+.hero-bar-head .site-menu-link,
+.hero-bar-head .site-menu-btn,
+.hero-bar-head .hero-bar-name,
+.hero-bar-head .hero-account-btn { height: 32px; padding-top: 0; padding-bottom: 0; line-height: 1; align-items: center; }
+.hero-bar-head .hero-account { align-items: center; }
+/* A flex box, not a block: a block wraps the button in a line box with
+   room for descenders under it, which sat Resources and About 2px low. */
+.site-menu { display: flex; }
+.hero-bar-head .hero-account-btn { box-sizing: border-box; border: 0; }
+/* On a phone the right side becomes mobile_nav.js's list, and its menu
+   button is inserted first in the bar; the brand takes the left edge
+   and the button the right. */
+@media (max-width: 640px) {
+  .hero-brand { order: -1; font-size: 19px; }
+  .hero-brand img { width: 24px; height: 24px; }
 }
 .hero-bar a { color: inherit; text-decoration: none; }
 /* The name over the repository link, one column at the left. */
